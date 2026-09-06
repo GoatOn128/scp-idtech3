@@ -1,0 +1,33 @@
+// Wolf: smoke_rotating. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 500
+ shader smokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity 0 0 5
+ acceleration 0 0 0
+ bindings "verticalSign shader life fadeTime"
+ size
+ {
+  start 4
+  end 8
+  flags linear
+ }
+ alpha
+ {
+  start 1
+  end 0
+  parm 20
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ rotationDelta -8 8
+}

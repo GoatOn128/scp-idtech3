@@ -1,0 +1,96 @@
+// Wolf CG_GibPlayer controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // velocity[0] = dir[0] * ( 0.5 + random() ) * GIB_VELOCITY * 0.3;
+  velocity_x "0.5"
+  // velocity[0] = dir[0] * ( 0.5 + random() ) * GIB_VELOCITY * 0.3;
+  velocity_x_2 "0.3"
+  // velocity[1] = dir[1] * ( 0.5 + random() ) * GIB_VELOCITY * 0.3;
+  velocity_y "0.5"
+  // velocity[1] = dir[1] * ( 0.5 + random() ) * GIB_VELOCITY * 0.3;
+  velocity_y_2 "0.3"
+  // velocity[2] = GIB_JUMP + dir[2] * ( 0.5 + random() ) * GIB_VELOCITY * 0.5;
+  velocity_z "0.5"
+  // velocity[2] = GIB_JUMP + dir[2] * ( 0.5 + random() ) * GIB_VELOCITY * 0.5;
+  velocity_z_2 "0.5"
+  // size = 0.6 + 0.4 * random();
+  size "0.6"
+  // size = 0.6 + 0.4 * random();
+  size_2 "0.4"
+  // velocity[0] = crandom() * GIB_VELOCITY * 1.0;
+  velocity_x_3 "1.0"
+  // velocity[1] = crandom() * GIB_VELOCITY * 1.0;
+  velocity_y_3 "1.0"
+  // size *= 3.0;
+  size_3 "3.0"
+  // velocity[0] = crandom() * GIB_VELOCITY * 2.0;
+  velocity_x_4 "2.0"
+  // velocity[1] = crandom() * GIB_VELOCITY * 2.0;
+  velocity_y_4 "2.0"
+  // velocity[0] = dir[0] * ( 0.5 + random() ) * GIB_VELOCITY * 0.3;
+  velocity_x_5 "0.5"
+  // velocity[0] = dir[0] * ( 0.5 + random() ) * GIB_VELOCITY * 0.3;
+  velocity_x_6 "0.3"
+  // velocity[1] = dir[1] * ( 0.5 + random() ) * GIB_VELOCITY * 0.3;
+  velocity_y_5 "0.5"
+  // velocity[1] = dir[1] * ( 0.5 + random() ) * GIB_VELOCITY * 0.3;
+  velocity_y_6 "0.3"
+  // velocity[2] = GIB_JUMP + dir[2] * ( 0.5 + random() ) * GIB_VELOCITY * 0.5;
+  velocity_z_3 "0.5"
+  // velocity[2] = GIB_JUMP + dir[2] * ( 0.5 + random() ) * GIB_VELOCITY * 0.5;
+  velocity_z_4 "0.5"
+  // size = 0.6 + 0.4 * random();
+  size_4 "0.6"
+  // size = 0.6 + 0.4 * random();
+  size_5 "0.4"
+  // velocity[0] = ( ( i % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_x_7 "2"
+  // velocity[0] = ( ( i % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_x_8 "2"
+  // velocity[0] = ( ( i % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_x_9 "1"
+  // velocity[0] = ( ( i % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_x_10 "40"
+  // velocity[0] = ( ( i % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_x_11 "40"
+  // velocity[1] = ( ( ( i / 2 ) % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_y_7 "2"
+  // velocity[1] = ( ( ( i / 2 ) % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_y_8 "2"
+  // velocity[1] = ( ( ( i / 2 ) % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_y_9 "2"
+  // velocity[1] = ( ( ( i / 2 ) % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_y_10 "1"
+  // velocity[1] = ( ( ( i / 2 ) % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_y_11 "40"
+  // velocity[1] = ( ( ( i / 2 ) % 2 ) * 2 - 1 ) * ( 40 + 40 * random() );
+  velocity_y_12 "40"
+  // velocity[2] = ( ( ( i < GIB_BLOOD_DOTS ) * 2 ) - 1 ) * 40;
+  velocity_z_5 "2"
+  // velocity[2] = ( ( ( i < GIB_BLOOD_DOTS ) * 2 ) - 1 ) * 40;
+  velocity_z_6 "1"
+  // velocity[2] = ( ( ( i < GIB_BLOOD_DOTS ) * 2 ) - 1 ) * 40;
+  velocity_z_7 "40"
+  // velocity[2] = -64;
+  velocity_z_8 "64"
+  // CG_ImpactMark( cgs.media.bloodDotShaders[rand() % 5], trace.endpos, velocity, random() * 360,
+  tuning "360"
+  // 1,1,1,1, qtrue, 30, qfalse, cg_bloodTime.integer * 1000 );
+  tuning_2 "30"
+  // 1,1,1,1, qtrue, CG_FxInt( "wolf/controller_gibplayer", "tuning_2" ), qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value "1"
+  // 1,1,1,1, qtrue, CG_FxInt( "wolf/controller_gibplayer", "tuning_2" ), qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_2 "1"
+  // 1,1,1,1, qtrue, CG_FxInt( "wolf/controller_gibplayer", "tuning_2" ), qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_3 "1"
+  // 1,1,1,1, qtrue, CG_FxInt( "wolf/controller_gibplayer", "tuning_2" ), qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_4 "1"
+  // 1,1,1,1, qtrue, CG_FxInt( "wolf/controller_gibplayer", "tuning_2" ), qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_5 "1000"
+  gibVelocity 75
+  gibJump 250
+ }
+}

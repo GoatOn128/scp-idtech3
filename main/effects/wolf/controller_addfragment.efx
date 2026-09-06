@@ -1,0 +1,70 @@
+// Wolf CG_AddFragment controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // float flameAlpha = 0.0f;   // TTimo: init
+  flameAlpha "0.0"
+  // if ( le->endTime - cg.time > 5000 ) {
+  tuning "5000"
+  // re->fadeStartTime = le->endTime - 5000;
+  re_fadeStartTime "5000"
+  // flameAlpha = 1.0 - ( (float)( cg.time - le->onFireStart ) / (float)( le->onFireEnd - le->onFireStart ) );
+  flameAlpha_2 "1.0"
+  // flameAlpha = 0.0;
+  flameAlpha_3 "0.0"
+  // flameAlpha = 1.0;
+  flameAlpha_4 "1.0"
+  // trap_S_AddLoopingSound( -1, le->refEntity.origin, vec3_origin, cgs.media.flameCrackSound, (int)( 5.0 * flameAlpha ) );
+  tuning_2 "5.0"
+  // if ( !( rand() % 5 ) ) {
+  tuning_3 "5"
+  // alpha = 1.0 - ( (float)( cg.time - le->startTime ) / (float)( le->endTime - le->startTime ) );
+  alpha "1.0"
+  // alpha *= 0.25f;
+  alpha_2 "0.25"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, alpha );
+  tuning_4 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, alpha );
+  tuning_5 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, alpha );
+  tuning_6 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, alpha );
+  tuning_7 "20"
+  // newOrigin [2] -= 5;
+  _ "5"
+  // vec3_t pmin, pmax, dmin = {-12,-12,-12}, dmax = {12,12,12};
+  dmin "12"
+  // vec3_t pmin, pmax, dmin = {-12,-12,-12}, dmax = {12,12,12};
+  dmin_2 "12"
+  // vec3_t pmin, pmax, dmin = {-12,-12,-12}, dmax = {12,12,12};
+  dmin_3 "12"
+  // vec3_t pmin, pmax, dmin = {-12,-12,-12}, dmax = {12,12,12};
+  dmin_4 "12"
+  // vec3_t pmin, pmax, dmin = {-12,-12,-12}, dmax = {12,12,12};
+  dmin_5 "12"
+  // vec3_t pmin, pmax, dmin = {-12,-12,-12}, dmax = {12,12,12};
+  dmin_6 "12"
+  // pmin[2] = pmax[2] - 32; // only hit on the head
+  pmin_z "32"
+  // nle->sizeScale *= 0.8;
+  nle_sizeScale "0.8"
+  // nle->sizeScale = 0.7;
+  nle_sizeScale_2 "0.7"
+  // nle->leBounceSoundType = (leBounceSoundType_t)0;
+  nle_leBounceSoundType "0"
+  // VectorMA( trace.endpos, 4.0 * le->sizeScale * i, dir, nle->pos.trBase );
+  tuning_8 "4.0"
+  // fixed shader resource
+  smokeParticleShader "smokeParticle"
+  // fixed shader resource
+  onFireShader "entityOnFire2"
+  // fixed shader resource
+  onFireShader2 "entityOnFire1"
+  // re->fadeStartTime = le->endTime - 1000;
+  re__fadeStartTime_value "1000"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addfragment", "smokeParticleShader" ), flash.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_addfragment", "tuning_4" ), 1000, CG_FxInt( "wolf/controller_addfragment", "tuning_5" ), CG_FxInt( "wolf/controller_addfragment", "tuning_6" ), CG_FxInt( "wolf/controller_addfragment", "tuning_7" ), alpha );
+  ParticleImpactSmokePuffExtended_value "1000"
+ }
+}

@@ -1,0 +1,16 @@
+// Wolf CG_AddSparks controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->endTime = le->startTime + duration - (int)( 0.5 * random() * duration );
+  le_endTime "0.5"
+  // VectorMA( le->pos.trBase, 2 + random() * 4, dir, le->pos.trBase );
+  tuning "4"
+  // le->bounceFactor = 0.9;
+  le_bounceFactor "0.9"
+  // fixed shader resource
+  sparkParticleShader "sparkParticle"
+ }
+}

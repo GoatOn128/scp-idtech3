@@ -1,0 +1,10 @@
+// Wolf CG_AddShrapnel controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->refEntity.origin[2] -= 16 * ( 1.0 - (float)t / SINK_TIME );
+  le_refEntity_origin_z "16"
+ }
+}

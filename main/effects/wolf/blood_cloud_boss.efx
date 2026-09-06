@@ -1,0 +1,42 @@
+// Wolf: blood_cloud_boss. Appearance is configured here.
+particle
+{
+ name body
+ bindings pathLength
+ countSpacing 16
+ count 1
+ life 3350 3550
+ shader smokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity 0 0 -1
+ acceleration 0 0 0
+ size
+ {
+  start 16
+  end 16
+  flags linear
+ }
+ alpha
+ {
+  start 0.75
+  end 0
+  parm 0
+  flags nonlinear
+ }
+ rgb
+ {
+  start .22 0 0
+  end .22 0 0
+ }
+ 
+}
+
+fxrunner
+{
+ name fallingBlood
+ count 1
+ life 1
+ playfx wolf/blood_droplets
+}

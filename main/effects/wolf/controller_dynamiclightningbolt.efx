@@ -1,0 +1,103 @@
+// Wolf CG_DynamicLightningBolt controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // const float rndSize = 12.0;
+  rndSize "12.0"
+  // const float maxSTscale = 30.0;
+  maxSTscale "30.0"
+  // const int trailLife = 1;
+  trailLife "1"
+  // maxWidth *= 0.6;
+  maxWidth "0.6"
+  // segMin = length / 10.0;
+  segMin "10.0"
+  // if ( segMin < 8 ) {
+  tuning "8"
+  // segMin = 8;
+  segMin_2 "8"
+  // startAlpha = 1.0;
+  startAlpha "1.0"
+  // alpha = 1.0 - 1.0 * fabs( ( 1.0 - ( distLeft / length ) ) - startAlpha );
+  alpha "1.0"
+  // alpha = 1.0 - 1.0 * fabs( ( 1.0 - ( distLeft / length ) ) - startAlpha );
+  alpha_2 "1.0"
+  // alpha = 1.0 - 1.0 * fabs( ( 1.0 - ( distLeft / length ) ) - startAlpha );
+  alpha_3 "1.0"
+  // alpha = 0;
+  alpha_4 "0"
+  // alpha = 1;
+  alpha_5 "1"
+  // thisWidth = maxWidth * ( 0.5 + 0.5 * alpha );
+  thisWidth "0.5"
+  // thisWidth = maxWidth * ( 0.5 + 0.5 * alpha );
+  thisWidth_2 "0.5"
+  // thisWidth *= 0.5 + ( 0.5 * ( viewDist / VIEW_SCALE_DIST ) );
+  thisWidth_3 "0.5"
+  // thisWidth *= 0.5 + ( 0.5 * ( viewDist / VIEW_SCALE_DIST ) );
+  thisWidth_4 "0.5"
+  // if ( thisWidth < 4.0 && thisWidth < maxWidth ) {
+  tuning_2 "4.0"
+  // thisWidth = 4.0;
+  thisWidth_5 "4.0"
+  // thisWidth *= 0.5 + ( 0.5 * ( viewDist / VIEW_SCALE_DIST ) );
+  thisWidth_6 "0.5"
+  // thisWidth *= 0.5 + ( 0.5 * ( viewDist / VIEW_SCALE_DIST ) );
+  thisWidth_7 "0.5"
+  // thisWidth = maxWidth * 2;
+  thisWidth_8 "2"
+  // thisWidth = maxWidth * ( 0.5 + 0.5 * alpha );
+  thisWidth_9 "0.5"
+  // thisWidth = maxWidth * ( 0.5 + 0.5 * alpha );
+  thisWidth_10 "0.5"
+  // thisWidth *= 0.6;
+  thisWidth_11 "0.6"
+  // alpha = 1.0 - 1.0 * fabs( ( 1.0 - ( distLeft / length ) ) - startAlpha );
+  alpha_6 "1.0"
+  // alpha = 1.0 - 1.0 * fabs( ( 1.0 - ( distLeft / length ) ) - startAlpha );
+  alpha_7 "1.0"
+  // alpha = 1.0 - 1.0 * fabs( ( 1.0 - ( distLeft / length ) ) - startAlpha );
+  alpha_8 "1.0"
+  // alpha = 0;
+  alpha_9 "0"
+  // alpha = 1;
+  alpha_10 "1"
+  // thisWidth *= 0.5 + ( 0.5 * ( viewDist / VIEW_SCALE_DIST ) );
+  thisWidth_12 "0.5"
+  // thisWidth *= 0.5 + ( 0.5 * ( viewDist / VIEW_SCALE_DIST ) );
+  thisWidth_13 "0.5"
+  // if ( thisWidth < 4.0 && thisWidth < maxWidth ) {
+  tuning_3 "4.0"
+  // thisWidth = 4.0;
+  thisWidth_14 "4.0"
+  // thisWidth *= 0.5 + ( 0.5 * ( viewDist / VIEW_SCALE_DIST ) );
+  thisWidth_15 "0.5"
+  // thisWidth *= 0.5 + ( 0.5 * ( viewDist / VIEW_SCALE_DIST ) );
+  thisWidth_16 "0.5"
+  // thisWidth = maxWidth * 2;
+  thisWidth_17 "2"
+  // if ( thisWidth < 4 && distLeft > 10 && recursion < 3 && forks < 3 && lt_random( randseed,383 + i + forks ) < FORK_CHANCE ) {
+  tuning_4 "4"
+  // if ( thisWidth < 4 && distLeft > 10 && recursion < 3 && forks < 3 && lt_random( randseed,383 + i + forks ) < FORK_CHANCE ) {
+  tuning_5 "10"
+  // if ( thisWidth < 4 && distLeft > 10 && recursion < 3 && forks < 3 && lt_random( randseed,383 + i + forks ) < FORK_CHANCE ) {
+  tuning_6 "383"
+  // distLeft * 0.3 * lt_crandom( randseed,56 + i + forks ),
+  tuning_7 "56"
+  // distLeft * 0.3 * lt_crandom( randseed,160 + i + forks ),
+  tuning_8 "160"
+  // distLeft * 0.3 * lt_crandom( randseed,190 + i + forks ) );
+  tuning_9 "190"
+  // VectorMA( pos, 0.2 + 0.7 * lt_random( randseed,6 + i + forks ), fend, fend );
+  tuning_10 "6"
+  // CG_DynamicLightningBolt( shader, pos, fend, 1, maxWidth, qtrue, alpha, recursion + 1, randseed + 765 );
+  tuning_11 "765"
+  // CG_DynamicLightningBolt( shader, pos, fend, 1, maxWidth, qtrue, alpha, recursion + 1, randseed + CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_11" ) );
+  DynamicLightningBolt_value "1"
+  // CG_DynamicLightningBolt( shader, pos, fend, 1, maxWidth, qtrue, alpha, recursion + 1, randseed + CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_11" ) );
+  DynamicLightningBolt_value_2 "1"
+  noisePeriod 100
+ }
+}

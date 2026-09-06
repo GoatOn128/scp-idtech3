@@ -1,0 +1,26 @@
+// Wolf CG_RailTrail2 controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->lifeRate = 1.0 / ( le->endTime - le->startTime );
+  le_lifeRate "1.0"
+  // le->color[0] = ci->color[0] * 0.75;
+  le_color_x "0.75"
+  // le->color[1] = ci->color[1] * 0.75;
+  le_color_y "0.75"
+  // le->color[2] = ci->color[2] * 0.75;
+  le_color_z "0.75"
+  // le->color[0] = 1;
+  le_color_x_2 "1"
+  // le->color[1] = 0;
+  le_color_y_2 "0"
+  // le->color[2] = 0;
+  le_color_z_2 "0"
+  // le->color[3] = 1.0f;
+  le_color_a "1.0"
+  // fixed shader resource
+  railCoreShader "railCore"
+ }
+}

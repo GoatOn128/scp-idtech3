@@ -1,0 +1,16 @@
+// Wolf CG_SpawnZombieBat controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->endTime = le->startTime + 6000; // TODO: some kind of effect when the bat "burns up"
+  le_endTime "6000"
+  // VectorScale( re->axis[0], 150 + 50 * random(), le->pos.trDelta );
+  tuning "150"
+  // VectorScale( re->axis[0], 150 + 50 * random(), le->pos.trDelta );
+  tuning_2 "50"
+  // re->fadeStartTime = le->endTime - 2000;
+  re_fadeStartTime "2000"
+ }
+}

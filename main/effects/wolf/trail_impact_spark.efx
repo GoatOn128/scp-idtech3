@@ -1,0 +1,34 @@
+// Wolf connected ribbon: trail_impact_spark.
+ribbon
+{
+ name body
+ life 200
+ shader white
+ bindings "alpha width widthEnd shader"
+ size
+ {
+  start 1
+  end 1
+ }
+ alpha
+ {
+  start 1
+  end 0.0
+ }
+ rgb
+ {
+  start 1 .8 .4
+  end 1 .8 .4
+ }
+ parameters
+ {
+  flags 4
+  mapping 0
+  ratio 1
+  speed 0
+  alphaScale 2
+  sparkColor 1
+  sparkGreen .2
+  sparkBlue .4
+ }
+}

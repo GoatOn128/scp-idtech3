@@ -1,0 +1,33 @@
+// Wolf: impact_smoke. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 500
+ shader smokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc
+ rotation 0 360
+ velocity 0 0 0
+ acceleration 0 0 0
+ bindings "shader life size alpha speed acceleration"
+ size
+ {
+  start 1
+  end 2
+  flags linear
+ }
+ alpha
+ {
+  start 1
+  end 0
+  parm 20
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ rotationDelta -30 30
+}

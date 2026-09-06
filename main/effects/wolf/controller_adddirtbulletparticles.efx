@@ -1,0 +1,10 @@
+// Wolf CG_AddDirtBulletParticles event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_ParticleDirtBulletDebris_Core( pos, velocity, duration + ( rand() % ( duration >> 1 ) ), // dur * 0.5, but int
+  ParticleDirtBulletDebris_Core_value "1"
+ }
+}

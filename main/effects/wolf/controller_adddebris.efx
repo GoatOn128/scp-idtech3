@@ -1,0 +1,20 @@
+// Wolf CG_AddDebris controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->endTime = le->startTime + duration + (int)( (float)duration * 0.8 * crandom() );
+  le_endTime "0.8"
+  // timeAdd = 10.0 + random() * 40.0;
+  timeAdd "10.0"
+  // timeAdd = 10.0 + random() * 40.0;
+  timeAdd_2 "40.0"
+  // le->bounceFactor = 0.5;
+  le_bounceFactor "0.5"
+  // le->effectWidth = 5 + random() * 5;
+  le_effectWidth "5"
+  // le->effectWidth = 5 + random() * 5;
+  le_effectWidth_2 "5"
+ }
+}

@@ -1,0 +1,14 @@
+// Wolf CG_SpawnTracer controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // start[2] -= 32; // (SA) hack to get the tracer down below the barrel FIXME: do properly
+  start_z "32"
+  // if ( VectorLength( ofs ) < 64 ) {
+  tuning "64"
+  // le->endTime = le->startTime + 1000.0 * dist / cg_tracerSpeed.value;
+  le__endTime_value "1000.0"
+ }
+}

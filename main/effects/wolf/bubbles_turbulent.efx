@@ -1,0 +1,33 @@
+// Wolf: bubbles_turbulent. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 86400000
+ shader waterBubble
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0
+ velocity -4 -4 65 4 4 65
+ acceleration 0 0 0
+ bindings "shader volume"
+ size
+ {
+  start .5 1.5
+  end 1
+  flags linear
+ }
+ alpha
+ {
+  start 0.4
+  end 0
+  parm 100
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ repeat 1
+}

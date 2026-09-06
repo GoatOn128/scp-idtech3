@@ -1,0 +1,12 @@
+// Wolf CG_GrenadeTrail controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // step = 15;  // nice and smooth curves
+  step "15"
+  // CG_BubbleTrail( lastPos, origin, 2, 8 );
+  tuning "8"
+ }
+}

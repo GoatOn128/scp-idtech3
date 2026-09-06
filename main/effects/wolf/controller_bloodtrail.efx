@@ -1,0 +1,26 @@
+// Wolf CG_BloodTrail controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // step = 10;
+  step "10"
+  // step = 30;
+  step_2 "30"
+  // CG_Particle_Bleed( cgs.media.smokePuffShader, newOrigin, vec3_origin, 0, 500 + rand() % 200 );
+  tuning "500"
+  // CG_Particle_Bleed( cgs.media.smokePuffShader, newOrigin, vec3_origin, 0, 500 + rand() % 200 );
+  tuning_2 "200"
+  // CG_Particle_Bleed( cgs.media.smokePuffShader, newOrigin, vec3_origin, 1, 500 + rand() % 200 );
+  tuning_3 "500"
+  // CG_Particle_Bleed( cgs.media.smokePuffShader, newOrigin, vec3_origin, 1, 500 + rand() % 200 );
+  tuning_4 "200"
+  // fixed shader resource
+  smokePuffShader "smokePuff"
+  // CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, 0, CG_FxInt( "wolf/controller_bloodtrail", "tuning" ) + rand() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_2" ) );
+  Particle_Bleed_value "0"
+  // CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, 1, CG_FxInt( "wolf/controller_bloodtrail", "tuning_3" ) + rand() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_4" ) );
+  Particle_Bleed_value_2 "1"
+ }
+}

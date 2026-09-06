@@ -1,0 +1,14 @@
+// Wolf CG_SpawnHelgaSpirit controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->startTime = cg.time - 5000; // set it back so we dont fade it in like the "end" spirits
+  le_startTime "5000"
+  // le->endTime = cg.time + 5000;
+  le_endTime "5000"
+  // re->fadeStartTime = le->endTime - 2000;
+  re_fadeStartTime "2000"
+ }
+}

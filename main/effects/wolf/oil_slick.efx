@@ -1,0 +1,34 @@
+// Wolf: oil_slick. Appearance is configured here.
+orientedParticle
+{
+ name body
+ count 1
+ life 60000
+ shader oilSlick
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity 0 0 0
+ acceleration 0 0 0
+ bindings "size sizeEnd life shader"
+ size
+ {
+  start 1
+  end 16
+  flags linear
+ }
+ alpha
+ {
+  start 0.75
+  end 0
+  parm 100
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ repeat 3
+ origin 0 0 .55 0 0 1.05
+}

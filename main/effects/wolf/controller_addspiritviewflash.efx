@@ -1,0 +1,12 @@
+// Wolf CG_AddSpiritViewflash controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // alpha = 1.0;
+  alpha "1.0"
+  // alpha = 1.0 - (float)( cg.time - ( le->startTime + SPIRIT_FLASH_FADEIN + SPIRIT_FLASH_DURATION ) ) / (float)SPIRIT_FLASH_FADEOUT;
+  alpha_2 "1.0"
+ }
+}

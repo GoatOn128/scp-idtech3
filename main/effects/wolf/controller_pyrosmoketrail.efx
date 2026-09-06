@@ -1,0 +1,22 @@
+// Wolf CG_PyroSmokeTrail controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // static float grounddir = 99;
+  grounddir "99"
+  // if ( grounddir == 99 ) { // pick a wind direction -- cheap trick because it can be different
+  tuning "99"
+  // step = 30;
+  step "30"
+  // angles[ROLL] += cg.time % 360;
+  angles_ROLL_ "360"
+  // dir[0] = crandom() * 5; // compute offset from flare base
+  dir_x "5"
+  // dir[1] = crandom() * 5;
+  dir_y "5"
+  // VectorScale( dir,45,dir ); // was 75
+  tuning_2 "45"
+ }
+}

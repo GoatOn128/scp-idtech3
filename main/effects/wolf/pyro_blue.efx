@@ -1,0 +1,30 @@
+// Wolf pyro_blue: authored particle appearance.
+particle
+{
+ name body
+ count 1
+ life 4800 7600
+ shader smokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ bindings velocity
+ rotation 0 360
+ fadeIn 0
+ size
+ {
+  start 25 135
+  end 33 143
+  flags linear
+ }
+ alpha
+ {
+  start .5
+  end 0
+  parm 0
+  flags nonlinear
+ }
+ rgb
+ {
+  start .5 .5 1 1 1 1
+ }
+}

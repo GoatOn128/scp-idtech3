@@ -1,0 +1,30 @@
+// Wolf breath: authored particle appearance.
+particle
+{
+ name body
+ count 1
+ life 2000
+ shader shotgunSmokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ bindings velocity
+ rotation 0 360
+ fadeIn 400
+ size
+ {
+  start 4
+  end 12
+  flags linear
+ }
+ alpha
+ {
+  start .5
+  end 0
+  parm 20
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+ }
+}

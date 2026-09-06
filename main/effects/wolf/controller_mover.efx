@@ -1,0 +1,16 @@
+// Wolf CG_Mover event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_AddBulletParticles( cent->lerpOrigin, angNorm, 2, 800, 4, 16.0f );
+  AddBulletParticles_value "2"
+  // CG_AddBulletParticles( cent->lerpOrigin, angNorm, 2, 800, 4, 16.0f );
+  AddBulletParticles_value_2 "800"
+  // CG_AddBulletParticles( cent->lerpOrigin, angNorm, 2, 800, 4, 16.0f );
+  AddBulletParticles_value_3 "4"
+  // CG_AddBulletParticles( cent->lerpOrigin, angNorm, 2, 800, 4, 16.0f );
+  AddBulletParticles_value_4 "16.0"
+ }
+}

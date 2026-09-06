@@ -1,0 +1,5 @@
+controller
+{
+ name nozzle
+ animation "nozzleFlame 8"
+}

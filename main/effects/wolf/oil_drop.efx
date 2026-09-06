@@ -1,0 +1,34 @@
+// Wolf: oil_drop. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 2000
+ shader bloodTrail
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity 0 0 0
+ acceleration 0 0 -40
+ velocityScale 16 16 16
+ bindings "velocity shader"
+ size
+ {
+  start 2
+  end 1
+  flags linear
+ }
+ alpha
+ {
+  start 0.5
+  end 0
+  parm 100
+  flags nonlinear
+ }
+ rgb
+ {
+  start .22 0 0
+  end .22 0 0
+ }
+ 
+}

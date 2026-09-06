@@ -1,0 +1,20 @@
+// Wolf CG_ProcessEntity event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, tv( 0,0,1 ), 6, 2000, 4, 10, 16, 0.2f );
+  ParticleImpactSmokePuffExtended_value "6"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, tv( 0,0,1 ), 6, 2000, 4, 10, 16, 0.2f );
+  ParticleImpactSmokePuffExtended_value_2 "2000"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, tv( 0,0,1 ), 6, 2000, 4, 10, 16, 0.2f );
+  ParticleImpactSmokePuffExtended_value_3 "4"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, tv( 0,0,1 ), 6, 2000, 4, 10, 16, 0.2f );
+  ParticleImpactSmokePuffExtended_value_4 "10"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, tv( 0,0,1 ), 6, 2000, 4, 10, 16, 0.2f );
+  ParticleImpactSmokePuffExtended_value_5 "16"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, tv( 0,0,1 ), 6, 2000, 4, 10, 16, 0.2f );
+  ParticleImpactSmokePuffExtended_value_6 "0.2"
+ }
+}

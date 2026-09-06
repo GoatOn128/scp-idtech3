@@ -1,0 +1,82 @@
+// Wolf CG_AddClientCritter controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // int time, step = 25, i;
+  step "25"
+  // float alpha = 0.0f, fadeRatio; // TTimo: init
+  alpha "0.0"
+  // enemyPos[0] += 12 * ( sin( of / 100 ) * cos( of / 78 ) );
+  enemyPos_x "12"
+  // enemyPos[0] += 12 * ( sin( of / 100 ) * cos( of / 78 ) );
+  enemyPos_x_2 "100"
+  // enemyPos[0] += 12 * ( sin( of / 100 ) * cos( of / 78 ) );
+  enemyPos_x_3 "78"
+  // enemyPos[1] += 12 * ( sin( of / 70 ) * cos( of / 82 ) );
+  enemyPos_y "12"
+  // enemyPos[1] += 12 * ( sin( of / 70 ) * cos( of / 82 ) );
+  enemyPos_y_2 "70"
+  // enemyPos[1] += 12 * ( sin( of / 70 ) * cos( of / 82 ) );
+  enemyPos_y_3 "82"
+  // enemyPos[2] += 12 * ( sin( of / 67 ) * cos( of / 98 ) );
+  enemyPos_z "12"
+  // enemyPos[2] += 12 * ( sin( of / 67 ) * cos( of / 98 ) );
+  enemyPos_z_2 "67"
+  // enemyPos[2] += 12 * ( sin( of / 67 ) * cos( of / 98 ) );
+  enemyPos_z_3 "98"
+  // fadeRatio = (float)( cg.time - le->startTime ) / 2000.0;
+  fadeRatio "2000.0"
+  // alpha = 0;
+  alpha_2 "0"
+  // alpha = 1;
+  alpha_3 "1"
+  // le->bounceFactor = 3.0 * (float)step / 1000.0;
+  le_bounceFactor "3.0"
+  // le->bounceFactor = 5.0 * (float)step / 1000.0;
+  le_bounceFactor_2 "5.0"
+  // if ( alpha > 0.5 && ( le->lastSpiritDmgTime < time - 100 ) && enemyDist < 24 ) {
+  tuning "100"
+  // if ( alpha > 0.5 && ( le->lastSpiritDmgTime < time - 100 ) && enemyDist < 24 ) {
+  tuning_2 "24"
+  // fb->startTime = cg.time + 50;
+  fb_startTime "50"
+  // le->bounceFactor = 5.0 * (float)step / 1000.0;  // avoidance factor
+  le_bounceFactor_3 "5.0"
+  // le->bounceFactor = ( 1.0 - trace.fraction ) * 10.0 * (float)step / 1000.0;  // tracking and avoidance factor
+  le_bounceFactor_4 "1.0"
+  // le->bounceFactor = ( 1.0 - trace.fraction ) * 10.0 * (float)step / 1000.0;  // tracking and avoidance factor
+  le_bounceFactor_5 "10.0"
+  // ang[ROLL] = -0.5 * DotProduct( le->refEntity.axis[1], v2 );
+  ang_ROLL_ "0.5"
+  // if ( fabs( ang[ROLL] ) < 20 ) {
+  tuning_3 "20"
+  // ang[ROLL] = 0;
+  ang_ROLL__2 "0"
+  // ang[ROLL] += 20;
+  ang_ROLL__3 "20"
+  // ang[ROLL] -= 20;
+  ang_ROLL__4 "20"
+  // if ( fabs( ang[ROLL] ) > 80 ) {
+  tuning_4 "80"
+  // if ( ang[ROLL] > 80 ) {
+  tuning_5 "80"
+  // ang[ROLL] = 80;
+  ang_ROLL__5 "80"
+  // } else { ang[ROLL] = -80;}
+  ang_ROLL__6 "80"
+  // VectorMA( le->refEntity.origin, -10, le->refEntity.axis[2], le->refEntity.origin );
+  tuning_6 "10"
+  // le->refEntity.frame = ( cg.time / BAT_ANIM_FRAMETIME + 1 ) % 19;
+  le_refEntity_frame "19"
+  // le->refEntity.oldframe = ( cg.time / BAT_ANIM_FRAMETIME ) % 19;
+  le_refEntity_oldframe "19"
+  // le->refEntity.shaderTime = 1434;
+  le_refEntity_shaderTime "1434"
+  // fixed model resource
+  ssSpiritSkullModel "models/players/supersoldier/ssghost.md3"
+  // fixed shader resource
+  onFireShader2 "entityOnFire1"
+ }
+}

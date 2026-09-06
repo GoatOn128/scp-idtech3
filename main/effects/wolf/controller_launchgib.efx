@@ -1,0 +1,46 @@
+// Wolf CG_LaunchGib controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->endTime = le->startTime + 20000 + ( crandom() * 5000 );
+  le_endTime "20000"
+  // le->endTime = le->startTime + 20000 + ( crandom() * 5000 );
+  le_endTime_2 "5000"
+  // le->angles.trDelta[0] = 400 * crandom();
+  le_angles_trDelta_x "400"
+  // le->angles.trDelta[1] = 400 * crandom();
+  le_angles_trDelta_y "400"
+  // le->angles.trDelta[2] = 400 * crandom();
+  le_angles_trDelta_z "400"
+  // le->bounceFactor = 0.5;
+  le_bounceFactor "0.5"
+  // le->endTime = le->startTime + 999000;   // stay around for long enough to see the player off
+  le_endTime_3 "999000"
+  // le->angles.trDelta[0] = ( 10 + ( rand() & 50 ) ) - 30;
+  le_angles_trDelta_x_2 "10"
+  // le->angles.trDelta[0] = ( 10 + ( rand() & 50 ) ) - 30;
+  le_angles_trDelta_x_3 "50"
+  // le->angles.trDelta[0] = ( 10 + ( rand() & 50 ) ) - 30;
+  le_angles_trDelta_x_4 "30"
+  // le->angles.trDelta[1] = ( 100 + ( rand() & 500 ) ) - 300; // (SA) this is the safe one right now (yaw)  turn the others up when I have tumbling things landing properly
+  le_angles_trDelta_y_2 "100"
+  // le->angles.trDelta[1] = ( 100 + ( rand() & 500 ) ) - 300; // (SA) this is the safe one right now (yaw)  turn the others up when I have tumbling things landing properly
+  le_angles_trDelta_y_3 "500"
+  // le->angles.trDelta[1] = ( 100 + ( rand() & 500 ) ) - 300; // (SA) this is the safe one right now (yaw)  turn the others up when I have tumbling things landing properly
+  le_angles_trDelta_y_4 "300"
+  // le->angles.trDelta[2] = ( 10 + ( rand() & 50 ) ) - 30;
+  le_angles_trDelta_z_2 "10"
+  // le->angles.trDelta[2] = ( 10 + ( rand() & 50 ) ) - 30;
+  le_angles_trDelta_z_3 "50"
+  // le->angles.trDelta[2] = ( 10 + ( rand() & 50 ) ) - 30;
+  le_angles_trDelta_z_4 "30"
+  // le->bounceFactor = 0.3;
+  le_bounceFactor_2 "0.3"
+  // le->bounceFactor = 0.4;
+  le_bounceFactor_3 "0.4"
+  // re->fadeStartTime       = le->endTime - 1000;
+  re__fadeStartTime_value "1000"
+ }
+}

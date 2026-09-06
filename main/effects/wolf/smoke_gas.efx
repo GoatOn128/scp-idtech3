@@ -1,0 +1,34 @@
+// Wolf: smoke_gas. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 1000
+ shader smokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity -16 -16 2 16 16 6
+ velocityScale 32 32 0
+ acceleration 0 0 0
+ bindings "verticalSign life fadeTime size sizeEnd velocity"
+ size
+ {
+  start 1
+  end 1
+  flags linear
+ }
+ alpha
+ {
+  start 0.75
+  end 0
+  parm 20
+  flags nonlinear
+ }
+ rgb
+ {
+  start .42 .33 .19
+  end .42 .33 .19
+ }
+ rotationDelta -8 8
+}

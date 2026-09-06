@@ -1,0 +1,40 @@
+// Wolf CG_PanzerFaustEjectBrass controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // velocity[0] = 16;
+  velocity_x "16"
+  // velocity[1] = -200;
+  velocity_y "200"
+  // velocity[2] = 0;
+  velocity_z "0"
+  // le->endTime = le->startTime + ( cg_brassTime.integer * 8 ) + ( cg_brassTime.integer * random() );
+  le_endTime "8"
+  // le->pos.trTime = cg.time - ( rand() & 15 );
+  le_pos_trTime "15"
+  // offset[0] = -24;    // forward
+  offset_x "24"
+  // offset[1] = -4; // left
+  offset_y "4"
+  // offset[2] = 24; // up
+  offset_z "24"
+  // le->sizeScale = 3.0f;
+  le_sizeScale "3.0"
+  // le->bounceFactor = 0.4 * waterScale;
+  le_bounceFactor "0.4"
+  // le->angles.trBase[0] = 0;
+  le_angles_trBase_x "0"
+  // le->angles.trBase[2] = 0;
+  le_angles_trBase_z "0"
+  // le->angles.trDelta[0] = 0;
+  le_angles_trDelta_x "0"
+  // le->angles.trDelta[1] = 0;
+  le_angles_trDelta_y "0"
+  // le->angles.trDelta[2] = 0;
+  le_angles_trDelta_z "0"
+  // fixed model resource
+  panzerfaustBrassModel "models/weapons2/shells/pf_shell.md3"
+ }
+}

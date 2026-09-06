@@ -1,0 +1,33 @@
+// Wolf: dirt_core. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 500
+ shader dirt_splash
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity 0 0 0
+ acceleration 0 0 -660
+ bindings "aspect velocity life size shader alpha"
+ size
+ {
+  start 1
+  end 1
+  flags linear
+ }
+ alpha
+ {
+  start 1
+  end 0
+  parm 50
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ 
+}

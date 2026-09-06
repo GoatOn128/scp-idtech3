@@ -1,0 +1,35 @@
+// Wolf: smoke_white. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 1000
+ shader smokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity -1 -1 0 1 1 0
+ velocityScale 1 1 0
+ sizeVelocity 1 1 0
+ acceleration 0 0 0
+ bindings "verticalSign life fadeTime size sizeEnd velocity verticalSpeed"
+ size
+ {
+  start 1
+  end 1
+  flags linear
+ }
+ alpha
+ {
+  start 1
+  end 0
+  parm 20
+  flags nonlinear
+ }
+ rgb
+ {
+  start .5 .5 .5
+  end .5 .5 .5
+ }
+ rotationDelta -8 8
+}

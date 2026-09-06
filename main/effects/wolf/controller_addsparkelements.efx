@@ -1,0 +1,12 @@
+// Wolf CG_AddSparkElements controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // FxTrailInputs().Alpha( 1.0 - lifeFrac ).Width( lifeFrac * 2.0 * ( ( ( le->endTime - le->startTime ) > 400 ) + 1 ) * 1.5 ).WidthEnd( lifeFrac * 2.0 * ( ( ( le->endTime - le->startTime ) > 400 ) + 1 ) * 1.5 ).Shader( le->refEntity.customShader ) );
+  tuning "400"
+  // FxTrailInputs().Alpha( 1.0 - lifeFrac ).Width( lifeFrac * 2.0 * ( ( ( le->endTime - le->startTime ) > 400 ) + 1 ) * 1.5 ).WidthEnd( lifeFrac * 2.0 * ( ( ( le->endTime - le->startTime ) > 400 ) + 1 ) * 1.5 ).Shader( le->refEntity.customShader ) );
+  tuning_2 "400"
+ }
+}

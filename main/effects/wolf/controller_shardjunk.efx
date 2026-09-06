@@ -1,0 +1,42 @@
+// Wolf CG_ShardJunk controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->endTime             = le->startTime + 5000 + random() * 5000;
+  le_endTime "5000"
+  // le->endTime             = le->startTime + 5000 + random() * 5000;
+  le_endTime_2 "5000"
+  // le->lifeRate            = 1.0 / ( le->endTime - le->startTime );
+  le_lifeRate "1.0"
+  // le->bounceFactor        = 0.4;
+  le_bounceFactor "0.4"
+  // VectorScale( dir, 10 * 8, le->pos.trDelta );
+  tuning "10"
+  // VectorScale( dir, 10 * 8, le->pos.trDelta );
+  tuning_2 "8"
+  // le->pos.trDelta[0] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_x "100"
+  // le->pos.trDelta[0] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_x_2 "50"
+  // le->pos.trDelta[1] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_y "100"
+  // le->pos.trDelta[1] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_y_2 "50"
+  // le->pos.trDelta[2] = ( random() * 100 ) + 50; // randomize sort of a lot so they don't all land together
+  le_pos_trDelta_z "100"
+  // le->pos.trDelta[2] = ( random() * 100 ) + 50; // randomize sort of a lot so they don't all land together
+  le_pos_trDelta_z_2 "50"
+  // le->angles.trBase[2] = rand() & 31;
+  le_angles_trBase_z "31"
+  // le->angles.trDelta[2] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_z "100"
+  // le->angles.trDelta[2] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_z_2 "500"
+  // le->angles.trDelta[2] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_z_3 "300"
+  // re->fadeStartTime       = le->endTime - 1000;
+  re__fadeStartTime_value "1000"
+ }
+}

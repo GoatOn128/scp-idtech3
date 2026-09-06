@@ -1,0 +1,95 @@
+// Dense wound spray: short streaks, falling drops and a brief fine mist.
+tail
+{
+ name streaks
+ count 20 28
+ life 1800 2400
+ shader fx/blood_drop
+ flags useAlpha usePhysics expensivePhysics impactKills
+ collision solid
+ spawnFlags cheapOrgCalc
+ velocity 75 -65 -35 175 65 75
+ gravity -600
+ impactfx wolf/blood_splat
+ size
+ {
+  start 1 1.8
+  end .35 .7
+  flags linear
+ }
+ length
+ {
+  start 4 9
+  end 1 3
+  flags linear
+ }
+ alpha
+ {
+  start 1
+  end 0
+  parm 85
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+ }
+}
+particle
+{
+ name drops
+ count 12 18
+ life 2200 2800
+ shader fx/blood_drop
+ flags useAlpha usePhysics expensivePhysics impactKills
+ collision solid
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ velocity -60 -60 25 60 60 115
+ gravity -600
+ impactfx wolf/blood_splat
+ rotation 0 360
+ size
+ {
+  start 1.1 2.1
+  end .5 1
+  flags linear
+ }
+ alpha
+ {
+  start .95
+  end 0
+  parm 85
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+ }
+}
+particle
+{
+ name mist
+ count 2 3
+ life 180 320
+ shader bloodCloud
+ flags useAlpha
+ spawnFlags cheapOrgCalc
+ velocity 20 -12 -12 40 12 12
+ rotation 0 360
+ size
+ {
+  start 3 5
+  end 10 16
+  flags linear
+ }
+ alpha
+ {
+  start .4
+  end 0
+  flags linear
+ }
+ rgb
+ {
+  start .55 .035 .02
+ }
+}

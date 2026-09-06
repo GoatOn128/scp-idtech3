@@ -1,0 +1,86 @@
+// Wolf CG_Shard controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->endTime             = le->startTime + 5000 + random() * 5000;
+  le_endTime "5000"
+  // le->endTime             = le->startTime + 5000 + random() * 5000;
+  le_endTime_2 "5000"
+  // le->endTime             = le->startTime + 100;
+  le_endTime_3 "100"
+  // re->fadeStartTime       = le->endTime - 100;
+  re_fadeStartTime "100"
+  // le->lifeRate            = 1.0 / ( le->endTime - le->startTime );
+  le_lifeRate "1.0"
+  // le->bounceFactor        = 0.4;
+  le_bounceFactor "0.4"
+  // VectorScale( dir, 10 * howmany, le->pos.trDelta );
+  tuning "10"
+  // le->pos.trDelta[0] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_x "100"
+  // le->pos.trDelta[0] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_x_2 "50"
+  // le->pos.trDelta[1] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_y "100"
+  // le->pos.trDelta[1] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_y_2 "50"
+  // le->pos.trDelta[2] = ( random() * 200 ) + 100;    // randomize sort of a lot so they don't all land together
+  le_pos_trDelta_z "200"
+  // le->pos.trDelta[2] = ( random() * 200 ) + 100;    // randomize sort of a lot so they don't all land together
+  le_pos_trDelta_z_2 "100"
+  // le->pos.trDelta[2] = ( random() * 100 ) + 50; // randomize sort of a lot so they don't all land together
+  le_pos_trDelta_z_3 "100"
+  // le->pos.trDelta[2] = ( random() * 100 ) + 50; // randomize sort of a lot so they don't all land together
+  le_pos_trDelta_z_4 "50"
+  // le->angles.trBase[0] = rand() & 31;
+  le_angles_trBase_x "31"
+  // le->angles.trBase[1] = rand() & 31;
+  le_angles_trBase_y "31"
+  // le->angles.trBase[2] = rand() & 31;
+  le_angles_trBase_z "31"
+  // le->angles.trDelta[0] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_x "100"
+  // le->angles.trDelta[0] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_x_2 "500"
+  // le->angles.trDelta[0] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_x_3 "300"
+  // le->angles.trDelta[1] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_y "100"
+  // le->angles.trDelta[1] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_y_2 "500"
+  // le->angles.trDelta[1] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_y_3 "300"
+  // le->angles.trDelta[2] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_z "100"
+  // le->angles.trDelta[2] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_z_2 "500"
+  // le->angles.trDelta[2] = ( 100 + ( rand() & 500 ) ) - 300;
+  le_angles_trDelta_z_3 "300"
+  // fixed model resource
+  shardGlass1 "models/shards/glass1.md3"
+  // fixed model resource
+  shardGlass2 "models/shards/glass2.md3"
+  // fixed model resource
+  shardWood1 "models/shards/wood1.md3"
+  // fixed model resource
+  shardWood2 "models/shards/wood2.md3"
+  // fixed model resource
+  shardMetal1 "models/shards/metal1.md3"
+  // fixed model resource
+  shardMetal2 "models/shards/metal2.md3"
+  // fixed model resource
+  shardCeramic1 "models/shards/ceramic1.md3"
+  // fixed model resource
+  shardCeramic2 "models/shards/ceramic2.md3"
+  // fixed model resource
+  shardRubble1 "models/mapobjects/debris/brick000.md3"
+  // fixed model resource
+  shardRubble2 "models/mapobjects/debris/brick001.md3"
+  // fixed model resource
+  shardRubble3 "models/mapobjects/debris/brick002.md3"
+  // re->fadeStartTime       = le->endTime - 1000;
+  re__fadeStartTime_value "1000"
+ }
+}

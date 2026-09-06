@@ -1,0 +1,33 @@
+// Wolf: blood_pool. Appearance is configured here.
+screenDecal
+{
+ name body
+ count 1
+ life 18000
+ shader blood_dot1
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity 0 0 0
+ acceleration 0 0 0
+ bindings "shader"
+ size
+ {
+  start 3.2 8
+  end 6.4 16
+  flags linear
+ }
+ alpha
+ {
+  start 0.75
+  end 0
+  parm 70
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ projectionDepth 2
+}

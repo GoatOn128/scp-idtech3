@@ -1,0 +1,24 @@
+// Wolf CG_AddSpriteExplosion controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // re.shaderRGBA[3] = 0xff * c * 0.33;
+  re_shaderRGBA_a "0.33"
+  // re.radius = 42 * ( 1.0 - c ) + 30;
+  re_radius "42"
+  // re.radius = 42 * ( 1.0 - c ) + 30;
+  re_radius_2 "1.0"
+  // re.radius = 42 * ( 1.0 - c ) + 30;
+  re_radius_3 "30"
+  // light = 1.0;
+  light "1.0"
+  // light = 1.0 - ( light - 0.5 ) * 2;
+  light_2 "1.0"
+  // light = 1.0 - ( light - 0.5 ) * 2;
+  light_3 "0.5"
+  // light = 1.0 - ( light - 0.5 ) * 2;
+  light_4 "2"
+ }
+}

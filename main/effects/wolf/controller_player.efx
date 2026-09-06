@@ -1,0 +1,28 @@
+// Wolf CG_Player event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, acc.origin, tv( 0,0,1 ), 1, 1000, 6, 4, 10, 0.15f );
+  ParticleImpactSmokePuffExtended_value "1"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, acc.origin, tv( 0,0,1 ), 1, 1000, 6, 4, 10, 0.15f );
+  ParticleImpactSmokePuffExtended_value_2 "1000"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, acc.origin, tv( 0,0,1 ), 1, 1000, 6, 4, 10, 0.15f );
+  ParticleImpactSmokePuffExtended_value_3 "6"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, acc.origin, tv( 0,0,1 ), 1, 1000, 6, 4, 10, 0.15f );
+  ParticleImpactSmokePuffExtended_value_4 "4"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, acc.origin, tv( 0,0,1 ), 1, 1000, 6, 4, 10, 0.15f );
+  ParticleImpactSmokePuffExtended_value_5 "10"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, acc.origin, tv( 0,0,1 ), 1, 1000, 6, 4, 10, 0.15f );
+  ParticleImpactSmokePuffExtended_value_6 "0.15"
+  // CG_AddBulletParticles( acc.origin, dir, 30, 10 * mynum, 3, 300.0f );
+  AddBulletParticles_value "30"
+  // CG_AddBulletParticles( acc.origin, dir, 30, 10 * mynum, 3, 300.0f );
+  AddBulletParticles_value_2 "10"
+  // CG_AddBulletParticles( acc.origin, dir, 30, 10 * mynum, 3, 300.0f );
+  AddBulletParticles_value_3 "3"
+  // CG_AddBulletParticles( acc.origin, dir, 30, 10 * mynum, 3, 300.0f );
+  AddBulletParticles_value_4 "300.0"
+ }
+}

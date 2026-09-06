@@ -1,0 +1,92 @@
+// Wolf CG_AddHelgaSpiritEffect controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // const int trailLife         = 600;
+  trailLife "600"
+  // const float idealWidth      = 30.0;
+  idealWidth "30.0"
+  // const int fadeInTime        = 2000;
+  fadeInTime "2000"
+  // const int fadeOutTime       = 2000;
+  fadeOutTime "2000"
+  // const int minRotationTime   = 6000;
+  minRotationTime "6000"
+  // const int maxRotationTime   = 10000;
+  maxRotationTime "10000"
+  // const int minRadiusCycleTime    = 2400;
+  minRadiusCycleTime "2400"
+  // const int maxRadiusCycleTime    = 2900;
+  maxRadiusCycleTime "2900"
+  // const int zCycleTime        = 3000;
+  zCycleTime "3000"
+  // const float minDist         = 50;
+  minDist "50"
+  // const float maxDist         = 100;
+  maxDist "100"
+  // const float fadeDist        = 4;
+  fadeDist "4"
+  // const int sndIntervalMin    = 300;
+  sndIntervalMin "300"
+  // const int sndIntervalMax    = 1400;
+  sndIntervalMax "1400"
+  // const int step              = 25;
+  step "25"
+  // alpha = 1.0 - ( (float)( cg.time - cent->pe.zombieSpiritEndTime ) / (float)fadeOutTime );
+  alpha "1.0"
+  // alpha *= 0.3;
+  alpha_2 "0.3"
+  // radius = ( minDist + sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+  radius "2"
+  // v[2] = 12 + 36 * ( 0.5 + 0.5 * fadeRatio ) * sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
+  v_z "12"
+  // v[2] = 12 + 36 * ( 0.5 + 0.5 * fadeRatio ) * sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
+  v_z_2 "36"
+  // v[2] -= ( 1.0 - fadeRatio ) * 32;
+  v_z_3 "32"
+  // radius = pow( 1.0 - fadeRatio, 2 ) * fadeDist + ( 1.0 - pow( 1.0 - fadeRatio, 2 ) ) * ( minDist + sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+  radius_2 "1.0"
+  // radius = pow( 1.0 - fadeRatio, 2 ) * fadeDist + ( 1.0 - pow( 1.0 - fadeRatio, 2 ) ) * ( minDist + sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+  radius_3 "2"
+  // radius = pow( 1.0 - fadeRatio, 2 ) * fadeDist + ( 1.0 - pow( 1.0 - fadeRatio, 2 ) ) * ( minDist + sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+  radius_4 "1.0"
+  // radius = pow( 1.0 - fadeRatio, 2 ) * fadeDist + ( 1.0 - pow( 1.0 - fadeRatio, 2 ) ) * ( minDist + sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+  radius_5 "1.0"
+  // radius = pow( 1.0 - fadeRatio, 2 ) * fadeDist + ( 1.0 - pow( 1.0 - fadeRatio, 2 ) ) * ( minDist + sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+  radius_6 "2"
+  // radius = pow( 1.0 - fadeRatio, 2 ) * fadeDist + ( 1.0 - pow( 1.0 - fadeRatio, 2 ) ) * ( minDist + sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+  radius_7 "2"
+  // v[2] = 12 + 36 * sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
+  v_z_4 "12"
+  // v[2] = 12 + 36 * sin( M_PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
+  v_z_5 "36"
+  // v[2] -= ( 1.0 - fadeRatio ) * 32;
+  v_z_6 "32"
+  // cent->pe.zombieSpiritEndTime = 0;
+  cent_pe_zombieSpiritEndTime "0"
+  // alpha = 1.0 - ( (float)( cg.time - cent->pe.zombieSpiritEndTime ) / (float)fadeOutTime );
+  alpha_3 "1.0"
+  // refent.shaderRGBA[3] = (byte)( 0.5 * alpha * 255.0 );
+  refent_shaderRGBA_a "0.5"
+  // if ( cent->pe.zombieSpiritSpeed[i] < 300 ) {
+  tuning "300"
+  // cent->pe.zombieSpiritSpeed[i] = 300;
+  cent_pe_zombieSpiritSpeed_i_ "300"
+  // alpha = 1.0 - ( (float)( cg.time - cent->pe.zombieSpiritEndTime ) / (float)fadeOutTime );
+  alpha_4 "1.0"
+  // cent->pe.zombieSpiritEndTime = 0;   // stop the effect
+  cent_pe_zombieSpiritEndTime_2 "0"
+  // trap_R_AddLightToScene( cent->lerpOrigin, 500.0, 1.0 * fadeRatio, 1.0 * fadeRatio, 1.0 * fadeRatio, 10 );
+  tuning_2 "500.0"
+  // trap_R_AddLightToScene( cent->lerpOrigin, 500.0, 1.0 * fadeRatio, 1.0 * fadeRatio, 1.0 * fadeRatio, 10 );
+  tuning_3 "10"
+  // fixed model resource
+  helgaGhostModel "models/players/beast/ghost.md3"
+  // fixed shader resource
+  helgaSpiritSkullShader "helgaSpiritGhost"
+  // cent->pe.zombieSpiritSpeed[i] = 1000.0 / step * VectorNormalize( cent->pe.zombieSpiritDir[i] );
+  cent__pe_zombieSpiritSpeed_i__value "1000.0"
+ }
+}

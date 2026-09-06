@@ -1,0 +1,128 @@
+// Wolf CG_Effect controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // for ( i = 0; i < 5; i++ ) {
+  i "5"
+  // sprOrg[j] = origin[j] + 64 * dir[j] + 24 * crandom();
+  sprOrg_j_ "64"
+  // sprOrg[j] = origin[j] + 64 * dir[j] + 24 * crandom();
+  sprOrg_j__2 "24"
+  // sprVel[2] += rand() % 50;
+  sprVel_z "50"
+  // 3500 + rand() % 250,          // duration
+  tuning "3500"
+  // 3500 + rand() % 250,          // duration
+  tuning_2 "250"
+  // 10,                           // startsize
+  tuning_3 "10"
+  // 250 + rand() % 60 );          // endsize
+  tuning_4 "250"
+  // 250 + rand() % 60 );          // endsize
+  tuning_5 "60"
+  // VectorMA( origin, 16, dir, sprOrg );
+  tuning_6 "16"
+  // VectorScale( dir, 100, sprVel );
+  tuning_7 "100"
+  // 1200,         // duration
+  tuning_8 "1200"
+  // 9,            // startsize
+  tuning_9 "9"
+  // 300 );        // endsize
+  tuning_10 "300"
+  // 280,              // speed
+  tuning_11 "280"
+  // 1400,             // duration
+  tuning_12 "1400"
+  // 7 + rand() % 2 ); // count
+  tuning_13 "7"
+  // CG_ImpactMark( cgs.media.burnMarkShader, origin, dir, random() * 360, 1,1,1,1, qfalse, 64, qfalse, -1 );
+  tuning_14 "360"
+  // CG_ImpactMark( cgs.media.burnMarkShader, origin, dir, random() * 360, 1,1,1,1, qfalse, 64, qfalse, -1 );
+  tuning_15 "64"
+  // if ( cent->currentState.eventParm & 6 ) {
+  tuning_16 "6"
+  // VectorScale( dir, 16, sprVel );
+  tuning_17 "16"
+  // for ( i = 0; i < 5; i++ ) {
+  i_2 "5"
+  // sprOrg[j] = origin[j] + 64 * dir[j] + 24 * crandom();
+  sprOrg_j__3 "64"
+  // sprOrg[j] = origin[j] + 64 * dir[j] + 24 * crandom();
+  sprOrg_j__4 "24"
+  // sprVel[2] += rand() % 50;
+  sprVel_z_2 "50"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_18 "3500"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_19 "250"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_20 "10"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_21 "250"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_22 "60"
+  // VectorMA( origin, 16, dir, sprOrg );
+  tuning_23 "16"
+  // VectorScale( dir, 100, sprVel );
+  tuning_24 "100"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 500, 20, 160 );
+  tuning_25 "500"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 500, 20, 160 );
+  tuning_26 "20"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 500, 20, 160 );
+  tuning_27 "160"
+  // CG_ImpactMark( cgs.media.burnMarkShader, origin, dir, random() * 360, 1,1,1,1, qfalse, 64, qfalse, 0xffffffff );
+  tuning_28 "360"
+  // CG_ImpactMark( cgs.media.burnMarkShader, origin, dir, random() * 360, 1,1,1,1, qfalse, 64, qfalse, 0xffffffff );
+  tuning_29 "64"
+  // if ( cent->currentState.eventParm & 8 ) {  // rubble
+  tuning_30 "8"
+  // if ( cent->currentState.eventParm & 16 ) { // gore
+  tuning_31 "16"
+  // le->endTime = le->startTime + 5000 + random() * 3000;
+  le_endTime "5000"
+  // le->endTime = le->startTime + 5000 + random() * 3000;
+  le_endTime_2 "3000"
+  // re->fadeStartTime       = le->endTime - 4000;
+  re_fadeStartTime "4000"
+  // VectorMA( dir, 200, dir, le->pos.trDelta );
+  tuning_32 "200"
+  // le->bounceFactor = 0.3;
+  le_bounceFactor "0.3"
+  // if ( cent->currentState.eventParm & 64 ) { // debris trails (the black strip that Ryan did)
+  tuning_33 "64"
+  // 280,      // speed
+  tuning_34 "280"
+  // 1400,     // duration
+  tuning_35 "1400"
+  // 7 + rand() % 2 ); // count
+  tuning_36 "7"
+  // fixed shader resource
+  burnMarkShader "gfx/damage/burn_med_mrk"
+  // CG_FxInt( "wolf/controller_effect", "tuning_13" ) + rand() % 2 ); // count
+  AddDebris_value "2"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_14" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_15" ), qfalse, -1 );
+  ImpactMark_value "1"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_14" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_15" ), qfalse, -1 );
+  ImpactMark_value_2 "1"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_14" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_15" ), qfalse, -1 );
+  ImpactMark_value_3 "1"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_14" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_15" ), qfalse, -1 );
+  ImpactMark_value_4 "1"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_14" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_15" ), qfalse, -1 );
+  ImpactMark_value_5 "1"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_28" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_29" ), qfalse, 0xffffffff );
+  ImpactMark_value_6 "1"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_28" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_29" ), qfalse, 0xffffffff );
+  ImpactMark_value_7 "1"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_28" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_29" ), qfalse, 0xffffffff );
+  ImpactMark_value_8 "1"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_28" ), 1,1,1,1, qfalse, CG_FxInt( "wolf/controller_effect", "tuning_29" ), qfalse, 0xffffffff );
+  ImpactMark_value_9 "1"
+  // CG_FxInt( "wolf/controller_effect", "tuning_36" ) + rand() % 2 ); // count
+  AddDebris_value_2 "2"
+ }
+}

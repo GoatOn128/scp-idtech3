@@ -1,0 +1,13 @@
+set(SPLINES_SOURCES
+    math_angles.cpp
+    math_matrix.cpp
+    math_quaternion.cpp
+    math_vector.cpp
+    q_parse.cpp
+    splines.cpp
+    util_str.cpp)
+
+add_library(Splines STATIC ${SPLINES_SOURCES})
+set_target_properties(Splines PROPERTIES FOLDER "libs")
+target_compile_definitions(Splines PRIVATE _LIB)
+configure_target(Splines)

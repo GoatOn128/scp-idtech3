@@ -1,0 +1,96 @@
+// Wolf CG_PlayerTeslaCoilFire controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // if ( !cent->pe.teslaDamageApplyTime || cent->pe.teslaDamageApplyTime < cg.time - 200 ) {
+  tuning "200"
+  // for ( ctrav = cg_entities, i = 0; i < cgs.maxclients && numEnemies < 16; ctrav++, i++ ) {
+  ctrav "16"
+  // bestDist = 99999;
+  bestDist "99999"
+  // VectorSet( testPos, 6 * crandom(),
+  tuning_2 "6"
+  // 6 * crandom(),
+  tuning_3 "6"
+  // 20 * crandom() - 8 );
+  tuning_4 "20"
+  // 20 * crandom() - 8 );
+  tuning_5 "8"
+  // CG_ImpactMark( cgs.media.lightningHitWallShader, cent->pe.teslaEndPoints[i], vec, random() * 360, 0.2, 0.2, 0.2, 1.0, qtrue, 4, qfalse, 300 );
+  tuning_6 "360"
+  // CG_ImpactMark( cgs.media.lightningHitWallShader, cent->pe.teslaEndPoints[i], vec, random() * 360, 0.2, 0.2, 0.2, 1.0, qtrue, 4, qfalse, 300 );
+  tuning_7 "4"
+  // CG_ImpactMark( cgs.media.lightningHitWallShader, cent->pe.teslaEndPoints[i], vec, random() * 360, 0.2, 0.2, 0.2, 1.0, qtrue, 4, qfalse, 300 );
+  tuning_8 "300"
+  // CG_DynamicLightningBolt( cgs.media.lightningBoltShader, tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, 20 + (float)( i % 3 ) * 5 + 6.0 * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  tuning_9 "20"
+  // CG_DynamicLightningBolt( cgs.media.lightningBoltShader, tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, 20 + (float)( i % 3 ) * 5 + 6.0 * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  tuning_10 "5"
+  // CG_DynamicLightningBolt( cgs.media.lightningBoltShader, tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, 20 + (float)( i % 3 ) * 5 + 6.0 * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  tuning_11 "6.0"
+  // if ( cent->pe.lightningSoundTime < cg.time - 200 ) {
+  tuning_12 "200"
+  // cent->pe.lightningSoundTime = cg.time + rand() % 200;
+  cent_pe_lightningSoundTime "200"
+  // VectorMA( tagPos, 300, vec, testPos );
+  tuning_13 "300"
+  // if ( ( cg.time / 50 ) % ( 4 + ( cg.time % 4 ) ) == 0 ) {
+  tuning_14 "50"
+  // if ( ( cg.time / 50 ) % ( 4 + ( cg.time % 4 ) ) == 0 ) {
+  tuning_15 "4"
+  // if ( ( cg.time / 50 ) % ( 4 + ( cg.time % 4 ) ) == 0 ) {
+  tuning_16 "4"
+  // trap_R_AddLightToScene( tr.endpos, 256 + 600 * tr.fraction, 0.2, 0.6, 1, 1 );
+  tuning_17 "256"
+  // trap_R_AddLightToScene( tr.endpos, 256 + 600 * tr.fraction, 0.2, 0.6, 1, 1 );
+  tuning_18 "600"
+  // } else if ( ( cg.time / 50 ) % ( 4 + ( cg.time % 4 ) ) == 1 ) {
+  tuning_19 "50"
+  // } else if ( ( cg.time / 50 ) % ( 4 + ( cg.time % 4 ) ) == 1 ) {
+  tuning_20 "4"
+  // } else if ( ( cg.time / 50 ) % ( 4 + ( cg.time % 4 ) ) == 1 ) {
+  tuning_21 "4"
+  // trap_R_AddLightToScene( tr.endpos, 256 + 600 * tr.fraction, 0.2, 0.6, 1, 0 );
+  tuning_22 "256"
+  // trap_R_AddLightToScene( tr.endpos, 256 + 600 * tr.fraction, 0.2, 0.6, 1, 0 );
+  tuning_23 "600"
+  // CG_StartShakeCamera( 0.05, 200, cent->lerpOrigin, 100 );
+  tuning_24 "200"
+  // CG_StartShakeCamera( 0.05, 200, cent->lerpOrigin, 100 );
+  tuning_25 "100"
+  // fixed shader resource
+  lightningHitWallShader "lightningHitWall"
+  // fixed shader resource
+  lightningBoltShader "lightningBolt"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningHitWallShader" ), cent->pe.teslaEndPoints[i], vec, random() * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_6" ), 0.2, 0.2, 0.2, 1.0, qtrue, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_7" ), qfalse, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_8" ) );
+  ImpactMark_value "0.2"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningHitWallShader" ), cent->pe.teslaEndPoints[i], vec, random() * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_6" ), 0.2, 0.2, 0.2, 1.0, qtrue, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_7" ), qfalse, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_8" ) );
+  ImpactMark_value_2 "0.2"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningHitWallShader" ), cent->pe.teslaEndPoints[i], vec, random() * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_6" ), 0.2, 0.2, 0.2, 1.0, qtrue, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_7" ), qfalse, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_8" ) );
+  ImpactMark_value_3 "0.2"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningHitWallShader" ), cent->pe.teslaEndPoints[i], vec, random() * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_6" ), 0.2, 0.2, 0.2, 1.0, qtrue, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_7" ), qfalse, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_8" ) );
+  ImpactMark_value_4 "1.0"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value "1"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value_2 "2"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value_3 "3"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value_4 "2"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value_5 "3"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value_6 "0"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value_7 "1.0"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value_8 "0"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], 1 + ( ( cg.time % ( ( i + 2 ) * ( i + 3 ) ) ) + i ) % 2, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % 3 ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < 0 ), 1.0, 0, i * i * 3 );
+  DynamicLightningBolt_value_9 "3"
+  // CG_StartShakeCamera( 0.05, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_24" ), cent->lerpOrigin, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_25" ) );
+  StartShakeCamera_value "0.05"
+ }
+}

@@ -1,0 +1,16 @@
+// Wolf CG_MortarEFX controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // trap_R_AddLightToScene( cent->currentState.origin, 200 + ( rand() & 31 ), 1.0, 1.0, 1.0, 0 );
+  tuning "200"
+  // trap_R_AddLightToScene( cent->currentState.origin, 200 + ( rand() & 31 ), 1.0, 1.0, 1.0, 0 );
+  tuning_2 "31"
+  // fixed shader resource
+  smokePuffShader "smokePuff"
+  // fixed model resource
+  mg42muzzleflash "models/weapons2/machinegun/mg42_flash.md3"
+ }
+}

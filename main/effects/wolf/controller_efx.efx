@@ -1,0 +1,70 @@
+// Wolf CG_Efx controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // RotatePointAroundVector( stickPoint, trace.plane.normal, perpvec, crandom() * 360 );
+  tuning "360"
+  // VectorScale( stickPoint, movePerUpdate * trace.fraction * 64.0f, cent->boltCrawlDirs[i] );
+  tuning_2 "64.0"
+  // if ( ( cg.time / 50 ) % ( randomness + ( cg.time % randomness ) ) == 0 ) {
+  tuning_3 "50"
+  // g = ( dli >> 8 ) & 255;
+  g "8"
+  // b = ( dli >> 16 ) & 255;
+  b "16"
+  // float dist, fov = 90;
+  fov "90"
+  // vec4_t color = {1, 1, 1, .1};
+  color "1"
+  // vec4_t color = {1, 1, 1, .1};
+  color_2 "1"
+  // vec4_t color = {1, 1, 1, .1};
+  color_3 "1"
+  // vec4_t color = {1, 1, 1, .1};
+  color_4 ".1"
+  // if ( rand() % 50 == 1 ) {
+  tuning_4 "50"
+  // CG_AddBulletParticles( cent->lerpOrigin, angNorm, 2, 800, 4, 16.0f );
+  tuning_5 "800"
+  // CG_AddBulletParticles( cent->lerpOrigin, angNorm, 2, 800, 4, 16.0f );
+  tuning_6 "4"
+  // CG_AddBulletParticles( cent->lerpOrigin, angNorm, 2, 800, 4, 16.0f );
+  tuning_7 "16.0"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  tuning_8 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  tuning_9 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  tuning_10 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  tuning_11 "20"
+  // if ( ( cg.time - cent->currentState.time2 ) < 100 ) {   // it just died, throw some glass
+  tuning_12 "100"
+  // CG_Explodef( cent->lerpOrigin, normalized_direction, 50, 1, cgs.media.sfx_bullet_glasshit[0], 1, 0, cent->currentState.number, qfalse );
+  tuning_13 "50"
+  // CG_Spotlight( cent, color, cent->currentState.origin, normalized_direction, 999, 4096, 10, fov, 0 );
+  tuning_14 "999"
+  // CG_Spotlight( cent, color, cent->currentState.origin, normalized_direction, 999, 4096, 10, fov, 0 );
+  tuning_15 "4096"
+  // CG_Spotlight( cent, color, cent->currentState.origin, normalized_direction, 999, 4096, 10, fov, 0 );
+  tuning_16 "10"
+  // fixed shader resource
+  lightningBoltShader "lightningBolt"
+  // fixed shader resource
+  smokeParticleShader "smokeParticle"
+  // 1.0,        // startAlpha
+  DynamicLightningBolt_value "1.0"
+  // 0,          // recursion
+  DynamicLightningBolt_value_2 "0"
+  // i * i * 2 );     // randseed
+  DynamicLightningBolt_value_3 "2"
+  // CG_AddBulletParticles( cent->lerpOrigin, angNorm, 2, CG_FxInt( "wolf/controller_efx", "tuning_5" ), CG_FxInt( "wolf/controller_efx", "tuning_6" ), CG_FxValue( "wolf/controller_efx", "tuning_7" ) );
+  AddBulletParticles_value "2"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_efx", "smokeParticleShader" ), cent->currentState.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_efx", "tuning_8" ), 1000, CG_FxInt( "wolf/controller_efx", "tuning_9" ), CG_FxInt( "wolf/controller_efx", "tuning_10" ), CG_FxInt( "wolf/controller_efx", "tuning_11" ), 0.25f );
+  ParticleImpactSmokePuffExtended_value "1000"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_efx", "smokeParticleShader" ), cent->currentState.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_efx", "tuning_8" ), 1000, CG_FxInt( "wolf/controller_efx", "tuning_9" ), CG_FxInt( "wolf/controller_efx", "tuning_10" ), CG_FxInt( "wolf/controller_efx", "tuning_11" ), 0.25f );
+  ParticleImpactSmokePuffExtended_value_2 "0.25"
+ }
+}

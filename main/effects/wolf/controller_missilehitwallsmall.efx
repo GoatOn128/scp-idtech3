@@ -1,0 +1,72 @@
+// Wolf CG_MissileHitWallSmall controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // radius = 32;
+  radius "32"
+  // light = 0;
+  light "0"
+  // lightColor[0] = 1;
+  lightColor_x "1"
+  // lightColor[1] = 1;
+  lightColor_y "1"
+  // lightColor[2] = 0;
+  lightColor_z "0"
+  // lightOverdraw = 0;
+  lightOverdraw "0"
+  // duration = 600;
+  duration "600"
+  // radius = 64;
+  radius_2 "64"
+  // light = 300;
+  light_2 "300"
+  // lightColor[0] = 0.75;
+  lightColor_x_2 "0.75"
+  // lightColor[1] = 0.5;
+  lightColor_y_2 "0.5"
+  // lightColor[2] = 0.1;
+  lightColor_z_2 "0.1"
+  // VectorMA( origin, 16, dir, sprOrg );
+  tuning "16"
+  // VectorScale( dir, 64, sprVel );
+  tuning_2 "64"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 600, 6, 50 );
+  tuning_3 "600"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 600, 6, 50 );
+  tuning_4 "6"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 600, 6, 50 );
+  tuning_5 "50"
+  // 280,          // speed
+  tuning_6 "280"
+  // 1400,         // duration
+  tuning_7 "1400"
+  // 7 + rand() % 2 );     // count
+  tuning_8 "7"
+  // CG_ImpactMark( mark, origin, dir, random() * 360, 1,1,1,1, alphaFade, radius, qfalse, 0xffffffff );
+  tuning_9 "360"
+  // CG_StartShakeCamera( 0.05, 300, origin, 300 );
+  tuning_10 "300"
+  // CG_StartShakeCamera( 0.05, 300, origin, 300 );
+  tuning_11 "300"
+  // fixed shader resource
+  rocketExplosionShader "rocketExplosion"
+  // fixed shader resource
+  burnMarkShader "gfx/damage/burn_med_mrk"
+  // duration = 1000;
+  duration_value "1000"
+  // CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_8" ) + rand() % 2 );     // count
+  AddDebris_value "2"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_9" ), 1,1,1,1, alphaFade, radius, qfalse, 0xffffffff );
+  ImpactMark_value "1"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_9" ), 1,1,1,1, alphaFade, radius, qfalse, 0xffffffff );
+  ImpactMark_value_2 "1"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_9" ), 1,1,1,1, alphaFade, radius, qfalse, 0xffffffff );
+  ImpactMark_value_3 "1"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_9" ), 1,1,1,1, alphaFade, radius, qfalse, 0xffffffff );
+  ImpactMark_value_4 "1"
+  // CG_StartShakeCamera( 0.05, CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_10" ), origin, CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_11" ) );
+  StartShakeCamera_value "0.05"
+ }
+}

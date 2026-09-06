@@ -1,0 +1,32 @@
+// A droplet leaves one stain, then dies. Reuse Wolf's existing blood art.
+screenDecal
+{
+ name stain
+ count 1
+ life 16000 24000
+ shader
+ [
+  blood_dot1
+  blood_dot2
+  blood_dot3
+  blood_dot4
+  blood_dot5
+ ]
+ rotation 0 360
+ projectionDepth 2
+ size
+ {
+  start 2.5 5
+ }
+ rgb
+ {
+  start 1 1 1
+ }
+ alpha
+ {
+  start .85
+  end 0
+  parm 70
+  flags nonlinear
+ }
+}

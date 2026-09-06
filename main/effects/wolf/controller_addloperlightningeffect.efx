@@ -1,0 +1,42 @@
+// Wolf CG_AddLoperLightningEffect controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // trap_R_AddLightToScene( tagPos, LOPER_LIGHTNING_NORMAL_DIST * ( 2.5 + ( 1.0 + sin( cg.time ) ) / 4.0 ), c[0], c[1], c[2], 1 );
+  tuning "4.0"
+  // ( cent->pe.lightningTimes[i] < cg.time - 50 ) ||
+  tuning_2 "50"
+  // VectorSet( testPos, 12 * crandom(),
+  tuning_3 "12"
+  // 12 * crandom(),
+  tuning_4 "12"
+  // 32 * crandom() );
+  tuning_5 "32"
+  // cent->pe.lightningTimes[i] = cg.time - rand() % ( LOPER_LIGHTNING_POINT_TIMEOUT / 2 );
+  cent_pe_lightningTimes_i_ "2"
+  // if ( cent->pe.lightningSoundTime < cg.time - 100 ) {
+  tuning_6 "100"
+  // cent->pe.lightningTimes[i] = cg.time - rand() % ( LOPER_LIGHTNING_POINT_TIMEOUT / 2 );
+  cent_pe_lightningTimes_i__2 "2"
+  // if ( cent->pe.lightningSoundTime < cg.time - 100 ) {
+  tuning_7 "100"
+  // fixed shader resource
+  lightningBoltShader "lightningBolt"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_addloperlightningeffect", "lightningBoltShader" ), tagPos, cent->pe.lightningPoints[i], 1, 25 + 12.0 * random(), ( cent->currentState.eFlags & EF_MONSTER_EFFECT ) == 0, 1.0, 0, i * i * 2 );
+  DynamicLightningBolt_value "1"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_addloperlightningeffect", "lightningBoltShader" ), tagPos, cent->pe.lightningPoints[i], 1, 25 + 12.0 * random(), ( cent->currentState.eFlags & EF_MONSTER_EFFECT ) == 0, 1.0, 0, i * i * 2 );
+  DynamicLightningBolt_value_2 "25"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_addloperlightningeffect", "lightningBoltShader" ), tagPos, cent->pe.lightningPoints[i], 1, 25 + 12.0 * random(), ( cent->currentState.eFlags & EF_MONSTER_EFFECT ) == 0, 1.0, 0, i * i * 2 );
+  DynamicLightningBolt_value_3 "12.0"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_addloperlightningeffect", "lightningBoltShader" ), tagPos, cent->pe.lightningPoints[i], 1, 25 + 12.0 * random(), ( cent->currentState.eFlags & EF_MONSTER_EFFECT ) == 0, 1.0, 0, i * i * 2 );
+  DynamicLightningBolt_value_4 "0"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_addloperlightningeffect", "lightningBoltShader" ), tagPos, cent->pe.lightningPoints[i], 1, 25 + 12.0 * random(), ( cent->currentState.eFlags & EF_MONSTER_EFFECT ) == 0, 1.0, 0, i * i * 2 );
+  DynamicLightningBolt_value_5 "1.0"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_addloperlightningeffect", "lightningBoltShader" ), tagPos, cent->pe.lightningPoints[i], 1, 25 + 12.0 * random(), ( cent->currentState.eFlags & EF_MONSTER_EFFECT ) == 0, 1.0, 0, i * i * 2 );
+  DynamicLightningBolt_value_6 "0"
+  // CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_addloperlightningeffect", "lightningBoltShader" ), tagPos, cent->pe.lightningPoints[i], 1, 25 + 12.0 * random(), ( cent->currentState.eFlags & EF_MONSTER_EFFECT ) == 0, 1.0, 0, i * i * 2 );
+  DynamicLightningBolt_value_7 "2"
+ }
+}

@@ -1,0 +1,14 @@
+// Wolf CG_AddZombieFlameShort controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // if ( ( cg.time + cent->currentState.number * 100 ) % 1000 > 200 ) {
+  tuning "100"
+  // if ( ( cg.time + cent->currentState.number * 100 ) % 1000 > 200 ) {
+  tuning_2 "200"
+  // trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.flameSound, 50 );
+  tuning_3 "50"
+ }
+}

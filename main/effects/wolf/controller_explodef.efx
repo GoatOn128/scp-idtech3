@@ -1,0 +1,168 @@
+// Wolf CG_Explodef controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // if ( VectorLength( vec ) > 800 ) {
+  tuning "800"
+  // mass = (int)( 2.0 * mass * ( 1.0 - ( 0.6 + 0.4 * ( VectorLength( vec ) / 800.0 ) ) ) );
+  mass "800.0"
+  // pieces[5]   = (int)( mass / 250.0f );
+  pieces_5_ "250.0"
+  // pieces[4]   = (int)( mass / 76.0f );
+  pieces_4_ "76.0"
+  // pieces[3]   = (int)( mass / 37.0f );  // so 2 per 75
+  pieces_a "37.0"
+  // pieces[2]   = (int)( mass / 15.0f );
+  pieces_z "15.0"
+  // pieces[1]   = (int)( mass / 10.0f );
+  pieces_y "10.0"
+  // pieces[0]   = (int)( mass / 5.0f );
+  pieces_x "5.0"
+  // if ( pieces[0] > 20 ) {
+  tuning_2 "20"
+  // pieces[0] = 20;                 // cap some of the smaller bits so they don't get out of control
+  pieces_x_2 "20"
+  // if ( pieces[1] > 15 ) {
+  tuning_3 "15"
+  // pieces[1] = 15;
+  pieces_y_2 "15"
+  // if ( pieces[2] > 10 ) {
+  tuning_4 "10"
+  // pieces[2] = 10;
+  pieces_z_2 "10"
+  // if ( pieces[0] > 10 ) {
+  tuning_5 "10"
+  // pieces[0] = 10;
+  pieces_x_3 "10"
+  // if ( pieces[1] > 10 ) {
+  tuning_6 "10"
+  // pieces[1] = 10;
+  pieces_y_3 "10"
+  // if ( pieces[2] > 10 ) {
+  tuning_7 "10"
+  // pieces[2] = 10;
+  pieces_z_3 "10"
+  // pieces[0] = 5;
+  pieces_x_4 "5"
+  // pieces[1] = 5;
+  pieces_y_4 "5"
+  // pieces[2] = 4;
+  pieces_z_4 "4"
+  // pieces[3] = 4;
+  pieces_a_2 "4"
+  // pieces[4] = 4;
+  pieces_4__2 "4"
+  // endtime = 0;    // set endtime offset for faster/slower fadeouts
+  endtime "0"
+  // endtime = -3000;    // small bits live 3 sec shorter than normal
+  endtime_2 "3000"
+  // if ( i == 5 ) {
+  tuning_8 "5"
+  // } else if ( i == 4 ) {
+  tuning_9 "4"
+  // if ( i == 5 ) {
+  tuning_10 "5"
+  // } else if ( i == 4 ) {
+  tuning_11 "4"
+  // if ( i == 5 ) {
+  tuning_12 "5"
+  // } else if ( i == 4 ) {
+  tuning_13 "4"
+  // if ( i == 5 ) {
+  tuning_14 "5"
+  // } else if ( i == 4 )                                                              {
+  tuning_15 "4"
+  // endtime = -2000;    // small bits live 2 sec shorter than normal
+  endtime_3 "2000"
+  // if ( i == 5 ) {
+  tuning_16 "5"
+  // } else if ( i == 4 ) {
+  tuning_17 "4"
+  // le->endTime             = ( le->startTime + 5000 + random() * 5000 ) + endtime;
+  le_endTime "5000"
+  // le->endTime             = ( le->startTime + 5000 + random() * 5000 ) + endtime;
+  le_endTime_2 "5000"
+  // le->endTime = le->startTime + 7000 + random() * 5000;
+  le_endTime_3 "7000"
+  // le->endTime = le->startTime + 7000 + random() * 5000;
+  le_endTime_4 "5000"
+  // re->fadeStartTime       = le->endTime - 4000;
+  re_fadeStartTime "4000"
+  // le->lifeRate    = 1.0 / ( le->endTime - le->startTime );
+  le_lifeRate "1.0"
+  // le->bounceFactor    = 0.0f;
+  le_bounceFactor "0.0"
+  // le->bounceFactor    = 0.2f;     // RF, rubble in end is like rubber, also ID requestsed this
+  le_bounceFactor_2 "0.2"
+  // le->angles.trBase[0] = rand() & 31;
+  le_angles_trBase_x "31"
+  // le->angles.trBase[1] = rand() & 31;
+  le_angles_trBase_y "31"
+  // le->angles.trBase[2] = rand() & 31;
+  le_angles_trBase_z "31"
+  // le->angles.trDelta[0] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_x "100"
+  // le->angles.trDelta[0] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_x_2 "500"
+  // le->angles.trDelta[0] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_x_3 "300"
+  // le->angles.trDelta[1] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_y "100"
+  // le->angles.trDelta[1] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_y_2 "500"
+  // le->angles.trDelta[1] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_y_3 "300"
+  // le->angles.trDelta[2] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_z "100"
+  // le->angles.trDelta[2] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_z_2 "500"
+  // le->angles.trDelta[2] = ( ( 100 + ( rand() & 500 ) ) - 300 ) * materialmul;
+  le_angles_trDelta_z_3 "300"
+  // VectorScale( dir, 10 * 8, le->pos.trDelta );
+  tuning_18 "10"
+  // VectorScale( dir, 10 * 8, le->pos.trDelta );
+  tuning_19 "8"
+  // le->pos.trDelta[0] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_x "100"
+  // le->pos.trDelta[0] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_x_2 "50"
+  // le->pos.trDelta[1] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_y "100"
+  // le->pos.trDelta[1] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_y_2 "50"
+  // le->pos.trDelta[2] = ( random() * 200 ) + 200;
+  le_pos_trDelta_z "200"
+  // le->pos.trDelta[2] = ( random() * 200 ) + 200;
+  le_pos_trDelta_z_2 "200"
+  // VectorScale( dir, 200 + mass, le->pos.trDelta );
+  tuning_20 "200"
+  // le->pos.trDelta[0] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_x_3 "100"
+  // le->pos.trDelta[0] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_x_4 "50"
+  // le->pos.trDelta[1] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_y_3 "100"
+  // le->pos.trDelta[1] += ( ( random() * 100 ) - 50 );
+  le_pos_trDelta_y_4 "50"
+  // le->pos.trDelta[2] = random() * 200 * materialmul;  // randomize sort of a lot so they don't all land together
+  le_pos_trDelta_z_3 "200"
+  // le->pos.trDelta[2] = random() * 20;
+  le_pos_trDelta_z_4 "20"
+  // VectorScale( le->pos.trDelta, 4.0, le->pos.trDelta );
+  tuning_21 "4.0"
+  // while ( VectorLength( le->pos.trDelta ) > 800 ) {
+  tuning_22 "800"
+  // fixed model resource
+  shardGlass1 "models/shards/glass1.md3"
+  // fixed model resource
+  shardGlass2 "models/shards/glass2.md3"
+  // fixed model resource
+  shardMetal1 "models/shards/metal1.md3"
+  // fixed model resource
+  shardMetal2 "models/shards/metal2.md3"
+  // re->radius = 1000;
+  re__radius_value "1000"
+ }
+}

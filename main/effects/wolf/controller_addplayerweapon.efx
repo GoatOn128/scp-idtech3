@@ -1,0 +1,50 @@
+// Wolf CG_AddPlayerWeapon event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 70, alpha );
+  ParticleImpactSmokePuffExtended_value "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 70, alpha );
+  ParticleImpactSmokePuffExtended_value_2 "1000"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 70, alpha );
+  ParticleImpactSmokePuffExtended_value_3 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 70, alpha );
+  ParticleImpactSmokePuffExtended_value_4 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 70, alpha );
+  ParticleImpactSmokePuffExtended_value_5 "70"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_6 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_7 "1000"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_8 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_9 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_10 "30"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_11 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_12 "1000"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_13 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_14 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 30, alpha );
+  ParticleImpactSmokePuffExtended_value_15 "30"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 500, 8, 20, 30, 0.25f );
+  ParticleImpactSmokePuffExtended_value_16 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 500, 8, 20, 30, 0.25f );
+  ParticleImpactSmokePuffExtended_value_17 "500"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 500, 8, 20, 30, 0.25f );
+  ParticleImpactSmokePuffExtended_value_18 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 500, 8, 20, 30, 0.25f );
+  ParticleImpactSmokePuffExtended_value_19 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 500, 8, 20, 30, 0.25f );
+  ParticleImpactSmokePuffExtended_value_20 "30"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), 8, 500, 8, 20, 30, 0.25f );
+  ParticleImpactSmokePuffExtended_value_21 "0.25"
+ }
+}

@@ -1,0 +1,16 @@
+// Wolf CG_ZombieSpit controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // RotateAroundDirection( ent.axis, cg.time / 4 );
+  tuning "4"
+  // CG_Particle_Bleed( cgs.media.smokePuffShader, ent.origin, vec3_origin, 1, 180 );
+  tuning_2 "180"
+  // fixed shader resource
+  smokePuffShader "smokePuff"
+  // CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_zombiespit", "smokePuffShader" ), ent.origin, vec3_origin, 1, CG_FxInt( "wolf/controller_zombiespit", "tuning_2" ) );
+  Particle_Bleed_value "1"
+ }
+}

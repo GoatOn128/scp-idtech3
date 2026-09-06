@@ -1,0 +1,20 @@
+// Wolf CG_MakeExplosion controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // offset = rand() & 63;
+  offset "63"
+  // ex->refEntity.rotation = rand() % 360;
+  ex_refEntity_rotation "360"
+  // VectorScale( dir, 16, tmpVec );
+  tuning "16"
+  // ang = rand() % 360;
+  ang "360"
+  // VectorScale( dir, 48, ex->pos.trDelta );
+  tuning_2 "48"
+  // ex->color[0] = ex->color[1] = ex->color[2] = 1.0;
+  ex_color_x "1.0"
+ }
+}

@@ -1,0 +1,36 @@
+// Wolf: bleed. Appearance is configured here.
+particle
+{
+ name body
+ count 3
+ life 1600
+ shader fx/blood_drop
+ flags useAlpha usePhysics expensivePhysics impactKills
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity -16 -16 -25 16 16 15
+ gravity -600
+ collision solid
+ impactfx wolf/blood_splat
+ acceleration 0 0 0
+ bindings "life"
+ size
+ {
+  start 1 2
+  end .5 1
+  flags linear
+ }
+ alpha
+ {
+  start 0.75
+  end 0
+  parm 85
+  flags nonlinear
+ }
+ rgb
+ {
+  start .22 0 0
+  end .22 0 0
+ }
+ 
+}

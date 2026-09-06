@@ -1,0 +1,40 @@
+// Wolf CG_Bullet event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_ImpactMark( cgs.media.bloodDotShaders[rand() % 5], trace.endpos, trace.plane.normal, random() * 360,
+  ImpactMark_value "360"
+  // 1,1,1,1, qtrue, 15 + random() * 20, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_2 "1"
+  // 1,1,1,1, qtrue, 15 + random() * 20, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_3 "1"
+  // 1,1,1,1, qtrue, 15 + random() * 20, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_4 "1"
+  // 1,1,1,1, qtrue, 15 + random() * 20, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_5 "1"
+  // 1,1,1,1, qtrue, 15 + random() * 20, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_6 "15"
+  // 1,1,1,1, qtrue, 15 + random() * 20, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_7 "20"
+  // 1,1,1,1, qtrue, 15 + random() * 20, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_8 "1000"
+  // CG_ImpactMark( cgs.media.bloodDotShaders[rand() % 5], trace.endpos, trace.plane.normal, random() * 360,
+  ImpactMark_value_9 "360"
+  // 1,1,1,1, qtrue, 15 + random() * 10, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_10 "1"
+  // 1,1,1,1, qtrue, 15 + random() * 10, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_11 "1"
+  // 1,1,1,1, qtrue, 15 + random() * 10, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_12 "1"
+  // 1,1,1,1, qtrue, 15 + random() * 10, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_13 "1"
+  // 1,1,1,1, qtrue, 15 + random() * 10, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_14 "15"
+  // 1,1,1,1, qtrue, 15 + random() * 10, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_15 "10"
+  // 1,1,1,1, qtrue, 15 + random() * 10, qfalse, cg_bloodTime.integer * 1000 );
+  ImpactMark_value_16 "1000"
+ }
+}

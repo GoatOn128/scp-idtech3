@@ -1,0 +1,20 @@
+// Wolf CG_MissileHitPlayer event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_StartShakeCamera( 0.03, 500, origin, 100 );
+  StartShakeCamera_value "0.03"
+  // CG_StartShakeCamera( 0.03, 500, origin, 100 );
+  StartShakeCamera_value_2 "500"
+  // CG_StartShakeCamera( 0.03, 500, origin, 100 );
+  StartShakeCamera_value_3 "100"
+  // CG_StartShakeCamera( 0.1, 500, origin, 100 );
+  StartShakeCamera_value_4 "0.1"
+  // CG_StartShakeCamera( 0.1, 500, origin, 100 );
+  StartShakeCamera_value_5 "500"
+  // CG_StartShakeCamera( 0.1, 500, origin, 100 );
+  StartShakeCamera_value_6 "100"
+ }
+}

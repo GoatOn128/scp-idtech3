@@ -1,0 +1,32 @@
+// Wolf: dust. Appearance is configured here.
+particle
+{
+ name body
+ count 2 5
+ life 1000 8000
+ shader bloodCloud
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity -6 -6 0 6 6 20
+ acceleration 0 0 0
+ size
+ {
+  start 16
+  end 64
+  flags linear
+ }
+ alpha
+ {
+  start 0.75
+  end 0
+  parm 0
+  flags nonlinear
+ }
+ rgb
+ {
+  start .42 .33 .19
+  end .42 .33 .19
+ }
+ 
+}

@@ -1,0 +1,33 @@
+// Wolf: misc. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 1
+ shader white
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity 0 0 0
+ acceleration 0 0 0
+ bindings "shader size life alpha"
+ size
+ {
+  start 1
+  end 1
+  flags linear
+ }
+ alpha
+ {
+  start 1
+  end 0
+  parm 100
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ 
+}

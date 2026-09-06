@@ -1,0 +1,48 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "visual-studio",
+      "displayName": "Visual Studio Win32",
+      "description": "Visual Studio build tree in ../build; products in the repository root.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "Win32",
+      "binaryDir": "${sourceDir}/../build"
+    },
+    {
+      "name": "command-line",
+      "displayName": "Command Line Win32",
+      "description": "Command-line build tree in ../out; products in the repository root.",
+      "generator": "Visual Studio 17 2022",
+      "architecture": "Win32",
+      "binaryDir": "${sourceDir}/../out"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "visual-studio-debug",
+      "configurePreset": "visual-studio",
+      "configuration": "Debug"
+    },
+    {
+      "name": "visual-studio-release",
+      "configurePreset": "visual-studio",
+      "configuration": "Release"
+    },
+    {
+      "name": "command-line-debug",
+      "configurePreset": "command-line",
+      "configuration": "Debug"
+    },
+    {
+      "name": "command-line-release",
+      "configurePreset": "command-line",
+      "configuration": "Release"
+    }
+  ]
+}

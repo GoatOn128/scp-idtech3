@@ -1,0 +1,42 @@
+// Wolf: blood_zombie_small. Appearance is configured here.
+particle
+{
+ name body
+ bindings pathLength
+ countSpacing 4
+ count 1
+ life 250 1250
+ shader bloodCloud
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity -6 -6 0 6 6 6
+ acceleration 0 0 0
+ size
+ {
+  start 3.2
+  end 16
+  flags linear
+ }
+ alpha
+ {
+  start 0.2
+  end 0
+  parm 0
+  flags nonlinear
+ }
+ rgb
+ {
+  start .4 .28 .23
+  end .4 .28 .23
+ }
+ 
+}
+
+fxrunner
+{
+ name fallingBlood
+ count 1
+ life 1
+ playfx wolf/blood_droplets
+}

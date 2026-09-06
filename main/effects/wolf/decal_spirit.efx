@@ -1,0 +1,11 @@
+controller
+{
+ name mark
+ parameters
+ {
+  fadeScale 2
+  fadeIn 2000
+  energyStart 1
+  energyLife 0
+ }
+}

@@ -1,0 +1,8 @@
+controller
+{
+ name emitter
+ parameters
+ {
+  debugLife 20000
+ }
+}

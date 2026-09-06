@@ -1,0 +1,28 @@
+// Wolf water ripple. The event supplies the map shader, radius and lifetime.
+particle
+{
+ name body
+ renderType splash
+ count 1
+ life 1000
+ shader wake
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ bindings "shader life size"
+ size
+ {
+  start 1
+  end 1
+ }
+ alpha
+ {
+  start 1
+  end 0
+  flags linear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+}

@@ -1,0 +1,30 @@
+// Wolf haste_smoke: authored particle appearance.
+particle
+{
+ name body
+ count 1
+ life 500
+ shader hasteSmokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ bindings velocity
+ rotation 0 360
+ fadeIn 0
+ size
+ {
+  start 8
+  end 16
+  flags linear
+ }
+ alpha
+ {
+  start 1
+  end 0
+  parm 0
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+ }
+}

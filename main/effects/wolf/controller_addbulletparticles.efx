@@ -1,0 +1,14 @@
+// Wolf CG_AddBulletParticles controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // VectorMA( pos, 2 + random() * 4, dir, pos );
+  tuning "4"
+  // CG_ParticleBulletDebris( pos, velocity, 300 + rand() % 300 );
+  tuning_2 "300"
+  // CG_ParticleBulletDebris( pos, velocity, 300 + rand() % 300 );
+  tuning_3 "300"
+ }
+}

@@ -1,0 +1,114 @@
+// Wolf CG_EntityEvent event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value "0.05"
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value_2 "400"
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value_3 "512"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_4 "0.08"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_5 "500"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_6 "800"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_7 "0.08"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_8 "500"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_9 "800"
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value_10 "0.05"
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value_11 "400"
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value_12 "512"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_13 "0.08"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_14 "500"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_15 "800"
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value_16 "0.05"
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value_17 "400"
+  // CG_StartShakeCamera( 0.05, 400, es->pos.trBase, 512 );
+  StartShakeCamera_value_18 "512"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_19 "0.08"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_20 "500"
+  // CG_StartShakeCamera( 0.08, 500, es->pos.trBase, 800 );
+  StartShakeCamera_value_21 "800"
+  // CG_StartShakeCamera( 0.03, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_22 "0.03"
+  // CG_StartShakeCamera( 0.03, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_23 "200"
+  // CG_StartShakeCamera( 0.03, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_24 "200"
+  // CG_StartShakeCamera( 0.04, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_25 "0.04"
+  // CG_StartShakeCamera( 0.04, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_26 "200"
+  // CG_StartShakeCamera( 0.04, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_27 "200"
+  // CG_StartShakeCamera( 0.05, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_28 "0.05"
+  // CG_StartShakeCamera( 0.05, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_29 "200"
+  // CG_StartShakeCamera( 0.05, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_30 "200"
+  // CG_StartShakeCamera( 0.08, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_31 "0.08"
+  // CG_StartShakeCamera( 0.08, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_32 "200"
+  // CG_StartShakeCamera( 0.08, 200, cg.predictedPlayerState.origin, 200 );
+  StartShakeCamera_value_33 "200"
+  // CG_StartShakeCamera( 0.05, 100, cent->lerpOrigin, 100 );
+  StartShakeCamera_value_34 "0.05"
+  // CG_StartShakeCamera( 0.05, 100, cent->lerpOrigin, 100 );
+  StartShakeCamera_value_35 "100"
+  // CG_StartShakeCamera( 0.05, 100, cent->lerpOrigin, 100 );
+  StartShakeCamera_value_36 "100"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 4, 50 + rand() % 20 );
+  ParticleExplosion_value "3500"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 4, 50 + rand() % 20 );
+  ParticleExplosion_value_2 "250"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 4, 50 + rand() % 20 );
+  ParticleExplosion_value_3 "4"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 4, 50 + rand() % 20 );
+  ParticleExplosion_value_4 "50"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 4, 50 + rand() % 20 );
+  ParticleExplosion_value_5 "20"
+  // 80,                 // speed
+  AddDebris_value "80"
+  // 1000,                   // duration
+  AddDebris_value_2 "1000"
+  // 3 + rand() % 2 );       // count
+  AddDebris_value_3 "3"
+  // 3 + rand() % 2 );       // count
+  AddDebris_value_4 "2"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  ParticleImpactSmokePuffExtended_value "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  ParticleImpactSmokePuffExtended_value_2 "1000"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  ParticleImpactSmokePuffExtended_value_3 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  ParticleImpactSmokePuffExtended_value_4 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  ParticleImpactSmokePuffExtended_value_5 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), 8, 1000, 8, 20, 20, 0.25f );
+  ParticleImpactSmokePuffExtended_value_6 "0.25"
+  // CG_AddBulletParticles( cent->currentState.origin, cent->currentState.angles, speed, 800, numsparks, 1.0f );
+  AddBulletParticles_value "800"
+  // CG_AddBulletParticles( cent->currentState.origin, cent->currentState.angles, speed, 800, numsparks, 1.0f );
+  AddBulletParticles_value_2 "1.0"
+ }
+}

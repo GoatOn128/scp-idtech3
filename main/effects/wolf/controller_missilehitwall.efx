@@ -1,0 +1,436 @@
+// Wolf CG_MissileHitWall controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // radius = 32;
+  radius "32"
+  // light = 0;
+  light "0"
+  // lightColor[0] = 1;
+  lightColor_x "1"
+  // lightColor[1] = 1;
+  lightColor_y "1"
+  // lightColor[2] = 0;
+  lightColor_z "0"
+  // lightOverdraw = 0;
+  lightOverdraw "0"
+  // duration = 600;
+  duration "600"
+  // markDuration = -1;
+  markDuration "1"
+  // radius  = 1 + rand() % 2;
+  radius_2 "1"
+  // radius  = 1 + rand() % 2;
+  radius_3 "2"
+  // 20,      // speed
+  tuning "20"
+  // 800,     // duration
+  tuning_2 "800"
+  // 3 + rand() % 6, // count
+  tuning_3 "6"
+  // r = rand() & 31;
+  r "31"
+  // 350,      // speed
+  tuning_4 "350"
+  // 200,      // duration
+  tuning_5 "200"
+  // 15 + rand() % 7,  // count
+  tuning_6 "15"
+  // 15 + rand() % 7,  // count
+  tuning_7 "7"
+  // VectorMA( origin, 12, dir, o );
+  tuning_8 "12"
+  // VectorScale( dir, 7, d );
+  tuning_9 "7"
+  // d[2] += 16;
+  d_z "16"
+  // 120, // speed
+  tuning_10 "120"
+  // 900, // duration
+  tuning_11 "900"
+  // 20,
+  tuning_12 "20"
+  // 4,
+  tuning_13 "4"
+  // 190, // speed
+  tuning_14 "190"
+  // 800, // duration
+  tuning_15 "800"
+  // 60,
+  tuning_16 "60"
+  // 10,
+  tuning_17 "10"
+  // 20, // speed
+  tuning_18 "20"
+  // 800, // duration
+  tuning_19 "800"
+  // 3 + rand() % 6, // count
+  tuning_20 "6"
+  // 450,      // speed
+  tuning_21 "450"
+  // 300,      // duration
+  tuning_22 "300"
+  // CG_WaterRipple( cgs.media.wakeMarkShaderAnim, origin, tv( 0, 0, 1 ), 32, 1000 );
+  tuning_23 "32"
+  // 190, // speed
+  tuning_24 "190"
+  // 900, // duration
+  tuning_25 "900"
+  // 5, // count
+  tuning_26 "5"
+  // 50, // w
+  tuning_27 "50"
+  // 12, // h
+  tuning_28 "12"
+  // duration = 250;
+  duration_2 "250"
+  // if ( weapon == WP_FG42SCOPE || weapon == WP_SNIPERRIFLE || weapon == WP_SNOOPERSCOPE || ( Distance( cg.refdef.vieworg, origin ) < 384 ) ) {
+  tuning_29 "384"
+  // radius = 1.5f + rand() % 2;   // slightly larger for DM
+  radius_4 "1.5"
+  // radius = 1.5f + rand() % 2;   // slightly larger for DM
+  radius_5 "2"
+  // radius += 1;    // experimenting with different mark sizes per surface
+  radius_6 "1"
+  // radius += 2;    // experimenting with different mark sizes per surface
+  radius_7 "2"
+  // markDuration = 60000;
+  markDuration_2 "60000"
+  // radius = 64;
+  radius_8 "64"
+  // light = 300;
+  light_2 "300"
+  // lightColor[0] = 0.75;
+  lightColor_x_2 "0.75"
+  // lightColor[1] = 0.5;
+  lightColor_y_2 "0.5"
+  // lightColor[2] = 0.1;
+  lightColor_z_2 "0.1"
+  // shakeDur = 600;
+  shakeDur "600"
+  // shakeRad = 700;
+  shakeRad "700"
+  // VectorScale( dir, 16, sprVel );
+  tuning_30 "16"
+  // for ( i = 0; i < 5; i++ ) {
+  i "5"
+  // sprOrg[j] = origin[j] + 64 * dir[j] + 24 * crandom();
+  sprOrg_j_ "64"
+  // sprOrg[j] = origin[j] + 64 * dir[j] + 24 * crandom();
+  sprOrg_j__2 "24"
+  // sprVel[2] += rand() % 50;
+  sprVel_z "50"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_31 "3500"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_32 "250"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_33 "10"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_34 "250"
+  // CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, 3500 + rand() % 250, 10, 250 + rand() % 60 );
+  tuning_35 "60"
+  // VectorMA( origin, 24, dir, sprOrg );
+  tuning_36 "24"
+  // VectorScale( dir, 64, sprVel );
+  tuning_37 "64"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 1000, 20, 300 );
+  tuning_38 "20"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 1000, 20, 300 );
+  tuning_39 "300"
+  // markDuration = 60000;
+  markDuration_3 "60000"
+  // radius = 64;
+  radius_9 "64"
+  // light = 300;
+  light_3 "300"
+  // lightColor[0] = 0.75;
+  lightColor_x_3 "0.75"
+  // lightColor[1] = 0.5;
+  lightColor_y_3 "0.5"
+  // lightColor[2] = 0.1;
+  lightColor_z_3 "0.1"
+  // shakeDur = 2800;
+  shakeDur_2 "2800"
+  // shakeRad = 8192;
+  shakeRad_2 "8192"
+  // for ( i = 0; i < 5; i++ ) {
+  i_2 "5"
+  // sprOrg[j] = origin[j] + 64 * dir[j] + 24 * crandom();
+  sprOrg_j__3 "64"
+  // sprOrg[j] = origin[j] + 64 * dir[j] + 24 * crandom();
+  sprOrg_j__4 "24"
+  // sprVel[2] += rand() % 50;
+  sprVel_z_2 "50"
+  // 3500 + rand() % 250,          // duration
+  tuning_40 "3500"
+  // 3500 + rand() % 250,          // duration
+  tuning_41 "250"
+  // 10,                           // startsize
+  tuning_42 "10"
+  // 250 + rand() % 60 );          // endsize
+  tuning_43 "250"
+  // 250 + rand() % 60 );          // endsize
+  tuning_44 "60"
+  // VectorMA( origin, 16, dir, sprOrg );
+  tuning_45 "16"
+  // VectorScale( dir, 100, sprVel );
+  tuning_46 "100"
+  // 1200,         // duration
+  tuning_47 "1200"
+  // 9,            // startsize
+  tuning_48 "9"
+  // 300 );        // endsize
+  tuning_49 "300"
+  // 280,              // speed
+  tuning_50 "280"
+  // 1400,             // duration
+  tuning_51 "1400"
+  // 7 + rand() % 2 ); // count
+  tuning_52 "7"
+  // for ( i = 0; i < 5; i++ ) {
+  i_3 "5"
+  // sprOrg[j] = origin[j] + 96 * crandom();
+  sprOrg_j__5 "96"
+  // sprOrg[2] = origin[2] + 32 * random();
+  sprOrg_z "32"
+  // sprVel[2] += rand() % 75;
+  sprVel_z_3 "75"
+  // 3500 + rand() % 250,      // duration
+  tuning_53 "3500"
+  // 3500 + rand() % 250,      // duration
+  tuning_54 "250"
+  // 10,                       // startsize
+  tuning_55 "10"
+  // 250 + rand() % 400 );     // endsize
+  tuning_56 "250"
+  // 250 + rand() % 400 );     // endsize
+  tuning_57 "400"
+  // VectorMA( origin, 16, dir, sprOrg );
+  tuning_58 "16"
+  // VectorScale( dir, 100, sprVel );
+  tuning_59 "100"
+  // 1200,         // duration
+  tuning_60 "1200"
+  // 9,            // startsize
+  tuning_61 "9"
+  // 250 + rand() % 400 );     // endsize
+  tuning_62 "250"
+  // 250 + rand() % 400 );     // endsize
+  tuning_63 "400"
+  // 400 + random() * 300,         // speed
+  tuning_64 "400"
+  // 400 + random() * 300,         // speed
+  tuning_65 "300"
+  // 1400,             // duration
+  tuning_66 "1400"
+  // 7 + rand() % 12 );    // count
+  tuning_67 "7"
+  // 7 + rand() % 12 );    // count
+  tuning_68 "12"
+  // markDuration = 60000;
+  markDuration_4 "60000"
+  // radius = 64;
+  radius_10 "64"
+  // light = 300;
+  light_4 "300"
+  // lightColor[0] = 0.75;
+  lightColor_x_4 "0.75"
+  // lightColor[1] = 0.5;
+  lightColor_y_4 "0.5"
+  // lightColor[2] = 0.1;
+  lightColor_z_4 "0.1"
+  // shakeRad = 600;
+  shakeRad_3 "600"
+  // VectorMA( origin, 16, dir, sprOrg );
+  tuning_69 "16"
+  // VectorScale( dir, 100, sprVel );
+  tuning_70 "100"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 700, 20, 160 );
+  tuning_71 "700"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 700, 20, 160 );
+  tuning_72 "20"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 700, 20, 160 );
+  tuning_73 "160"
+  // 280,      // speed
+  tuning_74 "280"
+  // 1400,     // duration
+  tuning_75 "1400"
+  // 7 + rand() % 2 ); // count
+  tuning_76 "7"
+  // markDuration = 60000;
+  markDuration_5 "60000"
+  // radius = 64;
+  radius_11 "64"
+  // light = 600;
+  light_5 "600"
+  // lightColor[0] = 0.75;
+  lightColor_x_5 "0.75"
+  // lightColor[1] = 0.5;
+  lightColor_y_5 "0.5"
+  // lightColor[2] = 0.1;
+  lightColor_z_5 "0.1"
+  // VectorMA( origin, 24, dir, sprOrg );
+  tuning_77 "24"
+  // VectorScale( dir, 64, sprVel );
+  tuning_78 "64"
+  // shakeRad = 1200;
+  shakeRad_4 "1200"
+  // shakeDur = 800;
+  shakeDur_3 "800"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1200, 20, 300 );
+  tuning_79 "1200"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1200, 20, 300 );
+  tuning_80 "20"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1200, 20, 300 );
+  tuning_81 "300"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1400, 40, 70 );
+  tuning_82 "1400"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1400, 40, 70 );
+  tuning_83 "40"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1400, 40, 70 );
+  tuning_84 "70"
+  // for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + 32 * dir[j] + 32 * crandom();
+  j "32"
+  // for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + 32 * dir[j] + 32 * crandom();
+  j_2 "32"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1200, 40, 160 + rand() % 120 );
+  tuning_85 "1200"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1200, 40, 160 + rand() % 120 );
+  tuning_86 "40"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1200, 40, 160 + rand() % 120 );
+  tuning_87 "160"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1200, 40, 160 + rand() % 120 );
+  tuning_88 "120"
+  // for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + 24 * dir[j] + 16 * crandom();
+  j_3 "24"
+  // for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + 24 * dir[j] + 16 * crandom();
+  j_4 "16"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1400, 15, 40 + rand() % 30 );
+  tuning_89 "1400"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1400, 15, 40 + rand() % 30 );
+  tuning_90 "15"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1400, 15, 40 + rand() % 30 );
+  tuning_91 "40"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1400, 15, 40 + rand() % 30 );
+  tuning_92 "30"
+  // 120,      // speed
+  tuning_93 "120"
+  // 2000,  //350,	// duration
+  tuning_94 "2000"
+  // 7 + rand() % 2 ); // count
+  tuning_95 "7"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1600, 20, 200 + random() * 400 );
+  tuning_96 "1600"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1600, 20, 200 + random() * 400 );
+  tuning_97 "20"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1600, 20, 200 + random() * 400 );
+  tuning_98 "200"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1600, 20, 200 + random() * 400 );
+  tuning_99 "400"
+  // for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + 160 * crandom();
+  j_5 "160"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1600, 40, 260 + rand() % 120 );
+  tuning_100 "1600"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1600, 40, 260 + rand() % 120 );
+  tuning_101 "40"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1600, 40, 260 + rand() % 120 );
+  tuning_102 "260"
+  // CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1600, 40, 260 + rand() % 120 );
+  tuning_103 "120"
+  // 400 + random() * 200, // speed
+  tuning_104 "400"
+  // 400 + random() * 200, // speed
+  tuning_105 "200"
+  // rand() % 2000 + 1000, //350,	// duration
+  tuning_106 "2000"
+  // 5 + rand() % 5 ); // count
+  tuning_107 "5"
+  // 5 + rand() % 5 ); // count
+  tuning_108 "5"
+  // CG_ImpactMark( mark, origin, dir, random() * 360, 1,1,1,1, alphaFade, radius, qfalse, -1 );
+  tuning_109 "360"
+  // fixed shader resource
+  bulletMarkShader "gfx/damage/bullet_mrk"
+  // fixed shader resource
+  smokeParticleShader "smokeParticle"
+  // fixed shader resource
+  wakeMarkShaderAnim "wakeAnim"
+  // fixed shader resource
+  bulletMarkShaderMetal "gfx/damage/metal_mrk"
+  // fixed shader resource
+  bulletMarkShaderWood "gfx/damage/wood_mrk"
+  // fixed shader resource
+  bulletMarkShaderCeramic "gfx/damage/ceramic_mrk"
+  // fixed shader resource
+  bulletMarkShaderGlass "gfx/damage/glass_mrk"
+  // fixed shader resource
+  burnMarkShader "gfx/damage/burn_med_mrk"
+  // fixed shader resource
+  rocketExplosionShader "rocketExplosion"
+  // 3 + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_3" ), // count
+  AddBulletParticles_value "3"
+  // 1.0 );   // rand scale
+  AddBulletParticles_value_2 "1.0"
+  // 0.2 );    // rand scale
+  AddSparks_value "0.2"
+  // 3, // count
+  AddDirtBulletParticles_value "3"
+  // 0.6f,
+  AddDirtBulletParticles_value_2 "0.6"
+  // 0.3f,
+  AddDirtBulletParticles_value_3 "0.3"
+  // 3, // count
+  AddDirtBulletParticles_value_4 "3"
+  // 0.1,
+  AddDirtBulletParticles_value_5 "0.1"
+  // 0.5,
+  AddDirtBulletParticles_value_6 "0.5"
+  // 3 + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_20" ), // count
+  AddBulletParticles_value_3 "3"
+  // 1.0 ); // rand scale
+  AddBulletParticles_value_4 "1.0"
+  // 3 + rand() % 3,   // count
+  AddSparks_value_2 "3"
+  // 3 + rand() % 3,   // count
+  AddSparks_value_3 "3"
+  // 0.5 );    // rand scale
+  AddSparks_value_4 "0.5"
+  // CG_WaterRipple( CG_FxMaterial( "wolf/controller_missilehitwall", "wakeMarkShaderAnim" ), origin, tv( 0, 0, 1 ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_23" ), 1000 );
+  WaterRipple_value "1000"
+  // 0.5, // rand scale
+  AddDirtBulletParticles_value_7 "0.5"
+  // 0.125, // alpha
+  AddDirtBulletParticles_value_8 "0.125"
+  // duration = 1000;
+  duration_value "1000"
+  // CG_ParticleExplosion( "expblue", sprOrg, sprVel, 1000, CG_FxInt( "wolf/controller_missilehitwall", "tuning_38" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_39" ) );
+  ParticleExplosion_value "1000"
+  // duration = 1000;
+  duration_value_2 "1000"
+  // CG_FxInt( "wolf/controller_missilehitwall", "tuning_52" ) + rand() % 2 ); // count
+  AddDebris_value "2"
+  // duration = 1000;
+  duration_value_3 "1000"
+  // CG_FxInt( "wolf/controller_missilehitwall", "tuning_76" ) + rand() % 2 ); // count
+  AddDebris_value_2 "2"
+  // duration = 1000;
+  duration_value_4 "1000"
+  // CG_FxInt( "wolf/controller_missilehitwall", "tuning_95" ) + rand() % 2 ); // count
+  AddDebris_value_3 "2"
+  // rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_106" ) + 1000, //350,	// duration
+  AddDebris_value_4 "1000"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_109" ), 1,1,1,1, alphaFade, radius, qfalse, -1 );
+  ImpactMark_value "1"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_109" ), 1,1,1,1, alphaFade, radius, qfalse, -1 );
+  ImpactMark_value_2 "1"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_109" ), 1,1,1,1, alphaFade, radius, qfalse, -1 );
+  ImpactMark_value_3 "1"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_109" ), 1,1,1,1, alphaFade, radius, qfalse, -1 );
+  ImpactMark_value_4 "1"
+  // CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_109" ), 1,1,1,1, alphaFade, radius, qfalse, -1 );
+  ImpactMark_value_5 "1"
+ }
+}

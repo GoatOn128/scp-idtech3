@@ -1,0 +1,67 @@
+// Wolf CG_Spotlight controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // float /*alpha,*/ radius = 0.0f;       // TTimo: init
+  radius "0.0"
+  // colorNorm[3] = 0;   // store normalize multiplier in alpha index
+  colorNorm_a "0"
+  // endAlpha    = 0.0f;
+  endAlpha "0.0"
+  // angles[ROLL] = 0.0f;        // clear out roll so it doesn't interfere
+  angles_ROLL_ "0.0"
+  // VectorMA( start, 14, lightDir, start );
+  tuning "14"
+  // deadFrac = (float)( cg.time - cent->currentState.time2 ) / 5000.0f;
+  deadFrac "5000.0"
+  // startAlpha *= ( 1.0f - deadFrac );
+  startAlpha "1.0"
+  // endAlpha *= ( 1.0f - deadFrac );
+  endAlpha_2 "1.0"
+  // memset( &coreverts[0], 0, 4 * sizeof( polyVert_t ) );
+  tuning_2 "4"
+  // coreverts[i].modulate[0] = color[0] * 200.0f;
+  _modulate_x "200.0"
+  // coreverts[i].modulate[1] = color[1] * 200.0f;
+  _modulate_y "200.0"
+  // coreverts[i].modulate[2] = color[2] * 200.0f;
+  _modulate_z "200.0"
+  // trap_R_AddPolyToScene( cgs.media.spotLightBeamShader, 4, &coreverts[0] );
+  tuning_3 "4"
+  // RotatePointAroundVector( start_points[i], lightDir, startvec, ( 360.0f / (float)segs ) * i );
+  tuning_4 "360.0"
+  // RotatePointAroundVector( end_points[i], lightDir, endvec, ( 360.0f / (float)segs ) * i );
+  tuning_5 "360.0"
+  // j = ( i * 4 );
+  j "4"
+  // trap_R_AddPolysToScene( cgs.media.spotLightBeamShader, 4, &verts[0], segs );
+  tuning_6 "4"
+  // radius = 1.5f * coreEndRadius * ( hitDist / beamLen );
+  radius_2 "1.5"
+  // if ( dist < 512 ) { // make even bigger if you're close enough
+  tuning_7 "512"
+  // coronasize *= ( 512.0f / dist );
+  coronasize "512.0"
+  // fixed model resource
+  spotLightLightModelBroke "models/mapobjects/light/searchlight_l_broke.md3"
+  // fixed model resource
+  spotLightLightModel "models/mapobjects/light/searchlight1_l.md3"
+  // fixed model resource
+  spotLightBaseModel "models/mapobjects/light/searchlight1_b.md3"
+  // fixed shader resource
+  spotLightBeamShader "lightBeam"
+  // fixed shader resource
+  spotLightShader "spotLight"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_spotlight", "spotLightShader" ), impactPos, proj, 0, colorNorm[0], colorNorm[1], colorNorm[2], 0.3f, qfalse, radius, qtrue, -1 );
+  ImpactMark_value "0"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_spotlight", "spotLightShader" ), impactPos, proj, 0, colorNorm[0], colorNorm[1], colorNorm[2], 0.3f, qfalse, radius, qtrue, -1 );
+  ImpactMark_value_2 "0.3"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_spotlight", "spotLightShader" ), impactPos, proj, 0, colorNorm[0], colorNorm[1], colorNorm[2], 0.3f, qfalse, radius, qtrue, -1 );
+  ImpactMark_value_3 "1"
+  maxRange 2000
+  coreScale .6
+  flareAngle 35
+ }
+}

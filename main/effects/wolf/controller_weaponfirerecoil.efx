@@ -1,0 +1,14 @@
+// Wolf CG_WeaponFireRecoil event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // CG_StartShakeCamera( 0.05, 700, cg.snap->ps.origin, 100 );
+  StartShakeCamera_value "0.05"
+  // CG_StartShakeCamera( 0.05, 700, cg.snap->ps.origin, 100 );
+  StartShakeCamera_value_2 "700"
+  // CG_StartShakeCamera( 0.05, 700, cg.snap->ps.origin, 100 );
+  StartShakeCamera_value_3 "100"
+ }
+}

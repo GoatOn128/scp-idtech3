@@ -1,0 +1,34 @@
+// Wolf connected ribbon: trail_tesla.
+ribbon
+{
+ name body
+ life 1
+ shader white
+ bindings "life width widthEnd ratio color colorEnd shader"
+ size
+ {
+  start 1
+  end 1
+ }
+ alpha
+ {
+  start 1
+  end 1
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ parameters
+ {
+  flags 4
+  mapping 1
+  ratio 1
+  speed 20.0
+  alphaScale 1
+  sparkColor 0
+  sparkGreen .2
+  sparkBlue .4
+ }
+}

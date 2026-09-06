@@ -1,0 +1,34 @@
+// Wolf connected ribbon: trail_grenade_smoke.
+ribbon
+{
+ name body
+ life 1000
+ shader smokeTrail
+ bindings ""
+ size
+ {
+  start 2
+  end 20
+ }
+ alpha
+ {
+  start 0.3
+  end 0
+ }
+ rgb
+ {
+  start 0 0 0
+  end 0 0 0
+ }
+ parameters
+ {
+  flags 1
+  mapping 1
+  ratio 4
+  speed 0
+  alphaScale 1
+  sparkColor 0
+  sparkGreen .2
+  sparkBlue .4
+ }
+}

@@ -1,0 +1,20 @@
+// Wolf CG_SpawnSpirit controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // le->endTime = cg.time + 6000; //cent->currentState.time;
+  le_endTime "6000"
+  // le->effectWidth = 600;
+  le_effectWidth "600"
+  // le->radius = 30.0;
+  le_radius "30.0"
+  // re->fadeStartTime = le->endTime - 2000;
+  re_fadeStartTime "2000"
+  // VectorScale( v, 350, le->pos.trDelta );
+  tuning "350"
+  // fixed model resource
+  ssSpiritSkullModel "models/players/supersoldier/ssghost.md3"
+ }
+}

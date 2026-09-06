@@ -1,0 +1,20 @@
+// Wolf CG_PlayerShadow event parameters.
+controller
+{
+ name body
+ parameters
+ {
+  // 0, alpha,alpha,alpha,1, qfalse, 18 * scale, qtrue, -1 );
+  ImpactMark_value "0"
+  // 0, alpha,alpha,alpha,1, qfalse, 18 * scale, qtrue, -1 );
+  ImpactMark_value_2 "1"
+  // 0, alpha,alpha,alpha,1, qfalse, 18 * scale, qtrue, -1 );
+  ImpactMark_value_3 "18"
+  // 0, alpha,alpha,alpha,1, qfalse, 18 * scale, qtrue, -1 );
+  ImpactMark_value_4 "1"
+  // angles[YAW] /*cent->pe.legs.yawAngle*/, alpha,alpha,alpha,1, qfalse, shadowParts[tagIndex].size * scale, qtrue, -1 );
+  ImpactMark_value_5 "1"
+  // angles[YAW] /*cent->pe.legs.yawAngle*/, alpha,alpha,alpha,1, qfalse, shadowParts[tagIndex].size * scale, qtrue, -1 );
+  ImpactMark_value_6 "1"
+ }
+}

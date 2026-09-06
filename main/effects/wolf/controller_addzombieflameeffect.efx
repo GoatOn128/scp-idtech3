@@ -1,0 +1,14 @@
+// Wolf CG_AddZombieFlameEffect controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // const int fadeInTime        = 500;
+  fadeInTime "500"
+  // cent->pe.zombieSpiritEndTime = 0;   // stop the effect
+  cent_pe_zombieSpiritEndTime "0"
+  // trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.flameSound, 50 );
+  tuning "50"
+ }
+}

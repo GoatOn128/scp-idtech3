@@ -1,0 +1,14 @@
+// Wolf CG_AddDebrisElements controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // int t, step = 50;
+  step "50"
+  // FxTrailInputs().Life( (int)( 2000.0 * ( 0.5 + 0.5 * ( 1.0 - lifeFrac ) ) ) ).Alpha( 1.0 * ( trace.fraction == 1.0 ) * ( 0.5 + 0.5 * ( 1.0 - lifeFrac ) ) ).WidthEnd( (int)( 60.0 * ( 0.5 + 0.5 * ( 1.0 - lifeFrac ) ) ) ) ); // end width
+  tuning "2000.0"
+  // FxTrailInputs().Life( (int)( 2000.0 * ( 0.5 + 0.5 * ( 1.0 - lifeFrac ) ) ) ).Alpha( 1.0 * ( trace.fraction == 1.0 ) * ( 0.5 + 0.5 * ( 1.0 - lifeFrac ) ) ).WidthEnd( (int)( 60.0 * ( 0.5 + 0.5 * ( 1.0 - lifeFrac ) ) ) ) ); // end width
+  tuning_2 "60.0"
+ }
+}

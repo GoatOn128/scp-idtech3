@@ -1,0 +1,30 @@
+// Wolf venom_smoke: authored particle appearance.
+particle
+{
+ name body
+ count 1
+ life 1200
+ shader shotgunSmokePuff
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ bindings velocity
+ rotation 0 360
+ fadeIn 0
+ size
+ {
+  start 24
+  end 32
+  flags linear
+ }
+ alpha
+ {
+  start .33
+  end 0
+  parm 0
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+ }
+}

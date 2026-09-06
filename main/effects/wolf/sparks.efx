@@ -1,0 +1,33 @@
+// Wolf: sparks. Appearance is configured here.
+particle
+{
+ name body
+ count 1
+ life 500
+ shader gfx/misc/tracer
+ flags useAlpha setShaderTime
+ spawnFlags cheapOrgCalc absoluteVel absoluteAccel
+ rotation 0 360
+ velocity -4 -4 10 4 4 30
+ acceleration -8 -8 0 8 8 0
+ bindings "life velocity speedScale spread"
+ size
+ {
+  start 0.5
+  end 0.5
+  flags linear
+ }
+ alpha
+ {
+  start 0.4
+  end 0
+  parm 50
+  flags nonlinear
+ }
+ rgb
+ {
+  start 1 1 1
+  end 1 1 1
+ }
+ 
+}

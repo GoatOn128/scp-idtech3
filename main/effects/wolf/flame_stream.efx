@@ -1,0 +1,55 @@
+// Wolf continuous flame controller. Collision and damage remain game behavior.
+controller
+{
+ name body
+ animation "flamethrowerFire 45"
+ parameters
+ {
+  startSize 1
+  startMaxSize 140
+  startMaxSizeRandom 60
+  maxSize 200
+  minMaxSize 40
+  startSpeed 950
+  minSpeed 60
+  chunkDistance 4
+  blueLength 230
+  blueMaxAlpha 1
+  fuelLength 48
+  fuelMaxAlpha 0.35
+  fuelMinWidth 1
+  rangePadding 50
+  frictionScale 1
+  fuelFadeIn 0.2
+  blueFadeIn 0.2
+  blueFadeOut 0.05
+  blueGrowth 1
+  fireGrowth 0.6
+  spriteStartBlueScale 0.2
+  spriteMinRadius 6
+  spriteAspect 1.481
+  rotate 1
+  nozzleFrameTime 50
+  soundRange 1024
+  ignitionGravity -150
+  rollRange 179
+  speedBase 0.3
+  speedWeight 0.7
+  lightMin 80
+  lightMax 500
+  lightOffset 90
+  lightBlue 0.5
+  blueTimeScale 1.3
+  spriteAlphaScale 1.4
+  spriteCullBase 0.1
+  spriteCullWeight 0.9
+  spriteCullSize 30
+  lightWeightSize 20
+  lightFlicker 0.2
+  lightFlickerX 50
+  lightFlickerY 43
+  ignitionWidthScale 2
+  fuelWidthDivisor 2
+  fuelMaxWidthDivisor 4
+ }
+}

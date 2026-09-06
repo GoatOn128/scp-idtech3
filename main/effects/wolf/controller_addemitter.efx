@@ -1,0 +1,70 @@
+// Wolf CG_AddEmitter controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // int nextTime = 50;
+  nextTime "50"
+  // CG_Particle_OilParticle( cgs.media.oilParticle, le->pos.trBase, dir,  10000, le->ownerNum );
+  tuning "10000"
+  // CG_Particle_OilParticle( cgs.media.oilParticle, le->pos.trBase, dir,  10000, le->ownerNum );
+  tuning_2 "10000"
+  // nextTime = 100;
+  nextTime_2 "100"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, le->angles.trBase, 8, 1000, 8, le->radius, 20, 0.25f );
+  tuning_3 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, le->angles.trBase, 8, 1000, 8, le->radius, 20, 0.25f );
+  tuning_4 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, le->angles.trBase, 8, 1000, 8, le->radius, 20, 0.25f );
+  tuning_5 "20"
+  // CG_Particle_OilParticle( cgs.media.oilParticle, le->pos.trBase, dir,  10000, le->ownerNum );
+  tuning_6 "10000"
+  // nextTime = 100;
+  nextTime_3 "100"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, dir, 8, 1000, 8, 20, 20, 0.25f );
+  tuning_7 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, dir, 8, 1000, 8, 20, 20, 0.25f );
+  tuning_8 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, dir, 8, 1000, 8, 20, 20, 0.25f );
+  tuning_9 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, dir, 8, 1000, 8, 20, 20, 0.25f );
+  tuning_10 "20"
+  // nextTime = 100;
+  nextTime_4 "100"
+  // CG_AddBulletParticles( le->pos.trBase, dir, 2, 800, 4, 16.0f );
+  tuning_11 "800"
+  // CG_AddBulletParticles( le->pos.trBase, dir, 2, 800, 4, 16.0f );
+  tuning_12 "4"
+  // CG_AddBulletParticles( le->pos.trBase, dir, 2, 800, 4, 16.0f );
+  tuning_13 "16.0"
+  // nextTime = 100;
+  nextTime_5 "100"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, dir, 8, 1000, 8, 20, 20, 0.25f );
+  tuning_14 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, dir, 8, 1000, 8, 20, 20, 0.25f );
+  tuning_15 "8"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, dir, 8, 1000, 8, 20, 20, 0.25f );
+  tuning_16 "20"
+  // CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, le->pos.trBase, dir, 8, 1000, 8, 20, 20, 0.25f );
+  tuning_17 "20"
+  // fixed shader resource
+  oilParticle "oilParticle"
+  // fixed shader resource
+  smokeParticleShader "smokeParticle"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addemitter", "smokeParticleShader" ), le->pos.trBase, le->angles.trBase, CG_FxInt( "wolf/controller_addemitter", "tuning_3" ), 1000, CG_FxInt( "wolf/controller_addemitter", "tuning_4" ), le->radius, CG_FxInt( "wolf/controller_addemitter", "tuning_5" ), 0.25f );
+  ParticleImpactSmokePuffExtended_value "1000"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addemitter", "smokeParticleShader" ), le->pos.trBase, le->angles.trBase, CG_FxInt( "wolf/controller_addemitter", "tuning_3" ), 1000, CG_FxInt( "wolf/controller_addemitter", "tuning_4" ), le->radius, CG_FxInt( "wolf/controller_addemitter", "tuning_5" ), 0.25f );
+  ParticleImpactSmokePuffExtended_value_2 "0.25"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addemitter", "smokeParticleShader" ), le->pos.trBase, dir, CG_FxInt( "wolf/controller_addemitter", "tuning_7" ), 1000, CG_FxInt( "wolf/controller_addemitter", "tuning_8" ), CG_FxInt( "wolf/controller_addemitter", "tuning_9" ), CG_FxInt( "wolf/controller_addemitter", "tuning_10" ), 0.25f );
+  ParticleImpactSmokePuffExtended_value_3 "1000"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addemitter", "smokeParticleShader" ), le->pos.trBase, dir, CG_FxInt( "wolf/controller_addemitter", "tuning_7" ), 1000, CG_FxInt( "wolf/controller_addemitter", "tuning_8" ), CG_FxInt( "wolf/controller_addemitter", "tuning_9" ), CG_FxInt( "wolf/controller_addemitter", "tuning_10" ), 0.25f );
+  ParticleImpactSmokePuffExtended_value_4 "0.25"
+  // CG_AddBulletParticles( le->pos.trBase, dir, 2, CG_FxInt( "wolf/controller_addemitter", "tuning_11" ), CG_FxInt( "wolf/controller_addemitter", "tuning_12" ), CG_FxValue( "wolf/controller_addemitter", "tuning_13" ) );
+  AddBulletParticles_value "2"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addemitter", "smokeParticleShader" ), le->pos.trBase, dir, CG_FxInt( "wolf/controller_addemitter", "tuning_14" ), 1000, CG_FxInt( "wolf/controller_addemitter", "tuning_15" ), CG_FxInt( "wolf/controller_addemitter", "tuning_16" ), CG_FxInt( "wolf/controller_addemitter", "tuning_17" ), 0.25f );
+  ParticleImpactSmokePuffExtended_value_5 "1000"
+  // CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addemitter", "smokeParticleShader" ), le->pos.trBase, dir, CG_FxInt( "wolf/controller_addemitter", "tuning_14" ), 1000, CG_FxInt( "wolf/controller_addemitter", "tuning_15" ), CG_FxInt( "wolf/controller_addemitter", "tuning_16" ), CG_FxInt( "wolf/controller_addemitter", "tuning_17" ), 0.25f );
+  ParticleImpactSmokePuffExtended_value_6 "0.25"
+ }
+}

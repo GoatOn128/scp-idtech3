@@ -1,0 +1,24 @@
+// Wolf CG_ProjectedSpotLight controller. Values preserve the original appearance.
+controller
+{
+ name body
+ parameters
+ {
+  // alpha = ( 1.0 - tr.fraction );
+  alpha "1.0"
+  // alpha = 1.0;
+  alpha_2 "1.0"
+  // radius = 32 + 64 * tr.fraction;
+  radius "32"
+  // radius = 32 + 64 * tr.fraction;
+  radius_2 "64"
+  // fixed shader resource
+  spotLightShader "spotLight"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_projectedspotlight", "spotLightShader" ), tr.endpos, proj, 0, alpha, alpha, alpha, 1.0, qfalse, radius, qtrue, -2 );
+  ImpactMark_value "0"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_projectedspotlight", "spotLightShader" ), tr.endpos, proj, 0, alpha, alpha, alpha, 1.0, qfalse, radius, qtrue, -2 );
+  ImpactMark_value_2 "1.0"
+  // CG_ImpactMark( CG_FxMaterial( "wolf/controller_projectedspotlight", "spotLightShader" ), tr.endpos, proj, 0, alpha, alpha, alpha, 1.0, qfalse, radius, qtrue, -2 );
+  ImpactMark_value_3 "2"
+ }
+}

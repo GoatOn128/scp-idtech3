@@ -1,0 +1,94 @@
+name: build-windows
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# a new commit cancels the superseded run for the same branch
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}
+    runs-on: windows-latest
+    strategy:
+      # one failing leg cancels the remaining legs: the digest still
+      # lists every error of the failing leg, and runner time is not
+      # wasted on a doomed build
+      fail-fast: true
+      matrix:
+        arch: [x86, x64]
+        config: [debug, release]
+        # the dll dimension must exist in the base matrix (empty string)
+        # or the include entry below would merge into the existing legs
+        # instead of adding a new one
+        dll: ['']
+        # the dll=1 leg (Game-D3XP linked as bin/gamex86.dll) is disabled
+        # while the dll build is a work in progress and does not compile;
+        # re-enable it by adding this include entry back:
+        #   - arch: x64
+        #     config: release
+        #     dll: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - name: clean stale log
+        shell: bash
+        run: rm -f build.log
+      - name: free disk space
+        shell: bash
+        run: |
+          # the Windows runners run out of disk during full builds
+          rm -rf /c/Android /c/Miniconda3 /c/vcpkg || true
+          df -h /c 2>&1 | tee -a build.log
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: install scons
+        shell: bash
+        run: |
+          set -o pipefail
+          pip install scons 2>&1 | tee -a build.log
+      - name: setup msvc environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - name: cache scons objects
+        uses: actions/cache@v4
+        with:
+          path: .scons_cache
+          # no restore-keys: falling back to a cache from an older
+          # SConstruct fills the disk with stale objects and slows
+          # the restore down
+          key: scons-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}-${{ hashFiles('SConstruct') }}
+      - name: build
+        shell: bash
+        run: |
+          set -o pipefail
+          # -k keeps going so the digest lists every failing file in one run
+          scons arch=${{ matrix.arch }} config=${{ matrix.config }} dll=${{ matrix.dll }} -j4 -k 2>&1 | tee -a build.log
+      - name: digest
+        if: always()
+        shell: bash
+        env:
+          LEG: windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}
+          STATUS: ${{ job.status }}
+        run: |
+          cp build.log "log-$LEG.log" 2>/dev/null || true
+          python .github/scripts/digest.py || true
+      - name: upload
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}
+          path: |
+            log-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}.log
+            digest-fragment-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}.md
+            status-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}
+          if-no-files-found: ignore
