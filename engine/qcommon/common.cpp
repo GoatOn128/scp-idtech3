@@ -1959,9 +1959,12 @@ void Com_Init( char *commandLine ) {
 
 	Com_Printf( "%s %s %s\n", Q3_VERSION, CPUSTRING, __DATE__ );
 
+#pragma warning( push )
+#pragma warning( disable : 4611 )
 	if ( setjmp( abortframe ) ) {
 		Sys_Error( "Error during initialization" );
 	}
+#pragma warning( pop )
 
 	// bk001129 - do this before anything else decides to push events
 	Com_InitPushEvent();
@@ -2279,9 +2282,12 @@ void Com_Frame( void ) {
 
 
 
+#pragma warning( push )
+#pragma warning( disable : 4611 )
 	if ( setjmp( abortframe ) ) {
 		return;         // an ERR_DROP was thrown
 	}
+#pragma warning( pop )
 
 	// bk001204 - init to zero.
 	//  also:  might be clobbered by `longjmp' or `vfork'
