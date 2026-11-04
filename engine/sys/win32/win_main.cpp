@@ -1163,9 +1163,12 @@ void Sys_Init( void ) {
 
 	g_wv.osversion.dwOSVersionInfoSize = sizeof( g_wv.osversion );
 
+#pragma warning( push )
+#pragma warning( disable : 4996 )
 	if ( !GetVersionEx( &g_wv.osversion ) ) {
 		Sys_Error( "Couldn't get OS info" );
 	}
+#pragma warning( pop )
 
 	if ( g_wv.osversion.dwMajorVersion < 4 ) {
 		Sys_Error( "Wolf requires Windows version 4 or greater" );
