@@ -175,7 +175,7 @@ typedef struct {
 	void ( QDECL *BotImport_DebugPolygonDelete )( int id );
 	int ( QDECL *Com_RealTime )( qtime_t *qtime );
 	void ( QDECL *Sys_SnapVector )( float *v );
-	qboolean ( QDECL *SV_GetTag )( int clientNum, char *tagName, orientation_t *or );
+	qboolean ( QDECL *SV_GetTag )( int clientNum, char *tagName, orientation_t *orent );
 	int ( QDECL *SV_BotLibSetup )( void );
 	int ( QDECL *SV_BotLibShutdown )( void );
 	int ( QDECL *BotLibVarSet )( char *var_name, char *value );

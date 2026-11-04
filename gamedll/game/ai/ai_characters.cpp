@@ -910,7 +910,7 @@ AIChar_SetBBox
 void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
 	vec3_t bbox[2];
 	trace_t tr;
-	orientation_t or ;
+	orientation_t orent ;
 
 	if ( !useHeadTag ) {
 		VectorCopy( bbmins[cs->aasWorldIndex], ent->client->ps.mins );
@@ -920,14 +920,14 @@ void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
 		VectorCopy( ent->client->ps.maxs, ent->r.maxs );
 		ent->client->ps.crouchMaxZ = aiDefaults[cs->aiCharacter].crouchstandZ[0];
 		ent->s.density = cs->aasWorldIndex;
-	} else if ( trap_GetTag( ent->s.number, "tag_head", &or ) ) { // if not found, then just leave it
-		or.origin[2] -= ent->client->ps.origin[2]; // convert to local coordinates
-		or.origin[2] += 11;
-		if ( or.origin[2] < 0 ) {
-			or.origin[2] = 0;
+	} else if ( trap_GetTag( ent->s.number, "tag_head", &orent ) ) { // if not found, then just leave it
+		orent.origin[2] -= ent->client->ps.origin[2]; // convert to local coordinates
+		orent.origin[2] += 11;
+		if ( orent.origin[2] < 0 ) {
+			orent.origin[2] = 0;
 		}
-		if ( or.origin[2] > aiDefaults[cs->aiCharacter].crouchstandZ[1] + 30 ) {
-			or.origin[2] = aiDefaults[cs->aiCharacter].crouchstandZ[1] + 30;
+		if ( orent.origin[2] > aiDefaults[cs->aiCharacter].crouchstandZ[1] + 30 ) {
+			orent.origin[2] = aiDefaults[cs->aiCharacter].crouchstandZ[1] + 30;
 		}
 
 		memset( &tr, 0, sizeof( tr ) );
@@ -936,7 +936,7 @@ void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
 		VectorCopy( bbmins[cs->aasWorldIndex], bbox[0] );
 		VectorCopy( bbmaxs[cs->aasWorldIndex], bbox[1] );
 		// set the head tag height
-		bbox[1][2] = or.origin[2];
+		bbox[1][2] = orent.origin[2];
 
 		if ( bbox[1][2] > ent->client->ps.maxs[2] ) {
 			// check this area is clear
@@ -1007,18 +1007,18 @@ int AIChar_GetPainLocation( gentity_t *ent, vec3_t point ) {
 
 	int tagIndex, bestTag;
 	float bestDist, dist;
-	orientation_t or ;
+	orientation_t orent ;
 
 	// first make sure the client is able to retrieve tag information
-	if ( !trap_GetTag( ent->s.number, painTagNames[0], &or ) ) {
+	if ( !trap_GetTag( ent->s.number, painTagNames[0], &orent ) ) {
 		return 0;
 	}
 
 	// find a correct animation to play, based on the body orientation at previous frame
 	for ( tagIndex = 0, bestDist = 0, bestTag = -1; painTagNames[tagIndex]; tagIndex++ ) {
 		// grab the tag with this name
-		if ( trap_GetTag( ent->s.number, painTagNames[tagIndex], &or ) ) {
-			dist = VectorDistance( or.origin, point );
+		if ( trap_GetTag( ent->s.number, painTagNames[tagIndex], &orent ) ) {
+			dist = VectorDistance( orent.origin, point );
 			if ( !bestDist || dist < bestDist ) {
 				bestTag = tagIndex;
 				bestDist = dist;
