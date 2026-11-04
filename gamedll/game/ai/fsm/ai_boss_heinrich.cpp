@@ -532,8 +532,8 @@ char *AIFunc_Heinrich_MeleeStart( cast_state_t *cs ) {
 	//
 	switch ( rnd ) {
 	case 0: {
-		int rnd = rand() % 3;
-		switch ( rnd ) {
+		int attackRnd = rand() % 3;
+		switch ( attackRnd ) {
 		case 0:
 			return AIFunc_Heinrich_SwordSideSlashStart( cs );
 		case 1:

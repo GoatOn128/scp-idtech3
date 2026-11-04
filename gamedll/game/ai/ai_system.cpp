@@ -293,7 +293,7 @@ AICast_CreateCharacter
   returns 0 if unable to create the character
 ============
 */
-gentity_t *AICast_CreateCharacter( gentity_t *ent, float *attributes, cast_weapon_info_t *weaponInfo, char *castname,
+gentity_t *AICast_CreateCharacter( gentity_t *ent, float *attributes, cast_weapon_info_t *weaponInfoParam, char *castname,
 								   char *model, char *head, char *sex, char *color, char *handicap ) {
 	gentity_t *newent;
 	gclient_t *client;
@@ -374,8 +374,8 @@ gentity_t *AICast_CreateCharacter( gentity_t *ent, float *attributes, cast_weapo
 	//
 	// clear weapons/ammo
 	client->ps.weapon = 0;
-	memcpy( client->ps.weapons, weaponInfo->startingWeapons, sizeof( weaponInfo->startingWeapons ) );
-	memcpy( client->ps.ammo, weaponInfo->startingAmmo, sizeof( client->ps.ammo ) );
+	memcpy( client->ps.weapons, weaponInfoParam->startingWeapons, sizeof( weaponInfoParam->startingWeapons ) );
+	memcpy( client->ps.ammo, weaponInfoParam->startingAmmo, sizeof( client->ps.ammo ) );
 	//
 	// starting health
 	if ( ent->health ) {
@@ -385,7 +385,7 @@ gentity_t *AICast_CreateCharacter( gentity_t *ent, float *attributes, cast_weapo
 			cs->attributes[STARTING_HEALTH];
 	}
 	//
-	cs->weaponInfo = weaponInfo;
+	cs->weaponInfo = weaponInfoParam;
 	//
 	cs->lastThink = level.time;
 	//

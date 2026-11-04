@@ -96,9 +96,9 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 			if ( VectorLength( danger->s.pos.trDelta ) < 10 &&
 				 VectorDistance( danger->r.currentOrigin, cs->clientState->origin ) < 128 &&
 				 ( level.lastGrenadeKick < level.time - 3000 ) && ( cs->aiFlags & AIFL_CATCH_GRENADE ) ) {
-				vec3_t vec;
-				VectorSubtract( danger->r.currentOrigin, cs->clientState->origin, vec );
-				if ( DotProduct( vec, cs->clientState->velocity ) > 0 ) {
+				vec3_t vsub;
+				VectorSubtract( danger->r.currentOrigin, cs->clientState->origin, vsub );
+				if ( DotProduct( vsub, cs->clientState->velocity ) > 0 ) {
 					danger->flags |= FL_AI_GRENADE_KICK;
 					ent->flags |= FL_AI_GRENADE_KICK;
 					level.lastGrenadeKick = level.time;
@@ -457,7 +457,7 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 		if ( ( cs->leaderNum < 0 ) && ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE ||
 										g_entities[cs->entityNum].waterlevel > 1 ) ) {
 			aicast_predictmove_t move;
-			vec3_t dir;
+			vec3_t gdir;
 			bot_input_t bi;
 			usercmd_t ucmd;
 			trace_t tr;
@@ -468,14 +468,14 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 						g_entities[cs->entityNum].clipmask );
 			if ( tr.entityNum == followent->s.number ) {
 				// try walking straight to them
-				VectorSubtract( followent->r.currentOrigin, cs->clientState->origin, dir );
-				VectorNormalize( dir );
+				VectorSubtract( followent->r.currentOrigin, cs->clientState->origin, gdir );
+				VectorNormalize( gdir );
 				if ( !ent->waterlevel ) {
-					dir[2] = 0;
+					gdir[2] = 0;
 				}
 				//trap_EA_Move(cs->entityNum, dir, 400);
 				trap_EA_GetInput( cs->entityNum, (float)level.time / 1000, &bi );
-				VectorCopy( dir, bi.dir );
+				VectorCopy( gdir, bi.dir );
 				bi.speed = 400;
 				bi.actionflags = 0;
 				AICast_InputToUserCommand( cs, &bi, &ucmd, bs->cur_ps.delta_angles );
@@ -880,16 +880,16 @@ char *AIFunc_GrenadeKick( cast_state_t *cs ) {
 */
 	// if we should be attacking something on our way
 	if ( shouldAttack ) {
-		vec3_t vec, dir;
+		vec3_t gvec, gdir;
 
 		//attack the enemy if possible
 		AICast_ProcessAttack( cs );
 		//
 		// if they are close, and we're heading for them, we should abort this manouver
-		VectorSubtract( g_entities[cs->enemyNum].client->ps.origin, bs->origin, vec );
-		if ( VectorNormalize( vec ) < 64 ) {
-			if ( VectorNormalize2( bs->velocity, dir ) > 20 ) { // we are moving
-				if ( DotProduct( dir, vec ) > 0 ) {
+		VectorSubtract( g_entities[cs->enemyNum].client->ps.origin, bs->origin, gvec );
+		if ( VectorNormalize( gvec ) < 64 ) {
+			if ( VectorNormalize2( bs->velocity, gdir ) > 20 ) { // we are moving
+				if ( DotProduct( gdir, gvec ) > 0 ) {
 					// abort
 					level.lastGrenadeKick = level.time;
 					return AIFunc_DefaultStart( cs );

@@ -641,16 +641,16 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 	//
 	// if we should be attacking something on our way
 	if ( shouldAttack ) {
-		vec3_t vec, dir;
-		float dist;
+		vec3_t cvec, cdir;
+		float adist;
 		//
 		// if they are close, and we're heading for them, we should abort this manouver
-		VectorSubtract( g_entities[cs->enemyNum].client->ps.origin, bs->origin, vec );
-		if ( ( dist = VectorNormalize( vec ) ) < 256 ) {
-			VectorCopy( bs->velocity, vec );
-			vec[2] = 0;
-			if ( VectorNormalize2( vec, dir ) > 20 ) { // we are moving
-				if ( DotProduct( dir, vec ) > 0.4 ) {
+		VectorSubtract( g_entities[cs->enemyNum].client->ps.origin, bs->origin, cvec );
+		if ( ( adist = VectorNormalize( cvec ) ) < 256 ) {
+			VectorCopy( bs->velocity, cvec );
+			cvec[2] = 0;
+			if ( VectorNormalize2( cvec, cdir ) > 20 ) { // we are moving
+				if ( DotProduct( cdir, cvec ) > 0.4 ) {
 					// abort
 					return AIFunc_BattleStart( cs );
 				}
@@ -666,7 +666,7 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 		}
 		//
 		// if we are tactical and can crouch, do so
-		if ( !move.numtouch && ( cs->thinkFuncChangeTime < level.time - 2000 ) && ( dist > 128 ) &&
+		if ( !move.numtouch && ( cs->thinkFuncChangeTime < level.time - 2000 ) && ( adist > 128 ) &&
 			 cs->attributes[TACTICAL] > 0.4 && cs->attributes[ATTACK_CROUCH] > 0.1 &&
 			 ( cs->attackcrouch_time >= level.time ) ) {
 			cs->attackcrouch_time = level.time + 1000;

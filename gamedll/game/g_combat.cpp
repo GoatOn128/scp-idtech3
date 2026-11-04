@@ -542,9 +542,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 	if ( nogib ) {
 		// normal death
-		static int i;
+		static int deathIdx;
 
-		switch ( i ) {
+		switch ( deathIdx ) {
 		case 0:
 			anim = BOTH_DEATH1;
 			break;
@@ -578,7 +578,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		self->die = body_die;
 
 		// globally cycle through the different death animations
-		i = ( i + 1 ) % 3;
+		deathIdx = ( deathIdx + 1 ) % 3;
 	}
 
 	trap_LinkEntity( self );
