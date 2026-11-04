@@ -39,8 +39,8 @@ set(CGAME_SOURCES
     ${CMAKE_SOURCE_DIR}/qcommon/q_shared.cpp
     ../ui/ui_shared.cpp
     cgame.def)
-	
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${CGAME_SOURCES})
+
+source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${CGAME_SOURCES})
 
 add_library(cgame SHARED ${CGAME_SOURCES})
 set_target_properties(cgame PROPERTIES OUTPUT_NAME cgamex86)

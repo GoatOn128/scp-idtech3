@@ -11,8 +11,8 @@ set(UI_SOURCES
     ui/ui_syscalls.cpp
     ui/ui_util.cpp
     ui/ui.def)
-	
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${UI_SOURCES})
+
+source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${UI_SOURCES})
 
 add_library(ui SHARED ${UI_SOURCES})
 set_target_properties(ui PROPERTIES OUTPUT_NAME uix86)
