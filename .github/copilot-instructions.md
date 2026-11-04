@@ -1,56 +1,30 @@
-# Doom3BFG — Copilot instructions
+# SCP-idTech3 copilot instructions
 
-Doom 3 BFG Edition GPL sources with a from-scratch SCons build ported from the
-original Premake scripts. Windows only. Three toolchains: msvc (default) builds
-with cl.exe/link.exe/lib.exe from the MSVC environment (vcvars or msvc-dev-cmd);
-clang drives LLVM clang-cl/lld-link/llvm-lib over MSVC headers and libraries;
-gcc uses a MinGW-w64 gcc/g++/windres toolchain from PATH.
+## Project
 
-## Build
+A Win32 (x86) CMake build of the RTCW single-player engine. Modules: engine/ (wolf exe), gamedll/game|cgame|ui|botlib (DLLs), tools/bspc, tools/extractfuncs. Third-party code lives in external/ and is never edited.
 
-    scons toolchain=msvc arch=x64 config=debug
-    scons toolchain=clang arch=x64 config=debug
-    scons toolchain=gcc arch=x64 config=debug
-    scons arch=x86 config=release
-    scons arch=x64 config=release dll=1
+## Build facts
 
-- arch: x86 or x64 (default x64). config: debug, release or retail (default debug).
-- toolchain: msvc (default), clang, or gcc.
-- dll=1 links Game-D3XP as bin/gamex86.dll instead of a static library.
-- verbose=1 shows full compiler command lines. -jN overrides the default job count.
-- Outputs: bin/Doom3BFG.exe, bin/gamex86.dll (dll=1), static libs under build/scons/windows-<arch>-<config>-<toolchain>/lib.
-- toolchain=msvc needs the MSVC environment (vcvars or msvc-dev-cmd). toolchain=clang also needs LLVM on PATH or llvm_bin=<path>. toolchain=gcc needs MinGW-w64 gcc/g++/windres on PATH.
+- Generator: Visual Studio 17 2022, architecture Win32. Presets in CMakePresets.json: cmake --preset visual-studio then cmake --build --preset visual-studio-release.
+- Release compiles with /W4, Debug with /W3. Zero warnings is the bar; treat every warning as a fix item, not noise.
+- Engine exe: bin/WolfSP.exe. Game DLLs: main/qagamex86.dll, cgamex86.dll, uix86.dll, botlibx86.dll.
+- Shared config (defines, warning level, output dirs) is the configure_target() function in the root CMakeLists.txt.
 
-## Layout
+## CI rules
 
-- SConstruct — global build logic, toolchain setup, options, groups (libs, exes, dll, all).
-- neo/*/SConscript — per-project definitions mirroring the Premake projects: external (neo/external), idLib (neo/idLib), Game-D3XP (neo/d3xp), DoomEXE (neo/SConscript).
-- neo/external — bundled third-party code (miniz, minizip, libbinkdec, stb). Never modify, refactor or reformat it.
-- base/ — game assets.
-
-## CI
-
-One workflow builds per push, then a second publishes its results:
-
-- build-windows (ci-windows.yml) — matrix of x86/x64 times debug/release plus an x64 release dll=1 leg, built with MSVC (the default toolchain).
-- publish (ci-publish.yml) — after the build finishes, commits build-digest.md and build-windows.log to the repo root.
-
-Working rules:
-
-1. Read build-digest.md first: per-leg status, errors, failure context and warning kinds. Open build-windows.log only when the digest trims a context block you need.
-2. Fix every error AND every warning. The build compiles with /W4; a change is not done until the digest shows zero warnings.
-3. Never hand-edit build-digest.md or build-windows.log. They are bot outputs regenerated every run.
-4. [skip ci] in a commit message skips all workflows for that commit. Use it only for pushes that cannot affect the build (docs, notes). Never put it on a code push.
-5. Digest files in the repo root can lag the branch head: the publish job also pushes. Match the commit sha printed at the top of build-digest.md against the branch head before diagnosing.
-
-## Code style
-
-- Formatting is manual: uncrustify.cfg at the repo root describes the project style, and there is no format bot. Keep formatting changes in their own commit, never mixed into a functional change.
-- Comments: plain English, only where the code is not self-explanatory. No line-by-line noise, no commented-out code left behind.
-- Edits are surgical and behavior-preserving. No drive-by rewrites or style-only refactors of engine code.
+- CI runs on every push unless the commit message contains [skip ci]. Intermediate commits on a branch should carry [skip ci]; only the final push of a change lets CI run.
+- After any CI run, read build-digest.md first (repo root on main, ci-logs/ branch otherwise), then the matching section of build-windows.log. Fix ALL errors AND warnings, commit, push, repeat until green with zero warnings.
+- Never edit build-digest.md, build-windows.log or any CI-published file by hand.
+- Do not edit anything under external/ or references/. References are read-only study material.
 
 ## Workflow
 
-- Work on a feature branch, open a PR into master, squash merge when CI is green.
-- Commit messages: plain-English bullet lists. One logical change per commit.
-- After pushing, the publish job may push a digest commit on the same branch; rebase on it instead of discarding it.
+- Work on a feature branch, open a PR into main, squash-merge with a plain-English commit message.
+- Commit messages: short plain-language summaries, no ticket noise.
+- docs/ holds one progress file per milestone, stamped with the finish time in 12-hour format. Update the relevant file when a milestone completes.
+
+## Code conventions
+
+- Comments only where they earn their place, in plain English.
+- Keep the existing file layout: engine code in engine/, game code in gamedll/, tools in tools/. Never move third-party code out of external/.

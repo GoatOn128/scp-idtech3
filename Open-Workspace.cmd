@@ -4,30 +4,22 @@ setlocal EnableExtensions
 set "SCRIPT_DIR=%~dp0"
 set "PROJECT_ROOT="
 
-if exist "%SCRIPT_DIR%SConstruct" if exist "%SCRIPT_DIR%.vscode\settings.json" set "PROJECT_ROOT=%SCRIPT_DIR%"
+if exist "%SCRIPT_DIR%CMakeLists.txt" if exist "%SCRIPT_DIR%.vscode\settings.json" set "PROJECT_ROOT=%SCRIPT_DIR%"
 
-if not defined PROJECT_ROOT if exist "%SCRIPT_DIR%..\SConstruct" if exist "%SCRIPT_DIR%..\.vscode\settings.json" for %%I in ("%SCRIPT_DIR%..") do set "PROJECT_ROOT=%%~fI"
-
-if not defined PROJECT_ROOT if exist "%SCRIPT_DIR%..\..\SConstruct" if exist "%SCRIPT_DIR%..\..\.vscode\settings.json" for %%I in ("%SCRIPT_DIR%..\..") do set "PROJECT_ROOT=%%~fI"
+if not defined PROJECT_ROOT if exist "%SCRIPT_DIR%..\CMakeLists.txt" if exist "%SCRIPT_DIR%..\.vscode\settings.json" for %%I in ("%SCRIPT_DIR%..") do set "PROJECT_ROOT=%%~fI"
 
 if not defined PROJECT_ROOT (
-    echo ERROR: Could not locate the project root.
-    echo Put this launcher beside SConstruct,
-    echo with the .vscode folder beside it.
-    pause
+    echo [Open-Workspace] ERROR: Could not locate the project root.
     exit /b 1
 )
 
-for %%I in ("%PROJECT_ROOT%") do set "PROJECT_ROOT=%%~fI"
-
-where code >nul 2>&1
+where code >nul 2>nul
 if not errorlevel 1 (
-    call code --new-window "%PROJECT_ROOT%"
-    exit /b %ERRORLEVEL%
+    start "" code --new-window "%PROJECT_ROOT%"
+    exit /b 0
 )
-
-if exist "%LocalAppData%\Programs\Microsoft VS Code\Code.exe" (
-    start "" "%LocalAppData%\Programs\Microsoft VS Code\Code.exe" --new-window "%PROJECT_ROOT%"
+if exist "%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe" (
+    start "" "%LOCALAPPDATA%\Programs\Microsoft VS Code\Code.exe" --new-window "%PROJECT_ROOT%"
     exit /b 0
 )
 if exist "%ProgramFiles%\Microsoft VS Code\Code.exe" (

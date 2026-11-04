@@ -1,10 +1,6 @@
 {
     "recommendations": [
-        "vadimcn.vscode-lldb",
         "ms-vscode.cpptools",
-        "ms-vscode.powershell",
-        "editorconfig.editorconfig",
-        "usernamehw.errorlens",
-        "ms-vscode.hexeditor"
+        "ms-vscode.cmake-tools"
     ]
 }

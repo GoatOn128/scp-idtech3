@@ -4,91 +4,66 @@ on:
   push:
     branches: ['**']
   pull_request:
-  workflow_dispatch:
 
-permissions:
-  contents: read
-
-# a new commit cancels the superseded run for the same branch
 concurrency:
-  group: build-windows-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    name: windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}
+    name: windows-x86-${{ matrix.configuration }}
     runs-on: windows-latest
     strategy:
-      # one failing leg cancels the remaining legs: the digest still
-      # lists every error of the failing leg, and runner time is not
-      # wasted on a doomed build
-      fail-fast: true
+      fail-fast: false
       matrix:
-        arch: [x86, x64]
-        config: [debug, release]
-        # the dll dimension must exist in the base matrix (empty string)
-        # or the include entry below would merge into the existing legs
-        # instead of adding a new one
-        dll: ['']
-        # the dll=1 leg (Game-D3XP linked as bin/gamex86.dll) is disabled
-        # while the dll build is a work in progress and does not compile;
-        # re-enable it by adding this include entry back:
-        #   - arch: x64
-        #     config: release
-        #     dll: '1'
+        configuration: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
-      - name: clean stale log
-        shell: bash
-        run: rm -f build.log
-      - name: free disk space
-        shell: bash
-        run: |
-          # the Windows runners run out of disk during full builds
-          rm -rf /c/Android /c/Miniconda3 /c/vcpkg || true
-          df -h /c 2>&1 | tee -a build.log
-      - uses: actions/setup-python@v5
+
+      - uses: ilammy/msvc-dev-cmd@v1
         with:
-          python-version: '3.x'
-      - name: install scons
-        shell: bash
-        run: |
-          set -o pipefail
-          pip install scons 2>&1 | tee -a build.log
-      - name: setup msvc environment
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: ${{ matrix.arch }}
-      - name: cache scons objects
-        uses: actions/cache@v4
-        with:
-          path: .scons_cache
-          # no restore-keys: falling back to a cache from an older
-          # SConstruct fills the disk with stale objects and slows
-          # the restore down
-          key: scons-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}-${{ hashFiles('SConstruct') }}
+          arch: x86
+
       - name: build
-        shell: bash
+        id: build
+        shell: pwsh
         run: |
-          set -o pipefail
-          # -k keeps going so the digest lists every failing file in one run
-          scons arch=${{ matrix.arch }} config=${{ matrix.config }} dll=${{ matrix.dll }} -j4 -k 2>&1 | tee -a build.log
+          $fail = 0
+          & cmake -S . -B out -G "Visual Studio 17 2022" -A Win32 2>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) { $fail = $LASTEXITCODE }
+          if ($fail -eq 0) {
+            & cmake --build out --config ${{ matrix.configuration }} --parallel 2>&1 | Tee-Object -FilePath build.log -Append
+            if ($LASTEXITCODE -ne 0) { $fail = $LASTEXITCODE }
+          }
+          exit $fail
+
       - name: digest
         if: always()
-        shell: bash
         env:
-          LEG: windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}
-          STATUS: ${{ job.status }}
-        run: |
-          cp build.log "log-$LEG.log" 2>/dev/null || true
-          python .github/scripts/digest.py || true
-      - name: upload
+          LEG: windows-x86-${{ matrix.configuration }}
+          STATUS: ${{ steps.build.outcome }}
+        shell: pwsh
+        run: python .github/scripts/digest.py
+
+      - name: upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}
+          name: logs-windows-x86-${{ matrix.configuration }}
           path: |
-            log-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}.log
-            digest-fragment-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}.md
-            status-windows-${{ matrix.arch }}-${{ matrix.config }}${{ matrix.dll == '1' && '-dll' || '' }}
-          if-no-files-found: ignore
+            build.log
+            status-*
+            digest-fragment-*
+            log-*.log
+          if-no-files-found: error
+
+      - name: upload binaries
+        if: steps.build.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bin-windows-x86-${{ matrix.configuration }}
+          path: |
+            bin/*.exe
+            bin/*.dll
+            main/*.dll
+          if-no-files-found: warn

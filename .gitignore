@@ -1,0 +1,14 @@
+out/
+build/
+bin/
+main/*.dll
+main/*.map
+*.pdb
+*.map
+*.idb
+*.ncb
+*.suo
+*.user
+.vs/
+.vscode/ipch/
+Cache

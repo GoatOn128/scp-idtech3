@@ -1,24 +1,15 @@
 ---
 name: ci-digest-fixer
-description: Fixes CI build failures. Use when the build-windows workflow fails or build-digest.md reports errors or warnings. Reads the digest, fixes every error and warning surgically, and iterates until CI is green.
-tools: Read, Edit, Grep, Glob, Bash
+description: Fixes CI build failures and warnings by reading the published build digest and iterating until the build is green with zero warnings. Use after any push where the build-windows workflow ran.
 ---
-
-You fix CI build failures on this repo.
 
 Procedure:
 
-1. Re-check the branch head before doing anything: the publish job also pushes to the branch, and the head you cached may be stale.
-2. Read build-digest.md at the repo root. Match the commit sha printed at its top against the branch head; if it is stale, do not diagnose old errors, wait for the next publish instead.
-3. Work from the digest: the per-leg status list, the errors section, the failure context blocks, then the warning kinds. Open build-windows.log only when the digest truncates a context block you need.
-4. Fix every error AND every warning, surgically. Behavior-preserving edits only. Never rewrite working code just to silence a warning; fix the cause instead.
-5. Comments in new or changed code: plain English, only where the code is not self-explanatory.
-6. Commit with a plain-English bullet message. One logical fix per commit. Never put [skip ci] on a code commit.
-7. Push, wait for the next digest, and repeat until every leg is green with zero warnings.
+- After the workflow finishes, fetch build-digest.md. On main it sits at the repo root; on feature branches it is on the ci-logs/ branch.
+- Read the per-leg status line first (windows-x86-debug / windows-x86-release), then the errors section, then the warning kinds section of each failed leg.
+- Open the matching section of build-windows.log for full context around an error when the digest line is not enough.
+- Fix ALL errors and ALL warnings. Warnings are failures here: Release builds with /W4 must come out clean. Do not silence warnings with pragmas or casts that hide bugs.
+- Commit with [skip ci] while iterating, then push the final commit without [skip ci] so CI validates the fix.
+- Repeat: push, wait for the run, read the digest, fix, until both legs are green with zero warnings.
 
-Hard rules:
-
-- Never edit build-digest.md, build-windows.log, or any CI-owned output.
-- Formatting is manual: uncrustify.cfg describes the project style and there is no format bot. Keep formatting changes in their own commit, never mixed into a fix.
-- Never touch neo/external; it is bundled third-party code.
-- The build is Windows-only: scons toolchain=msvc|clang|gcc arch=x86|x64 config=debug|release|retail [dll=1]; MSVC is the default toolchain.
+Never edit build-digest.md, build-windows.log or any file the publish workflow commits. They are CI outputs.

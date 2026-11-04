@@ -2,120 +2,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Doom3BFG (x64 debug)",
+            "name": "WolfSP (Win32 debug)",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/Doom3BFG.exe",
+            "program": "${workspaceFolder}/bin/WolfSP.exe",
             "args": [
                 "+set",
                 "r_fullscreen",
                 "0"
             ],
             "cwd": "${workspaceFolder}/bin",
-            "preLaunchTask": "Build (x64 debug)"
-        },
-        {
-            "name": "Doom3BFG (x64 release)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/Doom3BFG.exe",
-            "args": [
-                "+set",
-                "r_fullscreen",
-                "0"
-            ],
-            "cwd": "${workspaceFolder}/bin",
-            "preLaunchTask": "Build (x64 release)"
-        },
-        {
-            "name": "Doom3BFG (x64 retail)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/Doom3BFG.exe",
-            "args": [
-                "+set",
-                "r_fullscreen",
-                "0"
-            ],
-            "cwd": "${workspaceFolder}/bin",
-            "preLaunchTask": "Build (x64 retail)"
-        },
-        {
-            "name": "Doom3BFG (x86 debug)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/Doom3BFG.exe",
-            "args": [
-                "+set",
-                "r_fullscreen",
-                "0"
-            ],
-            "cwd": "${workspaceFolder}/bin",
-            "preLaunchTask": "Build (x86 debug)"
-        },
-        {
-            "name": "Doom3BFG (x86 release)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/Doom3BFG.exe",
-            "args": [
-                "+set",
-                "r_fullscreen",
-                "0"
-            ],
-            "cwd": "${workspaceFolder}/bin",
-            "preLaunchTask": "Build (x86 release)"
-        },
-        {
-            "name": "Doom3BFG (x86 retail)",
-            "type": "cppvsdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/Doom3BFG.exe",
-            "args": [
-                "+set",
-                "r_fullscreen",
-                "0"
-            ],
-            "cwd": "${workspaceFolder}/bin",
-            "preLaunchTask": "Build (x86 retail)"
-        },
-        {
-            "name": "Doom3BFG (x64 debug, clang)",
-            "type": "lldb",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/Doom3BFG.exe",
-            "args": [
-                "+set",
-                "r_fullscreen",
-                "0"
-            ],
-            "cwd": "${workspaceFolder}/bin",
-            "preLaunchTask": "Build (x64 debug, clang)",
-            "initCommands": [
-                "settings set target.max-children-count 256",
-                "settings set target.max-string-summary-length 2048"
-            ]
-        },
-        {
-            "name": "Doom3BFG (x64 debug, gcc)",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/bin/Doom3BFG.exe",
-            "args": [
-                "+set",
-                "r_fullscreen",
-                "0"
-            ],
-            "cwd": "${workspaceFolder}/bin",
-            "preLaunchTask": "Build (x64 debug, gcc)",
-            "MIMode": "gdb",
-            "miDebuggerPath": "gdb",
-            "setupCommands": [
-                {
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
+            "preLaunchTask": "Build (Win32 debug)",
+            "console": "integratedTerminal"
         }
     ]
 }
