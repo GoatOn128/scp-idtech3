@@ -29,7 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 // sv_bot.c
 
 #include "server.h"
-#include "../game/botlib.h"
+#include "../../gamedll/botlib/botlib.h"
 
 #define MAX_DEBUGPOLYS      128
 
