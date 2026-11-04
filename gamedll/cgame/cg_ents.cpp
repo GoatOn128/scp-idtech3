@@ -1705,7 +1705,7 @@ static void CG_Efx( centity_t *cent ) {
 
 		vec3_t targetpos, normalized_direction, direction;
 		float dist, fov = CG_FxInt( "wolf/controller_efx", "fov" );
-		vec4_t color = {CG_FxInt( "wolf/controller_efx", "color" ), CG_FxInt( "wolf/controller_efx", "color_2" ), CG_FxInt( "wolf/controller_efx", "color_3" ), CG_FxValue( "wolf/controller_efx", "color_4" )};
+		vec4_t color = {(float)CG_FxInt( "wolf/controller_efx", "color" ), (float)CG_FxInt( "wolf/controller_efx", "color_2" ), (float)CG_FxInt( "wolf/controller_efx", "color_3" ), CG_FxValue( "wolf/controller_efx", "color_4" )};
 		int splinetarget = 0;
 		char    *cs;
 		int time = 0;
@@ -1975,17 +1975,17 @@ static void CG_Mover( centity_t *cent ) {
 
 		if ( cent->currentState.density == 8 ) {
 			refEntity_t flash;
-			vec3_t angles;
+			vec3_t flashAngles;
 
-			angles[YAW] = 90;
-			angles[ROLL] = random() * 90;
+			flashAngles[YAW] = 90;
+			flashAngles[ROLL] = random() * 90;
 
 			memset( &flash, 0, sizeof( flash ) );
 			flash.renderfx = ent.shadowPlane;
 			//flash.hModel = cgs.media.mg42muzzleflash;
 			flash.hModel = cgs.media.planemuzzleflash;
 
-			AnglesToAxis( angles, flash.axis );
+			AnglesToAxis( flashAngles, flash.axis );
 			CG_PositionRotatedEntityOnTag( &flash, &ent, "tag_gun1" );
 
 			trap_R_AddRefEntityToScene( &flash );
@@ -1996,7 +1996,7 @@ static void CG_Mover( centity_t *cent ) {
 			//flash.hModel = cgs.media.mg42muzzleflash;
 			flash.hModel = cgs.media.planemuzzleflash;
 
-			AnglesToAxis( angles, flash.axis );
+			AnglesToAxis( flashAngles, flash.axis );
 			CG_PositionRotatedEntityOnTag( &flash, &ent, "tag_gun02" );
 
 			trap_R_AddRefEntityToScene( &flash );

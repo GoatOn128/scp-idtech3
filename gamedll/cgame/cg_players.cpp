@@ -3543,7 +3543,7 @@ void CG_AddZombieFlameEffect( centity_t *cent ) {
 	if ( cent->pe.cueZombieSpirit ) {
 		alpha = fadeRatio;
 	} else {
-		alpha = ( (float)( cent->pe.zombieSpiritEndTime - cg.time ) / (float)fadeOutTime );
+		alpha = ( (float)( cent->pe.zombieSpiritEndTime - cg.time ) / ( float )( fadeOutTime ? fadeOutTime : 1 ) );
 		fadeRatio = alpha;
 		if ( alpha < 0.0 ) {
 			cent->pe.zombieSpiritEndTime = CG_FxInt( "wolf/controller_addzombieflameeffect", "cent_pe_zombieSpiritEndTime" );   // stop the effect
@@ -4424,13 +4424,13 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, int powerups, int team, enti
 
 	// tesla effect
 	if ( cg_entities[es->number].pe.teslaDamagedTime > cg.time - 400 ) {
-		float alpha;
+		float teslaAlpha;
 
-		alpha = ( 400.0 - (float)( cg.time - cg_entities[es->number].pe.teslaDamagedTime ) ) / 400.0;
+		teslaAlpha = ( 400.0 - (float)( cg.time - cg_entities[es->number].pe.teslaDamagedTime ) ) / 400.0;
 
-		ent->shaderRGBA[0] = ( unsigned char )( 50.0 * alpha );
-		ent->shaderRGBA[1] = ( unsigned char )( 130.0 * alpha );
-		ent->shaderRGBA[2] = ( unsigned char )( 255.0 * alpha );
+		ent->shaderRGBA[0] = ( unsigned char )( 50.0 * teslaAlpha );
+		ent->shaderRGBA[1] = ( unsigned char )( 130.0 * teslaAlpha );
+		ent->shaderRGBA[2] = ( unsigned char )( 255.0 * teslaAlpha );
 
 		if ( ( cg.time / 50 ) % ( 2 + ( cg.time % 2 ) ) == 0 ) {
 			ent->customShader = cgs.media.teslaAltDamageEffectShader;

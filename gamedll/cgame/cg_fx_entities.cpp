@@ -462,7 +462,7 @@ void CG_AddFragment( fxEntity_t *le ) {
 	if ( le->leFlags & LEF_PLAYER_DAMAGE ) {
 		// only do damage if travelling at a fast enough velocity
 		if ( newOrigin[2] < le->refEntity.origin[2] ) {
-			vec3_t pmin, pmax, dmin = {-CG_FxInt( "wolf/controller_addfragment", "dmin" ),-CG_FxInt( "wolf/controller_addfragment", "dmin_2" ),-CG_FxInt( "wolf/controller_addfragment", "dmin_3" )}, dmax = {CG_FxInt( "wolf/controller_addfragment", "dmin_4" ),CG_FxInt( "wolf/controller_addfragment", "dmin_5" ),CG_FxInt( "wolf/controller_addfragment", "dmin_6" )};
+			vec3_t pmin, pmax, dmin = {-(float)CG_FxInt( "wolf/controller_addfragment", "dmin" ),-(float)CG_FxInt( "wolf/controller_addfragment", "dmin_2" ),-(float)CG_FxInt( "wolf/controller_addfragment", "dmin_3" )}, dmax = {(float)CG_FxInt( "wolf/controller_addfragment", "dmin_4" ),(float)CG_FxInt( "wolf/controller_addfragment", "dmin_5" ),(float)CG_FxInt( "wolf/controller_addfragment", "dmin_6" )};
 			// debris bounds
 			VectorAdd( dmin, newOrigin, dmin );
 			VectorAdd( dmax, newOrigin, dmax );

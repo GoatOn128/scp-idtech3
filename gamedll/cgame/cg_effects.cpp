@@ -161,7 +161,7 @@ void CG_Bleed( vec3_t origin, int entityNum ) {
 
 	// Ridah, blood spurts
 	if ( entityNum != cg.snap->ps.clientNum ) {
-		vec3_t vhead, vlegs, vtorso, bOrigin, dir, vec, pvec, ndir;
+		vec3_t vhead, vlegs, vtorso, bOrigin, dir, vec, pvec;
 
 		CG_GetBleedOrigin( vhead, vtorso, vlegs, entityNum );
 
@@ -186,10 +186,10 @@ void CG_Bleed( vec3_t origin, int entityNum ) {
 
 		{
 			float len;
-			vec3_t vec;
+			vec3_t vsub;
 
-			VectorSubtract( bOrigin, vhead, vec );
-			len = VectorLength( vec );
+			VectorSubtract( bOrigin, vhead, vsub );
+			len = VectorLength( vsub );
 
 			if ( len > 8 ) {
 				VectorMA( bOrigin, 8, dir, bOrigin );
@@ -457,7 +457,7 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 	vec3_t junctionOrigin[MAXJUNCTIONS];
 	int junction;
 	int j;
-	float size;
+	float size = 0;
 	vec3_t axis[3], angles;
 
 	char *JunctiongibTags[] = {
