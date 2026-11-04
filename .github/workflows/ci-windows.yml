@@ -29,7 +29,9 @@ jobs:
         shell: pwsh
         run: |
           $fail = 0
-          & cmake -S . -B out -G "Visual Studio 17 2022" -A Win32 2>&1 | Tee-Object -FilePath build.log
+          # no hardcoded generator: the runner's installed Visual Studio
+          # is the one that works, whatever version the image ships
+          & cmake -S . -B out -A Win32 2>&1 | Tee-Object -FilePath build.log
           if ($LASTEXITCODE -ne 0) { $fail = $LASTEXITCODE }
           if ($fail -eq 0) {
             & cmake --build out --config ${{ matrix.configuration }} --parallel 2>&1 | Tee-Object -FilePath build.log -Append
