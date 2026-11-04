@@ -23,7 +23,7 @@ endfunction()
 
 function(configure_target target)
 	target_compile_definitions(${target} PRIVATE
-		WIN32 _WINDOWS _CRT_SECURE_NO_WARNINGS
+		WIN32 _WINDOWS _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS
 		$<$<CONFIG:Debug>:_DEBUG;DEBUG>
 		$<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
 	target_compile_options(${target} PRIVATE
