@@ -81,11 +81,11 @@ quat_t operator-();
 inline quat_t::quat_t() {
 }
 
-inline quat_t::quat_t( float x, float y, float z, float w ) {
-	this->x = x;
-	this->y = y;
-	this->z = z;
-	this->w = w;
+inline quat_t::quat_t( float x_, float y_, float z_, float w_ ) {
+	this->x = x_;
+	this->y = y_;
+	this->z = z_;
+	this->w = w_;
 }
 
 inline float *quat_t::vec4( void ) {
@@ -102,11 +102,11 @@ inline float& quat_t::operator[]( int index ) {
 	return ( &x )[ index ];
 }
 
-inline void quat_t::set( float x, float y, float z, float w ) {
-	this->x = x;
-	this->y = y;
-	this->z = z;
-	this->w = w;
+inline void quat_t::set( float x_, float y_, float z_, float w_ ) {
+	this->x = x_;
+	this->y = y_;
+	this->z = z_;
+	this->w = w_;
 }
 
 inline void quat_t::operator=( quat_t a ) {
