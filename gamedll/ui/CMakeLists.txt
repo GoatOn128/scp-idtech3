@@ -1,5 +1,4 @@
 set(UI_SOURCES
-    ../game/bg_lib.cpp
     ../game/bg_misc.cpp
     ${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
     ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp
