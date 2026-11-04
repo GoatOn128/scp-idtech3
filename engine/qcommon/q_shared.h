@@ -268,11 +268,11 @@ typedef int clipHandle_t;
 // after this one, so C++ gets real functions with the same semantics
 #ifndef min
 template<typename T1, typename T2>
-inline auto min( T1 x, T2 y ) -> decltype( x < y ? x : y ) { return x < y ? x : y; }
+inline auto min( T1 x, T2 y ) -> decltype( x < y ? T1( x ) : T2( y ) ) { return x < y ? x : y; }
 #endif
 #ifndef max
 template<typename T1, typename T2>
-inline auto max( T1 x, T2 y ) -> decltype( x > y ? x : y ) { return x > y ? x : y; }
+inline auto max( T1 x, T2 y ) -> decltype( x > y ? T1( x ) : T2( y ) ) { return x > y ? x : y; }
 #endif
 #else
 #ifndef max

@@ -55,7 +55,7 @@ If you have questions concerning this license or the applicable additional terms
 
 //structure field offsets
 #define WEAPON_OFS( x ) (int)(intptr_t)&( ( (weaponinfo_t *)0 )->x )
-#define PROJECTILE_OFS( x ) (int)&( ( (projectileinfo_t *)0 )->x )
+#define PROJECTILE_OFS( x ) (int)(intptr_t)&( ( (projectileinfo_t *)0 )->x )
 
 //weapon definition
 fielddef_t weaponinfo_fields[] =

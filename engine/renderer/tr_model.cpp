@@ -1733,7 +1733,7 @@ void *R_Hunk_Begin( void ) {
 	// NOTE: in SP we currently default to r_cache 0, meaning this code is not used at all
 	//   I am merging the MP way of doing things though, just in case (since we have r_cache 1 on linux MP)
 	if ( !membase ) {
-		membase = malloc( maxsize );
+		membase = (byte *)malloc( maxsize );
 		// TTimo NOTE: initially, I was doing the memset even if we had an existing membase
 		// but this breaks some shaders (i.e. /map mp_beach, then go back to the main menu .. some shaders are missing)
 		// I assume the shader missing is because we don't clear memory either on win32

@@ -320,7 +320,7 @@ qboolean RB_BeginScreenPass( screenProgram_t kind ) {
 	rpUniform4f( screenProgram->viewport, view->viewportX, view->viewportY, view->viewportWidth, view->viewportHeight );
 	rpUniform2f( screenProgram->depthSize, screenDepthWidth, screenDepthHeight );
 	rpUniformMatrix4fv( screenProgram->inverseViewProjection, 1, GL_FALSE, inverse );
-	rpUniform3fv( screenProgram->viewOrigin, 1, view->or.origin );
+	rpUniform3fv( screenProgram->viewOrigin, 1, view->orent.origin );
 	rpUniform2f( screenProgram->projection, view->projectionMatrix[10], view->projectionMatrix[14] );
 	return qtrue;
 }

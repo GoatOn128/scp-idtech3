@@ -52,8 +52,8 @@ void RB_DrawScreenParticles( void ) {
 		const refEntity_t *entity = &backEnd.refdef.entities[i].e;
 		if ( entity->reType != RT_SCREEN_PARTICLE || !RB_ScreenEntityVisible( entity ) ) { continue; }
 		vec3_t delta;
-		VectorSubtract( entity->origin, backEnd.viewParms.or.origin, delta );
-		float depth = DotProduct( delta, backEnd.viewParms.or.axis[0] );
+		VectorSubtract( entity->origin, backEnd.viewParms.orent.origin, delta );
+		float depth = DotProduct( delta, backEnd.viewParms.orent.axis[0] );
 		if ( depth <= 0 ) { continue; }
 		particles.push_back( { entity, depth } );
 	}
@@ -71,8 +71,8 @@ void RB_DrawScreenParticles( void ) {
 		float cosine = cosf( angle ), sine = sinf( angle );
 		vec3_t right, up;
 		for ( int j = 0; j < 3; j++ ) {
-			right[j] = -backEnd.viewParms.or.axis[1][j] * cosine + backEnd.viewParms.or.axis[2][j] * sine;
-			up[j] = backEnd.viewParms.or.axis[1][j] * sine + backEnd.viewParms.or.axis[2][j] * cosine;
+			right[j] = -backEnd.viewParms.orent.axis[1][j] * cosine + backEnd.viewParms.orent.axis[2][j] * sine;
+			up[j] = backEnd.viewParms.orent.axis[1][j] * sine + backEnd.viewParms.orent.axis[2][j] * cosine;
 		}
 		float softness = entity->shaderTexCoord[0];
 		if ( !std::isfinite( softness ) || softness <= 0 ) { softness = 1; }
