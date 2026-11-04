@@ -155,7 +155,7 @@ char *Q_strupr( char *s1 ) {
 #endif //SCREWUP
 
 #ifdef BOTLIB
-#include "../game/q_shared.h"
+#include "../../engine/qcommon/q_shared.h"
 #include "botlib.h"
 #include "be_interface.h"
 #include "l_memory.h"
