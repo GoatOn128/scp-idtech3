@@ -2343,7 +2343,7 @@ void S_UpdateStreamingSounds( void ) {
 
 	snd.s_soundPainted = qtrue;
 
-	for ( i = 0, ss = streamingSounds, rawend = s_rawend, rp = s_rawpainted; i < MAX_STREAMING_SOUNDS; i++, ss++, re++, rp++ ) {
+	for ( i = 0, ss = streamingSounds, rawend = s_rawend, rp = s_rawpainted; i < MAX_STREAMING_SOUNDS; i++, ss++, rawend++, rp++ ) {
 		if ( ss->kill && ss->file ) {
 			fileHandle_t file;
 			file = ss->file;
@@ -2387,7 +2387,7 @@ void S_UpdateStreamingSounds( void ) {
 //		looped = qfalse;
 
 		while ( *rawend < soundMixAheadTime + MAX_RAW_SAMPLES ) {
-			bufferSamples = MAX_RAW_SAMPLES - ( *re - soundMixAheadTime );
+			bufferSamples = MAX_RAW_SAMPLES - ( *rawend - soundMixAheadTime );
 
 			// decide how much data needs to be read from the file
 			fileSamples = bufferSamples * ss->info.rate / dma.speed;

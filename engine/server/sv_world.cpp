@@ -276,12 +276,12 @@ void SV_LinkEntity( sharedEntity_t *gEnt ) {
 	if ( gEnt->r.bmodel && ( angles[0] || angles[1] || angles[2] ) ) {
 		// expand for rotation
 		float max;
-		int j;
+		int axisIdx;
 
 		max = RadiusFromBounds( gEnt->r.mins, gEnt->r.maxs );
-		for ( j = 0 ; j < 3 ; j++ ) {
-			gEnt->r.absmin[j] = origin[j] - max;
-			gEnt->r.absmax[j] = origin[j] + max;
+		for ( axisIdx = 0 ; axisIdx < 3 ; axisIdx++ ) {
+			gEnt->r.absmin[axisIdx] = origin[axisIdx] - max;
+			gEnt->r.absmax[axisIdx] = origin[axisIdx] + max;
 		}
 	} else {
 		// normal
