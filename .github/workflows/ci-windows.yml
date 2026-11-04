@@ -84,12 +84,16 @@ jobs:
         # ubuntu-24.04 has no libsdl3-dev package, so build the same
         # version as the vendored windows binaries from the official
         # tarball and install it system-wide; everything it prints goes
-        # into build.log so failures show up in the digest
+        # into build.log so failures show up in the digest. SDL3 refuses
+        # to configure without X11 or Wayland headers, so install its
+        # usual linux build dependencies first.
         run: |
           set -o pipefail
+          sudo apt-get update -q
+          sudo apt-get install -yq libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev libwayland-dev libegl1-mesa-dev libgl1-mesa-dev libdbus-1-dev libudev-dev libdrm-dev libgbm-dev libasound2-dev libpulse-dev 2>&1 | tee build.log
           curl -fsSL -o SDL3.tar.gz https://github.com/libsdl-org/SDL/releases/download/release-3.4.20/SDL3-3.4.20.tar.gz
           tar xf SDL3.tar.gz
-          cmake -S SDL3-3.4.20 -B sdl-build -DCMAKE_BUILD_TYPE=Release 2>&1 | tee build.log
+          cmake -S SDL3-3.4.20 -B sdl-build -DCMAKE_BUILD_TYPE=Release 2>&1 | tee -a build.log
           cmake --build sdl-build --parallel 2>&1 | tee -a build.log
           sudo cmake --install sdl-build 2>&1 | tee -a build.log
 
