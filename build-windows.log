@@ -1,28 +1,548 @@
 ==== windows-x86-Debug (failure) ====
 
-CMake Error at CMakeLists.txt:3 (project):
-  Generator
+-- Building for: Visual Studio 18 2026
+-- The C compiler identification is MSVC 19.51.36260.0
+-- The CXX compiler identification is MSVC 19.51.36260.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x86/cl.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x86/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (16.3s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/a/scp-idtech3/scp-idtech3/out
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
 
-    Visual Studio 17 2022
-
-  could not find any instance of Visual Studio.
-
-
-
--- Configuring incomplete, errors occurred!
+  1>Checking Build System
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/engine/splines/CMakeLists.txt
+  math_angles.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/external/CMakeLists.txt
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/gamedll/cgame/CMakeLists.txt
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/tools/extractfuncs/CMakeLists.txt
+  DetourAlloc.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/external/CMakeLists.txt
+  DetourAssert.cpp
+  DetourCommon.cpp
+  DetourNavMesh.cpp
+  math_matrix.cpp
+  math_quaternion.cpp
+  math_vector.cpp
+  q_parse.cpp
+  DetourNavMeshBuilder.cpp
+  Recast.cpp
+  cg_fx.cpp
+  DetourNavMeshQuery.cpp
+  splines.cpp
+  extractfuncs.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/external/CMakeLists.txt
+  RecastAlloc.cpp
+  RecastArea.cpp
+  gl.c
+  DetourNode.cpp
+  RecastAssert.cpp
+  Generating Code...
+  RecastContour.cpp
+  RecastFilter.cpp
+  RecastLayers.cpp
+  RecastMesh.cpp
+  RecastMeshDetail.cpp
+  detour.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Debug\detour.lib
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/engine/renderer/CMakeLists.txt
+  RecastRasterization.cpp
+  tr_animation.cpp
+  RecastRegion.cpp
+  Generating Code...
+  FxSystem.cpp
+  recast.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Debug\recast.lib
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/gamedll/ui/CMakeLists.txt
+  bg_lib.cpp
+  bg_misc.cpp
+  q_math.cpp
+  FxUtil.cpp
+  q_shared.cpp
+  ui_atoms.cpp
+  ui_gameinfo.cpp
+  tr_backend.cpp
+  l_log.cpp
+  util_str.cpp
+  ui_main.cpp
+  Generating Code...
+  l_memory.cpp
+  l_precomp.cpp
+  FxPrimitives.cpp
+  ui_players.cpp
+  glad.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Debug\glad.lib
+  l_script.cpp
+  ui_shared.cpp
+  Generating Code...
+  Splines.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Debug\Splines.lib
+  ui_syscalls.cpp
+  tr_renderprog.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/tools/bspc/CMakeLists.txt
+  ui_util.cpp
+  Generating Code...
+  bspc.cpp
+  FxScheduler.cpp
+  tr_decals.cpp
+  FxTemplate.cpp
+  tr_vfx.cpp
+  genericparser2.cpp
+  bg_animation.cpp
+  bg_lib.cpp
+  bg_misc.cpp
+  bg_pmove.cpp
+  bg_slidemove.cpp
+  cg_consolecmds.cpp
+  tr_bsp.cpp
+  cg_draw.cpp
+  cg_drawtools.cpp
+  cg_effects.cpp
+  cg_ents.cpp
+  navmesh_builder.cpp
+  cg_event.cpp
+  tr_cmds.cpp
+  extractfuncs.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\extractfuncs.exe
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/gamedll/botlib/CMakeLists.txt
+  cg_fx_flame.cpp
+  be_nav_interface.cpp
+  tr_cmesh.cpp
+     Creating library D:/a/scp-idtech3/scp-idtech3/out/lib/Debug/uix86.lib and object D:/a/scp-idtech3/scp-idtech3/out/lib/Debug/uix86.exp
+  cg_info.cpp
+  ui.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\uix86.dll
+  Generating Code...
+  Building the game function table
+  Compiling...
+  cg_fx_entities.cpp
+  Updated the function table, recompile required.
+  tr_curve.cpp
+  be_ai_char.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/tools/extractfuncs/CMakeLists.txt
+  be_ai_chat.cpp
+  be_ai_gen.cpp
+  be_ai_goal.cpp
+  cg_main.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/gamedll/game/CMakeLists.txt
+  be_ai_move.cpp
+  cg_fx_marks.cpp
+  be_ai_weap.cpp
+  tr_flares.cpp
+  be_ai_weight.cpp
+  Generating Code...
+  be_ea.cpp
+  ai_ability.cpp
+  be_interface.cpp
+  ai_system.cpp
+  ai_characters.cpp
+  cg_newDraw.cpp
+  ai_spawn.cpp
+  tr_font.cpp
+  cg_fx_particles.cpp
+  ai_debug.cpp
+  l_crc.cpp
+  ai_events.cpp
+  l_libvar.cpp
+  ai_state_machine.cpp
+  l_log.cpp
+  bspc.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\bspc.exe
+  ai_state_legacy.cpp
+  l_memory.cpp
+  cg_players.cpp
+  tr_image.cpp
+  l_precomp.cpp
+  ai_awareness.cpp
+  l_script.cpp
+  ai_targeting.cpp
+  cg_playerstate.cpp
+  l_struct.cpp
+  cg_predict.cpp
+  ai_perception.cpp
+  Generating Code...
+  cg_scoreboard.cpp
+  ai_weapons.cpp
+  cg_servercmds.cpp
+  ai_combat.cpp
+  cg_snapshot.cpp
+  botlib.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Debug\botlib.lib
+  ai_navigation.cpp
+  tr_init.cpp
+  cg_sound.cpp
+D:\a\scp-idtech3\scp-idtech3\engine\renderer\tr_image.cpp(47,10): error C1083: Cannot open include file: '../jpeg-6/jpeglib.h': No such file or directory [D:\a\scp-idtech3\scp-idtech3\out\engine\renderer\renderer.vcxproj]
+  ai_danger.cpp
+  cg_syscalls.cpp
+  ai_monster_zombie.cpp
+  cg_fx_trails.cpp
+  ai_monster_loper.cpp
+  ai_monster_stimsoldier.cpp
+  ai_monster_blackguard.cpp
+  tr_light.cpp
+  ai_monster_reject.cpp
+  Generating Code...
+  Compiling...
+  ai_monster_warzombie.cpp
+  cg_view.cpp
+  ai_boss_helga.cpp
+  cg_weapons.cpp
+  ai_boss_heinrich.cpp
+  tr_main.cpp
+  ai_movement.cpp
+  q_math.cpp
+  ai_behavior_doors.cpp
+  q_shared.cpp
+  ui_shared.cpp
+  ai_behavior_idle.cpp
+  ai_behavior_investigate.cpp
+  Generating Code...
+  ai_behavior_pursuit.cpp
+  tr_marks.cpp
+  ai_behavior_evasion.cpp
+  ai_behavior_cover.cpp
+     Creating library D:/a/scp-idtech3/scp-idtech3/out/lib/Debug/cgamex86.lib and object D:/a/scp-idtech3/scp-idtech3/out/lib/Debug/cgamex86.exp
+  ai_behavior_grenades.cpp
+  ai_behavior_mounted.cpp
+  cgame.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\cgamex86.dll
+  ai_script.cpp
+  tr_mesh.cpp
+  ai_script_actions_combat.cpp
+  ai_script_actions_movement.cpp
+  ai_script_actions_mission.cpp
+  ai_script_actions_animation.cpp
+  tr_model.cpp
+  ai_script_entities.cpp
+  ai_input.cpp
+  ai_actor.cpp
+  Generating Code...
+  Compiling...
+  ai_scheduler.cpp
+  tr_noise.cpp
+  bg_animation.cpp
+  bg_lib.cpp
+  bg_misc.cpp
+  bg_pmove.cpp
+  bg_slidemove.cpp
+  tr_scene.cpp
+  g_active.cpp
+  g_alarm.cpp
+  g_client.cpp
+  g_cmds.cpp
+  g_combat.cpp
+  Generating Code...
+  g_items.cpp
+  Compiling...
+  tr_shade.cpp
+  g_main.cpp
+  g_mem.cpp
+  g_misc.cpp
+  g_missile.cpp
+  g_mover.cpp
+  tr_shade_calc.cpp
+  g_props.cpp
+  g_save.cpp
+  g_script.cpp
+  Generating Code...
+  tr_shader.cpp
+  Compiling...
+  g_script_actions.cpp
+  g_session.cpp
+  g_spawn.cpp
+  g_svcmds.cpp
+  g_syscalls.cpp
+  tr_shadows.cpp
+  g_target.cpp
+  g_team.cpp
+  g_tramcar.cpp
+  g_trigger.cpp
+  g_utils.cpp
+  tr_sky.cpp
+  g_weapon.cpp
+  q_math.cpp
+  q_shared.cpp
+  Generating Code...
+  tr_surface.cpp
+     Creating library D:/a/scp-idtech3/scp-idtech3/out/lib/Debug/qagamex86.lib and object D:/a/scp-idtech3/scp-idtech3/out/lib/Debug/qagamex86.exp
+  game.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\qagamex86.dll
+  tr_world.cpp
+  win_gamma.cpp
+  win_glimp.cpp
+  win_qgl.cpp
+  Generating Code...
 
 
 ==== windows-x86-Release (failure) ====
 
-CMake Error at CMakeLists.txt:3 (project):
-  Generator
+-- Building for: Visual Studio 18 2026
+-- The C compiler identification is MSVC 19.51.36260.0
+-- The CXX compiler identification is MSVC 19.51.36260.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x86/cl.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/18/Enterprise/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x86/cl.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Configuring done (15.0s)
+-- Generating done (0.1s)
+-- Build files have been written to: D:/a/scp-idtech3/scp-idtech3/out
+MSBuild version 18.11.1-1.26513.3+940033be3 for .NET Framework
 
-    Visual Studio 17 2022
-
-  could not find any instance of Visual Studio.
-
-
-
--- Configuring incomplete, errors occurred!
+  1>Checking Build System
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/engine/splines/CMakeLists.txt
+  math_angles.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/external/CMakeLists.txt
+  DetourAlloc.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/gamedll/cgame/CMakeLists.txt
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/tools/extractfuncs/CMakeLists.txt
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/external/CMakeLists.txt
+  DetourAssert.cpp
+  DetourCommon.cpp
+  DetourNavMesh.cpp
+  math_matrix.cpp
+  math_quaternion.cpp
+  math_vector.cpp
+  q_parse.cpp
+  splines.cpp
+  DetourNavMeshBuilder.cpp
+  DetourNavMeshQuery.cpp
+  extractfuncs.cpp
+  cg_fx.cpp
+  Recast.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/external/CMakeLists.txt
+  DetourNode.cpp
+  RecastAlloc.cpp
+  gl.c
+  RecastArea.cpp
+  Generating Code...
+  RecastAssert.cpp
+  RecastContour.cpp
+  RecastFilter.cpp
+  RecastLayers.cpp
+  RecastMesh.cpp
+  RecastMeshDetail.cpp
+  RecastRasterization.cpp
+  RecastRegion.cpp
+  Generating Code...
+  FxSystem.cpp
+  detour.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Release\detour.lib
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/engine/renderer/CMakeLists.txt
+  tr_animation.cpp
+  FxUtil.cpp
+  l_log.cpp
+  util_str.cpp
+  Generating Code...
+  l_memory.cpp
+  l_precomp.cpp
+  l_script.cpp
+  tr_backend.cpp
+  FxPrimitives.cpp
+  Generating Code...
+  recast.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Release\recast.lib
+  Splines.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Release\Splines.lib
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/gamedll/ui/CMakeLists.txt
+  FxScheduler.cpp
+  bg_lib.cpp
+  tr_renderprog.cpp
+  bg_misc.cpp
+  q_math.cpp
+  q_shared.cpp
+  ui_atoms.cpp
+  glad.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Release\glad.lib
+  ui_gameinfo.cpp
+  FxTemplate.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/tools/bspc/CMakeLists.txt
+  tr_decals.cpp
+  ui_main.cpp
+  bspc.cpp
+  ui_players.cpp
+  ui_shared.cpp
+  ui_syscalls.cpp
+  genericparser2.cpp
+  ui_util.cpp
+  Generating Code...
+  tr_vfx.cpp
+  extractfuncs.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\extractfuncs.exe
+  bg_animation.cpp
+  bg_lib.cpp
+  bg_misc.cpp
+  bg_pmove.cpp
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/gamedll/botlib/CMakeLists.txt
+  tr_bsp.cpp
+  bg_slidemove.cpp
+  cg_consolecmds.cpp
+  navmesh_builder.cpp
+  be_nav_interface.cpp
+  cg_draw.cpp
+  cg_drawtools.cpp
+  Building the game function table
+     Creating library D:/a/scp-idtech3/scp-idtech3/out/lib/Release/uix86.lib and object D:/a/scp-idtech3/scp-idtech3/out/lib/Release/uix86.exp
+  cg_effects.cpp
+  ui.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\uix86.dll
+  Updated the function table, recompile required.
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/tools/extractfuncs/CMakeLists.txt
+  Building Custom Rule D:/a/scp-idtech3/scp-idtech3/gamedll/game/CMakeLists.txt
+  cg_ents.cpp
+  tr_cmds.cpp
+  be_ai_char.cpp
+  cg_event.cpp
+  cg_fx_flame.cpp
+  be_ai_chat.cpp
+  tr_cmesh.cpp
+  be_ai_gen.cpp
+  ai_ability.cpp
+  be_ai_goal.cpp
+  cg_info.cpp
+  ai_system.cpp
+  be_ai_move.cpp
+  Generating Code...
+  ai_characters.cpp
+  be_ai_weap.cpp
+  ai_spawn.cpp
+  be_ai_weight.cpp
+  tr_curve.cpp
+  Generating Code...
+  ai_debug.cpp
+  be_ea.cpp
+  ai_events.cpp
+  be_interface.cpp
+  ai_state_machine.cpp
+  ai_state_legacy.cpp
+  ai_awareness.cpp
+  tr_flares.cpp
+  ai_targeting.cpp
+  l_crc.cpp
+  ai_perception.cpp
+  l_libvar.cpp
+  ai_weapons.cpp
+  l_log.cpp
+  ai_combat.cpp
+  l_memory.cpp
+  tr_font.cpp
+  l_precomp.cpp
+  ai_navigation.cpp
+  ai_danger.cpp
+  l_script.cpp
+  ai_monster_zombie.cpp
+  l_struct.cpp
+  Generating Code...
+  ai_monster_loper.cpp
+  ai_monster_stimsoldier.cpp
+  tr_image.cpp
+  ai_monster_blackguard.cpp
+  ai_monster_reject.cpp
+  Generating Code...
+  Compiling...
+  cg_fx_entities.cpp
+  tr_init.cpp
+  Compiling...
+  ai_monster_warzombie.cpp
+  cg_main.cpp
+  ai_boss_helga.cpp
+  bspc.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\bspc.exe
+D:\a\scp-idtech3\scp-idtech3\engine\renderer\tr_image.cpp(47,10): error C1083: Cannot open include file: '../jpeg-6/jpeglib.h': No such file or directory [D:\a\scp-idtech3\scp-idtech3\out\engine\renderer\renderer.vcxproj]
+  cg_fx_marks.cpp
+  ai_boss_heinrich.cpp
+  ai_movement.cpp
+  ai_behavior_doors.cpp
+  botlib.vcxproj -> D:\a\scp-idtech3\scp-idtech3\out\lib\Release\botlib.lib
+  tr_light.cpp
+  ai_behavior_idle.cpp
+  ai_behavior_investigate.cpp
+  cg_newDraw.cpp
+  ai_behavior_pursuit.cpp
+  cg_fx_particles.cpp
+  ai_behavior_evasion.cpp
+  ai_behavior_cover.cpp
+  tr_main.cpp
+  ai_behavior_grenades.cpp
+  ai_behavior_mounted.cpp
+  ai_script.cpp
+  cg_players.cpp
+  ai_script_actions_combat.cpp
+  cg_playerstate.cpp
+  ai_script_actions_movement.cpp
+  tr_marks.cpp
+  cg_predict.cpp
+  ai_script_actions_mission.cpp
+  cg_scoreboard.cpp
+  ai_script_actions_animation.cpp
+  cg_servercmds.cpp
+  ai_script_entities.cpp
+  cg_snapshot.cpp
+  ai_input.cpp
+  cg_sound.cpp
+  ai_actor.cpp
+  cg_syscalls.cpp
+  tr_mesh.cpp
+  cg_fx_trails.cpp
+  Generating Code...
+  tr_model.cpp
+  cg_view.cpp
+  cg_weapons.cpp
+  Compiling...
+  ai_scheduler.cpp
+  q_math.cpp
+  bg_animation.cpp
+  q_shared.cpp
+  tr_noise.cpp
+  bg_lib.cpp
+  ui_shared.cpp
+  bg_misc.cpp
+  Generating Code...
+  bg_pmove.cpp
+  bg_slidemove.cpp
+  g_active.cpp
+  g_alarm.cpp
+  tr_scene.cpp
+  g_client.cpp
+  g_cmds.cpp
+  g_combat.cpp
+  g_items.cpp
+  Generating Code...
+  g_main.cpp
+  g_mem.cpp
+  g_misc.cpp
+  g_missile.cpp
+  g_mover.cpp
+  g_props.cpp
+  g_save.cpp
+  g_script.cpp
+  Generating Code...
+     Creating library D:/a/scp-idtech3/scp-idtech3/out/lib/Release/cgamex86.lib and object D:/a/scp-idtech3/scp-idtech3/out/lib/Release/cgamex86.exp
+  cgame.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\cgamex86.dll
+  Compiling...
+  tr_shade.cpp
+  tr_shade_calc.cpp
+  tr_shader.cpp
+  Compiling...
+  g_script_actions.cpp
+  g_session.cpp
+  g_spawn.cpp
+  g_svcmds.cpp
+  g_syscalls.cpp
+  g_target.cpp
+  tr_shadows.cpp
+  g_team.cpp
+  g_tramcar.cpp
+  g_trigger.cpp
+  g_utils.cpp
+  g_weapon.cpp
+  tr_sky.cpp
+  q_math.cpp
+  q_shared.cpp
+  Generating Code...
+  tr_surface.cpp
+     Creating library D:/a/scp-idtech3/scp-idtech3/out/lib/Release/qagamex86.lib and object D:/a/scp-idtech3/scp-idtech3/out/lib/Release/qagamex86.exp
+  tr_world.cpp
+  game.vcxproj -> D:\a\scp-idtech3\scp-idtech3\bin\qagamex86.dll
+  win_gamma.cpp
+  win_glimp.cpp
+  win_qgl.cpp
+  Generating Code...
 
 
