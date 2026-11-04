@@ -1002,8 +1002,7 @@ static qboolean LoadSTB( const char *name, byte **pic, int *width, int *height )
 	data = stbi_load_from_memory( buffer, length, &w, &h, NULL, 4 );
 	ri.FS_FreeFile( buffer );
 	if ( !data ) {
-		ri.Printf( PRINT_DEVELOPER, "LoadSTB: %s rejected %s
-", stbi_failure_reason(), name );
+		ri.Printf( PRINT_DEVELOPER, "LoadSTB: %s rejected %s\n", stbi_failure_reason(), name );
 		return qfalse;
 	}
 
@@ -1206,8 +1205,7 @@ void SaveJPG( char *filename, int quality, int image_width, int image_height, un
 	if ( stbi_write_jpg_to_func( JpgWriteCallback, &ctx, image_width, image_height, 4, flipped, quality ) ) {
 		ri.FS_WriteFile( filename, out, ctx.size );
 	} else {
-		ri.Printf( PRINT_ALL, "SaveJPG: failed to encode %s
-", filename );
+		ri.Printf( PRINT_ALL, "SaveJPG: failed to encode %s\n", filename );
 	}
 
 	ri.Hunk_FreeTempMemory( flipped );
