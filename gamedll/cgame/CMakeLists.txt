@@ -7,7 +7,6 @@ set(CGAME_SOURCES
     FxTemplate.cpp
     genericparser2.cpp
     ../game/bg_animation.cpp
-    ../game/bg_lib.cpp
     ../game/bg_misc.cpp
     ../game/bg_pmove.cpp
     ../game/bg_slidemove.cpp
@@ -58,4 +57,11 @@ if ( MSVC )
     target_link_options(cgame PRIVATE /BASE:0x30000000 /MAP:${CMAKE_SOURCE_DIR}/main/cgamex86.map)
 endif()
 target_include_directories(cgame PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client")
+if ( APPLE )
+    # the cgame module imports engine symbols (Com_Printf, Com_Error) from
+    # the host executable at load time, the same way it does on windows, so
+    # tell the mac linker those imports are resolved at load time
+    target_link_options(cgame PRIVATE -Wl,-undefined,dynamic_lookup)
+endif()
+
 configure_target(cgame)

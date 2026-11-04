@@ -262,9 +262,23 @@ typedef int clipHandle_t;
 #define MIN_QINT            ( -MAX_QINT - 1 )
 
 
+#ifdef __cplusplus
+// min and max as function-like macros corrupt the std::min and std::max
+// declarations in libstdc++ headers whenever a C++ header is included
+// after this one, so C++ gets real functions with the same semantics
+#ifndef min
+template<typename T1, typename T2>
+inline auto min( T1 x, T2 y ) -> decltype( x < y ? x : y ) { return x < y ? x : y; }
+#endif
+#ifndef max
+template<typename T1, typename T2>
+inline auto max( T1 x, T2 y ) -> decltype( x > y ? x : y ) { return x > y ? x : y; }
+#endif
+#else
 #ifndef max
 #define max( x, y ) ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) )
 #define min( x, y ) ( ( ( x ) < ( y ) ) ? ( x ) : ( y ) )
+#endif
 #endif
 
 // angle indexes

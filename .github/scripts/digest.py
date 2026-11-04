@@ -94,14 +94,27 @@ def main():
             f.write("\n### failure context\n\n")
             target_re = re.compile(r"(CMake Error at [^:]+|FAILED: .+|.+ : error (?:C|LNK|MSB)[0-9]+)")
             ctx = OrderedDict()
+            seen_file = set()
             for i, l in enumerate(lines):
                 # anchor on every distinct error line, not just the known
                 # target patterns: cmake message bodies and linker symbol
-                # lists are printed right around the matching line
+                # lists are printed right around the matching line.
+                # one anchor per source file so a wall of errors from one
+                # file cannot crowd out the linker and cmake chunks
                 if target_re.search(l) or ERROR_RE.search(l):
+                    loc = re.search(r"([A-Za-z0-9_.-]+\.(?:cpp|h|c|cc|mm|m))", l)
+                    key = loc.group(1) if loc else l.strip()[:120]
+                    if key in seen_file:
+                        continue
+                    seen_file.add(key)
                     target = l.strip()[:120]
                     if target and target not in ctx:
-                        ctx[target] = lines[max(0, i - 8):i + 6]
+                        if "Undefined symbols" in l:
+                            # the referenced-from entries are below the
+                            # headline, keep room for them
+                            ctx[target] = lines[max(0, i - 2):i + 30]
+                        else:
+                            ctx[target] = lines[max(0, i - 8):i + 6]
             shown = 0
             for target, chunk in ctx.items():
                 if shown >= 10:

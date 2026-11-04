@@ -41,7 +41,6 @@ set(GAME_SOURCES
     ai/ai_actor.cpp
     ai/ai_scheduler.cpp
     bg_animation.cpp
-    bg_lib.cpp
     bg_misc.cpp
     bg_pmove.cpp
     bg_slidemove.cpp
@@ -95,4 +94,11 @@ if ( WIN32 )
     add_dependencies(game genFuncTable)
 endif()
 target_include_directories(game PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
+if ( APPLE )
+    # the game module imports engine symbols (Com_Printf, Com_Error) from
+    # the host executable at load time, the same way it does on windows, so
+    # tell the mac linker those imports are resolved at load time
+    target_link_options(game PRIVATE -Wl,-undefined,dynamic_lookup)
+endif()
+
 configure_target(game)

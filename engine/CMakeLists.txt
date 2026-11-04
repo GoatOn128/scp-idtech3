@@ -64,7 +64,7 @@ set_target_properties(wolf PROPERTIES OUTPUT_NAME WolfSP)
 target_compile_definitions(wolf PRIVATE __USEA3D __A3D_GEOM CINTERFACE)
 
 if ( WIN32 )
-    target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 ws2_32 opengl32)
+    target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 ws2_32 winmm opengl32)
     target_link_options(wolf PRIVATE /STACK:8388608 /MAP:${CMAKE_SOURCE_DIR}/WolfSP.map /NXCOMPAT:NO)
     # the vendored SDL3 ships as a dll next to the exe
     add_custom_command(TARGET wolf POST_BUILD
