@@ -27,6 +27,7 @@ function(configure_target target)
 		$<$<CONFIG:Debug>:_DEBUG;DEBUG>
 		$<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
 	target_compile_options(${target} PRIVATE
+		/FS
 		$<$<CONFIG:Debug>:/W3>
 		$<$<NOT:$<CONFIG:Debug>>:/W4>)
 	set_output_directory(${target})

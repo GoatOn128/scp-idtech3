@@ -82,4 +82,5 @@ target_compile_definitions(game PRIVATE GAMEDLL $<$<CONFIG:Debug>:BUILDING_REF_G
 target_link_libraries(game PRIVATE winmm)
 target_link_options(game PRIVATE /BASE:0x20000000 /MAP:${CMAKE_SOURCE_DIR}/main/qagamex86.map)
 add_dependencies(game genFuncTable)
+target_include_directories(game PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
 configure_target(game)
