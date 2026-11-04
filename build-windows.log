@@ -1,0 +1,28 @@
+==== windows-x86-Debug (failure) ====
+
+CMake Error at CMakeLists.txt:3 (project):
+  Generator
+
+    Visual Studio 17 2022
+
+  could not find any instance of Visual Studio.
+
+
+
+-- Configuring incomplete, errors occurred!
+
+
+==== windows-x86-Release (failure) ====
+
+CMake Error at CMakeLists.txt:3 (project):
+  Generator
+
+    Visual Studio 17 2022
+
+  could not find any instance of Visual Studio.
+
+
+
+-- Configuring incomplete, errors occurred!
+
+
