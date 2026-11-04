@@ -1100,6 +1100,8 @@ static void GLW_InitExtensions( void ) {
 ** GLW_CheckOSVersion
 */
 static qboolean GLW_CheckOSVersion( void ) {
+#pragma warning( push )
+#pragma warning( disable : 4996 )
 #define OSR2_BUILD_NUMBER 1111
 
 	OSVERSIONINFO vinfo;
@@ -1127,6 +1129,7 @@ static qboolean GLW_CheckOSVersion( void ) {
 	}
 
 	return qtrue;
+#pragma warning( pop )
 }
 
 /*

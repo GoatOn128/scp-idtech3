@@ -1448,11 +1448,11 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.bulletMarkShaderGlass = trap_R_RegisterShader( "gfx/damage/glass_mrk" );
 
 	for ( i = 0 ; i < 5 ; i++ ) {
-		char name[32];
-		//Com_sprintf( name, sizeof(name), "textures/decals/blood%i", i+1 );
-		//cgs.media.bloodMarkShaders[i] = trap_R_RegisterShader( name );
-		Com_sprintf( name, sizeof( name ), "blood_dot%i", i + 1 );
-		cgs.media.bloodDotShaders[i] = trap_R_RegisterShader( name );
+		char shaderName[32];
+		//Com_sprintf( shaderName, sizeof(shaderName), "textures/decals/blood%i", i+1 );
+		//cgs.media.bloodMarkShaders[i] = trap_R_RegisterShader( shaderName );
+		Com_sprintf( shaderName, sizeof( shaderName ), "blood_dot%i", i + 1 );
+		cgs.media.bloodDotShaders[i] = trap_R_RegisterShader( shaderName );
 	}
 
 	CG_LoadingString( " - inline models" );
@@ -1460,12 +1460,12 @@ static void CG_RegisterGraphics( void ) {
 	// register the inline models
 	cgs.numInlineModels = trap_CM_NumInlineModels();
 	for ( i = 1 ; i < cgs.numInlineModels ; i++ ) {
-		char name[10];
+		char modelName[10];
 		vec3_t mins, maxs;
 		int j;
 
-		Com_sprintf( name, sizeof( name ), "*%i", i );
-		cgs.inlineDrawModel[i] = trap_R_RegisterModel( name );
+		Com_sprintf( modelName, sizeof( modelName ), "*%i", i );
+		cgs.inlineDrawModel[i] = trap_R_RegisterModel( modelName );
 		trap_R_ModelBounds( cgs.inlineDrawModel[i], mins, maxs );
 		for ( j = 0 ; j < 3 ; j++ ) {
 			cgs.inlineModelMidpoints[i][j] = mins[j] + 0.5 * ( maxs[j] - mins[j] );

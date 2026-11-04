@@ -4590,17 +4590,17 @@ static void UI_RunMenuScript( char **args ) {
 			// save.  throw dialog box if file exists
 		} else if ( Q_stricmp( name, "Savegame" ) == 0 ) {
 			int i;
-			char name[MAX_NAME_LENGTH];
+			char nameBuf[MAX_NAME_LENGTH];
 
-			name[0] = '\0';
-			Q_strncpyz( name, UI_Cvar_VariableString( "ui_savegame" ), MAX_NAME_LENGTH );
+			nameBuf[0] = '\0';
+			Q_strncpyz( nameBuf, UI_Cvar_VariableString( "ui_savegame" ), MAX_NAME_LENGTH );
 
-			if ( !strlen( name ) ) {
+			if ( !strlen( nameBuf ) ) {
 				Menus_OpenByName( "save_name_popmenu" );
 			} else {
-				// find out if there's an existing savegame with that name
+				// find out if there's an existing savegame with that nameBuf
 				for ( i = 0; i < uiInfo.savegameCount; i++ ) {
-					if ( Q_stricmp( name, uiInfo.savegameList[uiInfo.savegameStatus.displaySavegames[i]].savegameName ) == 0 ) {
+					if ( Q_stricmp( nameBuf, uiInfo.savegameList[uiInfo.savegameStatus.displaySavegames[i]].savegameName ) == 0 ) {
 						Menus_OpenByName( "save_overwrite_popmenu" );
 						break;
 					}
@@ -4771,16 +4771,16 @@ static void UI_RunMenuScript( char **args ) {
 			}
 		} else if ( Q_stricmp( name, "addFavorite" ) == 0 ) {
 			if ( ui_netSource.integer != AS_FAVORITES ) {
-				char name[MAX_NAME_LENGTH];
+				char nameBuf[MAX_NAME_LENGTH];
 				char addr[MAX_NAME_LENGTH];
 				int res;
 
 				trap_LAN_GetServerInfo( ui_netSource.integer, uiInfo.serverStatus.displayServers[uiInfo.serverStatus.currentServer], buff, MAX_STRING_CHARS );
-				name[0] = addr[0] = '\0';
-				Q_strncpyz( name,    Info_ValueForKey( buff, "hostname" ), MAX_NAME_LENGTH );
+				nameBuf[0] = addr[0] = '\0';
+				Q_strncpyz( nameBuf,    Info_ValueForKey( buff, "hostname" ), MAX_NAME_LENGTH );
 				Q_strncpyz( addr,    Info_ValueForKey( buff, "addr" ), MAX_NAME_LENGTH );
-				if ( strlen( name ) > 0 && strlen( addr ) > 0 ) {
-					res = trap_LAN_AddServer( AS_FAVORITES, name, addr );
+				if ( strlen( nameBuf ) > 0 && strlen( addr ) > 0 ) {
+					res = trap_LAN_AddServer( AS_FAVORITES, nameBuf, addr );
 					if ( res == 0 ) {
 						// server already in the list
 						Com_Printf( "Favorite already in list\n" );
@@ -4805,15 +4805,15 @@ static void UI_RunMenuScript( char **args ) {
 			}
 		} else if ( Q_stricmp( name, "createFavorite" ) == 0 ) {
 			if ( ui_netSource.integer == AS_FAVORITES ) {
-				char name[MAX_NAME_LENGTH];
+				char nameBuf[MAX_NAME_LENGTH];
 				char addr[MAX_NAME_LENGTH];
 				int res;
 
-				name[0] = addr[0] = '\0';
-				Q_strncpyz( name,    UI_Cvar_VariableString( "ui_favoriteName" ), MAX_NAME_LENGTH );
+				nameBuf[0] = addr[0] = '\0';
+				Q_strncpyz( nameBuf,    UI_Cvar_VariableString( "ui_favoriteName" ), MAX_NAME_LENGTH );
 				Q_strncpyz( addr,    UI_Cvar_VariableString( "ui_favoriteAddress" ), MAX_NAME_LENGTH );
-				if ( strlen( name ) > 0 && strlen( addr ) > 0 ) {
-					res = trap_LAN_AddServer( AS_FAVORITES, name, addr );
+				if ( strlen( nameBuf ) > 0 && strlen( addr ) > 0 ) {
+					res = trap_LAN_AddServer( AS_FAVORITES, nameBuf, addr );
 					if ( res == 0 ) {
 						// server already in the list
 						Com_Printf( "Favorite already in list\n" );

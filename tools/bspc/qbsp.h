@@ -46,7 +46,9 @@ If you have questions concerning this license or the applicable additional terms
 
 //Mr Elusive shit
 #define ME
+#ifndef DEBUG
 #define DEBUG
+#endif
 #define NODELIST
 #define SIN
 
