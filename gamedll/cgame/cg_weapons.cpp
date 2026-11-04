@@ -2781,9 +2781,9 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			}
 		} else {
 			if ( weaponNum == WP_FLAMETHROWER ) {
-				vec3_t angles;
-				AxisToAngles( flash.axis, angles );
-				CG_FireFlameChunks( cent, flash.origin, angles, 1.0, qfalse, 0 );
+				vec3_t flameAngles;
+				AxisToAngles( flash.axis, flameAngles );
+				CG_FireFlameChunks( cent, flash.origin, flameAngles, 1.0, qfalse, 0 );
 			}
 		}
 	}
@@ -4719,12 +4719,12 @@ void CG_FireWeapon( centity_t *cent ) {
 			trap_S_StartSound( NULL, ent->number, CHAN_WEAPON, firesound[c] );
 
 			if ( fireEchosound && fireEchosound[c] ) { // check for echo
-				centity_t   *cent;
+				centity_t   *ecent;
 				vec3_t porg, gorg, norm;    // player/gun origin
 				float gdist;
 
-				cent = &cg_entities[ent->number];
-				VectorCopy( cent->currentState.pos.trBase, gorg );
+				ecent = &cg_entities[ent->number];
+				VectorCopy( ecent->currentState.pos.trBase, gorg );
 				VectorCopy( cg.refdef.vieworg, porg );
 				VectorSubtract( gorg, porg, norm );
 				gdist = VectorNormalize( norm );

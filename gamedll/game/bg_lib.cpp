@@ -717,7 +717,7 @@ double _atof( const char **stringPtr ) {
 	const char  *string;
 	float sign;
 	float value;
-	int c;
+	int c = 0;
 
 	string = *stringPtr;
 

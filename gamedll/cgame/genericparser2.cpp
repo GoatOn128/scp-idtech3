@@ -352,23 +352,23 @@ void CGPValue::AddValue(const char *newValue, CTextPool **textPool)
 
 bool CGPValue::Parse(char **dataPtr, CTextPool **textPool)
 {
-	char		*token;
+	char		*tok;
 	char		*value;
 
 	while(1)
 	{
-		token = GetToken(dataPtr, true, true);
+		tok = GetToken(dataPtr, true, true);
 
-		if (!token[0])
+		if (!tok[0])
 		{	// end of data - error!
 			return false;
 		}
-		else if (strcmpi(token, "]") == 0)
+		else if (strcmpi(tok, "]") == 0)
 		{	// ending brace for this list
 			break;
 		}
 
-		value = (*textPool)->AllocText(token, true, textPool);
+		value = (*textPool)->AllocText(tok, true, textPool);
 		AddValue(value);
 	}
 
@@ -669,16 +669,16 @@ CGPGroup *CGPGroup::FindSubGroup(const char *name)
 
 bool CGPGroup::Parse(char **dataPtr, CTextPool **textPool)
 {
-	char		*token;
+	char		*tok;
 	char		lastToken[MAX_TOKEN_SIZE];
 	CGPGroup	*newSubGroup;
 	CGPValue	*newPair;
 
 	while(1)
 	{
-		token = GetToken(dataPtr, true);
+		tok = GetToken(dataPtr, true);
 
-		if (!token[0])
+		if (!tok[0])
 		{	// end of data - error!
 			if (mParent)
 			{
@@ -689,16 +689,16 @@ bool CGPGroup::Parse(char **dataPtr, CTextPool **textPool)
 				break;
 			}
 		}
-		else if (strcmpi(token, "}") == 0)
+		else if (strcmpi(tok, "}") == 0)
 		{	// ending brace for this group
 			break;
 		}
 
-		strcpy(lastToken, token);
+		strcpy(lastToken, tok);
 
 		// read ahead to see what we are doing
-		token = GetToken(dataPtr, true, true);
-		if (strcmpi(token, "{") == 0)
+		tok = GetToken(dataPtr, true, true);
+		if (strcmpi(tok, "{") == 0)
 		{	// new sub group
 			newSubGroup = AddGroup(lastToken, textPool);
 			newSubGroup->SetWriteable(mWriteable);
@@ -707,7 +707,7 @@ bool CGPGroup::Parse(char **dataPtr, CTextPool **textPool)
 				return false;
 			}
 		}
-		else if (strcmpi(token, "[") == 0)
+		else if (strcmpi(tok, "[") == 0)
 		{	// new pair list
 			newPair = AddPair(lastToken, 0, textPool);
 			if (!newPair->Parse(dataPtr, textPool))
@@ -717,7 +717,7 @@ bool CGPGroup::Parse(char **dataPtr, CTextPool **textPool)
 		}
 		else
 		{	// new pair
-			AddPair(lastToken, token, textPool);
+			AddPair(lastToken, tok, textPool);
 		}
 	}
 

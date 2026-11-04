@@ -1100,9 +1100,6 @@ void CFxScheduler::PlayEffect( const char *file, vec3_t origin, vec3_t forward )
 void CFxScheduler::AddScheduledEffects( void )
 {
 	TScheduledEffect::iterator	itr, next;
-	vec3_t						origin;
-	vec3_t						axis[3];
-
 	itr = mFxSchedule.begin();
 
 	while ( itr != mFxSchedule.end() )
