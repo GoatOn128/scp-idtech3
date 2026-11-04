@@ -1585,7 +1585,7 @@ int muzzleflashmodel;
 
 void mg42_muzzleflash( gentity_t *ent, vec3_t muzzlepos ) {  // cheezy, but lets me use this routine for finding the muzzle point for firing the actual bullet
 
-	vec3_t forward;
+	vec3_t fwd;
 	vec3_t point;
 	gentity_t   *flash;
 
@@ -1598,8 +1598,8 @@ void mg42_muzzleflash( gentity_t *ent, vec3_t muzzlepos ) {  // cheezy, but lets
 		G_SetOrigin( flash, ent->s.pos.trBase );
 
 		VectorCopy( flash->s.origin, point );
-		AngleVectors( flash->s.angles, forward, NULL, NULL );
-		VectorMA( point, 40, forward, point );
+		AngleVectors( flash->s.angles, fwd, NULL, NULL );
+		VectorMA( point, 40, fwd, point );
 
 		if ( muzzlepos ) {
 			VectorCopy( point, muzzlepos );
@@ -1864,12 +1864,12 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, vec3_t dang ) {
 // view position is set on the client-side to keep it firm behind the gun with
 // interpolation
 void clamp_playerbehindgun( gentity_t *self, gentity_t *other, vec3_t dang ) {
-	vec3_t forward, right, up;
+	vec3_t fwd, rgt, upv;
 	vec3_t point;
 
 
-	AngleVectors( self->s.apos.trBase, forward, right, up );
-	VectorMA( self->r.currentOrigin, -36, forward, point );
+	AngleVectors( self->s.apos.trBase, fwd, rgt, upv );
+	VectorMA( self->r.currentOrigin, -36, fwd, point );
 
 	point[2] = other->r.currentOrigin[2];
 	trap_UnlinkEntity( other );
@@ -2646,7 +2646,7 @@ This entity must target the plane its going to be attached to
 */
 
 void misc_firetrails_finishspawning( gentity_t *ent ) {
-	gentity_t *left, *right, *airplane;
+	gentity_t *left, *rgt, *airplane;
 
 	airplane = G_Find( NULL, FOFS( targetname ), ent->target );
 	if ( !airplane ) {
@@ -2667,19 +2667,19 @@ void misc_firetrails_finishspawning( gentity_t *ent ) {
 	G_ProcessTagConnect( left, qtrue );
 	trap_LinkEntity( left );
 
-	// right fire trail
-	right = G_Spawn();
-	right->classname = "right_firetrail";
-	right->r.contents = 0;
-	right->s.eType = ET_RAMJET;
-	right->s.modelindex = G_ModelIndex( "models/ammo/rocket/rocket.md3" );
-	right->tagParent = airplane;
-	right->tagName = "tag_engine2";  // tag to connect to
-	right->use = firetrail_use;
-	right->AIScript_AlertEntity = firetrail_die;
-	right->targetname = ent->targetname;
-	G_ProcessTagConnect( right, qtrue );
-	trap_LinkEntity( right );
+	// rgt fire trail
+	rgt = G_Spawn();
+	rgt->classname = "right_firetrail";
+	rgt->r.contents = 0;
+	rgt->s.eType = ET_RAMJET;
+	rgt->s.modelindex = G_ModelIndex( "models/ammo/rocket/rocket.md3" );
+	rgt->tagParent = airplane;
+	rgt->tagName = "tag_engine2";  // tag to connect to
+	rgt->use = firetrail_use;
+	rgt->AIScript_AlertEntity = firetrail_die;
+	rgt->targetname = ent->targetname;
+	G_ProcessTagConnect( rgt, qtrue );
+	trap_LinkEntity( rgt );
 
 }
 

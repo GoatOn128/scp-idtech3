@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
  */
 
 #include "../game/g_local.h"
-#include "../game/q_shared.h"
+#include "../../engine/qcommon/q_shared.h"
 #include "../game/botlib.h"      //bot lib interface
 #include "../botlib/be_aas.h"
 #include "../botlib/be_ea.h"
