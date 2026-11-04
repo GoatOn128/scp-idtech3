@@ -68,11 +68,6 @@ extern glwstate_t glw_state;
 // wgl entry points link straight against opengl32.dll, so the historical
 // qwglXxx pointer names become macros over the real functions
 //
-extern BOOL WINAPI wglMakeCurrent( HDC, HGLRC );
-extern HGLRC WINAPI wglCreateContext( HDC );
-extern BOOL WINAPI wglDeleteContext( HGLRC );
-extern PROC WINAPI wglGetProcAddress( LPCSTR );
-
 #define qwglCreateContext wglCreateContext
 #define qwglDeleteContext wglDeleteContext
 #define qwglMakeCurrent wglMakeCurrent

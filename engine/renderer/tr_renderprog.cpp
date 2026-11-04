@@ -79,7 +79,7 @@ static GLint savedScreenProgram, savedMatrixMode;
 
 static void *R_RenderProcAddress( const char *name ) {
 #ifdef _WIN32
-	void *address = reinterpret_cast<void *>( qwglGetProcAddress( name ) );
+	void *address = reinterpret_cast<void *>( wglGetProcAddress( name ) );
 	if ( address == reinterpret_cast<void *>( 1 ) || address == reinterpret_cast<void *>( 2 ) ||
 		 address == reinterpret_cast<void *>( 3 ) || address == reinterpret_cast<void *>( -1 ) ) {
 		return NULL;

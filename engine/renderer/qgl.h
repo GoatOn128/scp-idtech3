@@ -40,7 +40,24 @@ If you have questions concerning this license or the applicable additional terms
 // original call sites.
 //
 
+// the historical qgl.h exposed windows.h to every renderer file; Windows
+// renderer code (hunk allocator in tr_model.cpp) still relies on it
+#if defined( _WIN32 )
+#pragma warning( push )
+#pragma warning( disable : 4201 4214 4514 4032 )
+#include <windows.h>
+#pragma warning( pop )
+#endif
+
 #include "glad/gl.h"
+
+// calling-convention fallbacks for translation units that never see windows.h
+#ifndef APIENTRY
+#define APIENTRY
+#endif
+#ifndef WINAPI
+#define WINAPI
+#endif
 
 // global glad context, defined by the platform GLimp code
 extern GladGLContext glimpGL;
