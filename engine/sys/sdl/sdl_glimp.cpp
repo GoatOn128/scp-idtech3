@@ -26,9 +26,7 @@ static SDL_GLContext s_glContext = NULL;
 static FILE *s_logFP = NULL;
 static cvar_t *r_allowSoftwareGL = NULL;
 
-// saved gamma ramps so the desktop state can be restored on shutdown
-static unsigned short s_oldHardwareGamma[3][256];
-static qboolean s_gammaSaved = qfalse;
+// SDL3 removed the window gamma ramp API: no ramp is ever saved or restored
 
 typedef enum {
 	RSERR_OK,
@@ -46,65 +44,25 @@ static void GLW_InitExtensions( void );
 ** GLW_CheckHardwareGamma
 */
 static void GLW_CheckHardwareGamma( void ) {
-	if ( r_ignorehwgamma->integer ) {
-		glConfig.deviceSupportsGamma = qfalse;
-		return;
-	}
-
-	if ( sdl_window != NULL
-		 && SDL_GetWindowGammaRamp( sdl_window, s_oldHardwareGamma[0], s_oldHardwareGamma[1], s_oldHardwareGamma[2] ) ) {
-		glConfig.deviceSupportsGamma = qtrue;
-		s_gammaSaved = qtrue;
-	} else {
-		glConfig.deviceSupportsGamma = qfalse;
-	}
+	// SDL3 removed the window gamma ramp API: changing gamma now needs a
+	// shader pass over the finished frame. Until one is added the renderer
+	// runs without hardware gamma support
+	glConfig.deviceSupportsGamma = qfalse;
 }
 
 static void GLW_RestoreGamma( void ) {
-	if ( s_gammaSaved && sdl_window != NULL ) {
-		SDL_SetWindowGammaRamp( sdl_window, s_oldHardwareGamma[0], s_oldHardwareGamma[1], s_oldHardwareGamma[2] );
-		s_gammaSaved = qfalse;
-	}
+	// nothing to restore: GLW_CheckHardwareGamma never saves a ramp
 }
 
 /*
 ** GLimp_SetGamma
 */
 void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned char blue[256] ) {
-	unsigned short table[3][256];
-	int i, j;
-
-	if ( !glConfig.deviceSupportsGamma || r_ignorehwgamma->integer || sdl_window == NULL ) {
-		return;
-	}
-
-	for ( i = 0; i < 256; i++ ) {
-		table[0][i] = (unsigned short)( ( (unsigned short)red[i] << 8 ) | red[i] );
-		table[1][i] = (unsigned short)( ( (unsigned short)green[i] << 8 ) | green[i] );
-		table[2][i] = (unsigned short)( ( (unsigned short)blue[i] << 8 ) | blue[i] );
-	}
-
-	// some drivers reject ramps that are not strictly increasing
-	for ( i = 0; i < 3; i++ ) {
-		int prev = 0;
-
-		for ( j = 0; j < 256; j++ ) {
-			int v = table[i][j];
-
-			if ( v <= prev ) {
-				v = prev + 1;
-				if ( v > 0xFFFF ) {
-					v = 0xFFFF;
-				}
-				table[i][j] = (unsigned short)v;
-			}
-			prev = table[i][j];
-		}
-	}
-
-	if ( !SDL_SetWindowGammaRamp( sdl_window, table[0], table[1], table[2] ) ) {
-		Com_Printf( "SDL_SetWindowGammaRamp failed: %s\n", SDL_GetError() );
-	}
+	// SDL3 removed the window gamma ramp API and the SDL backend reports
+	// no hardware gamma support, so there is nothing to set here
+	(void)red;
+	(void)green;
+	(void)blue;
 }
 
 /*
@@ -131,23 +89,24 @@ static rserr_t GLW_SetMode( int mode, int colorbits, qboolean cdsFullscreen ) {
 	// create or reuse the window
 	if ( sdl_window == NULL ) {
 		SDL_WindowFlags flags = SDL_WINDOW_OPENGL;
-		int x = SDL_WINDOWPOS_CENTERED;
-		int y = SDL_WINDOWPOS_CENTERED;
 
 		if ( cdsFullscreen ) {
 			flags |= SDL_WINDOW_FULLSCREEN;
-		} else {
-			cvar_t *vid_xpos = ri.Cvar_Get( "vid_xpos", "3", CVAR_ARCHIVE );
-			cvar_t *vid_ypos = ri.Cvar_Get( "vid_ypos", "22", CVAR_ARCHIVE );
-
-			x = vid_xpos->integer;
-			y = vid_ypos->integer;
 		}
 
-		sdl_window = SDL_CreateWindow( "WolfSP", x, y, glConfig.vidWidth, glConfig.vidHeight, flags );
+		sdl_window = SDL_CreateWindow( "WolfSP", glConfig.vidWidth, glConfig.vidHeight, flags );
 		if ( sdl_window == NULL ) {
 			ri.Printf( PRINT_ALL, "SDL_CreateWindow failed: %s\n", SDL_GetError() );
 			return RSERR_INVALID_MODE;
+		}
+
+		// SDL3 dropped the window position from SDL_CreateWindow: place the
+		// windowed game window where the vid_xpos/vid_ypos cvars say
+		if ( !cdsFullscreen ) {
+			cvar_t *vid_xpos = ri.Cvar_Get( "vid_xpos", "3", CVAR_ARCHIVE );
+			cvar_t *vid_ypos = ri.Cvar_Get( "vid_ypos", "22", CVAR_ARCHIVE );
+
+			SDL_SetWindowPosition( sdl_window, vid_xpos->integer, vid_ypos->integer );
 		}
 
 		// we want text input events for the console

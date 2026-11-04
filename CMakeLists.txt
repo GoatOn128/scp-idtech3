@@ -63,6 +63,16 @@ endif()
 # External
 add_subdirectory(external)
 
+# external/ stays untouched: its detour target carries an MSVC-only /wd4127
+# warning option that gcc and clang reject, so drop it again for other compilers
+if ( NOT MSVC )
+	get_target_property( detour_compile_options detour COMPILE_OPTIONS )
+	if ( detour_compile_options )
+		list( REMOVE_ITEM detour_compile_options "/wd4127" )
+		set_target_properties( detour PROPERTIES COMPILE_OPTIONS "${detour_compile_options}" )
+	endif()
+endif()
+
 # Tools (Windows only, they carry win32 specific code)
 if ( WIN32 )
 	add_subdirectory(tools/bspc)
