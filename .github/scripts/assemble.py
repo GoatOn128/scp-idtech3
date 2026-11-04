@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Merge per-leg logs and digest fragments into build-windows.log and
-build-digest.md. The build is Windows-only, so every build leg lands in
-build-windows.log; the uncrustify leg carries no build log and stays in
-the artifacts."""
+"""Merge per-leg logs and digest fragments into per-platform build logs
+and build-digest.md. Legs are grouped by their platform prefix
+(windows/linux/macos); legs with no build log stay in the artifacts."""
 
 import glob
 import os
@@ -11,6 +10,8 @@ MAX_LOG = 400000  # bytes kept per failed leg
 
 PLATFORMS = {
     "windows": "build-windows.log",
+    "linux": "build-linux.log",
+    "macos": "build-macos.log",
 }
 
 

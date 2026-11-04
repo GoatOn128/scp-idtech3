@@ -103,6 +103,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <time.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdint.h>
 
 #endif
 
@@ -723,6 +724,17 @@ char    *Q_strrchr( const char* string, int c );
 #define Q_putenv _putenv
 #else
 #define Q_putenv putenv
+#endif
+
+// MSVC-only case-insensitive compare names used by the game modules;
+// map them to the POSIX functions on every other platform
+#if !defined( _WIN32 )
+#include <strings.h>
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+#define strcmpi strcasecmp
+#define _stricmp strcasecmp
+#define _strnicmp strncasecmp
 #endif
 
 // buffer size safe library replacements
