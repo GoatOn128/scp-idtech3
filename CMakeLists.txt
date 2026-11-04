@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.25)
 
-project(WolfSP LANGUAGES C CXX RC)
+project(WolfSP LANGUAGES C CXX)
+
+if ( WIN32 )
+    enable_language( RC )
+endif()
 
 function(set_output_directory target)
 	set_target_properties(${target} PROPERTIES
@@ -22,25 +26,35 @@ function(set_output_directory target)
 endfunction()
 
 function(configure_target target)
-	target_compile_definitions(${target} PRIVATE
-		WIN32 _WINDOWS _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS
-		$<$<CONFIG:Debug>:_DEBUG;DEBUG>
-		$<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
-	target_compile_options(${target} PRIVATE
-		/FS
-		$<$<CONFIG:Debug>:/W3>
-		$<$<NOT:$<CONFIG:Debug>>:/W4>)
+	if ( MSVC )
+		target_compile_definitions(${target} PRIVATE
+			WIN32 _WINDOWS _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS
+			$<CONFIG:Debug>:_DEBUG;DEBUG>
+			$<NOT:$<CONFIG:Debug>>:NDEBUG>)
+		target_compile_options(${target} PRIVATE
+			/FS
+			$<CONFIG:Debug>:/W3>
+			$<NOT:$<CONFIG:Debug>>:/W4>)
+	else()
+		target_compile_definitions(${target} PRIVATE
+			$<CONFIG:Debug>:_DEBUG;DEBUG>
+			$<NOT:$<CONFIG:Debug>>:NDEBUG>)
+	endif()
 	set_output_directory(${target})
 endfunction()
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+if ( MSVC )
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 # External
 add_subdirectory(external)
 
-# Tools
-add_subdirectory(tools/bspc)
-add_subdirectory(tools/extractfuncs)
+# Tools (Windows only, they carry win32 specific code)
+if ( WIN32 )
+	add_subdirectory(tools/bspc)
+	add_subdirectory(tools/extractfuncs)
+endif()
 
 # GameDLLs
 add_subdirectory(gamedll/botlib)

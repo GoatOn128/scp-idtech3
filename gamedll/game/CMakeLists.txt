@@ -12,8 +12,8 @@ set(GAME_SOURCES
     ai/ai_perception.cpp
     ai/ai_weapons.cpp
     ai/fsm/ai_combat.cpp
-    ai/ai_navigation.cpp
-    ai/ai_danger.cpp
+    ai/fsm/ai_navigation.cpp
+    ai/fsm/ai_danger.cpp
     ai/fsm/ai_monster_zombie.cpp
     ai/fsm/ai_monster_loper.cpp
     ai/fsm/ai_monster_stimsoldier.cpp
@@ -71,18 +71,28 @@ set(GAME_SOURCES
     g_utils.cpp
     g_weapon.cpp
     ${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
-    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp
-    game.def)
-	
+    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp)
+
+if ( WIN32 )
+    list(APPEND GAME_SOURCES game.def)
+endif()
+
 source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${GAME_SOURCES})
 
 add_library(game SHARED ${GAME_SOURCES})
 set_target_properties(game PROPERTIES OUTPUT_NAME qagamex86)
 set_target_properties(game PROPERTIES RUNTIME_OUTPUT_DIRECTORY $<1:>${CMAKE_SOURCE_DIR}/main)
 set_target_properties(game PROPERTIES FOLDER "dlls")
+if ( NOT WIN32 )
+    set_target_properties(game PROPERTIES PREFIX "")
+endif()
 target_compile_definitions(game PRIVATE GAMEDLL $<$<CONFIG:Debug>:BUILDING_REF_GL>)
-target_link_libraries(game PRIVATE winmm)
-target_link_options(game PRIVATE /BASE:0x20000000 /MAP:${CMAKE_SOURCE_DIR}/main/qagamex86.map)
-add_dependencies(game genFuncTable)
+if ( MSVC )
+    target_link_libraries(game PRIVATE winmm)
+    target_link_options(game PRIVATE /BASE:0x20000000 /MAP:${CMAKE_SOURCE_DIR}/main/qagamex86.map)
+endif()
+if ( WIN32 )
+    add_dependencies(game genFuncTable)
+endif()
 target_include_directories(game PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
 configure_target(game)
