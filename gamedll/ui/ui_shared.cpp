@@ -4180,7 +4180,6 @@ void Item_OwnerDraw_Paint( itemDef_t *item ) {
 
 	if ( DC->ownerDrawItem ) {
 		vec4_t color, lowLight;
-		menuDef_t *parent = (menuDef_t*)item->parent;
 		Fade( &item->window.flags, &item->window.foreColor[3], parent->fadeClamp, &item->window.nextTime, parent->fadeCycle, qtrue, parent->fadeAmount );
 		memcpy( &color, &item->window.foreColor, sizeof( color ) );
 		if ( item->numColors > 0 && DC->getValue ) {

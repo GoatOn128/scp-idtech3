@@ -70,9 +70,11 @@ set(GAME_SOURCES
     g_trigger.cpp
     g_utils.cpp
     g_weapon.cpp
+    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
+    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp
     game.def)
 	
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${GAME_SOURCES})
+source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${GAME_SOURCES})
 
 add_library(game SHARED ${GAME_SOURCES})
 set_target_properties(game PROPERTIES OUTPUT_NAME qagamex86)

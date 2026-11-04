@@ -36,7 +36,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "l_math.h"
 #include "l_poly.h"
 #include "l_threads.h"
-#include "../botlib/l_script.h"
+#include "../../gamedll/botlib/l_script.h"
 #include "l_bsp_ent.h"
 #include "q2files.h"
 #include "l_mem.h"
@@ -46,7 +46,9 @@ If you have questions concerning this license or the applicable additional terms
 
 //Mr Elusive shit
 #define ME
+#ifndef DEBUG
 #define DEBUG
+#endif
 #define NODELIST
 #define SIN
 

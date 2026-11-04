@@ -366,10 +366,10 @@ int WM_ScoreboardOverlay( int x, int y, float fade ) {
 	CG_DrawRect( x - 12, y, width, 400, 2, hcolor );
 
 	if ( cg.snap->ps.pm_type == PM_INTERMISSION ) {
-		const char *s, *buf;
+		const char *winnerStr, *buf;
 
-		s = CG_ConfigString( CS_MULTI_INFO );
-		buf = Info_ValueForKey( s, "winner" );
+		winnerStr = CG_ConfigString( CS_MULTI_INFO );
+		buf = Info_ValueForKey( winnerStr, "winner" );
 
 		if ( atoi( buf ) ) {
 			CG_DrawSmallString( x - 12 + 5, y, "ALLIES WIN!", fade );

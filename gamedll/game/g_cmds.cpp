@@ -1964,41 +1964,41 @@ void Cmd_EntityCount_f( gentity_t *ent ) {
 		int nazis[2];
 		int monsters[2];
 		int i;
-		gentity_t *ent;
+		gentity_t *scanEnt;
 
 		// count kills
 		kills[0] = kills[1] = 0;
 		nazis[0] = nazis[1] = 0;
 		monsters[0] = monsters[1] = 0;
 		for ( i = 0; i < MAX_CLIENTS; i++ ) {
-			ent = &g_entities[i];
+			scanEnt = &g_entities[i];
 
-			if ( !ent->inuse ) {
+			if ( !scanEnt->inuse ) {
 				continue;
 			}
 
-			if ( !( ent->r.svFlags & SVF_CASTAI ) ) {
+			if ( !( scanEnt->r.svFlags & SVF_CASTAI ) ) {
 				continue;
 			}
 
-			if ( ent->aiTeam == AITEAM_ALLIES ) {
+			if ( scanEnt->aiTeam == AITEAM_ALLIES ) {
 				continue;
 			}
 
 			kills[1]++;
 
-			if ( ent->health <= 0 ) {
+			if ( scanEnt->health <= 0 ) {
 				kills[0]++;
 			}
 
-			if ( ent->aiTeam == AITEAM_NAZI ) {
+			if ( scanEnt->aiTeam == AITEAM_NAZI ) {
 				nazis[1]++;
-				if ( ent->health <= 0 ) {
+				if ( scanEnt->health <= 0 ) {
 					nazis[0]++;
 				}
 			} else {
 				monsters[1]++;
-				if ( ent->health <= 0 ) {
+				if ( scanEnt->health <= 0 ) {
 					monsters[0]++;
 				}
 			}

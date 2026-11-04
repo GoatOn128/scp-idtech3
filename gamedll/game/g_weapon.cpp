@@ -1333,15 +1333,15 @@ void VenomPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
 	int i;
 	float r, u;
 	vec3_t end;
-	vec3_t forward, right, up;
+	vec3_t fwd, rgt, upv;
 	int oldScore;
 	qboolean hitClient = qfalse;
 
-	// derive the right and up vectors from the forward vector, because
+	// derive the rgt and upv vectors from the fwd vector, because
 	// the client won't have any other information
-	VectorNormalize2( origin2, forward );
-	PerpendicularVector( right, forward );
-	CrossProduct( forward, right, up );
+	VectorNormalize2( origin2, fwd );
+	PerpendicularVector( rgt, fwd );
+	CrossProduct( fwd, rgt, upv );
 
 	oldScore = ent->client->ps.persistant[PERS_SCORE];
 
@@ -1349,9 +1349,9 @@ void VenomPattern( vec3_t origin, vec3_t origin2, int seed, gentity_t *ent ) {
 	for ( i = 0 ; i < DEFAULT_VENOM_COUNT ; i++ ) {
 		r = Q_crandom( &seed ) * DEFAULT_VENOM_SPREAD;
 		u = Q_crandom( &seed ) * DEFAULT_VENOM_SPREAD;
-		VectorMA( origin, 8192, forward, end );
-		VectorMA( end, r, right, end );
-		VectorMA( end, u, up, end );
+		VectorMA( origin, 8192, fwd, end );
+		VectorMA( end, r, rgt, end );
+		VectorMA( end, u, upv, end );
 		if ( VenomPellet( origin, end, ent ) && !hitClient ) {
 			hitClient = qtrue;
 			ent->client->ps.persistant[PERS_ACCURACY_HITS]++;
@@ -1546,9 +1546,9 @@ AddLean
 void AddLean( gentity_t *ent, vec3_t point ) {
 	if ( ent->client ) {
 		if ( ent->client->ps.leanf ) {
-			vec3_t right;
-			AngleVectors( ent->client->ps.viewangles, NULL, right, NULL );
-			VectorMA( point, ent->client->ps.leanf, right, point );
+			vec3_t rgt;
+			AngleVectors( ent->client->ps.viewangles, NULL, rgt, NULL );
+			VectorMA( point, ent->client->ps.leanf, rgt, point );
 		}
 	}
 }
@@ -1594,11 +1594,11 @@ CalcMuzzlePoint
 set muzzle location relative to pivoting eye
 ===============
 */
-void CalcMuzzlePoint( gentity_t *ent, int weapon, vec3_t forward, vec3_t right, vec3_t up, vec3_t muzzlePoint ) {
+void CalcMuzzlePoint( gentity_t *ent, int weapon, vec3_t fwd, vec3_t rgt, vec3_t upv, vec3_t muzzlePoint ) {
 	VectorCopy( ent->r.currentOrigin, muzzlePoint );
 	muzzlePoint[2] += ent->client->ps.viewheight;
 	// Ridah, this puts the start point outside the bounding box, isn't necessary
-//	VectorMA( muzzlePoint, 14, forward, muzzlePoint );
+//	VectorMA( muzzlePoint, 14, fwd, muzzlePoint );
 	// done.
 
 	// Ridah, offset for more realistic firing from actual gun position
@@ -1606,30 +1606,30 @@ void CalcMuzzlePoint( gentity_t *ent, int weapon, vec3_t forward, vec3_t right, 
 	switch ( weapon )  // Ridah, changed this so I can predict weapons
 	{
 	case WP_PANZERFAUST:
-//			VectorMA( muzzlePoint, 14, right, muzzlePoint );	//----(SA)	new first person rl position
-		VectorMA( muzzlePoint, 10, right, muzzlePoint );        //----(SA)	new first person rl position
-		VectorMA( muzzlePoint, -10, up, muzzlePoint );
+//			VectorMA( muzzlePoint, 14, rgt, muzzlePoint );	//----(SA)	new first person rl position
+		VectorMA( muzzlePoint, 10, rgt, muzzlePoint );        //----(SA)	new first person rl position
+		VectorMA( muzzlePoint, -10, upv, muzzlePoint );
 		break;
 //		case WP_ROCKET_LAUNCHER:
-//			VectorMA( muzzlePoint, 14, right, muzzlePoint );	//----(SA)	new first person rl position
+//			VectorMA( muzzlePoint, 14, rgt, muzzlePoint );	//----(SA)	new first person rl position
 //			break;
 	case WP_DYNAMITE:
 	case WP_GRENADE_PINEAPPLE:
 	case WP_GRENADE_LAUNCHER:
-		VectorMA( muzzlePoint, 20, right, muzzlePoint );
+		VectorMA( muzzlePoint, 20, rgt, muzzlePoint );
 		break;
-	case WP_AKIMBO:     // left side rather than right
-		VectorMA( muzzlePoint, -6, right, muzzlePoint );
-		VectorMA( muzzlePoint, -4, up, muzzlePoint );
+	case WP_AKIMBO:     // left side rather than rgt
+		VectorMA( muzzlePoint, -6, rgt, muzzlePoint );
+		VectorMA( muzzlePoint, -4, upv, muzzlePoint );
 	default:
-		VectorMA( muzzlePoint, 6, right, muzzlePoint );
-		VectorMA( muzzlePoint, -4, up, muzzlePoint );
+		VectorMA( muzzlePoint, 6, rgt, muzzlePoint );
+		VectorMA( muzzlePoint, -4, upv, muzzlePoint );
 		break;
 	}
 
 	// done.
 
-	// (SA) actually, this is sort of moot right now since
+	// (SA) actually, this is sort of moot rgt now since
 	// you're not allowed to fire when leaning.  Leave in
 	// in case we decide to enable some lean-firing.
 	AddLean( ent, muzzlePoint );
@@ -1639,7 +1639,7 @@ void CalcMuzzlePoint( gentity_t *ent, int weapon, vec3_t forward, vec3_t right, 
 }
 
 // Rafael - for activate
-void CalcMuzzlePointForActivate( gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, vec3_t muzzlePoint ) {
+void CalcMuzzlePointForActivate( gentity_t *ent, vec3_t fwd, vec3_t rgt, vec3_t upv, vec3_t muzzlePoint ) {
 
 	VectorCopy( ent->s.pos.trBase, muzzlePoint );
 	muzzlePoint[2] += ent->client->ps.viewheight;
@@ -1863,15 +1863,15 @@ void FireWeapon( gentity_t *ent ) {
 
 		// push the player back a bit
 		if ( !ent->aiCharacter ) {
-			vec3_t forward, vangle;
+			vec3_t pushFwd, vangle;
 			VectorCopy( ent->client->ps.viewangles, vangle );
 			vangle[PITCH] = 0;  // nullify pitch so you can't lightning jump
-			AngleVectors( vangle, forward, NULL, NULL );
+			AngleVectors( vangle, pushFwd, NULL, NULL );
 			// make it less if in the air
 			if ( ent->s.groundEntityNum == ENTITYNUM_NONE ) {
-				VectorMA( ent->client->ps.velocity, -32, forward, ent->client->ps.velocity );
+				VectorMA( ent->client->ps.velocity, -32, pushFwd, ent->client->ps.velocity );
 			} else {
-				VectorMA( ent->client->ps.velocity, -100, forward, ent->client->ps.velocity );
+				VectorMA( ent->client->ps.velocity, -100, pushFwd, ent->client->ps.velocity );
 			}
 		}
 		break;

@@ -22,7 +22,7 @@ along with IceWolf.  If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
-#include "../game/q_shared.h"
+#include "../../engine/qcommon/q_shared.h"
 #include "aasfile.h"
 #include "../game/botlib.h"
 #include "be_aas.h"

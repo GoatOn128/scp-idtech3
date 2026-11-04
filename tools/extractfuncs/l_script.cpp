@@ -55,7 +55,7 @@ typedef enum {qfalse, qtrue}    qboolean;
 
 #ifdef BOTLIB
 //include files for usage in the bot library
-#include "../game/q_shared.h"
+#include "../../engine/qcommon/q_shared.h"
 #include "botlib.h"
 #include "be_interface.h"
 #include "l_script.h"
@@ -440,7 +440,7 @@ int PS_ReadEscapeCharacter( script_t *script, char *ch ) {
 	  //step over the escape character or the last digit of the number
 	script->script_p++;
 	//store the escape character
-	*ch = c;
+	*ch = (char)c;
 	//succesfully read escape character
 	return 1;
 } //end of the function PS_ReadEscapeCharacter
@@ -524,7 +524,7 @@ int PS_ReadString( script_t *script, token_t *token, int quote ) {
 		} //end else
 	} //end while
 	  //trailing quote
-	token->string[len++] = quote;
+	token->string[len++] = (char)quote;
 	//end string with a zero
 	token->string[len] = '\0';
 	//the sub type is the length of the string

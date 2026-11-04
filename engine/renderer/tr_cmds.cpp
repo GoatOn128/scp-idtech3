@@ -257,9 +257,9 @@ void    RE_SetColor( const float *rgba ) {
 	}
 	cmd->commandId = RC_SET_COLOR;
 	if ( !rgba ) {
-		static float colorWhite[4] = { 1, 1, 1, 1 };
+		static float white[4] = { 1, 1, 1, 1 };
 
-		rgba = colorWhite;
+		rgba = white;
 	}
 
 	cmd->color[0] = rgba[0];
@@ -321,9 +321,9 @@ void RE_StretchPicGradient( float x, float y, float w, float h,
 	cmd->t2 = t2;
 
 	if ( !gradientColor ) {
-		static float colorWhite[4] = { 1, 1, 1, 1 };
+		static float white[4] = { 1, 1, 1, 1 };
 
-		gradientColor = colorWhite;
+		gradientColor = white;
 	}
 
 	cmd->gradientColor[0] = gradientColor[0] * 255;

@@ -1221,8 +1221,8 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 			 //!(cg_entities[f->ownerCent].currentState.aiChar == AICHAR_ZOMBIE) &&
 			 ( (float)( flameSettings.spriteStartBlueScale * f->blueLife ) < (float)lived ) ) {
 
-			float alpha, lifeFrac;
-			qboolean skip = qfalse;
+			float spriteAlpha, lifeFrac;
+			qboolean skipMerge = qfalse;
 			vec3_t v1, v2;
 			float fDist, vDist;
 
@@ -1237,7 +1237,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 						CG_MergeFlameChunks( f, fNext );
 						fNext = f->nextFlameChunk;      // it may have changed
 					} else {
-						skip = qtrue;
+						skipMerge = qtrue;
 						break;
 					}
 				} else {
@@ -1247,25 +1247,25 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 
 			lifeFrac = ( lived - flameSettings.spriteStartBlueScale * f->blueLife ) / ( flameSettings.Lifetime() - flameSettings.spriteStartBlueScale * f->blueLife );
 
-			alpha = ( 1.0 - lifeFrac ) * flameSettings.spriteAlphaScale;
-			if ( alpha > 1.0 ) {
-				alpha = 1.0;
+			spriteAlpha = ( 1.0 - lifeFrac ) * flameSettings.spriteAlphaScale;
+			if ( spriteAlpha > 1.0 ) {
+				spriteAlpha = 1.0;
 			}
 
 			// should we draw this sprite?
-			if ( !skip && VectorLengthSquared( lastDrawPos ) ) {
+			if ( !skipMerge && VectorLengthSquared( lastDrawPos ) ) {
 				VectorSubtract( cg.refdef.vieworg, lastDrawPos, v1 );
 				VectorSubtract( f->org, lastDrawPos, v2 );
 				fDist = VectorNormalize( v2 );
 				vDist = VectorNormalize( v1 );
 				if ( ( vDist / f->size ) * fDist * ( flameSettings.spriteCullBase + flameSettings.spriteCullWeight * ( 1.0 - fabs( DotProduct( v1, v2 ) ) ) ) < ( 2.0 * ( f->size / flameSettings.spriteCullSize < 1.0 ? f->size / flameSettings.spriteCullSize : 1.0 ) ) ) {
-					skip = qtrue;
+					skipMerge = qtrue;
 				}
 			}
 
-			if ( !skip ) {
+			if ( !skipMerge ) {
 				// draw the sprite
-				CG_AddFlameSpriteToScene( f, lifeFrac, alpha );
+				CG_AddFlameSpriteToScene( f, lifeFrac, spriteAlpha );
 				VectorCopy( f->org, lastDrawPos );
 			}
 			// update the sizeRate

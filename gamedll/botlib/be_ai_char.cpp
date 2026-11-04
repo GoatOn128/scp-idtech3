@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
-#include "../game/q_shared.h"
+#include "../../engine/qcommon/q_shared.h"
 #include "l_log.h"
 #include "l_memory.h"
 #include "l_utils.h"
@@ -237,7 +237,7 @@ bot_character_t *BotLoadCharacterFromFile( char *charfile, int skill ) {
 				return NULL;
 			} //end if
 			  //if it's the correct skill
-			if ( skill < 0 || token.intvalue == skill ) {
+			if ( skill < 0 || (int)token.intvalue == skill ) {
 				foundcharacter = qtrue;
 				ch->skill = token.intvalue;
 				while ( PC_ExpectAnyToken( source, &token ) )

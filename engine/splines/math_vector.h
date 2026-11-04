@@ -193,10 +193,10 @@ public:
 
 extern idVec3 vec_zero;
 
-ID_INLINE idVec3::idVec3( const float x, const float y, const float z ) {
-	this->x = x;
-	this->y = y;
-	this->z = z;
+ID_INLINE idVec3::idVec3( const float x_, const float y_, const float z_ ) {
+	this->x = x_;
+	this->y = y_;
+	this->z = z_;
 #ifdef  FAT_VEC3
 	this->dist = 0.0f;
 #endif
@@ -226,10 +226,10 @@ ID_INLINE idVec3 &idVec3::operator=( const idVec3 &a ) {
 	return *this;
 }
 
-ID_INLINE void idVec3::set( const float x, const float y, const float z ) {
-	this->x = x;
-	this->y = y;
-	this->z = z;
+ID_INLINE void idVec3::set( const float x_, const float y_, const float z_ ) {
+	this->x = x_;
+	this->y = y_;
+	this->z = z_;
 }
 
 ID_INLINE idVec3 idVec3::operator-( const idVec3 &a ) const {
@@ -551,10 +551,10 @@ public:
 
 ID_INLINE idVec4::idVec4() {
 }
-ID_INLINE idVec4::idVec4( float x, float y, float z, float dist ) {
-	this->x = x;
-	this->y = y;
-	this->z = z;
+ID_INLINE idVec4::idVec4( float x_, float y_, float z_, float dist ) {
+	this->x = x_;
+	this->y = y_;
+	this->z = z_;
 	this->dist = dist;
 }
 

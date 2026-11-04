@@ -92,10 +92,10 @@ extern angles_t ang_zero;
 inline angles_t::angles_t() {
 }
 
-inline angles_t::angles_t( float pitch, float yaw, float roll ) {
-	this->pitch = pitch;
-	this->yaw   = yaw;
-	this->roll  = roll;
+inline angles_t::angles_t( float pitch_, float yaw_, float roll_ ) {
+	this->pitch = pitch_;
+	this->yaw   = yaw_;
+	this->roll  = roll_;
 }
 
 inline angles_t::angles_t( const idVec3 &vec ) {
@@ -118,10 +118,10 @@ inline angles_t::operator vec3_p( void ) {
 	return *( idVec3 * )&pitch;
 }
 
-inline void angles_t::set( float pitch, float yaw, float roll ) {
-	this->pitch = pitch;
-	this->yaw   = yaw;
-	this->roll  = roll;
+inline void angles_t::set( float pitch_, float yaw_, float roll_ ) {
+	this->pitch = pitch_;
+	this->yaw   = yaw_;
+	this->roll  = roll_;
 }
 
 inline void angles_t::operator=( angles_t const &a ) {

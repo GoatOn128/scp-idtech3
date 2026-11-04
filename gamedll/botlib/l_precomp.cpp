@@ -65,7 +65,7 @@ typedef enum {qfalse, qtrue}    qboolean;
 #endif //SCREWUP
 
 #ifdef BOTLIB
-#include "../game/q_shared.h"
+#include "../../engine/qcommon/q_shared.h"
 #include "../game/botlib.h"
 #include "be_interface.h"
 #include "l_memory.h"
@@ -541,7 +541,7 @@ void PC_PrintDefineHashTable( define_t **definehash ) {
 //char primes[16] = {1, 3, 5, 7, 11, 13, 17, 19, 23, 27, 29, 31, 37, 41, 43, 47};
 
 int PC_NameHash( char *name ) {
-	int register hash, i;
+	int hash, i;
 
 	hash = 0;
 	for ( i = 0; name[i] != '\0'; i++ )

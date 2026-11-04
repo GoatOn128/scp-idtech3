@@ -160,7 +160,7 @@ void DumpReplaceFunctions( void ) {
 	char path[_MAX_PATH];
 	FILE    *f;
 	int len, newlen;
-	unsigned char *buf, *newbuf;
+	unsigned char *buf, *newbuf = NULL;
 	int updated;
 
 	updated = 0;
@@ -189,7 +189,8 @@ void DumpReplaceFunctions( void ) {
 	fclose( f );
 
 	strcpy( path, func_filename );
-	if ( f = fopen( path, "rb" ) ) {
+	f = fopen( path, "rb" );
+	if ( f ) {
 		fseek( f, 0, SEEK_END );
 		newlen = ftell( f );
 		newbuf = (unsigned char *) malloc( newlen + 1 );
@@ -248,7 +249,8 @@ void DumpReplaceFunctions( void ) {
 	fclose( f );
 
 	strcpy( path, func_filedesc );
-	if ( f = fopen( path, "rb" ) ) {
+	f = fopen( path, "rb" );
+	if ( f ) {
 		fseek( f, 0, SEEK_END );
 		newlen = ftell( f );
 		newbuf = (unsigned char *) malloc( newlen + 1 );
@@ -437,7 +439,7 @@ void StripTokenList( tokenList_t *head ) {
 
 void GetFunctionNamesFromFile( char *filename ) {
 	source_t *source;
-	token_t token, lasttoken;
+	token_t token, lasttoken = {};
 	int indent = 0, brace;
 	int isStatic = 0;
 	tokenList_t *listHead;

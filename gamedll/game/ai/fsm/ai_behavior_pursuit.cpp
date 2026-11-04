@@ -86,14 +86,14 @@ char *AIFunc_ChaseGoalIdle( cast_state_t *cs ) {
 	}
 	// if we had an enemy recently, face them
 	else if ( cs->lastEnemy >= 0 ) {
-		vec3_t dir;
+		vec3_t faceDir;
 		//
-		VectorSubtract( cs->perception.vislist[cs->lastEnemy].visible_pos, cs->clientState->origin, dir );
-		if ( VectorLength( dir ) < 1 ) {
+		VectorSubtract( cs->perception.vislist[cs->lastEnemy].visible_pos, cs->clientState->origin, faceDir );
+		if ( VectorLength( faceDir ) < 1 ) {
 			cs->ideal_viewangles[PITCH] = 0;
 		} else {
-			VectorNormalize( dir );
-			vectoangles( dir, cs->ideal_viewangles );
+			VectorNormalize( faceDir );
+			vectoangles( faceDir, cs->ideal_viewangles );
 		}
 		// reload?
 		AICast_IdleReload( cs );

@@ -35,12 +35,24 @@ If you have questions concerning this license or the applicable additional terms
 #define qsort bg_lib_crt_qsort
 #define strchr bg_lib_crt_strchr
 #define strstr bg_lib_crt_strstr
+#define strlen bg_lib_crt_strlen
+#define strcat bg_lib_crt_strcat
+#define strcpy bg_lib_crt_strcpy
+#define strcmp bg_lib_crt_strcmp
+#define memmove bg_lib_crt_memmove
+#define tan bg_lib_crt_tan
 #endif
 #include "q_shared.h"
 #ifdef __cplusplus
 #undef qsort
 #undef strchr
 #undef strstr
+#undef strlen
+#undef strcat
+#undef strcpy
+#undef strcmp
+#undef memmove
+#undef tan
 #endif
 
 /*-
@@ -705,7 +717,7 @@ double _atof( const char **stringPtr ) {
 	const char  *string;
 	float sign;
 	float value;
-	int c;
+	int c = 0;
 
 	string = *stringPtr;
 

@@ -30,8 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 ** WIN_GAMMA.C
 */
 #include <assert.h>
-#include "../renderer/tr_local.h"
-#include "../qcommon/qcommon.h"
+#include "../../renderer/tr_local.h"
+#include "../../qcommon/qcommon.h"
 #include "glw_win.h"
 #include "win_local.h"
 
@@ -150,7 +150,10 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 
 	// Win2K puts this odd restriction on gamma ramps...
 	vinfo.dwOSVersionInfoSize = sizeof( vinfo );
+#pragma warning( push )
+#pragma warning( disable : 4996 )
 	GetVersionEx( &vinfo );
+#pragma warning( pop )
 	if ( vinfo.dwMajorVersion == 5 && vinfo.dwPlatformId == VER_PLATFORM_WIN32_NT ) {
 		Com_DPrintf( "performing W2K gamma clamp.\n" );
 		for ( j = 0 ; j < 3 ; j++ ) {

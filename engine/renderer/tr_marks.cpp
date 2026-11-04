@@ -678,7 +678,7 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 		} else if ( *surfaces[i] == SF_FACE )     {
 			extern float VectorDistance( vec3_t v1, vec3_t v2 );
 			vec3_t axis[3];
-			float texCoordScale, dot;
+			float texScale, dot;
 			vec3_t originalPoints[4];
 			vec3_t newCenter, delta;
 			int oldNumPoints;
@@ -722,7 +722,7 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				RotatePointAroundVector( axis[2], axis[0], axis[1], (float)orientation );
 				CrossProduct( axis[0], axis[2], axis[1] );
 
-				texCoordScale = 0.5 * 1.0 / radius;
+				texScale = 0.5 * 1.0 / radius;
 
 				// create the full polygon
 				for ( j = 0 ; j < 3 ; j++ ) {
@@ -772,8 +772,8 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 						// Ridah, calculate ST's
 						for ( j = 0 ; j < ( returnedPoints - oldNumPoints ) ; j++ ) {
 							VectorSubtract( (float *)pointBuffer + 5 * ( oldNumPoints + j ), newCenter, delta );
-							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 3 ) = 0.5 + DotProduct( delta, axis[1] ) * texCoordScale;
-							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 4 ) = 0.5 + DotProduct( delta, axis[2] ) * texCoordScale;
+							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 3 ) = 0.5 + DotProduct( delta, axis[1] ) * texScale;
+							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 4 ) = 0.5 + DotProduct( delta, axis[2] ) * texScale;
 						}
 					}
 

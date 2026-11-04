@@ -396,7 +396,7 @@ srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 			maxLen = 0;
 			for ( i = 0 ; i < height ; i++ ) {
 				vec3_t midxyz;
-				vec3_t dir;
+				vec3_t delta;
 				vec3_t projected;
 				float d;
 
@@ -411,11 +411,11 @@ srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 				// texture warping, but it gives a lot less polygons than
 				// dist-from-midpoint
 				VectorSubtract( midxyz, ctrl[i][j].xyz, midxyz );
-				VectorSubtract( ctrl[i][j + 2].xyz, ctrl[i][j].xyz, dir );
-				VectorNormalize( dir );
+				VectorSubtract( ctrl[i][j + 2].xyz, ctrl[i][j].xyz, delta );
+				VectorNormalize( delta );
 
-				d = DotProduct( midxyz, dir );
-				VectorScale( dir, d, projected );
+				d = DotProduct( midxyz, delta );
+				VectorScale( delta, d, projected );
 				VectorSubtract( midxyz, projected, midxyz );
 				len = VectorLengthSquared( midxyz );            // we will do the sqrt later
 

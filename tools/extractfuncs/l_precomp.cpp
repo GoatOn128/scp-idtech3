@@ -135,7 +135,7 @@ char *Q_strlwr( char *s1 ) {
 
 	s = s1;
 	while ( *s ) {
-		*s = tolower( *s );
+		*s = (char)tolower( *s );
 		s++;
 	}
 	return s1;
@@ -146,7 +146,7 @@ char *Q_strupr( char *s1 ) {
 
 	s = s1;
 	while ( *s ) {
-		*s = toupper( *s );
+		*s = (char)toupper( *s );
 		s++;
 	}
 	return s1;
@@ -155,7 +155,7 @@ char *Q_strupr( char *s1 ) {
 #endif //SCREWUP
 
 #ifdef BOTLIB
-#include "../game/q_shared.h"
+#include "../../engine/qcommon/q_shared.h"
 #include "botlib.h"
 #include "be_interface.h"
 #include "l_memory.h"
@@ -226,7 +226,7 @@ define_t *globaldefines;
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-void QDECL SourceError( source_t *source, char *str, ... ) {
+void QDECL SourceError( source_t *, char *str, ... ) {
 	char text[1024];
 	va_list ap;
 
@@ -249,7 +249,7 @@ void QDECL SourceError( source_t *source, char *str, ... ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void QDECL SourceWarning( source_t *source, char *str, ... ) {
+void QDECL SourceWarning( source_t *, char *str, ... ) {
 	char text[1024];
 	va_list ap;
 
@@ -1511,7 +1511,7 @@ void PC_RemoveAllGlobalDefines( void ) {
 // Returns:					-
 // Changes Globals:		-
 //============================================================================
-define_t *PC_CopyDefine( source_t *source, define_t *define ) {
+define_t *PC_CopyDefine( source_t *, define_t *define ) {
 	define_t *newdefine;
 	token_t *token, *newtoken, *lasttoken;
 
@@ -1837,12 +1837,12 @@ int PC_EvaluateTokens( source_t *source, token_t *tokens, signed long int *intva
 			AllocValue( v );
 			if ( negativevalue ) {
 				v->intvalue = -(signed int) t->intvalue;
-				v->floatvalue = -t->floatvalue;
+				v->floatvalue = (double) -t->floatvalue;
 			}     //end if
 			else
 			{
 				v->intvalue = t->intvalue;
-				v->floatvalue = t->floatvalue;
+				v->floatvalue = (double)t->floatvalue;
 			}     //end else
 			v->parentheses = parentheses;
 			v->next = NULL;
@@ -2778,7 +2778,7 @@ int PC_ReadToken( source_t *source, token_t *token ) {
 #ifdef SCREWUP  // Ridah, skip all # directives
 			while ( PC_ReadLine( source, token ) ) ;
 			continue;
-#endif // SCREWUP
+#else // SCREWUP
 
 #ifdef QUAKEC
 			if ( !BuiltinFunction( source ) )
@@ -2790,6 +2790,7 @@ int PC_ReadToken( source_t *source, token_t *token ) {
 				}
 				continue;
 			} //end if
+#endif // SCREWUP
 		} //end if
 		if ( token->type == TT_PUNCTUATION && *token->string == '$' ) {
 #ifdef QUAKEC
