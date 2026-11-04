@@ -33,4 +33,5 @@ set(RENDERER_SOURCES
 add_library(renderer STATIC ${RENDERER_SOURCES})
 set_target_properties(renderer PROPERTIES FOLDER "libs")
 target_compile_definitions(renderer PRIVATE _LIB __USEA3D __A3D_GEOM)
+target_include_directories(renderer PRIVATE "${CMAKE_SOURCE_DIR}/external/stb")
 configure_target(renderer)
