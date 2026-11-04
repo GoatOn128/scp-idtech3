@@ -36,5 +36,5 @@ configure_target(detour)
 target_compile_options(detour PRIVATE /wd4127)
 
 add_library(glad STATIC ${GLAD_SOURCES})
-target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include")
+target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/glad/include")
 configure_target(glad)

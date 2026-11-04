@@ -58,6 +58,14 @@ set_target_properties(wolf PROPERTIES FOLDER "exes")
 set_target_properties(wolf PROPERTIES OUTPUT_NAME WolfSP)
 target_compile_definitions(wolf PRIVATE __USEA3D __A3D_GEOM CINTERFACE)
 target_link_libraries(wolf PRIVATE renderer botlib Splines winmm wsock32)
+
+target_include_directories(wolf PRIVATE
+	${CMAKE_SOURCE_DIR}/engine/qcommon
+	${CMAKE_SOURCE_DIR}/gamedll/game
+	${CMAKE_SOURCE_DIR}/gamedll/ui
+	${CMAKE_SOURCE_DIR}/gamedll/cgame
+)
+
 target_link_options(wolf PRIVATE /STACK:8388608 /MAP:${CMAKE_SOURCE_DIR}/WolfSP.map /NXCOMPAT:NO)
 configure_target(wolf)
 

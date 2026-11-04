@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef _QCOMMON_H_
 #define _QCOMMON_H_
 
-#include "../qcommon/cm_public.h"
+#include "../cm/cm_public.h"
 
 //============================================================================
 

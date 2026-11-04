@@ -35,8 +35,8 @@ set(CGAME_SOURCES
     cg_fx_trails.cpp
     cg_view.cpp
     cg_weapons.cpp
-    ${CMAKE_SOURCE_DIR}/qcommon/q_math.cpp
-    ${CMAKE_SOURCE_DIR}/qcommon/q_shared.cpp
+    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
+    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp
     ../ui/ui_shared.cpp
     cgame.def)
 

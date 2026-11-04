@@ -2,7 +2,7 @@ set(BSPC_SOURCES
     bspc.cpp
     navmesh_builder.cpp
     navmesh_builder.h
-    ${CMAKE_SOURCE_DIR}/engine/nav/wolf_nav.h)
+    ${CMAKE_SOURCE_DIR}/engine/qcommon/wolf_nav.h)
 
 add_executable(bspc ${BSPC_SOURCES})
 
