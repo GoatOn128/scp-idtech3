@@ -32,6 +32,9 @@ add_library(detour STATIC ${DETOUR_SOURCES})
 target_include_directories(detour PUBLIC "${RECAST_ROOT}/Detour/Include")
 configure_target(detour)
 
+# DetourNavMesh.cpp trips C4127 in its table-driven code; silence it like any other third-party library.
+target_compile_options(detour PRIVATE /wd4127)
+
 add_library(glad STATIC ${GLAD_SOURCES})
 target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include")
 configure_target(glad)
