@@ -5709,7 +5709,7 @@ void CG_SpawnTracer( int sourceEnt, vec3_t pstart, vec3_t pend ) {
 	fxEntity_t   *le;
 	float dist;
 	vec3_t dir, ofs;
-	orientation_t or;
+	orientation_t orent;
 	vec3_t start, end;
 
 	VectorCopy( pstart, start );
@@ -5728,8 +5728,8 @@ void CG_SpawnTracer( int sourceEnt, vec3_t pstart, vec3_t pend ) {
 		if ( cg_entities[sourceEnt].currentState.eFlags & EF_MG42_ACTIVE ) {   // mounted
 			start[2] -= CG_FxInt( "wolf/controller_spawntracer", "start_z" ); // (SA) hack to get the tracer down below the barrel FIXME: do properly
 		} else {
-			if ( CG_GetWeaponTag( sourceEnt, "tag_flash", &or ) ) {
-				VectorSubtract( or.origin, start, ofs );
+			if ( CG_GetWeaponTag( sourceEnt, "tag_flash", &orent ) ) {
+				VectorSubtract( orent.origin, start, ofs );
 				if ( VectorLength( ofs ) < CG_FxInt( "wolf/controller_spawntracer", "tuning" ) ) {
 					VectorAdd( start, ofs, start );
 					//VectorAdd( end, ofs, end );

@@ -1403,7 +1403,7 @@ static void UI_DrawTeamMember( rectDef_t *rect, int font, float scale, vec4_t co
 	// 0 - None
 	// 1 - Human
 	// 2..NumCharacters - Bot
-	int value = trap_Cvar_VariableValue( va( blue ? "ui_blueteam%i" : "ui_redteam%i", num ) );
+	int value = trap_Cvar_VariableValue( va( (char *)( blue ? "ui_blueteam%i" : "ui_redteam%i" ), num ) );
 	const char *text;
 	if ( value <= 0 ) {
 		text = "Closed";
@@ -3053,7 +3053,7 @@ static qboolean UI_TeamMember_HandleKey( int flags, float *special, int key, qbo
 		// 0 - None
 		// 1 - Human
 		// 2..NumCharacters - Bot
-		char *cvar = va( blue ? "ui_blueteam%i" : "ui_redteam%i", num );
+		char *cvar = va( (char *)( blue ? "ui_blueteam%i" : "ui_redteam%i" ), num );
 		int value = trap_Cvar_VariableValue( cvar );
 
 		if ( key == K_MOUSE2 ) {
