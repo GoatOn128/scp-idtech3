@@ -86,7 +86,6 @@ GladGLContext glimpGL;
 BOOL ( WINAPI * qwglSwapIntervalEXT )( int );
 
 cvar_t  *r_allowSoftwareGL;     // don't abort out if the pixelformat claims software
-cvar_t  *r_maskMinidriver;      // allow a different dll name to be treated as if it were opengl32.dll
 
 
 
@@ -553,7 +552,7 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		r.right  = width;
 		r.bottom = height;
 
-		if ( cdsFullscreen || !Q_stricmp( _3DFX_DRIVER_NAME, drivername ) ) {
+		if ( cdsFullscreen ) {
 			exstyle = WS_EX_TOPMOST;
 			stylebits = WS_POPUP | WS_VISIBLE | WS_SYSMENU;
 		} else
@@ -566,7 +565,7 @@ static qboolean GLW_CreateWindow( const char *drivername, int width, int height,
 		w = r.right - r.left;
 		h = r.bottom - r.top;
 
-		if ( cdsFullscreen || !Q_stricmp( _3DFX_DRIVER_NAME, drivername ) ) {
+		if ( cdsFullscreen ) {
 			x = 0;
 			y = 0;
 		} else
@@ -694,22 +693,10 @@ static rserr_t GLW_SetMode( const char *drivername,
 	//
 	// verify desktop bit depth
 	//
-	if ( glConfig.driverType != GLDRV_VOODOO ) {
-		if ( glw_state.desktopBitsPixel < 15 || glw_state.desktopBitsPixel == 24 ) {
-			if ( colorbits == 0 || ( !cdsFullscreen && colorbits >= 15 ) ) {
-				if ( MessageBox( NULL,
-								 "It is highly unlikely that a correct\n"
-								 "windowed display can be initialized with\n"
-								 "the current desktop display depth.  Select\n"
-								 "'OK' to try anyway.  Press 'Cancel' if you\n"
-								 "have a 3Dfx Voodoo, Voodoo-2, or Voodoo Rush\n"
-								 "3D accelerator installed, or if you otherwise\n"
-								 "wish to quit.",
-								 "Low Desktop Color Depth",
-								 MB_OKCANCEL | MB_ICONEXCLAMATION ) != IDOK ) {
-					return RSERR_INVALID_MODE;
-				}
-			}
+	// low desktop color depths are unlikely to give a usable display, warn about them
+	if ( glw_state.desktopBitsPixel < 15 || glw_state.desktopBitsPixel == 24 ) {
+		if ( colorbits == 0 || ( !cdsFullscreen && colorbits >= 15 ) ) {
+			ri.Printf( PRINT_WARNING, "WARNING: desktop color depth of %d bits is unlikely to support the requested display\n", glw_state.desktopBitsPixel );
 		}
 	}
 
@@ -841,7 +828,7 @@ static rserr_t GLW_SetMode( const char *drivername,
 	}
 
 	//
-	// success, now check display frequency, although this won't be valid on Voodoo(2)
+	// success, now check display frequency
 	//
 	memset( &dm, 0, sizeof( dm ) );
 	dm.dmSize = sizeof( dm );
@@ -849,7 +836,6 @@ static rserr_t GLW_SetMode( const char *drivername,
 		glConfig.displayFrequency = dm.dmDisplayFrequency;
 	}
 
-	// NOTE: this is overridden later on standalone 3Dfx drivers
 	glConfig.isFullscreen = cdsFullscreen;
 
 	return RSERR_OK;
@@ -965,7 +951,7 @@ static void GLW_InitExtensions( void ) {
 	}
 
 	// GL_EXT_compiled_vertex_array
-	if ( strstr( glConfig.extensions_string, "GL_EXT_compiled_vertex_array" ) && ( glConfig.hardwareType != GLHW_RIVA128 ) ) {
+	if ( strstr( glConfig.extensions_string, "GL_EXT_compiled_vertex_array" ) ) {
 		if ( r_ext_compiled_vertex_array->integer ) {
 			ri.Printf( PRINT_ALL, "...using GL_EXT_compiled_vertex_array\n" );
 			if ( !qglLockArraysEXT || !qglUnlockArraysEXT ) {
@@ -1174,7 +1160,6 @@ void GLimp_Init( void ) {
 	sscanf( cv->string, "%i", (int *)&glw_state.wndproc );
 
 	r_allowSoftwareGL = ri.Cvar_Get( "r_allowSoftwareGL", "0", CVAR_LATCH );
-	r_maskMinidriver = ri.Cvar_Get( "r_maskMinidriver", "0", CVAR_LATCH );
 
 	// load appropriate DLL and initialize subsystem
 	GLW_StartOpenGL();
@@ -1191,51 +1176,20 @@ void GLimp_Init( void ) {
 	Q_strncpyz( buf, glConfig.renderer_string, sizeof( buf ) );
 	Q_strlwr( buf );
 
-	//
-	// NOTE: if changing cvars, do it within this block.  This allows them
-	// to be overridden when testing driver fixes, etc. but only sets
-	// them to their default state when the hardware is first installed/run.
-	//
+	// all of the legacy per-chipset workarounds (Voodoo, Rage Pro, Riva,
+	// Permedia, ...) are gone, modern drivers only need generic handling
+	glConfig.hardwareType = GLHW_GENERIC;
+
+	// reset the default texture filtering when the renderer changes so new
+	// hardware starts from a known state
 	if ( Q_stricmp( lastValidRenderer->string, glConfig.renderer_string ) ) {
-		glConfig.hardwareType = GLHW_GENERIC;
-
 		ri.Cvar_Set( "r_textureMode", "GL_LINEAR_MIPMAP_NEAREST" );
-
-		// VOODOO GRAPHICS w/ 2MB
-		if ( strstr( buf, "voodoo graphics/1 tmu/2 mb" ) ) {
-			ri.Cvar_Set( "r_picmip", "2" );
-			ri.Cvar_Get( "r_picmip", "1", CVAR_ARCHIVE | CVAR_LATCH );
-		} else if ( strstr( buf, "matrox" ) ) {
-			ri.Cvar_Set( "r_allowExtensions", "0" );
-		} else {
-			if ( strstr( buf, "rage 128" ) || strstr( buf, "rage128" ) ) {
-				ri.Cvar_Set( "r_finish", "0" );
-			}
-			// Savage3D and Savage4 should always have trilinear enabled
-			else if ( strstr( buf, "savage3d" ) || strstr( buf, "s3 savage4" ) ) {
-				ri.Cvar_Set( "r_texturemode", "GL_LINEAR_MIPMAP_LINEAR" );
-			}
-		}
 	}
 
-	//
-	// this is where hardware specific workarounds that should be
-	// detected/initialized every startup should go.
-	//
-	if ( strstr( buf, "banshee" ) || strstr( buf, "voodoo3" ) ) {
-		glConfig.hardwareType = GLHW_3DFX_2D3D;
-	}
-	// VOODOO GRAPHICS w/ 2MB
-	else if ( strstr( buf, "voodoo graphics/1 tmu/2 mb" ) ) {
-	} else if ( strstr( buf, "glzicd" ) )    {
-	} else if ( strstr( buf, "rage pro" ) || strstr( buf, "Rage Pro" ) || strstr( buf, "ragepro" ) )       {
-		glConfig.hardwareType = GLHW_RAGEPRO;
-	} else if ( strstr( buf, "rage 128" ) )    {
-	} else if ( strstr( buf, "permedia2" ) )    {
-		glConfig.hardwareType = GLHW_PERMEDIA2;
-	} else if ( strstr( buf, "riva 128" ) )    {
-		glConfig.hardwareType = GLHW_RIVA128;
-	} else if ( strstr( buf, "riva tnt " ) )    {
+	// Mesa-based drivers behave differently from the native vendor drivers,
+	// note them in the log
+	if ( strstr( buf, "mesa" ) || strstr( buf, "gallium" ) || strstr( buf, "llvmpipe" ) ) {
+		ri.Printf( PRINT_ALL, "...Mesa-based OpenGL driver detected\n" );
 	}
 
 	if ( strstr( buf, "geforce" ) || strstr( buf, "ge-force" ) || strstr( buf, "radeon" ) || strstr( buf, "nv20" ) || strstr( buf, "nv30" )
@@ -1265,7 +1219,7 @@ void GLimp_Shutdown( void ) {
 
 	ri.Printf( PRINT_ALL, "Shutting down OpenGL subsystem\n" );
 
-	// restore gamma.  We do this first because 3Dfx's extension needs a valid OGL subsystem
+	// restore gamma first, while the GL subsystem is still alive
 	WG_RestoreGamma();
 
 	// set current context to NULL

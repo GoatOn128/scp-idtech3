@@ -1149,8 +1149,6 @@ extern cvar_t  *r_picmip;                       // controls picmip values
 extern cvar_t  *r_picmip2;                      // controls picmip values for designated (character skin) textures
 extern cvar_t  *r_finish;
 extern cvar_t  *r_drawBuffer;
-extern cvar_t  *r_glDriver;
-extern cvar_t  *r_glIgnoreWicked3D;
 extern cvar_t  *r_swapInterval;
 extern cvar_t  *r_textureMode;
 extern cvar_t  *r_offsetFactor;
