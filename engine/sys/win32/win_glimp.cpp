@@ -75,16 +75,15 @@ static rserr_t  GLW_SetMode( const char *drivername,
 static qboolean s_classRegistered = qfalse;
 
 //
-// function declaration
-//
-void     QGL_EnableLogging( qboolean enable );
-qboolean QGL_Init( const char *dllname );
-void     QGL_Shutdown( void );
-
-//
 // variable declarations
 //
 glwstate_t glw_state;
+
+// the single glad context every qgl macro dispatches into
+GladGLContext glimpGL;
+
+// WGL_EXT_swap_control is resolved at runtime once the context is up
+BOOL ( WINAPI * qwglSwapIntervalEXT )( int );
 
 cvar_t  *r_allowSoftwareGL;     // don't abort out if the pixelformat claims software
 cvar_t  *r_maskMinidriver;      // allow a different dll name to be treated as if it were opengl32.dll
@@ -132,12 +131,7 @@ static int GLW_ChoosePFD( HDC hDC, PIXELFORMATDESCRIPTOR *pPFD ) {
 	ri.Printf( PRINT_ALL, "...GLW_ChoosePFD( %d, %d, %d )\n", ( int ) pPFD->cColorBits, ( int ) pPFD->cDepthBits, ( int ) pPFD->cStencilBits );
 
 	// count number of PFDs
-	if ( glConfig.driverType > GLDRV_ICD ) {
-		maxPFD = qwglDescribePixelFormat( hDC, 1, sizeof( PIXELFORMATDESCRIPTOR ), &pfds[0] );
-	} else
-	{
-		maxPFD = DescribePixelFormat( hDC, 1, sizeof( PIXELFORMATDESCRIPTOR ), &pfds[0] );
-	}
+	maxPFD = DescribePixelFormat( hDC, 1, sizeof( PIXELFORMATDESCRIPTOR ), &pfds[0] );
 	if ( maxPFD > MAX_PFDS ) {
 		ri.Printf( PRINT_WARNING, "...numPFDs > MAX_PFDS (%d > %d)\n", maxPFD, MAX_PFDS );
 		maxPFD = MAX_PFDS;
@@ -148,12 +142,7 @@ static int GLW_ChoosePFD( HDC hDC, PIXELFORMATDESCRIPTOR *pPFD ) {
 	// grab information
 	for ( i = 1; i <= maxPFD; i++ )
 	{
-		if ( glConfig.driverType > GLDRV_ICD ) {
-			qwglDescribePixelFormat( hDC, i, sizeof( PIXELFORMATDESCRIPTOR ), &pfds[i] );
-		} else
-		{
-			DescribePixelFormat( hDC, i, sizeof( PIXELFORMATDESCRIPTOR ), &pfds[i] );
-		}
+		DescribePixelFormat( hDC, i, sizeof( PIXELFORMATDESCRIPTOR ), &pfds[i] );
 	}
 
 	// look for a best match
@@ -343,9 +332,7 @@ static int GLW_MakeContext( PIXELFORMATDESCRIPTOR *pPFD ) {
 	//
 	if ( !glw_state.pixelFormatSet ) {
 		//
-		// choose, set, and describe our desired pixel format.  If we're
-		// using a minidriver then we need to bypass the GDI functions,
-		// otherwise use the GDI functions.
+		// choose, set, and describe our desired pixel format
 		//
 		if ( ( pixelformat = GLW_ChoosePFD( glw_state.hDC, pPFD ) ) == 0 ) {
 			ri.Printf( PRINT_ALL, "...GLW_ChoosePFD failed\n" );
@@ -353,20 +340,11 @@ static int GLW_MakeContext( PIXELFORMATDESCRIPTOR *pPFD ) {
 		}
 		ri.Printf( PRINT_ALL, "...PIXELFORMAT %d selected\n", pixelformat );
 
-		if ( glConfig.driverType > GLDRV_ICD ) {
-			qwglDescribePixelFormat( glw_state.hDC, pixelformat, sizeof( *pPFD ), pPFD );
-			if ( qwglSetPixelFormat( glw_state.hDC, pixelformat, pPFD ) == FALSE ) {
-				ri.Printf( PRINT_ALL, "...qwglSetPixelFormat failed\n" );
-				return TRY_PFD_FAIL_SOFT;
-			}
-		} else
-		{
-			DescribePixelFormat( glw_state.hDC, pixelformat, sizeof( *pPFD ), pPFD );
+		DescribePixelFormat( glw_state.hDC, pixelformat, sizeof( *pPFD ), pPFD );
 
-			if ( SetPixelFormat( glw_state.hDC, pixelformat, pPFD ) == FALSE ) {
-				ri.Printf( PRINT_ALL, "...SetPixelFormat failed\n", glw_state.hDC );
-				return TRY_PFD_FAIL_SOFT;
-			}
+		if ( SetPixelFormat( glw_state.hDC, pixelformat, pPFD ) == FALSE ) {
+			ri.Printf( PRINT_ALL, "...SetPixelFormat failed\n" );
+			return TRY_PFD_FAIL_SOFT;
 		}
 
 		glw_state.pixelFormatSet = qtrue;
@@ -386,6 +364,15 @@ static int GLW_MakeContext( PIXELFORMATDESCRIPTOR *pPFD ) {
 
 		ri.Printf( PRINT_ALL, "...making context current: " );
 		if ( !qwglMakeCurrent( glw_state.hDC, glw_state.hGLRC ) ) {
+			qwglDeleteContext( glw_state.hGLRC );
+			glw_state.hGLRC = NULL;
+			ri.Printf( PRINT_ALL, "failed\n" );
+			return TRY_PFD_FAIL_HARD;
+		}
+		ri.Printf( PRINT_ALL, "succeeded\n" );
+
+		ri.Printf( PRINT_ALL, "...loading OpenGL entry points: " );
+		if ( !gladLoaderLoadGLContext( &glimpGL ) ) {
 			qwglDeleteContext( glw_state.hGLRC );
 			glw_state.hGLRC = NULL;
 			ri.Printf( PRINT_ALL, "failed\n" );
@@ -876,15 +863,13 @@ static void GLW_InitExtensions( void ) {
 //----(SA)	moved these up
 	glConfig.textureCompression = TC_NONE;
 	glConfig.textureEnvAddAvailable = qfalse;
-	qglMultiTexCoord2fARB = NULL;
-	qglActiveTextureARB = NULL;
-	qglClientActiveTextureARB = NULL;
-	qglLockArraysEXT = NULL;
-	qglUnlockArraysEXT = NULL;
-	qwglGetDeviceGammaRamp3DFX = NULL;
-	qwglSetDeviceGammaRamp3DFX = NULL;
-	qglPNTrianglesiATI = NULL;
-	qglPNTrianglesfATI = NULL;
+	glimpGL.MultiTexCoord2f = NULL;
+	glimpGL.ActiveTexture = NULL;
+	glimpGL.ClientActiveTexture = NULL;
+	glimpGL.LockArraysEXT = NULL;
+	glimpGL.UnlockArraysEXT = NULL;
+	glimpGL.PNTrianglesiATI = NULL;
+	glimpGL.PNTrianglesfATI = NULL;
 	glConfig.anisotropicAvailable = qfalse;
 	glConfig.NVFogAvailable = qfalse;
 	glConfig.NVFogMode = 0;
@@ -957,10 +942,6 @@ static void GLW_InitExtensions( void ) {
 	// GL_ARB_multitexture
 	if ( strstr( glConfig.extensions_string, "GL_ARB_multitexture" )  ) {
 		if ( r_ext_multitexture->integer ) {
-			qglMultiTexCoord2fARB = ( PFNGLMULTITEXCOORD2FARBPROC ) qwglGetProcAddress( "glMultiTexCoord2fARB" );
-			qglActiveTextureARB = ( PFNGLACTIVETEXTUREARBPROC ) qwglGetProcAddress( "glActiveTextureARB" );
-			qglClientActiveTextureARB = ( PFNGLCLIENTACTIVETEXTUREARBPROC ) qwglGetProcAddress( "glClientActiveTextureARB" );
-
 			if ( qglActiveTextureARB ) {
 				qglGetIntegerv( GL_MAX_ACTIVE_TEXTURES_ARB, &glConfig.maxActiveTextures );
 
@@ -968,9 +949,9 @@ static void GLW_InitExtensions( void ) {
 					ri.Printf( PRINT_ALL, "...using GL_ARB_multitexture\n" );
 				} else
 				{
-					qglMultiTexCoord2fARB = NULL;
-					qglActiveTextureARB = NULL;
-					qglClientActiveTextureARB = NULL;
+					glimpGL.MultiTexCoord2f = NULL;
+					glimpGL.ActiveTexture = NULL;
+					glimpGL.ClientActiveTexture = NULL;
 					ri.Printf( PRINT_ALL, "...not using GL_ARB_multitexture, < 2 texture units\n" );
 				}
 			}
@@ -987,10 +968,8 @@ static void GLW_InitExtensions( void ) {
 	if ( strstr( glConfig.extensions_string, "GL_EXT_compiled_vertex_array" ) && ( glConfig.hardwareType != GLHW_RIVA128 ) ) {
 		if ( r_ext_compiled_vertex_array->integer ) {
 			ri.Printf( PRINT_ALL, "...using GL_EXT_compiled_vertex_array\n" );
-			qglLockArraysEXT = ( void ( APIENTRY * )( int, int ) )qwglGetProcAddress( "glLockArraysEXT" );
-			qglUnlockArraysEXT = ( void ( APIENTRY * )( void ) )qwglGetProcAddress( "glUnlockArraysEXT" );
 			if ( !qglLockArraysEXT || !qglUnlockArraysEXT ) {
-				ri.Error( ERR_FATAL, "bad getprocaddress" );
+				ri.Error( ERR_FATAL, "GL_EXT_compiled_vertex_array entry points missing\n" );
 			}
 		} else
 		{
@@ -1001,31 +980,6 @@ static void GLW_InitExtensions( void ) {
 		ri.Printf( PRINT_ALL, "...GL_EXT_compiled_vertex_array not found\n" );
 	}
 
-	// WGL_3DFX_gamma_control
-
-	if ( strstr( glConfig.extensions_string, "WGL_3DFX_gamma_control" ) ) {
-		if ( !r_ignorehwgamma->integer && r_ext_gamma_control->integer ) {
-			qwglGetDeviceGammaRamp3DFX = ( BOOL ( WINAPI * )( HDC, LPVOID ) )qwglGetProcAddress( "wglGetDeviceGammaRamp3DFX" );
-			qwglSetDeviceGammaRamp3DFX = ( BOOL ( WINAPI * )( HDC, LPVOID ) )qwglGetProcAddress( "wglSetDeviceGammaRamp3DFX" );
-
-			if ( qwglGetDeviceGammaRamp3DFX && qwglSetDeviceGammaRamp3DFX ) {
-				ri.Printf( PRINT_ALL, "...using WGL_3DFX_gamma_control\n" );
-			} else
-			{
-				qwglGetDeviceGammaRamp3DFX = NULL;
-				qwglSetDeviceGammaRamp3DFX = NULL;
-			}
-		} else
-		{
-			ri.Printf( PRINT_ALL, "...ignoring WGL_3DFX_gamma_control\n" );
-		}
-	} else
-	{
-		ri.Printf( PRINT_ALL, "...WGL_3DFX_gamma_control not found\n" );
-	}
-
-
-
 //----(SA)	added
 
 
@@ -1034,11 +988,8 @@ static void GLW_InitExtensions( void ) {
 		if ( r_ext_ATI_pntriangles->integer ) {
 			ri.Printf( PRINT_ALL, "...using GL_ATI_pn_triangles\n" );
 
-			qglPNTrianglesiATI = ( PFNGLPNTRIANGLESIATIPROC ) qwglGetProcAddress( "glPNTrianglesiATI" );
-			qglPNTrianglesfATI = ( PFNGLPNTRIANGLESFATIPROC ) qwglGetProcAddress( "glPNTrianglesfATI" );
-
 			if ( !qglPNTrianglesiATI || !qglPNTrianglesfATI ) {
-				ri.Error( ERR_FATAL, "bad getprocaddress 0" );
+				ri.Error( ERR_FATAL, "GL_ATI_pn_triangles entry points missing\n" );
 			}
 		} else {
 			ri.Printf( PRINT_ALL, "...ignoring GL_ATI_pn_triangles\n" );
@@ -1132,81 +1083,32 @@ static qboolean GLW_CheckOSVersion( void ) {
 #pragma warning( pop )
 }
 
-/*
+/**
 ** GLW_LoadOpenGL
 **
-** GLimp_win.c internal function that attempts to load and use
-** a specific OpenGL DLL.
+** Creates the window and GL context through the system ICD driver.
 */
-static qboolean GLW_LoadOpenGL( const char *drivername ) {
-	char buffer[1024];
+static qboolean GLW_LoadOpenGL( void ) {
 	qboolean cdsFullscreen;
 
-	Q_strncpyz( buffer, drivername, sizeof( buffer ) );
-	Q_strlwr( buffer );
+	glConfig.driverType = GLDRV_ICD;
 
-	//
-	// determine if we're on a standalone driver
-	//
-	if ( strstr( buffer, "opengl32" ) != 0 || r_maskMinidriver->integer ) {
-		glConfig.driverType = GLDRV_ICD;
-	} else
-	{
-		glConfig.driverType = GLDRV_STANDALONE;
-
-		ri.Printf( PRINT_ALL, "...assuming '%s' is a standalone driver\n", drivername );
-
-		if ( strstr( buffer, _3DFX_DRIVER_NAME ) ) {
-			glConfig.driverType = GLDRV_VOODOO;
-		}
-	}
-
-	// disable the 3Dfx splash screen
-	_putenv( "FX_GLIDE_NO_SPLASH=0" );
-
-	//
-	// load the driver and bind our function pointers to it
-	//
-	if ( QGL_Init( buffer ) ) {
-#if 0
-// FIXME: newer 3Dfx drivers means this can go away
-		if ( !Q_stricmp( buffer, _3DFX_DRIVER_NAME ) ) {
-			cdsFullscreen = qfalse;
-		} else
-#endif
-		{
-			cdsFullscreen = r_fullscreen->integer;
-		}
-
-		// create the window and set up the context
-		if ( !GLW_StartDriverAndSetMode( drivername, r_mode->integer, r_colorbits->integer, cdsFullscreen ) ) {
-			// if we're on a 24/32-bit desktop and we're going fullscreen on an ICD,
-			// try it again but with a 16-bit desktop
-			if ( glConfig.driverType == GLDRV_ICD ) {
-				if ( r_colorbits->integer != 16 ||
-					 cdsFullscreen != qtrue ||
-					 r_mode->integer != 3 ) {
-					if ( !GLW_StartDriverAndSetMode( drivername, 3, 16, qtrue ) ) {
-						goto fail;
-					}
-				}
-			} else
-			{
-				goto fail;
+	cdsFullscreen = r_fullscreen->integer;
+	if ( !GLW_StartDriverAndSetMode( OPENGL_DRIVER_NAME, r_mode->integer, r_colorbits->integer, cdsFullscreen ) ) {
+		// if we're on a 24/32-bit desktop and going fullscreen, try again with a 16-bit desktop
+		if ( r_colorbits->integer != 16 ||
+			 cdsFullscreen != qtrue ||
+			 r_mode->integer != 3 ) {
+			if ( !GLW_StartDriverAndSetMode( OPENGL_DRIVER_NAME, 3, 16, qtrue ) ) {
+				return qfalse;
 			}
+		} else
+		{
+			return qfalse;
 		}
-
-		if ( glConfig.driverType == GLDRV_VOODOO ) {
-			glConfig.isFullscreen = qtrue;
-		}
-
-		return qtrue;
 	}
-fail:
 
-	QGL_Shutdown();
-
-	return qfalse;
+	return qtrue;
 }
 
 /*
@@ -1227,87 +1129,16 @@ void GLimp_EndFrame( void ) {
 	}
 
 
-	// don't flip if drawing to front buffer
 	if ( Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) != 0 ) {
-		if ( glConfig.driverType > GLDRV_ICD ) {
-			if ( !qwglSwapBuffers( glw_state.hDC ) ) {
-				ri.Error( ERR_FATAL, "GLimp_EndFrame() - SwapBuffers() failed!\n" );
-			}
-		} else
-		{
-			SwapBuffers( glw_state.hDC );
-		}
+		SwapBuffers( glw_state.hDC );
 	}
-
-	// check logging
-	QGL_EnableLogging( r_logFile->integer );
 }
 
 
-extern qboolean GlideIsValid( void );
 static void GLW_StartOpenGL( void ) {
-	qboolean attemptedOpenGL32 = qfalse;
-	qboolean attempted3Dfx = qfalse;
-
-	// this bit will pre-detect voodoo gl and if appropriate
-	// set the r_glDriver to point at one of the wicked 3D drivers
-	if ( !r_glIgnoreWicked3D->integer && GlideIsValid() ) {
-		const char *vid = WICKED3D_V5_DRIVER_NAME;
-		HMODULE handle;
-		handle = LoadLibrary( vid );
-		if ( handle == 0 ) {
-			vid = WICKED3D_V3_DRIVER_NAME;
-			handle = LoadLibrary( vid );
-		}
-
-		if ( handle ) {
-			Cvar_Set( "r_glDriver", vid );
-			FreeLibrary( handle );
-		}
-	}
-
-	if ( r_glIgnoreWicked3D->integer ) {
-		Cvar_Set( "r_glDriver", OPENGL_DRIVER_NAME );
-	}
-
-	//
-	// load and initialize the specific OpenGL driver
-	//
-	if ( !GLW_LoadOpenGL( r_glDriver->string ) ) {
-		if ( !Q_stricmp( r_glDriver->string, OPENGL_DRIVER_NAME ) ) {
-			attemptedOpenGL32 = qtrue;
-		} else if ( !Q_stricmp( r_glDriver->string, _3DFX_DRIVER_NAME ) )   {
-			attempted3Dfx = qtrue;
-		}
-
-		if ( !attempted3Dfx ) {
-			attempted3Dfx = qtrue;
-			if ( GLW_LoadOpenGL( _3DFX_DRIVER_NAME ) ) {
-				ri.Cvar_Set( "r_glDriver", _3DFX_DRIVER_NAME );
-				r_glDriver->modified = qfalse;
-			} else
-			{
-				if ( !attemptedOpenGL32 ) {
-					if ( !GLW_LoadOpenGL( OPENGL_DRIVER_NAME ) ) {
-						ri.Error( ERR_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem\n" );
-					}
-					ri.Cvar_Set( "r_glDriver", OPENGL_DRIVER_NAME );
-					r_glDriver->modified = qfalse;
-				} else
-				{
-					ri.Error( ERR_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem\n" );
-				}
-			}
-		} else if ( !attemptedOpenGL32 )   {
-			attemptedOpenGL32 = qtrue;
-			if ( GLW_LoadOpenGL( OPENGL_DRIVER_NAME ) ) {
-				ri.Cvar_Set( "r_glDriver", OPENGL_DRIVER_NAME );
-				r_glDriver->modified = qfalse;
-			} else
-			{
-				ri.Error( ERR_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem\n" );
-			}
-		}
+	// load and initialize the system OpenGL driver
+	if ( !GLW_LoadOpenGL() ) {
+		ri.Error( ERR_FATAL, "GLW_StartOpenGL() - could not load OpenGL subsystem\n" );
 	}
 }
 
@@ -1432,22 +1263,15 @@ void GLimp_Shutdown( void ) {
 	const char *success[] = { "failed", "success" };
 	int retVal;
 
-	// FIXME: Brian, we need better fallbacks from partially initialized failures
-	if ( !qwglMakeCurrent ) {
-		return;
-	}
-
 	ri.Printf( PRINT_ALL, "Shutting down OpenGL subsystem\n" );
 
 	// restore gamma.  We do this first because 3Dfx's extension needs a valid OGL subsystem
 	WG_RestoreGamma();
 
 	// set current context to NULL
-	if ( qwglMakeCurrent ) {
-		retVal = qwglMakeCurrent( NULL, NULL ) != 0;
+	retVal = qwglMakeCurrent( NULL, NULL ) != 0;
 
-		ri.Printf( PRINT_ALL, "...wglMakeCurrent( NULL, NULL ): %s\n", success[retVal] );
-	}
+	ri.Printf( PRINT_ALL, "...wglMakeCurrent( NULL, NULL ): %s\n", success[retVal] );
 
 	// delete HGLRC
 	if ( glw_state.hGLRC ) {
@@ -1484,9 +1308,6 @@ void GLimp_Shutdown( void ) {
 		ChangeDisplaySettings( 0, 0 );
 		glw_state.cdsFullscreen = qfalse;
 	}
-
-	// shutdown QGL subsystem
-	QGL_Shutdown();
 
 	memset( &glConfig, 0, sizeof( glConfig ) );
 	memset( &glState, 0, sizeof( glState ) );

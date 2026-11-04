@@ -57,7 +57,7 @@ add_executable(wolf WIN32 ${ENGINE_SOURCES})
 set_target_properties(wolf PROPERTIES FOLDER "exes")
 set_target_properties(wolf PROPERTIES OUTPUT_NAME WolfSP)
 target_compile_definitions(wolf PRIVATE __USEA3D __A3D_GEOM CINTERFACE)
-target_link_libraries(wolf PRIVATE renderer botlib Splines winmm wsock32)
+target_link_libraries(wolf PRIVATE renderer botlib Splines winmm wsock32 opengl32)
 
 target_include_directories(wolf PRIVATE
 	${CMAKE_SOURCE_DIR}/engine/qcommon

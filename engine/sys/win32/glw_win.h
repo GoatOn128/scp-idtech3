@@ -33,6 +33,15 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __GLW_WIN_H__
 #define __GLW_WIN_H__
 
+#if defined( _MSC_VER ) && ( _MSC_VER >= 1200 )
+#pragma warning( push )
+#pragma warning( disable : 4201 4214 4514 4032 )
+#endif
+#include <windows.h>
+#if defined( _MSC_VER ) && ( _MSC_VER >= 1200 )
+#pragma warning( pop )
+#endif
+
 typedef struct
 {
 	WNDPROC wndproc;
@@ -54,5 +63,22 @@ typedef struct
 } glwstate_t;
 
 extern glwstate_t glw_state;
+
+//
+// wgl entry points link straight against opengl32.dll, so the historical
+// qwglXxx pointer names become macros over the real functions
+//
+extern BOOL WINAPI wglMakeCurrent( HDC, HGLRC );
+extern HGLRC WINAPI wglCreateContext( HDC );
+extern BOOL WINAPI wglDeleteContext( HGLRC );
+extern PROC WINAPI wglGetProcAddress( LPCSTR );
+
+#define qwglCreateContext wglCreateContext
+#define qwglDeleteContext wglDeleteContext
+#define qwglMakeCurrent wglMakeCurrent
+#define qwglGetProcAddress wglGetProcAddress
+
+// WGL_EXT_swap_control is an extension, still resolved at runtime
+extern BOOL ( WINAPI * qwglSwapIntervalEXT )( int );
 
 #endif

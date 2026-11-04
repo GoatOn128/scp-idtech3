@@ -27,11 +27,13 @@ set(RENDERER_SOURCES
     tr_surface.cpp
     tr_world.cpp
     ../sys/win32/win_gamma.cpp
-    ../sys/win32/win_glimp.cpp
-    ../sys/win32/win_qgl.cpp)
+    ../sys/win32/win_glimp.cpp)
 
 add_library(renderer STATIC ${RENDERER_SOURCES})
 set_target_properties(renderer PROPERTIES FOLDER "libs")
 target_compile_definitions(renderer PRIVATE _LIB __USEA3D __A3D_GEOM)
-target_include_directories(renderer PRIVATE "${CMAKE_SOURCE_DIR}/external/stb")
+target_include_directories(renderer PRIVATE
+    "${CMAKE_SOURCE_DIR}/external/stb"
+    "${CMAKE_SOURCE_DIR}/external/glad/include")
+target_link_libraries(renderer PUBLIC glad)
 configure_target(renderer)

@@ -47,21 +47,6 @@ void WG_CheckHardwareGamma( void ) {
 
 	glConfig.deviceSupportsGamma = qfalse;
 
-	if ( qwglSetDeviceGammaRamp3DFX ) {
-		glConfig.deviceSupportsGamma = qtrue;
-
-		hDC = GetDC( GetDesktopWindow() );
-		glConfig.deviceSupportsGamma = qwglGetDeviceGammaRamp3DFX( hDC, s_oldHardwareGamma );
-		ReleaseDC( GetDesktopWindow(), hDC );
-
-		return;
-	}
-
-	// non-3Dfx standalone drivers don't support gamma changes, period
-	if ( glConfig.driverType == GLDRV_STANDALONE ) {
-		return;
-	}
-
 	if ( !r_ignorehwgamma->integer ) {
 		hDC = GetDC( GetDesktopWindow() );
 		glConfig.deviceSupportsGamma = GetDeviceGammaRamp( hDC, s_oldHardwareGamma );
@@ -180,14 +165,9 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 	}
 
 
-	if ( qwglSetDeviceGammaRamp3DFX ) {
-		qwglSetDeviceGammaRamp3DFX( glw_state.hDC, table );
-	} else
-	{
-		ret = SetDeviceGammaRamp( glw_state.hDC, table );
-		if ( !ret ) {
-			Com_Printf( "SetDeviceGammaRamp failed.\n" );
-		}
+	ret = SetDeviceGammaRamp( glw_state.hDC, table );
+	if ( !ret ) {
+		Com_Printf( "SetDeviceGammaRamp failed.\n" );
 	}
 }
 
@@ -196,16 +176,11 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 */
 void WG_RestoreGamma( void ) {
 	if ( glConfig.deviceSupportsGamma ) {
-		if ( qwglSetDeviceGammaRamp3DFX ) {
-			qwglSetDeviceGammaRamp3DFX( glw_state.hDC, s_oldHardwareGamma );
-		} else
-		{
-			HDC hDC;
+		HDC hDC;
 
-			hDC = GetDC( GetDesktopWindow() );
-			SetDeviceGammaRamp( hDC, s_oldHardwareGamma );
-			ReleaseDC( GetDesktopWindow(), hDC );
-		}
+		hDC = GetDC( GetDesktopWindow() );
+		SetDeviceGammaRamp( hDC, s_oldHardwareGamma );
+		ReleaseDC( GetDesktopWindow(), hDC );
 	}
 }
 
