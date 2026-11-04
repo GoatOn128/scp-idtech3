@@ -67,7 +67,7 @@ qboolean Sys_LowPhysicalMemory() {
 }
 
 unsigned int Sys_ProcessorCount() {
-	return (unsigned int)SDL_GetCPUCount();
+	return (unsigned int)SDL_GetNumLogicalCPUCores();
 }
 
 void Sys_BeginProfiling( void ) {
@@ -235,7 +235,7 @@ Used to load a development dll instead of a virtual machine
 ================
 */
 void *QDECL Sys_LoadDll( const char *name, const char *entryPointName, void **entryPoint ) {
-	void *libHandle;
+	SDL_SharedObject *libHandle;
 	const char *basepath;
 	const char *cdpath;
 	const char *gamedir;
@@ -267,7 +267,7 @@ void *QDECL Sys_LoadDll( const char *name, const char *entryPointName, void **en
 		}
 	}
 
-	*entryPoint = SDL_LoadFunction( libHandle, entryPointName );
+	*entryPoint = (void *)SDL_LoadFunction( libHandle, entryPointName );
 	if ( *entryPoint == NULL ) {
 		SDL_UnloadObject( libHandle );
 		return NULL;
@@ -285,7 +285,7 @@ void Sys_UnloadDll( void *dllHandle ) {
 	if ( dllHandle == NULL ) {
 		return;
 	}
-	SDL_UnloadObject( dllHandle );
+	SDL_UnloadObject( (SDL_SharedObject *)dllHandle );
 }
 
 /*
@@ -493,6 +493,165 @@ static qboolean strgtr( const char *s0, const char *s1 ) {
 	return qfalse;
 }
 
+#ifdef _WIN32
+
+/*
+================
+Sys_ListFilteredFiles
+================
+*/
+static void Sys_ListFilteredFiles( const char *basedir, const char *subdirs, char *filter, char **list, int *numfiles ) {
+	char search[MAX_OSPATH];
+	char newsubdirs[MAX_OSPATH];
+	char filename[MAX_OSPATH];
+	WIN32_FIND_DATAA findinfo;
+	HANDLE findhandle;
+
+	if ( *numfiles >= MAX_FOUND_FILES - 1 ) {
+		return;
+	}
+
+	if ( strlen( subdirs ) > 0 ) {
+		Com_sprintf( search, sizeof( search ), "%s/%s", basedir, subdirs );
+	} else {
+		Com_sprintf( search, sizeof( search ), "%s", basedir );
+	}
+
+	Com_sprintf( filename, sizeof( filename ), "%s/*", search );
+	findhandle = FindFirstFileA( filename, &findinfo );
+	if ( findhandle == INVALID_HANDLE_VALUE ) {
+		return;
+	}
+
+	do {
+		if ( Q_stricmp( findinfo.cFileName, "." ) == 0 || Q_stricmp( findinfo.cFileName, ".." ) == 0 ) {
+			continue;
+		}
+
+		if ( ( findinfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0 ) {
+			// recurse into the subdirectory
+			if ( strlen( subdirs ) > 0 ) {
+				Com_sprintf( newsubdirs, sizeof( newsubdirs ), "%s/%s", subdirs, findinfo.cFileName );
+			} else {
+				Com_sprintf( newsubdirs, sizeof( newsubdirs ), "%s", findinfo.cFileName );
+			}
+			Sys_ListFilteredFiles( basedir, newsubdirs, filter, list, numfiles );
+		} else {
+			// build the relative filename and test it against the filter
+			if ( strlen( subdirs ) > 0 ) {
+				Com_sprintf( filename, sizeof( filename ), "%s/%s", subdirs, findinfo.cFileName );
+			} else {
+				Com_sprintf( filename, sizeof( filename ), "%s", findinfo.cFileName );
+			}
+			if ( Com_FilterPath( filter, filename, qfalse ) ) {
+				list[*numfiles] = CopyString( filename );
+				(*numfiles)++;
+			}
+		}
+
+		if ( *numfiles >= MAX_FOUND_FILES - 1 ) {
+			break;
+		}
+	} while ( FindNextFileA( findhandle, &findinfo ) != 0 );
+
+	FindClose( findhandle );
+}
+
+/*
+================
+Sys_ListFiles
+================
+*/
+char **Sys_ListFiles( const char *directory, const char *extension, char *filter, int *numfiles, qboolean wantsubs ) {
+	char *list[MAX_FOUND_FILES];
+	char **listCopy;
+	WIN32_FIND_DATAA findinfo;
+	HANDLE findhandle;
+	char pattern[MAX_OSPATH];
+	int nfiles = 0;
+	int i, j;
+	int dlen;
+	int elen;
+
+	if ( filter != NULL ) {
+		memset( list, 0, sizeof( list ) );
+		Sys_ListFilteredFiles( directory, "", filter, list, &nfiles );
+
+		*numfiles = nfiles;
+		if ( nfiles == 0 ) {
+			return NULL;
+		}
+
+		list[nfiles] = NULL;
+		listCopy = (char **)Z_Malloc( ( nfiles + 1 ) * sizeof( char * ) );
+		memcpy( listCopy, list, ( nfiles + 1 ) * sizeof( char * ) );
+		return listCopy;
+	}
+
+	if ( extension == NULL ) {
+		// pass a slash extension to list directories only
+		extension = "";
+	}
+
+	Com_sprintf( pattern, sizeof( pattern ), "%s/*", directory );
+	findhandle = FindFirstFileA( pattern, &findinfo );
+	if ( findhandle == INVALID_HANDLE_VALUE ) {
+		*numfiles = 0;
+		return NULL;
+	}
+
+	do {
+		if ( Q_stricmp( findinfo.cFileName, "." ) == 0 || Q_stricmp( findinfo.cFileName, ".." ) == 0 ) {
+			continue;
+		}
+
+		// keep only what the caller asked for: dirs or plain files
+		if ( ( ( findinfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) != 0 ) != wantsubs ) {
+			continue;
+		}
+
+		// match the extension on plain files
+		if ( !wantsubs ) {
+			dlen = (int)strlen( findinfo.cFileName );
+			elen = (int)strlen( extension );
+			if ( elen > 0 && ( dlen < elen || Q_stricmp( findinfo.cFileName + dlen - elen, extension ) != 0 ) ) {
+				continue;
+			}
+		}
+
+		if ( nfiles >= MAX_FOUND_FILES - 1 ) {
+			break;
+		}
+		list[nfiles] = CopyString( findinfo.cFileName );
+		nfiles++;
+	} while ( FindNextFileA( findhandle, &findinfo ) != 0 );
+
+	FindClose( findhandle );
+
+	// sort the list (bubble sort, same as the old code)
+	for ( i = 0; i < nfiles - 1; i++ ) {
+		for ( j = 0; j < nfiles - 1 - i; j++ ) {
+			if ( strgtr( list[j], list[j + 1] ) ) {
+				char *temp = list[j];
+				list[j] = list[j + 1];
+				list[j + 1] = temp;
+			}
+		}
+	}
+
+	*numfiles = nfiles;
+	if ( nfiles == 0 ) {
+		return NULL;
+	}
+
+	list[nfiles] = NULL;
+	listCopy = (char **)Z_Malloc( ( nfiles + 1 ) * sizeof( char * ) );
+	memcpy( listCopy, list, ( nfiles + 1 ) * sizeof( char * ) );
+	return listCopy;
+}
+
+#else
+
 static void Sys_ListFilteredFiles( const char *basedir, const char *subdirs, char *filter, char **list, int *numfiles ) {
 	char search[MAX_OSPATH];
 	char newsubdirs[MAX_OSPATH];
@@ -640,6 +799,8 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 	return listCopy;
 }
 
+#endif
+
 void Sys_FreeFileList( char **list ) {
 	int i;
 
@@ -753,7 +914,7 @@ static int Sys_KeyFromScancode( SDL_Scancode sc ) {
 	case SDL_SCANCODE_LEFTBRACKET: return '[';
 	case SDL_SCANCODE_BACKSLASH: return '\\';
 	case SDL_SCANCODE_RIGHTBRACKET: return ']';
-	case SDL_SCANCODE_GRAVE: return '\`';
+	case SDL_SCANCODE_GRAVE: return '`';
 	case SDL_SCANCODE_CAPSLOCK: return K_CAPSLOCK;
 	case SDL_SCANCODE_PAUSE: return K_PAUSE;
 	case SDL_SCANCODE_INSERT: return K_INS;

@@ -8,6 +8,7 @@
 
 #include "../../sound/snd_local.h"
 
+#include <SDL3/SDL.h>
 #include <stdlib.h>
 
 static SDL_AudioStream *s_stream = NULL;

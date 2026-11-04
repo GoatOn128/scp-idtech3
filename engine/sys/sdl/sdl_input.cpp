@@ -31,7 +31,7 @@ static int joyDirectionKeys[16] = {
 
 static void IN_StartupJoystick( void ) {
 	int count = 0;
-	SDL_GamepadID *gamepads;
+	SDL_JoystickID *gamepads;
 
 	if ( !in_joystick->integer ) {
 		return;

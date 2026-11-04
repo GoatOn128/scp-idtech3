@@ -24,8 +24,9 @@ STATUS = os.environ.get("STATUS", "unknown")
 ERROR_RE = re.compile(
     "error:|fatal error:|error C[0-9]+|Error C[0-9]+|error LNK[0-9]+|"
     "error MSB[0-9]+|CMake Error|undefined reference|undefined symbol|"
+    "Undefined symbols|duplicate symbol|symbol\\(s\\) not found|"
     "unresolved external|no such file|cannot open|LLVM ERROR|Stack dump:|"
-    ">>> referenced|UNCRUSTIFY_FAILED|Build FAILED"
+    ">>> referenced|referenced from|UNCRUSTIFY_FAILED|Build FAILED"
 )
 WARNING_RE = re.compile("warning:|warning C[0-9]+")
 FLAG_RE = re.compile(r"\[-W([-\w]+)\]")
@@ -94,11 +95,13 @@ def main():
             target_re = re.compile(r"(CMake Error at [^:]+|FAILED: .+|.+ : error (?:C|LNK|MSB)[0-9]+)")
             ctx = OrderedDict()
             for i, l in enumerate(lines):
-                m = target_re.search(l)
-                if m:
-                    target = m.group(1).strip()[:120]
+                # anchor on every distinct error line, not just the known
+                # target patterns: cmake message bodies and linker symbol
+                # lists are printed right around the matching line
+                if target_re.search(l) or ERROR_RE.search(l):
+                    target = l.strip()[:120]
                     if target and target not in ctx:
-                        ctx[target] = lines[max(0, i - 5):i + 1]
+                        ctx[target] = lines[max(0, i - 8):i + 6]
             shown = 0
             for target, chunk in ctx.items():
                 if shown >= 10:
