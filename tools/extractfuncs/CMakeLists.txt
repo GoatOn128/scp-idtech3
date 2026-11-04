@@ -1,9 +1,9 @@
 set(EXTRACTFUNCS_SOURCES
-    extractfuncs/extractfuncs.cpp
-    extractfuncs/l_log.cpp
-    extractfuncs/l_memory.cpp
-    extractfuncs/l_precomp.cpp
-    extractfuncs/l_script.cpp)
+    extractfuncs.cpp
+    l_log.cpp
+    l_memory.cpp
+    l_precomp.cpp
+    l_script.cpp)
 
 add_executable(extractfuncs ${EXTRACTFUNCS_SOURCES})
 set_target_properties(extractfuncs PROPERTIES FOLDER "exes")

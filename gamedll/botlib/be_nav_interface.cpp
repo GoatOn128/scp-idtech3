@@ -29,7 +29,7 @@ along with IceWolf.  If not, see <http://www.gnu.org/licenses/>.
 #include "be_nav_interface.h"
 
 #include "be_interface.h"
-#include "../nav/wolf_nav.h"
+#include "../../engine/qcommon/wolf_nav.h"
 
 #include <DetourNavMesh.h>
 #include <DetourNavMeshQuery.h>

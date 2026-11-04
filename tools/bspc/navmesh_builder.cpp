@@ -24,7 +24,7 @@ along with IceWolf.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "navmesh_builder.h"
 
-#include "../nav/wolf_nav.h"
+#include "../../engine/qcommon/wolf_nav.h"
 #include "../game/q_shared.h"
 #include "q3files.h"
 
