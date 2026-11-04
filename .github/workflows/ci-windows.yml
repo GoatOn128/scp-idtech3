@@ -83,20 +83,22 @@ jobs:
       - name: build SDL3
         # ubuntu-24.04 has no libsdl3-dev package, so build the same
         # version as the vendored windows binaries from the official
-        # tarball and install it system-wide
+        # tarball and install it system-wide; everything it prints goes
+        # into build.log so failures show up in the digest
         run: |
-          wget -q https://github.com/libsdl-org/SDL/releases/download/release-3.4.20/SDL3-3.4.20.tar.gz
-          tar xf SDL3-3.4.20.tar.gz
-          cmake -S SDL3-3.4.20 -B sdl-build -DCMAKE_BUILD_TYPE=Release > /dev/null
-          cmake --build sdl-build --parallel > /dev/null
-          sudo cmake --install sdl-build > /dev/null
+          set -o pipefail
+          curl -fsSL -o SDL3.tar.gz https://github.com/libsdl-org/SDL/releases/download/release-3.4.20/SDL3-3.4.20.tar.gz
+          tar xf SDL3.tar.gz
+          cmake -S SDL3-3.4.20 -B sdl-build -DCMAKE_BUILD_TYPE=Release 2>&1 | tee build.log
+          cmake --build sdl-build --parallel 2>&1 | tee -a build.log
+          sudo cmake --install sdl-build 2>&1 | tee -a build.log
 
       - name: build
         id: build
         shell: bash
         run: |
           set -o pipefail
-          cmake -S . -B out -DCMAKE_BUILD_TYPE=${{ matrix.configuration }} 2>&1 | tee build.log
+          cmake -S . -B out -DCMAKE_BUILD_TYPE=${{ matrix.configuration }} 2>&1 | tee -a build.log
           cmake --build out --parallel 2>&1 | tee -a build.log
 
       - name: digest

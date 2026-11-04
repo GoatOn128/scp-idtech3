@@ -12,8 +12,8 @@ set(GAME_SOURCES
     ai/ai_perception.cpp
     ai/ai_weapons.cpp
     ai/fsm/ai_combat.cpp
-    ai/fsm/ai_navigation.cpp
-    ai/fsm/ai_danger.cpp
+    ai/ai_navigation.cpp
+    ai/ai_danger.cpp
     ai/fsm/ai_monster_zombie.cpp
     ai/fsm/ai_monster_loper.cpp
     ai/fsm/ai_monster_stimsoldier.cpp
