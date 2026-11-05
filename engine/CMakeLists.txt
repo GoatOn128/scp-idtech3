@@ -72,9 +72,8 @@ if ( WIN32 )
         COMMENT "Copying SDL3.dll next to WolfSP")
 else()
     target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 ${CMAKE_DL_LIBS})
-    if ( CMAKE_SYSTEM_NAME STREQUAL "Linux" )
-        target_link_options(wolf PRIVATE -Wl,--stack=8388608)
-    endif()
+    # GNU ld has no --stack option; Linux uses the system default main-thread
+    # stack size (ulimit -s, typically 8 MiB, matching the Windows setting)
 endif()
 
 target_include_directories(wolf PRIVATE
