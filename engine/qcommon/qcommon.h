@@ -645,9 +645,16 @@ void        Info_Print( const char *s );
 
 void Com_BeginRedirect( char *buffer, int buffersize, void ( *flush )( char * ) );
 void        Com_EndRedirect( void );
-void QDECL Com_Printf( const char *fmt, ... );
+// when HARD_LINKED_MODULES is on, the modules bind Com_Error and Com_Printf
+// from the host exe: export them on Windows (ENGINE_EXPORTS on the wolf target)
+#if defined( _WIN32 ) && defined( ENGINE_EXPORTS )
+#define ENGINE_EXPORT __declspec( dllexport )
+#else
+#define ENGINE_EXPORT
+#endif
+ENGINE_EXPORT void QDECL Com_Printf( const char *fmt, ... );
 void QDECL Com_DPrintf( const char *fmt, ... );
-void QDECL Com_Error( int code, const char *fmt, ... );
+ENGINE_EXPORT void QDECL Com_Error( int code, const char *fmt, ... );
 void        Com_Quit_f( void );
 int         Com_EventLoop( void );
 int         Com_Milliseconds( void );   // will be journaled properly

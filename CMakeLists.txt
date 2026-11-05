@@ -58,12 +58,60 @@ function(configure_target target)
 			target_compile_options(${target} PRIVATE -Wno-write-strings)
 		endif()
 	endif()
+
+	# platform wide macros, see PLATFORM_DEFINES at the top of this file
+	target_compile_definitions(${target} PRIVATE ${PLATFORM_DEFINES})
 	set_output_directory(${target} ${ARGN})
 endfunction()
 
 if ( MSVC )
 	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
+
+# Platform defines that used to live in the ifdef blocks of q_shared.h and
+# q_splineshared.h; every target gets them through configure_target
+set(PLATFORM_DEFINES "MAC_STATIC=")
+if ( WIN32 )
+	list(APPEND PLATFORM_DEFINES "QDECL=__cdecl")
+	if ( MSVC )
+		# cl does not process escape sequences in /D definitions
+		list(APPEND PLATFORM_DEFINES "PATH_SEP='\\\\')
+	else()
+		# gcc and clang unescape the definition text once
+		list(APPEND PLATFORM_DEFINES "PATH_SEP='\\\\\\\\')
+	endif()
+	if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+		set(Q_CPUSTRING "win-x64")
+	else()
+		set(Q_CPUSTRING "win-x86")
+	endif()
+	# keep the -debug suffix of the original defines in debug builds
+	list(APPEND PLATFORM_DEFINES "CPUSTRING=\"${Q_CPUSTRING}$<$<CONFIG:Debug>:-debug>\"")
+elseif ( APPLE )
+	list(APPEND PLATFORM_DEFINES "QDECL=" "PATH_SEP='/'")
+	list(APPEND PLATFORM_DEFINES "CPUSTRING=\"macos-${CMAKE_SYSTEM_PROCESSOR}\"")
+else()
+	list(APPEND PLATFORM_DEFINES "QDECL=" "PATH_SEP='/'")
+	if ( CMAKE_SYSTEM_PROCESSOR MATCHES "^i\\.86$" )
+		set(Q_CPUSTRING "linux-i386")
+	elseif ( CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$" )
+		set(Q_CPUSTRING "linux-x86_64")
+	elseif ( CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$" )
+		set(Q_CPUSTRING "linux-arm64")
+	else()
+		set(Q_CPUSTRING "linux-${CMAKE_SYSTEM_PROCESSOR}")
+	endif()
+	list(APPEND PLATFORM_DEFINES "CPUSTRING=\"${Q_CPUSTRING}\"")
+endif()
+
+# Define the module hard-link macros. The game, cgame and ui modules then
+# drop their local Com_Error/Com_Printf stubs and bind the engine's
+# functions instead; the exe exports the two for them (engine/CMakeLists.txt)
+option(HARD_LINKED_MODULES "Define the GAME/CGAME/UI/BOTLIB_HARD_LINKED macros so the modules bind the engine's Com_Error and Com_Printf" OFF)
+if ( HARD_LINKED_MODULES )
+	list(APPEND PLATFORM_DEFINES GAME_HARD_LINKED CGAME_HARD_LINKED UI_HARD_LINKED BOTLIB_HARD_LINKED)
+endif()
+
 
 # External
 add_subdirectory(external)

@@ -121,102 +121,8 @@ If you have questions concerning this license or the applicable additional terms
 #define id386   0
 #endif
 
-// for windows fastcall option
-
-#define QDECL
-
-//======================= WIN32 DEFINES =================================
-
-#ifdef WIN32
-
-#define MAC_STATIC
-
-#undef QDECL
-#define QDECL   __cdecl
-
-// buildstring will be incorporated into the version string
-#ifdef NDEBUG
-#ifdef _M_IX86
-#define CPUSTRING   "win-x86"
-#elif defined _M_ALPHA
-#define CPUSTRING   "win-AXP"
-#endif
-#else
-#ifdef _M_IX86
-#define CPUSTRING   "win-x86-debug"
-#elif defined _M_ALPHA
-#define CPUSTRING   "win-AXP-debug"
-#endif
-#endif
-
-
-#define PATH_SEP '\\'
-
-#endif
-
-//======================= MAC OS X SERVER DEFINES =====================
-
-#if defined( __MACH__ ) && defined( __APPLE__ )
-
-#define MAC_STATIC
-
-#ifdef __ppc__
-#define CPUSTRING   "MacOSXS-ppc"
-#elif defined __i386__
-#define CPUSTRING   "MacOSXS-i386"
-#else
-#define CPUSTRING   "MacOSXS-other"
-#endif
-
-#define PATH_SEP    '/'
-
-#define GAME_HARD_LINKED
-#define CGAME_HARD_LINKED
-#define UI_HARD_LINKED
-#define BOTLIB_HARD_LINKED
-
-#endif
-
-//======================= MAC DEFINES =================================
-
-#ifdef __MACOS__
-
-#include <MacTypes.h>
-//DAJ #define	MAC_STATIC	static
-#define MAC_STATIC
-
-#define CPUSTRING   "MacOS-PPC"
-
-#define PATH_SEP ':'
-
-#define GAME_HARD_LINKED
-#define CGAME_HARD_LINKED
-#define UI_HARD_LINKED
-#define BOTLIB_HARD_LINKED
-
-void Sys_PumpEvents( void );
-
-#endif
-
-//======================= LINUX DEFINES =================================
-
-// the mac compiler can't handle >32k of locals, so we
-// just waste space and make big arrays static...
-#ifdef __linux__
-
-#define MAC_STATIC
-
-#ifdef __i386__
-#define CPUSTRING   "linux-i386"
-#elif defined __axp__
-#define CPUSTRING   "linux-alpha"
-#else
-#define CPUSTRING   "linux-other"
-#endif
-
-#define PATH_SEP '/'
-
-#endif
+// MAC_STATIC, QDECL, CPUSTRING, PATH_SEP and the *_HARD_LINKED macros
+// are no longer defined here: the CMake build provides them
 
 //=============================================================
 
@@ -228,9 +134,6 @@ typedef int qboolean;
 enum { qfalse, qtrue };
 #else
 typedef enum {qfalse, qtrue}    qboolean;
-#endif
-#if defined( __MACOS__ )
-#define qboolean int    //DAJ
 #endif
 
 typedef int qhandle_t;

@@ -89,6 +89,22 @@ target_include_directories(wolf PRIVATE
 
 configure_target(wolf)
 
+# with HARD_LINKED_MODULES the modules bind the engine's Com_Error/Com_Printf:
+# export them from the exe and link the modules against its import library
+if ( HARD_LINKED_MODULES )
+	if ( NOT APPLE )
+		# on mac the modules already resolve engine symbols with -undefined,dynamic_lookup
+		set_target_properties(wolf PROPERTIES ENABLE_EXPORTS ON)
+	endif()
+	if ( MSVC )
+		target_compile_definitions(wolf PRIVATE ENGINE_EXPORTS)
+		foreach( module game cgame ui )
+			add_dependencies( ${module} wolf )
+			target_link_libraries( ${module} PRIVATE "${CMAKE_BINARY_DIR}/lib/$<CONFIG>/WolfSP.lib" )
+		endforeach()
+	endif()
+endif()
+
 add_dependencies(wolf game cgame ui)
 
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT wolf)
