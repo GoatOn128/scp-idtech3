@@ -26,8 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
 #pragma hdrstop
-#include "../precompiled.h"
+
 #include "Simd_Generic.h"
 #include "Simd_SSE.h"
 
@@ -40,7 +41,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #include <xmmintrin.h>
 
+#ifndef M_PI
 #define M_PI	3.14159265358979323846f
+#endif
 
 /*
 ============

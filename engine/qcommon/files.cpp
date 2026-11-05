@@ -1517,7 +1517,7 @@ void QDECL FS_Printf( fileHandle_t h, const char *fmt, ... ) {
 	char msg[MAXPRINTMSG];
 
 	va_start( argptr,fmt );
-	vsnprintf( msg, sizeof( msg ), fmt, argptr );
+	idStr::vsnPrintf( msg, sizeof( msg ), fmt, argptr );
 	va_end( argptr );
 
 	FS_Write( msg, strlen( msg ), h );
@@ -1909,7 +1909,7 @@ static pack_t *FS_LoadZipFile( char *zipfile, const char *basename ) {
 		if ( file_info.uncompressed_size > 0 ) {
 			fs_headerLongs[fs_numHeaderLongs++] = LittleLong( file_info.crc );
 		}
-		{ idStr lowered = filename_inzip; lowered.Lower(); idStr::Copynz( filename_inzip, lowered.c_str(), sizeof( filename_inzip ) ); }
+		{ idStr lowered = filename_inzip; lowered.ToLower(); idStr::Copynz( filename_inzip, lowered.c_str(), sizeof( filename_inzip ) ); }
 		hash = FS_HashFileName( filename_inzip, pack->hashSize );
 		buildBuffer[i].name = namePtr;
 		strcpy( buildBuffer[i].name, filename_inzip );

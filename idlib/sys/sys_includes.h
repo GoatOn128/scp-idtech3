@@ -96,6 +96,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <math.h>
 #include <limits.h>
 #include <memory>
+#include <stdint.h>
 
 //-----------------------------------------------------
 

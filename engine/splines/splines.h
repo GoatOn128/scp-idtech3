@@ -34,9 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 #else
   #include "../renderer/qgl.h"
 #endif
-#include "idlib/precompiled.h"
-#include "idlib/Lexer.h"
-#include "idlib/Token.h"
+
+#include "precompiled.h"
 
 typedef int fileHandle_t;
 

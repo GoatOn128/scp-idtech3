@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 int g_console_field_width = 78;
 
 
-#define COLNSOLE_COLOR  COLOR_WHITE //COLOR_BLACK
+#define COLNSOLE_COLOR  C_COLOR_WHITE //COLOR_BLACK
 
 #define NUM_CON_TIMES 4
 
@@ -686,7 +686,7 @@ void Con_DrawSolidConsole( float frac ) {
 	// draw from the bottom up
 	if ( con.display != con.current ) {
 		// draw arrows to show the buffer is backscrolled
-		re.SetColor( g_color_table[ColorIndex( COLOR_WHITE )] );
+		re.SetColor( g_color_table[ColorIndex( C_COLOR_WHITE )] );
 		for ( x = 0 ; x < con.linewidth ; x += 4 )
 			SCR_DrawSmallChar( con.xadjust + ( x + 1 ) * SMALLCHAR_WIDTH, y, '^' );
 		y -= SMALLCHAR_HEIGHT;

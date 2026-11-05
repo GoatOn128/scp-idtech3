@@ -43,48 +43,12 @@ If you have questions concerning this license or the applicable additional terms
 #define NEW_ANIMS
 #define MAX_TEAMNAME    32
 
-#ifdef _WIN32
-
-#pragma warning(disable : 4018) // signed/unsigned mismatch
-#pragma warning(disable : 4032)
-#pragma warning(disable : 4051)
-#pragma warning(disable : 4057) // slightly different base types
-#pragma warning(disable : 4100) // unreferenced formal parameter
-#pragma warning(disable : 4115)
-#pragma warning(disable : 4125) // decimal digit terminates octal escape sequence
-#pragma warning(disable : 4127) // conditional expression is constant
-#pragma warning(disable : 4136)
-#pragma warning(disable	: 4152) // nonstandard extension, function/data pointer conversion in expression
-#pragma warning(disable : 4201)
-#pragma warning(disable : 4214)
-#pragma warning(disable : 4244)
-//#pragma warning(disable	: 4142)		// benign redefinition
-#pragma warning(disable : 4305) // truncation from const double to float
-//#pragma warning(disable : 4310)		// cast truncates constant value
-//#pragma warning(disable :	4505)		// unreferenced local function has been removed
-#pragma warning(disable : 4514)
-#pragma warning(disable : 4702) // unreachable code
-#pragma warning(disable : 4711) // selected for automatic inline expansion
-#pragma warning(disable : 4220) // varargs matches remaining parameters
-#endif
-
 #if defined( ppc ) || defined( __ppc ) || defined( __ppc__ ) || defined( __POWERPC__ )
 #define idppc 1
 #endif
 
-#include <assert.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <ctype.h>
-#include <limits.h>
-#include <stdint.h>
-
 // idlib provides the shared math, container, string and parser library
-#include "idlib/precompiled.h"
+#include "precompiled.h"
 
 // this is the define for determining if we have an asm version of a C function
 #if ( defined _M_IX86 || defined __i386__ ) && !defined __sun__  && !defined __LCC__
@@ -114,38 +78,8 @@ typedef int clipHandle_t;
 #define     SND_CUTOFF_ALL      0x008   // Cut off all sounds on this channel
 #define     SND_NOCUT           0x010   // Don't cut off.  Always let finish (overridden by SND_CUTOFF_ALL)
 
-
-#ifndef NULL
-#define NULL ( (void *)0 )
-#endif
-
 #define MAX_QINT            0x7fffffff
 #define MIN_QINT            ( -MAX_QINT - 1 )
-
-
-#ifdef __cplusplus
-// min and max as function-like macros corrupt the std::min and std::max
-// declarations in libstdc++ headers whenever a C++ header is included
-// after this one, so C++ gets real functions with the same semantics
-#ifndef min
-template<typename T1, typename T2>
-inline auto min( T1 x, T2 y ) { return x < y ? x : y; }
-#endif
-#ifndef max
-template<typename T1, typename T2>
-inline auto max( T1 x, T2 y ) { return x > y ? x : y; }
-#endif
-#else
-#ifndef max
-#define max( x, y ) ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) )
-#define min( x, y ) ( ( ( x ) < ( y ) ) ? ( x ) : ( y ) )
-#endif
-#endif
-
-// angle indexes
-#define PITCH               0       // up / down
-#define YAW                 1       // left / right
-#define ROLL                2       // fall over
 
 // RF, this is just here so different elements of the engine can be aware of this setting as it changes
 #define MAX_SP_CLIENTS      64      // increasing this will increase memory usage significantly
@@ -259,10 +193,6 @@ MATHLIB
 typedef int fixed4_t;
 typedef int fixed8_t;
 typedef int fixed16_t;
-
-#ifndef M_PI
-#define M_PI        3.14159265358979323846f // matches value in gcc v2 math.h
-#endif
 
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution

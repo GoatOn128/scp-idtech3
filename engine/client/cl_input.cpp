@@ -392,12 +392,12 @@ void CL_KeyMove( usercmd_t *cmd ) {
 	// done
 
 	if ( !( cl.snap.ps.persistant[PERS_HWEAPON_USE] ) ) {
-		cmd->forwardmove = ClampChar( forward );
-		cmd->rightmove = ClampChar( side );
-		cmd->upmove = ClampChar( up );
+		cmd->forwardmove = idMath::ClampChar( forward );
+		cmd->rightmove = idMath::ClampChar( side );
+		cmd->upmove = idMath::ClampChar( up );
 
 		// Rafael - Kick
-		cmd->wolfkick = ClampChar( kick );
+		cmd->wolfkick = idMath::ClampChar( kick );
 		// done
 
 	}
@@ -456,21 +456,21 @@ void CL_JoystickMove( usercmd_t *cmd ) {
 	}
 
 #ifdef __MACOS__
-	cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
+	cmd->rightmove = idMath::ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
 #else
 	if ( !kb[KB_STRAFE].active ) {
 		cl.viewangles[YAW] += anglespeed * cl_yawspeed->value * cl.joystickAxis[AXIS_SIDE];
 	} else {
-		cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
+		cmd->rightmove = idMath::ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
 	}
 #endif
 	if ( kb[KB_MLOOK].active ) {
 		cl.viewangles[PITCH] += anglespeed * cl_pitchspeed->value * cl.joystickAxis[AXIS_FORWARD];
 	} else {
-		cmd->forwardmove = ClampChar( cmd->forwardmove + cl.joystickAxis[AXIS_FORWARD] );
+		cmd->forwardmove = idMath::ClampChar( cmd->forwardmove + cl.joystickAxis[AXIS_FORWARD] );
 	}
 
-	cmd->upmove = ClampChar( cmd->upmove + cl.joystickAxis[AXIS_UP] );
+	cmd->upmove = idMath::ClampChar( cmd->upmove + cl.joystickAxis[AXIS_UP] );
 }
 
 /*
@@ -533,7 +533,7 @@ void CL_MouseMove( usercmd_t *cmd ) {
 
 	// add mouse X/Y movement to cmd
 	if ( kb[KB_STRAFE].active ) {
-		cmd->rightmove = ClampChar( cmd->rightmove + m_side->value * mx );
+		cmd->rightmove = idMath::ClampChar( cmd->rightmove + m_side->value * mx );
 	} else {
 		cl.viewangles[YAW] -= m_yaw->value * mx;
 	}
@@ -541,7 +541,7 @@ void CL_MouseMove( usercmd_t *cmd ) {
 	if ( ( kb[KB_MLOOK].active || cl_freelook->integer ) && !kb[KB_STRAFE].active ) {
 		cl.viewangles[PITCH] += m_pitch->value * my;
 	} else {
-		cmd->forwardmove = ClampChar( cmd->forwardmove - m_forward->value * my );
+		cmd->forwardmove = idMath::ClampChar( cmd->forwardmove - m_forward->value * my );
 	}
 }
 
