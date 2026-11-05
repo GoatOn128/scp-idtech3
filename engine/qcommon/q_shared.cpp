@@ -29,6 +29,10 @@ If you have questions concerning this license or the applicable additional terms
 // Copyright (C) 1999-2000 Id Software, Inc.
 //
 // q_shared.c -- stateless support routines that are included in each code dll
+// The COM_* parser keeps the Q3 token rules on purpose: they are the on-disk
+// contract for every script, menu and config file this engine reads, and the
+// game modules parse the same formats with their own copies of these rules.
+#include "idlib/precompiled.h"
 #include "q_shared.h"
 
 /*
@@ -37,13 +41,7 @@ Com_Clamp
 ============
 */
 float Com_Clamp( float min, float max, float value ) {
-	if ( value < min ) {
-		return min;
-	}
-	if ( value > max ) {
-		return max;
-	}
-	return value;
+	return idMath::ClampFloat( min, max, value );
 }
 
 /*
