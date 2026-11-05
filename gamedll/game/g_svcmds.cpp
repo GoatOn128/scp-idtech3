@@ -220,7 +220,7 @@ void G_ProcessIPBans( void ) {
 	char *s, *t;
 	char str[MAX_TOKEN_CHARS];
 
-	Q_strncpyz( str, g_banIPs.string, sizeof( str ) );
+	idStr::Copynz( str, g_banIPs.string, sizeof( str ) );
 
 	for ( t = s = g_banIPs.string; *t; /* */ ) {
 		s = strchr( s, ' ' );
@@ -397,7 +397,7 @@ gclient_t   *ClientForString( const char *s ) {
 		if ( cl->pers.connected == CON_DISCONNECTED ) {
 			continue;
 		}
-		if ( !Q_stricmp( cl->pers.netname, s ) ) {
+		if ( !idStr::Icmp( cl->pers.netname, s ) ) {
 			return cl;
 		}
 	}
@@ -444,7 +444,7 @@ qboolean    ConsoleCommand( void ) {
 	trap_Argv( 0, cmd, sizeof( cmd ) );
 
 	// Ridah, savegame
-	if ( Q_stricmp( cmd, "savegame" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "savegame" ) == 0 ) {
 
 		// don't allow a manual savegame command while we are waiting for the game to start/exit
 		if ( g_reloading.integer ) {
@@ -460,7 +460,7 @@ qboolean    ConsoleCommand( void ) {
 			if ( strrchr( cmd, '.' ) ) {
 				cmd[strrchr( cmd,'.' ) - cmd] = '\0';
 			}
-			if ( !Q_stricmp( cmd, "current" ) ) {     // beginning of map
+			if ( !idStr::Icmp( cmd, "current" ) ) {     // beginning of map
 				Com_Printf( "sorry, '%s' is a reserved savegame name.  please use another name.\n", cmd );
 				return qtrue;
 			}
@@ -479,17 +479,17 @@ qboolean    ConsoleCommand( void ) {
 	}
 	// done.
 
-	if ( Q_stricmp( cmd, "entitylist" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "entitylist" ) == 0 ) {
 		Svcmd_EntityList_f();
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "forceteam" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "forceteam" ) == 0 ) {
 		Svcmd_ForceTeam_f();
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "game_memory" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "game_memory" ) == 0 ) {
 		Svcmd_GameMem_f();
 		return qtrue;
 	}
@@ -503,23 +503,23 @@ qboolean    ConsoleCommand( void ) {
 	  }
 	*/
 
-	if ( Q_stricmp( cmd, "addip" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "addip" ) == 0 ) {
 		Svcmd_AddIP_f();
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "removeip" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "removeip" ) == 0 ) {
 		Svcmd_RemoveIP_f();
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "listip" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "listip" ) == 0 ) {
 		trap_SendConsoleCommand( EXEC_INSERT, "g_banIPs\n" );
 		return qtrue;
 	}
 
 	if ( g_dedicated.integer ) {
-		if ( Q_stricmp( cmd, "say" ) == 0 ) {
+		if ( idStr::Icmp( cmd, "say" ) == 0 ) {
 			trap_SendServerCommand( -1, va( "print \"server: %s\"", ConcatArgs( 1 ) ) );
 			return qtrue;
 		}

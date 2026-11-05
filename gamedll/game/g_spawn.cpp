@@ -784,10 +784,10 @@ void G_ParseField( const char *key, const char *value, gentity_t *ent ) {
 	field_t *f;
 	byte    *b;
 	float v;
-	vec3_t vec;
+	idVec3 vec;
 
 	for ( f = fields ; f->name ; f++ ) {
-		if ( !Q_stricmp( f->name, key ) ) {
+		if ( !idStr::Icmp( f->name, key ) ) {
 			// found it
 			b = (byte *)ent;
 
@@ -867,8 +867,8 @@ void G_SpawnGEntityFromSpawnVars( void ) {
 	}
 
 	// move editor origin to pos
-	VectorCopy( ent->s.origin, ent->s.pos.trBase );
-	VectorCopy( ent->s.origin, ent->r.currentOrigin );
+	ent->s.pos.trBase = ent->s.origin;
+	ent->r.currentOrigin = ent->s.origin;
 
 	// if we didn't get a classname, don't bother spawning anything
 	if ( !G_CallSpawn( ent ) ) {
@@ -973,7 +973,7 @@ void SP_worldspawn( void ) {
 	gitem_t *item; // JPW NERVE
 
 	G_SpawnString( "classname", "", &s );
-	if ( Q_stricmp( s, "worldspawn" ) ) {
+	if ( idStr::Icmp( s, "worldspawn" ) ) {
 		G_Error( "SP_worldspawn: The first entity isn't 'worldspawn'" );
 	}
 
