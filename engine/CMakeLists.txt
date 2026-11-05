@@ -26,7 +26,6 @@ set(ENGINE_SOURCES
     qcommon/md4.cpp
     qcommon/msg.cpp
     qcommon/net_chan.cpp
-    qcommon/q_math.cpp
     qcommon/q_shared.cpp
     sound/snd_adpcm.cpp
     sound/snd_dma.cpp
