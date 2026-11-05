@@ -1911,6 +1911,11 @@ ID_INLINE float vectoyaw( const idVec3 &vec ) {
 	return yaw;
 }
 
+// wraps the angle into [0, 360) the way the old q3 mathlib did, ported from the old q3 mathlib
+ID_INLINE float AngleMod( float a ) {
+	return ( 360.0f / 65536 ) * ( (int)( a * ( 65536 / 360.0 ) ) & 65535 );
+}
+
 ID_INLINE void SnapVector( idVec3 &v ) {
 	v.Snap();
 }
