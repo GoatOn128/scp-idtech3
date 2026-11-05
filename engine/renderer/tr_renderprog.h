@@ -14,7 +14,7 @@ void RB_CaptureScreenDepth( void );
 qboolean RB_BeginScreenPass( screenProgram_t program );
 void RB_EndScreenPass( void );
 void RB_ScreenSoftness( float value );
-void RB_ScreenDecalProjection( const vec3_t origin, const vec3_t right, const vec3_t up, const vec3_t normal );
+void RB_ScreenDecalProjection( const idVec3 origin, const idVec3 right, const idVec3 up, const idVec3 normal );
 qboolean RB_ScreenEntityVisible( const refEntity_t *entity );
 void RB_BindScreenMaterial( const refEntity_t *entity );
 void RB_DrawScreenParticles( void );

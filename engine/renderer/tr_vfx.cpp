@@ -51,9 +51,9 @@ void RB_DrawScreenParticles( void ) {
 	for ( int i = 0; i < backEnd.refdef.num_entities; i++ ) {
 		const refEntity_t *entity = &backEnd.refdef.entities[i].e;
 		if ( entity->reType != RT_SCREEN_PARTICLE || !RB_ScreenEntityVisible( entity ) ) { continue; }
-		vec3_t delta;
-		VectorSubtract( entity->origin, backEnd.viewParms.orent.origin, delta );
-		float depth = DotProduct( delta, backEnd.viewParms.orent.axis[0] );
+		idVec3 delta;
+		delta = entity->origin - backEnd.viewParms.orent.origin;
+		float depth = ( delta ) * ( backEnd.viewParms.orent.axis[0] );
 		if ( depth <= 0 ) { continue; }
 		particles.push_back( { entity, depth } );
 	}
@@ -69,7 +69,7 @@ void RB_DrawScreenParticles( void ) {
 		if ( !std::isfinite( aspect ) || aspect <= 0 || !std::isfinite( entity->rotation ) ) { continue; }
 		float angle = DEG2RAD( entity->rotation );
 		float cosine = cosf( angle ), sine = sinf( angle );
-		vec3_t right, up;
+		idVec3 right, up;
 		for ( int j = 0; j < 3; j++ ) {
 			right[j] = -backEnd.viewParms.orent.axis[1][j] * cosine + backEnd.viewParms.orent.axis[2][j] * sine;
 			up[j] = backEnd.viewParms.orent.axis[1][j] * sine + backEnd.viewParms.orent.axis[2][j] * cosine;
@@ -80,9 +80,9 @@ void RB_DrawScreenParticles( void ) {
 		RB_BindScreenMaterial( entity );
 		qglBegin( GL_QUADS );
 		for ( int corner = 0; corner < 4; corner++ ) {
-			vec3_t point;
-			VectorMA( entity->origin, signs[corner][0] * entity->radius, right, point );
-			VectorMA( point, signs[corner][1] * entity->radius * aspect, up, point );
+			idVec3 point;
+			point = entity->origin + right * signs[corner][0] * entity->radius;
+			point = point + up * signs[corner][1] * entity->radius * aspect;
 			qglTexCoord2fv( st[corner] );
 			qglVertex3fv( point );
 		}
