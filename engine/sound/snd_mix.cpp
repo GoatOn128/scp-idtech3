@@ -188,11 +188,11 @@ void S_TransferPaintBuffer( int endtime ) {
 
 	if ( s_testsound->integer ) {
 		int i;
-		int count;
+		int testCount;
 
 		// write a fixed sine wave
-		count = ( endtime - s_paintedtime );
-		for ( i = 0 ; i < count ; i++ ) {
+		testCount = ( endtime - s_paintedtime );
+		for ( i = 0 ; i < testCount ; i++ ) {
 			float v;
 			v = sin( M_PI * 2 * i / 64 );
 			paintbuffer[i].left = paintbuffer[i].right = v * 0x400000;

@@ -42,22 +42,39 @@ set(ENGINE_SOURCES
     server/sv_snapshot.cpp
     server/sv_world.cpp
     qcommon/unzip.cpp
-    sys/win32/win_input.cpp
-    sys/win32/win_main.cpp
-    sys/win32/win_net.cpp
-    sys/win32/win_shared.cpp
-    sys/win32/win_snd.cpp
-    sys/win32/win_syscon.cpp
-    sys/win32/win_wndproc.cpp
-    sys/win32/winquake.rc)
-	
+    sys/sdl/sdl_input.cpp
+    sys/sdl/sdl_main.cpp
+    sys/sdl/sdl_net.cpp
+    sys/sdl/sdl_snd.cpp)
+
+if ( WIN32 )
+    # the win32 console window and resources only exist on Windows
+    list(APPEND ENGINE_SOURCES sys/win32/win_syscon.cpp sys/win32/winquake.rc)
+endif()
+
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${ENGINE_SOURCES})
 
-add_executable(wolf WIN32 ${ENGINE_SOURCES})
+if ( WIN32 )
+    add_executable(wolf WIN32 ${ENGINE_SOURCES})
+else()
+    add_executable(wolf ${ENGINE_SOURCES})
+endif()
 set_target_properties(wolf PROPERTIES FOLDER "exes")
 set_target_properties(wolf PROPERTIES OUTPUT_NAME WolfSP)
 target_compile_definitions(wolf PRIVATE __USEA3D __A3D_GEOM CINTERFACE)
-target_link_libraries(wolf PRIVATE renderer botlib Splines winmm wsock32)
+
+if ( WIN32 )
+    target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 ws2_32 winmm opengl32)
+    target_link_options(wolf PRIVATE /STACK:8388608 /MAP:${CMAKE_SOURCE_DIR}/WolfSP.map /NXCOMPAT:NO)
+    # the vendored SDL3 ships as a dll next to the exe
+    add_custom_command(TARGET wolf POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/external/SDL3/lib/x86/SDL3.dll" "$<TARGET_FILE_DIR:wolf>"
+        COMMENT "Copying SDL3.dll next to WolfSP")
+else()
+    target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 ${CMAKE_DL_LIBS})
+    # GNU ld has no --stack option; Linux uses the system default main-thread
+    # stack size (ulimit -s, typically 8 MiB, matching the Windows setting)
+endif()
 
 target_include_directories(wolf PRIVATE
 	${CMAKE_SOURCE_DIR}/engine/qcommon
@@ -66,7 +83,6 @@ target_include_directories(wolf PRIVATE
 	${CMAKE_SOURCE_DIR}/gamedll/cgame
 )
 
-target_link_options(wolf PRIVATE /STACK:8388608 /MAP:${CMAKE_SOURCE_DIR}/WolfSP.map /NXCOMPAT:NO)
 configure_target(wolf)
 
 add_dependencies(wolf game cgame ui)

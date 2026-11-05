@@ -3517,7 +3517,7 @@ gitem_t *BG_FindItemForWeapon( int weapon ) {
 
 	if ( lookupTableInit ) {
 		for ( i = 0; i < NUM_TABLE_ELEMENTS; i++ ) {
-			lookupTable[i] = (weapon_t)0; // default value for no match found
+			lookupTable[i] = NULL; // default value for no match found
 			for ( it = bg_itemlist + 1 ; it->classname ; it++ ) {
 				if ( it->giType == IT_WEAPON && it->giTag == i ) {
 					lookupTable[i] = it;

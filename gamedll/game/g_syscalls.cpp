@@ -234,8 +234,8 @@ void trap_SnapVector( float *v ) {
 	gameImports->Sys_SnapVector( v );
 }
 
-qboolean trap_GetTag( int clientNum, char *tagName, orientation_t *or ) {
-	return gameImports->SV_GetTag( clientNum, tagName, or );
+qboolean trap_GetTag( int clientNum, char *tagName, orientation_t *orent ) {
+	return gameImports->SV_GetTag( clientNum, tagName, orent );
 }
 
 // BotLib traps start here

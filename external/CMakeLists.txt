@@ -38,3 +38,17 @@ target_compile_options(detour PRIVATE /wd4127)
 add_library(glad STATIC ${GLAD_SOURCES})
 target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/glad/include")
 configure_target(glad)
+
+# SDL3: use the vendored prebuilt binaries on Windows, the system package
+# elsewhere. GLOBAL is required: imported targets are directory-scoped and
+# engine/renderer link against SDL3::SDL3 from sibling directories.
+if ( WIN32 )
+    add_library(SDL3_vendored SHARED IMPORTED GLOBAL)
+    set_target_properties(SDL3_vendored PROPERTIES
+        IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/SDL3/lib/x86/SDL3.lib"
+        IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/SDL3/lib/x86/SDL3.dll"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/SDL3/include")
+    add_library(SDL3::SDL3 ALIAS SDL3_vendored)
+else()
+    find_package(SDL3 REQUIRED GLOBAL)
+endif()

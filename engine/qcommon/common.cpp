@@ -28,7 +28,7 @@ If you have questions concerning this license or the applicable additional terms
 
 // common.c -- misc functions used in client and server
 
-#include "../game/q_shared.h"
+#include "q_shared.h"
 #include "qcommon.h"
 #include <setjmp.h>
 
@@ -1095,7 +1095,7 @@ void Com_InitHunkMemory( void ) {
 		Com_Error( ERR_FATAL, "Hunk data failed to allocate %i megs", s_hunkTotal / ( 1024 * 1024 ) );
 	}
 	// cacheline align
-	s_hunkData = ( byte * )( ( (int)s_hunkData + 31 ) & ~31 );
+	s_hunkData = ( byte * )( ( (intptr_t)s_hunkData + 31 ) & ~(intptr_t)31 );
 	Hunk_Clear();
 
 	Cmd_AddCommand( "meminfo", Com_Meminfo_f );
@@ -1959,9 +1959,12 @@ void Com_Init( char *commandLine ) {
 
 	Com_Printf( "%s %s %s\n", Q3_VERSION, CPUSTRING, __DATE__ );
 
+#pragma warning( push )
+#pragma warning( disable : 4611 )
 	if ( setjmp( abortframe ) ) {
 		Sys_Error( "Error during initialization" );
 	}
+#pragma warning( pop )
 
 	// bk001129 - do this before anything else decides to push events
 	Com_InitPushEvent();
@@ -2279,9 +2282,12 @@ void Com_Frame( void ) {
 
 
 
+#pragma warning( push )
+#pragma warning( disable : 4611 )
 	if ( setjmp( abortframe ) ) {
 		return;         // an ERR_DROP was thrown
 	}
+#pragma warning( pop )
 
 	// bk001204 - init to zero.
 	//  also:  might be clobbered by `longjmp' or `vfork'
@@ -2446,8 +2452,9 @@ void Com_Shutdown( void ) {
 
 }
 
-#if !( defined __linux__ || defined __FreeBSD__ )  // r010123 - include FreeBSD
-#if ( ( !id386 ) && ( !defined __i386__ ) ) // rcg010212 - for PPC
+#if !defined( _MSC_VER ) || ( !id386 )
+// plain C everywhere except MSVC on x86, which uses the assembly path below
+// (gcc and clang cannot build the MSVC inline asm)
 
 void Com_Memcpy( void* dest, const void* src, const size_t count ) {
 	memcpy( dest, src, count );
@@ -2752,8 +2759,7 @@ skip:
 	}
 }
 
-#endif
-#endif // bk001208 - memset/memcpy assembly, Q_acos needed (RC4)
+#endif // bk001208 - memset/memcpy assembly
 //------------------------------------------------------------------------
 
 

@@ -81,7 +81,7 @@ typedef struct {
 typedef struct {
 	vec3_t origin;              // in world coordinates
 	vec3_t axis[3];             // orientation in world
-	vec3_t viewOrigin;          // viewParms->or.origin in local coordinates
+	vec3_t viewOrigin;          // viewParms->orent.origin in local coordinates
 	float modelMatrix[16];
 } orientationr_t;
 
@@ -533,7 +533,7 @@ typedef struct {
 } fog_t;
 
 typedef struct {
-	orientationr_t  or;
+	orientationr_t  orent;
 	orientationr_t world;
 	vec3_t pvsOrigin;               // may be different than or.origin for portals
 	qboolean isPortal;              // true if this view is through a portal
@@ -921,7 +921,7 @@ typedef struct {
 	int smpFrame;
 	trRefdef_t refdef;
 	viewParms_t viewParms;
-	orientationr_t  or;
+	orientationr_t  orent;
 	backEndCounters_t pc;
 	qboolean isHyperspace;
 	trRefEntity_t   *currentEntity;
@@ -993,7 +993,7 @@ typedef struct {
 	int identityLightByte;                      // identityLight * 255
 	int overbrightBits;                         // r_overbrightBits->integer, but set to 0 if no hw gamma
 
-	orientationr_t          or;                 // for current entity
+	orientationr_t          orent;                 // for current entity
 
 	trRefdef_t refdef;
 
@@ -1149,8 +1149,6 @@ extern cvar_t  *r_picmip;                       // controls picmip values
 extern cvar_t  *r_picmip2;                      // controls picmip values for designated (character skin) textures
 extern cvar_t  *r_finish;
 extern cvar_t  *r_drawBuffer;
-extern cvar_t  *r_glDriver;
-extern cvar_t  *r_glIgnoreWicked3D;
 extern cvar_t  *r_swapInterval;
 extern cvar_t  *r_textureMode;
 extern cvar_t  *r_offsetFactor;
@@ -1248,7 +1246,7 @@ int R_CullLocalBox( vec3_t bounds[2] );
 int R_CullPointAndRadius( vec3_t origin, float radius );
 int R_CullLocalPointAndRadius( vec3_t origin, float radius );
 
-void R_RotateForEntity( const trRefEntity_t * ent, const viewParms_t * viewParms, orientationr_t * or );
+void R_RotateForEntity( const trRefEntity_t * ent, const viewParms_t * viewParms, orientationr_t * orent );
 
 /*
 ** GL wrapper/helper functions
@@ -1488,7 +1486,7 @@ LIGHTS
 
 void R_DlightBmodel( bmodel_t *bmodel );
 void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent );
-void R_TransformDlights( int count, dlight_t * dl, orientationr_t * or );
+void R_TransformDlights( int count, dlight_t * dl, orientationr_t * orent );
 int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
 
 

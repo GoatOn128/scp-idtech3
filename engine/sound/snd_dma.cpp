@@ -37,7 +37,7 @@ If you have questions concerning this license or the applicable additional terms
  *****************************************************************************/
 
 #include "snd_local.h"
-#include "client.h"
+#include "../client/client.h"
 
 void S_Play_f( void );
 void S_SoundList_f( void );
@@ -1108,8 +1108,8 @@ If raw data has been loaded in little endien binary form, this must be done.
 If raw data was calculated, as with ADPCM, this should not be called.
 =================
 */
-//DAJ  void S_ByteSwapRawSamples( int samples, int width, int s_channels, const byte *data ) {
-void S_ByteSwapRawSamples( int samples, int width, int s_channels, short *data ) {
+//DAJ  void S_ByteSwapRawSamples( int samples, int width, int channels, const byte *data ) {
+void S_ByteSwapRawSamples( int samples, int width, int channels, short *data ) {
 	int i;
 
 	if ( width != 2 ) {
@@ -1121,7 +1121,7 @@ void S_ByteSwapRawSamples( int samples, int width, int s_channels, short *data )
 	}
 #endif
 	//DAJ use a faster loop technique
-	if ( s_channels == 2 ) {
+	if ( channels == 2 ) {
 		i = samples << 1;
 	} else {
 		i = samples;
@@ -1150,7 +1150,7 @@ S_RawSamples
 Music streaming
 ============
 */
-void S_RawSamples( int samples, int rate, int width, int s_channels, const byte *data, float lvol, float rvol, int streamingIndex ) {
+void S_RawSamples( int samples, int rate, int width, int channels, const byte *data, float lvol, float rvol, int streamingIndex ) {
 	int i;
 	int src, dst;
 	float scale;
@@ -1174,7 +1174,7 @@ void S_RawSamples( int samples, int rate, int width, int s_channels, const byte 
 
 	scale = (float)rate / dma.speed;
 
-	if ( s_channels == 2 && width == 2 ) {
+	if ( channels == 2 && width == 2 ) {
 		if ( scale == 1.0 ) { // optimized case
 			for ( i = 0; i < samples; i++ )
 			{
@@ -1197,7 +1197,7 @@ void S_RawSamples( int samples, int rate, int width, int s_channels, const byte 
 				s_rawsamples[streamingIndex][dst].right = ( (short *)data )[src * 2 + 1] * intVolumeR;
 			}
 		}
-	} else if ( s_channels == 1 && width == 2 )     {
+	} else if ( channels == 1 && width == 2 )     {
 		for ( i = 0; ; i++ )
 		{
 			src = i * scale;
@@ -1209,7 +1209,7 @@ void S_RawSamples( int samples, int rate, int width, int s_channels, const byte 
 			s_rawsamples[streamingIndex][dst].left = ( (short *)data )[src] * intVolumeL;
 			s_rawsamples[streamingIndex][dst].right = ( (short *)data )[src] * intVolumeR;
 		}
-	} else if ( s_channels == 2 && width == 1 )     {
+	} else if ( channels == 2 && width == 1 )     {
 		intVolumeL *= 256;
 		intVolumeR *= 256;
 
@@ -1224,7 +1224,7 @@ void S_RawSamples( int samples, int rate, int width, int s_channels, const byte 
 			s_rawsamples[streamingIndex][dst].left = ( (char *)data )[src * 2] * intVolumeL;
 			s_rawsamples[streamingIndex][dst].right = ( (char *)data )[src * 2 + 1] * intVolumeR;
 		}
-	} else if ( s_channels == 1 && width == 1 )     {
+	} else if ( channels == 1 && width == 1 )     {
 		intVolumeL *= 256;
 		intVolumeR *= 256;
 
@@ -2323,7 +2323,7 @@ void S_UpdateStreamingSounds( void ) {
 	int fileBytes;
 	int r, i;
 	streamingSound_t *ss;
-	int     *re, *rp;
+	int     *rawend, *rp;
 //	qboolean looped;
 	float lvol, rvol;
 	int soundMixAheadTime;
@@ -2343,7 +2343,7 @@ void S_UpdateStreamingSounds( void ) {
 
 	snd.s_soundPainted = qtrue;
 
-	for ( i = 0, ss = streamingSounds, re = s_rawend, rp = s_rawpainted; i < MAX_STREAMING_SOUNDS; i++, ss++, re++, rp++ ) {
+	for ( i = 0, ss = streamingSounds, rawend = s_rawend, rp = s_rawpainted; i < MAX_STREAMING_SOUNDS; i++, ss++, rawend++, rp++ ) {
 		if ( ss->kill && ss->file ) {
 			fileHandle_t file;
 			file = ss->file;
@@ -2354,7 +2354,7 @@ void S_UpdateStreamingSounds( void ) {
 
 			if ( i == 0 || ss->kill == 2 ) { //  kill whole channel /now/
 //				memset( &s_rawsamples[i], 0, MAX_RAW_SAMPLES*sizeof(portable_samplepair_t) );
-				*re = 0;    // reset rawend
+				*rawend = 0;    // reset rawend
 
 			}
 			ss->kill = 0;
@@ -2380,14 +2380,14 @@ void S_UpdateStreamingSounds( void ) {
 		}
 
 		// see how many samples should be copied into the raw buffer
-		if ( *re < soundMixAheadTime ) {    // RF, read a bit ahead of time to allow for talking animations
-			*re = soundMixAheadTime;
+		if ( *rawend < soundMixAheadTime ) {    // RF, read a bit ahead of time to allow for talking animations
+			*rawend = soundMixAheadTime;
 		}
 
 //		looped = qfalse;
 
-		while ( *re < soundMixAheadTime + MAX_RAW_SAMPLES ) {
-			bufferSamples = MAX_RAW_SAMPLES - ( *re - soundMixAheadTime );
+		while ( *rawend < soundMixAheadTime + MAX_RAW_SAMPLES ) {
+			bufferSamples = MAX_RAW_SAMPLES - ( *rawend - soundMixAheadTime );
 
 			// decide how much data needs to be read from the file
 			fileSamples = bufferSamples * ss->info.rate / dma.speed;
@@ -2434,12 +2434,12 @@ void S_UpdateStreamingSounds( void ) {
 				lvol = rvol = s_musicVolume->value * streamingVol;
 			} else {        // attenuate if required
 				if ( ss->entnum >= 0 && ss->attenuation ) {
-					int r, l;
-					S_SpatializeOrigin( snd.entityPositions[ ss->entnum ], s_volume->value * 255.0f, &l, &r, SOUND_RANGE_DEFAULT );
-					if ( ( lvol = ( (float)l / 255.0 ) ) > 1.0 ) {
+					int lOut, rOut;
+					S_SpatializeOrigin( snd.entityPositions[ ss->entnum ], s_volume->value * 255.0f, &lOut, &rOut, SOUND_RANGE_DEFAULT );
+					if ( ( lvol = ( (float)lOut / 255.0 ) ) > 1.0 ) {
 						lvol = 1.0;
 					}
-					if ( ( rvol = ( (float)r / 255.0 ) ) > 1.0 ) {
+					if ( ( rvol = ( (float)rOut / 255.0 ) ) > 1.0 ) {
 						rvol = 1.0;
 					}
 					lvol *= streamingVol;

@@ -103,6 +103,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <time.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdint.h>
 
 #endif
 
@@ -261,9 +262,23 @@ typedef int clipHandle_t;
 #define MIN_QINT            ( -MAX_QINT - 1 )
 
 
+#ifdef __cplusplus
+// min and max as function-like macros corrupt the std::min and std::max
+// declarations in libstdc++ headers whenever a C++ header is included
+// after this one, so C++ gets real functions with the same semantics
+#ifndef min
+template<typename T1, typename T2>
+inline auto min( T1 x, T2 y ) { return x < y ? x : y; }
+#endif
+#ifndef max
+template<typename T1, typename T2>
+inline auto max( T1 x, T2 y ) { return x > y ? x : y; }
+#endif
+#else
 #ifndef max
 #define max( x, y ) ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) )
 #define min( x, y ) ( ( ( x ) < ( y ) ) ? ( x ) : ( y ) )
+#endif
 #endif
 
 // angle indexes
@@ -723,6 +738,17 @@ char    *Q_strrchr( const char* string, int c );
 #define Q_putenv _putenv
 #else
 #define Q_putenv putenv
+#endif
+
+// MSVC-only case-insensitive compare names used by the game modules;
+// map them to the POSIX functions on every other platform
+#if !defined( _WIN32 )
+#include <strings.h>
+#define stricmp strcasecmp
+#define strnicmp strncasecmp
+#define strcmpi strcasecmp
+#define _stricmp strcasecmp
+#define _strnicmp strncasecmp
 #endif
 
 // buffer size safe library replacements

@@ -1792,8 +1792,8 @@ void CG_KeyEvent( int key, qboolean down );
 void CG_MouseEvent( int x, int y );
 void CG_EventHandling( int type );
 
-qboolean CG_GetTag( int clientNum, char *tagname, orientation_t * or );
-qboolean CG_GetWeaponTag( int clientNum, char *tagname, orientation_t * or );
+qboolean CG_GetTag( int clientNum, char *tagname, orientation_t *orent );
+qboolean CG_GetWeaponTag( int clientNum, char *tagname, orientation_t *orent );
 
 //
 // cg_view.c

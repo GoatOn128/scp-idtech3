@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
-#include "../game/q_shared.h"
+#include "q_shared.h"
 #include "qcommon.h"
 
 /*
@@ -90,12 +90,12 @@ Netchan_Setup
 called to open a channel to a remote system
 ==============
 */
-void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport ) {
+void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qportNum ) {
 	memset( chan, 0, sizeof( *chan ) );
 
 	chan->sock = sock;
 	chan->remoteAddress = adr;
-	chan->qport = qport;
+	chan->qport = qportNum;
 	chan->incomingSequence = 0;
 	chan->outgoingSequence = 1;
 }
@@ -315,7 +315,7 @@ copied out.
 */
 qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 	int sequence;
-	int qport;
+	int qportNum;
 	int fragmentStart, fragmentLength;
 	qboolean fragmented;
 
@@ -334,9 +334,9 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		fragmented = qfalse;
 	}
 
-	// read the qport if we are a server
+	// read the qportNum if we are a server
 	if ( chan->sock == NS_SERVER ) {
-		qport = MSG_ReadShort( msg );
+		qportNum = MSG_ReadShort( msg );
 	}
 
 	// read the fragment information

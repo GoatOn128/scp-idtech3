@@ -41,7 +41,6 @@ set(GAME_SOURCES
     ai/ai_actor.cpp
     ai/ai_scheduler.cpp
     bg_animation.cpp
-    bg_lib.cpp
     bg_misc.cpp
     bg_pmove.cpp
     bg_slidemove.cpp
@@ -71,18 +70,35 @@ set(GAME_SOURCES
     g_utils.cpp
     g_weapon.cpp
     ${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
-    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp
-    game.def)
-	
+    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp)
+
+if ( WIN32 )
+    list(APPEND GAME_SOURCES game.def)
+endif()
+
 source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${GAME_SOURCES})
 
 add_library(game SHARED ${GAME_SOURCES})
 set_target_properties(game PROPERTIES OUTPUT_NAME qagamex86)
 set_target_properties(game PROPERTIES RUNTIME_OUTPUT_DIRECTORY $<1:>${CMAKE_SOURCE_DIR}/main)
 set_target_properties(game PROPERTIES FOLDER "dlls")
+if ( NOT WIN32 )
+    set_target_properties(game PROPERTIES PREFIX "")
+endif()
 target_compile_definitions(game PRIVATE GAMEDLL $<$<CONFIG:Debug>:BUILDING_REF_GL>)
-target_link_libraries(game PRIVATE winmm)
-target_link_options(game PRIVATE /BASE:0x20000000 /MAP:${CMAKE_SOURCE_DIR}/main/qagamex86.map)
-add_dependencies(game genFuncTable)
+if ( MSVC )
+    target_link_libraries(game PRIVATE winmm)
+    target_link_options(game PRIVATE /BASE:0x20000000 /MAP:${CMAKE_SOURCE_DIR}/main/qagamex86.map)
+endif()
+if ( WIN32 )
+    add_dependencies(game genFuncTable)
+endif()
 target_include_directories(game PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
+if ( APPLE )
+    # the game module imports engine symbols (Com_Printf, Com_Error) from
+    # the host executable at load time, the same way it does on windows, so
+    # tell the mac linker those imports are resolved at load time
+    target_link_options(game PRIVATE -Wl,-undefined,dynamic_lookup)
+endif()
+
 configure_target(game)

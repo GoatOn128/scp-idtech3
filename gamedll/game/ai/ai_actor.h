@@ -513,7 +513,7 @@ typedef struct cast_state_s {
 
 } cast_state_t;
 //
-#define CSFOFS( x ) ( (int)&( ( (cast_state_t *)0 )->x ) )
+#define CSFOFS( x ) ( (int)(intptr_t)&( ( (cast_state_t *)0 )->x ) )
 //
 typedef struct aicast_predictmove_s {
 	vec3_t endpos; //position at the end of movement prediction

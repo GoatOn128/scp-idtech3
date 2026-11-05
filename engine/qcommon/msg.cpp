@@ -26,7 +26,7 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "../game/q_shared.h"
+#include "q_shared.h"
 #include "qcommon.h"
 
 static huffman_t msgHuff;
@@ -575,7 +575,7 @@ int kbitmask[32] = {
 	0x0001FFFF, 0x0003FFFF, 0x0007FFFF, 0x000FFFFF,
 	0x001FFFFf, 0x003FFFFF, 0x007FFFFF, 0x00FFFFFF,
 	0x01FFFFFF, 0x03FFFFFF, 0x07FFFFFF, 0x0FFFFFFF,
-	0x1FFFFFFF, 0x3FFFFFFF, 0x7FFFFFFF, 0xFFFFFFFF,
+	0x1FFFFFFF, 0x3FFFFFFF, 0x7FFFFFFF, (int)0xFFFFFFFF,
 };
 
 void MSG_WriteDeltaKey( msg_t *msg, int key, int oldV, int newV, int bits ) {
@@ -941,7 +941,7 @@ typedef struct {
 } netField_t;
 
 // using the stringizing operator to save typing...
-#define NETF( x ) # x,(int)&( (entityState_t*)0 )->x
+#define NETF( x ) # x,(int)(intptr_t)&( (entityState_t*)0 )->x
 
 netField_t entityStateFields[] =
 {
@@ -1372,7 +1372,7 @@ plyer_state_t communication
 */
 
 // using the stringizing operator to save typing...
-#define PSF( x ) # x,(int)&( (playerState_t*)0 )->x
+#define PSF( x ) # x,(int)(intptr_t)&( (playerState_t*)0 )->x
 
 netField_t playerStateFields[] =
 {

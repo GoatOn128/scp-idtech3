@@ -1041,7 +1041,7 @@ static void setupQuad( long xOff, long yOff ) {
 	long numQuadCels, i,x,y;
 	byte *temp;
 
-	if ( xOff == cin.oldXOff && yOff == cin.oldYOff && cinTable[currentHandle].ysize == cin.oldysize && cinTable[currentHandle].xsize == cin.oldxsize ) {
+	if ( xOff == cin.oldXOff && yOff == cin.oldYOff && cinTable[currentHandle].ysize == (unsigned int)cin.oldysize && cinTable[currentHandle].xsize == (unsigned int)cin.oldxsize ) {
 		return;
 	}
 
@@ -1102,8 +1102,8 @@ static void readQuadInfo( byte *qData ) {
 	cinTable[currentHandle].VQ0 = cinTable[currentHandle].VQNormal;
 	cinTable[currentHandle].VQ1 = cinTable[currentHandle].VQBuffer;
 
-	cinTable[currentHandle].t[0] = ( 0 - (unsigned int)cin.linbuf ) + (unsigned int)cin.linbuf + cinTable[currentHandle].screenDelta;
-	cinTable[currentHandle].t[1] = ( 0 - ( (unsigned int)cin.linbuf + cinTable[currentHandle].screenDelta ) ) + (unsigned int)cin.linbuf;
+	cinTable[currentHandle].t[0] = ( 0 - (uintptr_t)cin.linbuf ) + (uintptr_t)cin.linbuf + cinTable[currentHandle].screenDelta;
+	cinTable[currentHandle].t[1] = ( 0 - ( (uintptr_t)cin.linbuf + cinTable[currentHandle].screenDelta ) ) + (uintptr_t)cin.linbuf;
 
 	cinTable[currentHandle].drawX = cinTable[currentHandle].CIN_WIDTH;
 	cinTable[currentHandle].drawY = cinTable[currentHandle].CIN_HEIGHT;
@@ -1529,7 +1529,7 @@ e_status CIN_RunCinematic( int handle ) {
 			&& cinTable[currentHandle].status == FMV_PLAY )
 	{
 		RoQInterrupt();
-		if ( start != cinTable[currentHandle].startTime ) {
+		if ( start != (int)cinTable[currentHandle].startTime ) {
 			// we need to use CL_ScaledMilliseconds because of the smp mode calls from the renderer
 			cinTable[currentHandle].tfps = ( ( ( CL_ScaledMilliseconds() - cinTable[currentHandle].startTime ) * cinTable[currentHandle].roqFPS ) / 1000 );
 
