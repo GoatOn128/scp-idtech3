@@ -1118,7 +1118,7 @@ void ClientThink_real( gentity_t *ent ) {
 						end = start;
 						end[2] += 1.0;
 
-						trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, ( CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE | CONTENTS_TRIGGER ) );
+						trap_Trace( &tr, start, vec3_origin, vec3_origin, end, ent->s.number, ( CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE | CONTENTS_TRIGGER ) );
 
 						if ( tr.contents & CONTENTS_SOLID ) {
 							//VectorClear (pm.ps->velocity);
