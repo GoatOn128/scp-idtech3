@@ -1638,13 +1638,23 @@ ID_INLINE void idVec3::RotatePointAroundVector( const idVec3 &dir, const idVec3 
 }
 
 /*
-===============================================================================
+================
+RadiusFromBounds
 
-	Old 3D vector macros, should no longer be used.
-
-===============================================================================
+ported from the old q3 mathlib
+================
 */
+ID_INLINE float RadiusFromBounds( const idVec3 &mins, const idVec3 &maxs ) {
+	idVec3 corner;
+	float a, b;
 
-#define	VectorMA( v, s, b, o )		((o)[0]=(v)[0]+(b)[0]*(s),(o)[1]=(v)[1]+(b)[1]*(s),(o)[2]=(v)[2]+(b)[2]*(s))
+	for ( int i = 0; i < 3; i++ ) {
+		a = idMath::Fabs( mins[i] );
+		b = idMath::Fabs( maxs[i] );
+		corner[i] = a > b ? a : b;
+	}
+
+	return corner.Length();
+}
 
 #endif /* !__MATH_VECTOR_H__ */
