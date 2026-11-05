@@ -1869,5 +1869,17 @@ ported from the old q3 mathlib
 ID_INLINE void AnglesToAxis( const idVec3 &angles, idVec3 axis[3] ) {
 	idAngles( angles ).ToVectors( &axis[0], &axis[1], &axis[2] );
 }
+/*
+================
+SnapVector
+
+snap every component to the closest integer value
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void SnapVector( idVec3 &v ) {
+	v.Snap();
+}
+
 
 #endif /* !__MATH_VECTOR_H__ */
