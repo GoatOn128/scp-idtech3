@@ -1657,4 +1657,82 @@ ID_INLINE float RadiusFromBounds( const idVec3 &mins, const idVec3 &maxs ) {
 	return corner.Length();
 }
 
+/*
+================
+MakeNormalVectors
+
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void MakeNormalVectors( const idVec3 &forward, idVec3 &right, idVec3 &up ) {
+	// this rotate and negate guarantees a vector not colinear with the original
+	right.Set( forward[2], -forward[0], forward[1] );
+	float d = right * forward;
+	right = right - forward * d;
+	right.Normalize();
+	up.Cross( forward, right );
+}
+
+/*
+================
+ClearBounds
+
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void ClearBounds( idVec3 &mins, idVec3 &maxs ) {
+	mins.Set( 999999.0f, 999999.0f, 999999.0f );
+	maxs.Set( -999999.0f, -999999.0f, -999999.0f );
+}
+
+/*
+================
+AddPointToBounds
+
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void AddPointToBounds( const idVec3 &v, idVec3 &mins, idVec3 &maxs ) {
+	for ( int i = 0; i < 3; i++ ) {
+		if ( v[i] < mins[i] ) {
+			mins[i] = v[i];
+		}
+		if ( v[i] > maxs[i] ) {
+			maxs[i] = v[i];
+		}
+	}
+}
+
+/*
+================
+AxisToAngles
+
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void AxisToAngles( const idVec3 *axis, idVec3 &angles ) {
+	idVec3 right, roll_angles, tvec;
+
+	// first get the pitch and yaw from the forward vector
+	vectoangles( axis[0], angles );
+
+	// now get the roll from the right vector
+	right = axis[1];
+	// get the angle difference between the tmpAxis[2] and axis[2] after they have been reverse-rotated
+	RotatePointAroundVector( tvec, axisDefault[2], right, -angles[YAW] );
+	RotatePointAroundVector( right, axisDefault[1], tvec, -angles[PITCH] );
+	// now find the angles, the PITCH is effectively our ROLL
+	vectoangles( right, roll_angles );
+	roll_angles[PITCH] = AngleNormalize180( roll_angles[PITCH] );
+	// if the yaw is more than 90 degrees difference, we should adjust the pitch
+	if ( ( right ) * ( axisDefault[1] ) < 0 ) {
+		if ( roll_angles[PITCH] < 0 ) {
+			roll_angles[PITCH] = -90 + ( -90 - roll_angles[PITCH] );
+		} else {
+			roll_angles[PITCH] =  90 + ( 90 - roll_angles[PITCH] );
+		}
+	}
+
+	angles[ROLL] = -roll_angles[PITCH];
+}
 #endif /* !__MATH_VECTOR_H__ */
