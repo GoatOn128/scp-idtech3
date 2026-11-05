@@ -49,7 +49,7 @@ global pain sound events for all clients.
 void P_DamageFeedback( gentity_t *player ) {
 	gclient_t   *client;
 	float count;
-	vec3_t angles;
+	idVec3 angles;
 
 	client = player->client;
 	if ( client->ps.pm_type == PM_DEAD ) {
@@ -169,7 +169,7 @@ void P_WorldEffects( gentity_t *ent ) {
 					// don't play a normal pain sound
 					ent->pain_debounce_time = level.time + 200;
 
-					G_Damage( ent, NULL, NULL, NULL, NULL,
+					G_Damage( ent, NULL, NULL, vec3_origin, vec3_origin,
 							  ent->damage, DAMAGE_NO_ARMOR, MOD_WATER );
 				}
 			}
@@ -192,7 +192,7 @@ void P_WorldEffects( gentity_t *ent ) {
 				G_AddEvent( ent, EV_POWERUP_BATTLESUIT, 0 );
 			} else {
 				if ( ent->watertype & CONTENTS_LAVA ) {
-					G_Damage( ent, NULL, NULL, NULL, NULL,
+					G_Damage( ent, NULL, NULL, vec3_origin, vec3_origin,
 							  30 * waterlevel, 0, MOD_LAVA );
 					// play the lava sizzle
 					G_Sound( ent, G_SoundIndex( "sound/world/hurt_me.wav" ) );   // sound gets cached by target_speaker... last minute hack.
@@ -216,15 +216,15 @@ void P_WorldEffects( gentity_t *ent ) {
 			attacker = g_entities + ent->flameBurnEnt;
 			if ( g_gametype.integer == GT_SINGLE_PLAYER ) { // JPW NERVE
 				if ( ent->r.svFlags & SVF_CASTAI ) {
-					G_Damage( ent, attacker, attacker, NULL, NULL, 2, DAMAGE_NO_KNOCKBACK, MOD_FLAMETHROWER );
+					G_Damage( ent, attacker, attacker, vec3_origin, vec3_origin, 2, DAMAGE_NO_KNOCKBACK, MOD_FLAMETHROWER );
 				} else if ( ( ent->s.onFireEnd - level.time ) > FIRE_FLASH_TIME / 2 && rand() % 5000 < ( ent->s.onFireEnd - level.time ) ) { // as it fades out, also fade out damage rate
-					G_Damage( ent, attacker, attacker, NULL, NULL, 1, DAMAGE_NO_KNOCKBACK, MOD_FLAMETHROWER );
+					G_Damage( ent, attacker, attacker, vec3_origin, vec3_origin, 1, DAMAGE_NO_KNOCKBACK, MOD_FLAMETHROWER );
 				}
 			} // JPW NERVE
 			else { // JPW NERVE multiplayer flamethrower
 				if ( level.time < ent->s.onFireEnd ) { // flamethrower does total 80 pts damage in multiplayer
 					// (it's short range and hard to hit with)
-					G_Damage( ent, attacker, attacker, NULL, NULL, 2, DAMAGE_NO_KNOCKBACK, MOD_FLAMETHROWER );
+					G_Damage( ent, attacker, attacker, vec3_origin, vec3_origin, 2, DAMAGE_NO_KNOCKBACK, MOD_FLAMETHROWER );
 				}
 			}
 			// jpw
@@ -306,8 +306,8 @@ void    G_TouchTriggers( gentity_t *ent ) {
 	int touch[MAX_GENTITIES];
 	gentity_t   *hit;
 	trace_t trace;
-	vec3_t mins, maxs;
-	static vec3_t range = { 40, 40, 52 };
+	idVec3 mins, maxs;
+	static idVec3 range( 40, 40, 52 );
 
 	if ( !ent->client ) {
 		return;
@@ -318,14 +318,14 @@ void    G_TouchTriggers( gentity_t *ent ) {
 		return;
 	}
 
-	VectorSubtract( ent->client->ps.origin, range, mins );
-	VectorAdd( ent->client->ps.origin, range, maxs );
+	mins = ent->client->ps.origin - range;
+	maxs = ent->client->ps.origin + range;
 
 	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
 
 	// can't use ent->absmin, because that has a one unit pad
-	VectorAdd( ent->client->ps.origin, ent->r.mins, mins );
-	VectorAdd( ent->client->ps.origin, ent->r.maxs, maxs );
+	mins = ent->client->ps.origin + ent->r.mins;
+	maxs = ent->client->ps.origin + ent->r.maxs;
 
 	for ( i = 0 ; i < num ; i++ ) {
 		hit = &g_entities[touch[i]];
@@ -405,7 +405,7 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
 		}
 
 		// save results of pmove
-		VectorCopy( client->ps.origin, ent->s.origin );
+		ent->s.origin = client->ps.origin;
 
 		G_TouchTriggers( ent );
 		trap_UnlinkEntity( ent );
@@ -572,10 +572,10 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 	int event, eventParm;
 	gclient_t   *client;
 	int damage;
-	vec3_t dir;
+	idVec3 dir;
 	int stunTime;           //----(SA)	added
 	float fallSoundMul;
-//	vec3_t		origin, angles;
+//	idVec3		origin, angles;
 //	qboolean	fired;
 //	gitem_t		*item;
 //	gentity_t	*drop;
@@ -636,12 +636,12 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 			if ( stunTime ) {
 				ent->client->ps.pm_time = stunTime;
 				ent->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
-				VectorClear( ent->client->ps.velocity );
+				ent->client->ps.velocity.Zero();
 			}
 
-			VectorSet( dir, 0, 0, 1 );
+			dir.Set( 0, 0, 1 );
 			ent->pain_debounce_time = level.time + 200; // no normal pain sound
-			G_Damage( ent, NULL, NULL, NULL, NULL, damage, 0, MOD_FALLING );
+			G_Damage( ent, NULL, NULL, vec3_origin, vec3_origin, damage, 0, MOD_FALLING );
 			// falls through to FALL_SHORT
 
 //----(SA)	added the audible events for jumping/falling
@@ -783,13 +783,13 @@ once for each server frame, which makes for smooth demo recording.
 void ClientThink_real( gentity_t *ent ) {
 	gclient_t   *client;
 	pmove_t pm;
-//	vec3_t		oldOrigin;
+//	idVec3		oldOrigin;
 	int oldEventSequence;
 	int msec;
 	usercmd_t   *ucmd;
 	//int i;
 	int monsterslick = 0;
-	vec3_t muzzlebounce;      // JPW NERVE
+	idVec3 muzzlebounce;      // JPW NERVE
 
 
 	// Rafael wolfkick
@@ -806,7 +806,7 @@ void ClientThink_real( gentity_t *ent ) {
 	if ( client->cameraPortal ) {
 		G_SetOrigin( client->cameraPortal, client->ps.origin );
 		trap_LinkEntity( client->cameraPortal );
-		VectorCopy( client->cameraOrigin, client->cameraPortal->s.origin2 );
+		client->cameraPortal->s.origin2 = client->cameraOrigin;
 	}
 
 	// mark the time, so the connection sprite can be removed
@@ -889,7 +889,7 @@ void ClientThink_real( gentity_t *ent ) {
 		if ( level.time - client->sniperRifleFiredTime > RIFLE_SHAKE_TIME ) {
 			client->sniperRifleFiredTime = 0;
 		} else {
-			VectorCopy( client->ps.viewangles,muzzlebounce );
+			muzzlebounce = client->ps.viewangles;
 
 // JPW old damped behavior -- feels more like a real rifle (modeled on Remington 700 7.62x51mm w/ 14x scope)
 /*
@@ -976,7 +976,7 @@ void ClientThink_real( gentity_t *ent ) {
 
 		// freeze player (RELOAD_FAILED still allowed to move/look)
 		if ( client->cameraPortal || ( g_reloading.integer & ( RELOAD_NEXTMAP_WAITING | RELOAD_ENDGAME ) ) ) {
-			VectorClear( client->ps.velocity );
+			client->ps.velocity.Zero();
 			client->ps.pm_type = PM_FREEZE;
 		}
 
@@ -1042,7 +1042,7 @@ void ClientThink_real( gentity_t *ent ) {
 //	if (ent->r.svFlags & SVF_NOFOOTSTEPS)
 //		pm.noFootsteps = qtrue;
 
-	VectorCopy( client->ps.origin, client->oldOrigin );
+	client->oldOrigin = client->ps.origin;
 
 	// perform a pmove
 #ifdef MISSIONPACK
@@ -1063,9 +1063,9 @@ void ClientThink_real( gentity_t *ent ) {
 
 	if ( monsterslick && !( ent->flags & FL_NO_MONSTERSLICK ) ) {
 		{
-			vec3_t dir;
-			vec3_t kvel;
-			vec3_t forward;
+			idVec3 dir;
+			idVec3 kvel;
+			idVec3 forward;
 			float angle = 0.0f;   // TTimo: init
 			qboolean bogus = qfalse;
 
@@ -1110,12 +1110,12 @@ void ClientThink_real( gentity_t *ent ) {
 				{
 					orientation_t   orent;
 					trace_t tr;
-					vec3_t start, end;
+					idVec3 start, end;
 					qboolean slide = qtrue;
 
 					if ( trap_GetTag( ent->s.number, "tag_head", &orent ) ) {
-						VectorCopy( orent.origin, start );
-						VectorCopy( start, end );
+						start = orent.origin;
+						end = start;
 						end[2] += 1.0;
 
 						trap_Trace( &tr, start, NULL, NULL, end, ent->s.number, ( CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE | CONTENTS_TRIGGER ) );
@@ -1128,23 +1128,23 @@ void ClientThink_real( gentity_t *ent ) {
 						}
 
 						if ( slide ) {
-							VectorClear( dir );
+							dir.Zero();
 							dir[YAW] = angle;
-							AngleVectors( dir, forward, NULL, NULL );
+							idAngles( dir ).ToVectors( &forward, NULL, NULL );
 
-							VectorScale( forward, 32, kvel );
-							VectorAdd( pm.ps->velocity, kvel, pm.ps->velocity );
+							kvel = forward * 32;
+							pm.ps->velocity = pm.ps->velocity + kvel;
 						}
 					}
 				}
 
 				/*
-				VectorClear (dir);
+				dir.Zero();
 				dir[YAW] = angle;
-				AngleVectors (dir, forward, NULL, NULL);
+				idAngles( dir ).ToVectors( &forward, NULL, NULL );
 
-				VectorScale (forward, 32, kvel);
-				VectorAdd (pm.ps->velocity, kvel, pm.ps->velocity);
+				kvel = forward * 32;
+				pm.ps->velocity = pm.ps->velocity + kvel;
 				*/
 			}
 		}
@@ -1152,19 +1152,19 @@ void ClientThink_real( gentity_t *ent ) {
 	} else if ( ( ent->health <= 0 ) && !( ent->flags & FL_NO_HEADCHECK ) ) { // move bodies away from walls
 
 		orientation_t orent;
-		vec3_t src, vel;
+		idVec3 src, vel;
 		trace_t tr;
 
-		if ( VectorLength( pm.ps->velocity ) < 100 && trap_InPVS( pm.ps->origin, g_entities[0].s.pos.trBase ) ) {
+		if ( pm.ps->velocity.Length() < 100 && trap_InPVS( pm.ps->origin, g_entities[0].s.pos.trBase ) ) {
 			// find the head position
 			if ( trap_GetTag( ent->s.number, "tag_head", &orent ) ) {
 				// move up a tad
 				orent.origin[2] += 3;
 				// move to tip of head
-				VectorMA( orent.origin, 12, orent.axis[2], orent.origin );
+				orent.origin = orent.origin + orent.axis[2] * 12;
 
 				// trace from the base of our bounding box, to the head
-				VectorCopy( pm.ps->origin, src );
+				src = pm.ps->origin;
 				src[2] += pm.ps->mins[2] + 3;
 				if ( orent.origin[2] < src[2] ) {
 					orent.origin[2] = src[2];  // dont let the head sink into the ground (even if it is visually)
@@ -1174,16 +1174,16 @@ void ClientThink_real( gentity_t *ent ) {
 				// if we hit something, move away from it
 				if ( !tr.startsolid && !tr.allsolid && tr.fraction < 1.0 ) {
 					// move towards feet
-					VectorSubtract( src, orent.origin, vel );
+					vel = src - orent.origin;
 					vel[2] = 0;
-					VectorNormalize( vel );
-					VectorScale( vel, 80 /** (1.0-tr.fraction)*/, vel );
+					vel.Normalize();
+					vel = vel * 80 /** (1.0-tr.fraction)*/;
 					// dont move against current velocity
-					if ( DotProduct( vel, pm.ps->velocity ) >= 0 ) {
-						VectorAdd( pm.ps->velocity, vel, pm.ps->velocity );
-						if ( VectorLength( pm.ps->velocity ) > 100 ) {
-							VectorNormalize( pm.ps->velocity );
-							VectorScale( pm.ps->velocity, 100, pm.ps->velocity );
+					if ( ( vel * pm.ps->velocity ) >= 0 ) {
+						pm.ps->velocity = pm.ps->velocity + vel;
+						if ( pm.ps->velocity.Length() > 100 ) {
+							pm.ps->velocity.Normalize();
+							pm.ps->velocity = pm.ps->velocity * 100;
 						}
 						// stop obeying monsterslick pushes
 						ent->flags |= FL_NO_MONSTERSLICK;
@@ -1199,7 +1199,7 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// RF, prevent guys from standing ontop of each other
 	if ( ent->client->ps.groundEntityNum >= 0 && ent->client->ps.groundEntityNum < MAX_CLIENTS
-		 && ( VectorLength( ent->client->ps.velocity ) < 200 ) ) {
+		 && ( ent->client->ps.velocity.Length() < 200 ) ) {
 		// give them some random velocity
 		ent->client->ps.velocity[0] += crandom() * 100;
 		ent->client->ps.velocity[1] += crandom() * 100;
@@ -1212,9 +1212,9 @@ void ClientThink_real( gentity_t *ent ) {
 		if ( groundEnt->isProp && groundEnt->takedamage && !groundEnt->nopickup ) {
 			// it's a chair, is it on a mover?
 			if ( groundEnt->s.groundEntityNum >= MAX_CLIENTS && groundEnt->s.groundEntityNum < ENTITYNUM_WORLD ) {
-				if ( !Q_stricmp( g_entities[groundEnt->s.groundEntityNum].classname, "script_mover" ) ) {
+				if ( !idStr::Icmp( g_entities[groundEnt->s.groundEntityNum].classname, "script_mover" ) ) {
 					// break it
-					G_Damage( groundEnt, ent, ent, NULL, NULL, 9999, 0, MOD_CRUSH );
+					G_Damage( groundEnt, ent, ent, vec3_origin, vec3_origin, 9999, 0, MOD_CRUSH );
 				}
 			}
 		}
@@ -1304,10 +1304,10 @@ void ClientThink_real( gentity_t *ent ) {
 //	VectorCopy( ent->client->ps.origin, ent->r.currentOrigin );
 //
 //	// use the snapped origin for linking so it matches client predicted versions
-	VectorCopy( ent->s.pos.trBase, ent->r.currentOrigin );
+	ent->r.currentOrigin = ent->s.pos.trBase;
 
-	VectorCopy( pm.mins, ent->r.mins );
-	VectorCopy( pm.maxs, ent->r.maxs );
+	ent->r.mins = pm.mins;
+	ent->r.maxs = pm.maxs;
 
 	ent->waterlevel = pm.waterlevel;
 	ent->watertype = pm.watertype;
@@ -1322,7 +1322,7 @@ void ClientThink_real( gentity_t *ent ) {
 	}
 
 	// NOTE: now copy the exact origin over otherwise clients can be snapped into solid
-	VectorCopy( ent->client->ps.origin, ent->r.currentOrigin );
+	ent->r.currentOrigin = ent->client->ps.origin;
 
 	// touch other objects
 	ClientImpacts( ent, &pm );
@@ -1592,7 +1592,7 @@ void ClientEndFrame( gentity_t *ent ) {
 #if 0
 	if ( !g_synchronousClients->integer && ent->client->ps.pm_type == PM_NORMAL ) {
 		// FIXME: this must change eventually for non-sync demo recording
-		VectorClear( ent->client->ps.viewangles );
+		ent->client->ps.viewangles.Zero();
 	}
 #endif
 
