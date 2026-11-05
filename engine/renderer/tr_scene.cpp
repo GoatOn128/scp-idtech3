@@ -137,7 +137,7 @@ void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts
 	int i;
 	int fogIndex;
 	fog_t       *fog;
-	vec3_t bounds[2];
+	idVec3 bounds[2];
 
 	if ( !tr.registered ) {
 		return;
@@ -175,8 +175,8 @@ void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts
 		fogIndex = 0;
 	} else {
 		// find which fog volume the poly is in
-		VectorCopy( poly->verts[0].xyz, bounds[0] );
-		VectorCopy( poly->verts[0].xyz, bounds[1] );
+		bounds[0] = poly->verts[0].xyz;
+		bounds[1] = poly->verts[0].xyz;
 		for ( i = 1 ; i < poly->numVerts ; i++ ) {
 			AddPointToBounds( poly->verts[i].xyz, bounds[0], bounds[1] );
 		}
@@ -210,7 +210,7 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 	int i;
 	int fogIndex;
 	fog_t       *fog;
-	vec3_t bounds[2];
+	idVec3 bounds[2];
 	int j;
 
 	if ( !tr.registered ) {
@@ -255,8 +255,8 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 			fogIndex = 0;
 		} else {
 			// find which fog volume the poly is in
-			VectorCopy( poly->verts[0].xyz, bounds[0] );
-			VectorCopy( poly->verts[0].xyz, bounds[1] );
+			bounds[0] = poly->verts[0].xyz;
+			bounds[1] = poly->verts[0].xyz;
 			for ( i = 1 ; i < poly->numVerts ; i++ ) {
 				AddPointToBounds( poly->verts[i].xyz, bounds[0], bounds[1] );
 			}
@@ -315,7 +315,7 @@ RE_AddLightToScene
 
 =====================
 */
-void RE_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b, int overdraw ) {
+void RE_AddLightToScene( const idVec3 &org, float intensity, float r, float g, float b, int overdraw ) {
 	dlight_t    *dl;
 
 	if ( !tr.registered ) {
@@ -349,7 +349,7 @@ void RE_AddLightToScene( const vec3_t org, float intensity, float r, float g, fl
 	overdraw &= ~REF_JUNIOR_DLIGHT;
 
 	dl = &backEndData[tr.smpFrame]->dlights[r_numdlights++];
-	VectorCopy( org, dl->origin );
+	dl->origin = org;
 
 	dl->radius = intensity * r_dlightScale->value;  //----(SA)	modified
 	dl->color[0] = r;
@@ -374,7 +374,7 @@ void RE_AddLightToScene( const vec3_t org, float intensity, float r, float g, fl
 RE_AddCoronaToScene
 ==============
 */
-void RE_AddCoronaToScene( const vec3_t org, float r, float g, float b, float scale, int id, int flags ) {
+void RE_AddCoronaToScene( const idVec3 &org, float r, float g, float b, float scale, int id, int flags ) {
 	corona_t    *cor;
 
 	if ( !tr.registered ) {
@@ -385,7 +385,7 @@ void RE_AddCoronaToScene( const vec3_t org, float r, float g, float b, float sca
 	}
 
 	cor = &backEndData[tr.smpFrame]->coronas[r_numcoronas++];
-	VectorCopy( org, cor->origin );
+	cor->origin = org;
 	cor->color[0] = r;
 	cor->color[1] = g;
 	cor->color[2] = b;
@@ -433,10 +433,10 @@ void RE_RenderScene( const refdef_t *fd ) {
 	tr.refdef.fov_x = fd->fov_x;
 	tr.refdef.fov_y = fd->fov_y;
 
-	VectorCopy( fd->vieworg, tr.refdef.vieworg );
-	VectorCopy( fd->viewaxis[0], tr.refdef.viewaxis[0] );
-	VectorCopy( fd->viewaxis[1], tr.refdef.viewaxis[1] );
-	VectorCopy( fd->viewaxis[2], tr.refdef.viewaxis[2] );
+	tr.refdef.vieworg = fd->vieworg;
+	tr.refdef.viewaxis[0] = fd->viewaxis[0];
+	tr.refdef.viewaxis[1] = fd->viewaxis[1];
+	tr.refdef.viewaxis[2] = fd->viewaxis[2];
 
 	tr.refdef.time = fd->time;
 	tr.refdef.rdflags = fd->rdflags;
@@ -523,12 +523,12 @@ void RE_RenderScene( const refdef_t *fd ) {
 	parms.fovX = tr.refdef.fov_x;
 	parms.fovY = tr.refdef.fov_y;
 
-	VectorCopy( fd->vieworg, parms.orent.origin );
-	VectorCopy( fd->viewaxis[0], parms.orent.axis[0] );
-	VectorCopy( fd->viewaxis[1], parms.orent.axis[1] );
-	VectorCopy( fd->viewaxis[2], parms.orent.axis[2] );
+	parms.orent.origin = fd->vieworg;
+	parms.orent.axis[0] = fd->viewaxis[0];
+	parms.orent.axis[1] = fd->viewaxis[1];
+	parms.orent.axis[2] = fd->viewaxis[2];
 
-	VectorCopy( fd->vieworg, parms.pvsOrigin );
+	parms.pvsOrigin = fd->vieworg;
 
 	R_RenderView( &parms );
 
