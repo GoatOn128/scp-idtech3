@@ -771,7 +771,7 @@ typedef struct {
 	byte        *novis;         // clusterBytes of 0xff
 
 	char        *entityString;
-	char        *entityParsePoint;
+	idLexer     entityLexer;
 } world_t;
 
 //======================================================================
