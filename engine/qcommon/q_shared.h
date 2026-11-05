@@ -386,6 +386,10 @@ float NormalizeColor( const idVec3 &in, idVec3 &out );
 void SetPlaneSignbits( struct cplane_s *out );
 int BoxOnPlaneSide( const idVec3 &emins, const idVec3 &emaxs, struct cplane_s *plane );
 
+// engine string helpers
+void QDECL Com_sprintf( char *dest, int size, const char *fmt, ... );
+char * QDECL va( char *format, ... );
+
 // mode parm for FS_FOpenFile
 typedef enum {
 	FS_READ,
