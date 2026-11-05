@@ -46,5 +46,7 @@ if ( MSVC )
 endif()
 # q_math.cpp/q_shared.cpp include their headers from the engine qcommon dir,
 # same setup the game module uses for its copies
-target_include_directories(botlib PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
+target_include_directories(botlib PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine")
+# q_math.cpp/q_shared.cpp build on idlib now, link the pieces they reference
+target_link_libraries(botlib PRIVATE idlib)
 configure_target(botlib)

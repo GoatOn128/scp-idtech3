@@ -55,7 +55,9 @@ if ( MSVC )
     target_link_libraries(cgame PRIVATE odbc32 odbccp32)
     target_link_options(cgame PRIVATE /BASE:0x30000000 /MAP:${CMAKE_SOURCE_DIR}/bin/main/cgamex86.map)
 endif()
-target_include_directories(cgame PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client")
+target_include_directories(cgame PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client" "${CMAKE_SOURCE_DIR}/engine")
+# q_math.cpp/q_shared.cpp build on idlib now, link the pieces they reference
+target_link_libraries(cgame PRIVATE idlib)
 if ( APPLE )
     # the cgame module imports engine symbols (Com_Printf, Com_Error) from
     # the host executable at load time, the same way it does on windows, so

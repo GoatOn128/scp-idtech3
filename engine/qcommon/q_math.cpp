@@ -32,6 +32,21 @@ If you have questions concerning this license or the applicable additional terms
 // The implementations sit on idlib (idMath, idVec3, idMat3); the angle and axis
 // helpers keep the engine's Q3 conventions, which differ from idlib's.
 #include "idlib/precompiled.h"
+
+// idlib's Str.h redirects the standard string routines; this file still
+// talks to the C library directly, so undo the redirects here
+#undef strcmp
+#undef strncmp
+#undef stricmp
+#undef _stricmp
+#undef strcasecmp
+#undef strnicmp
+#undef _strnicmp
+#undef _memicmp
+#undef snprintf
+#undef _snprintf
+#undef vsnprintf
+#undef _vsnprintf
 #include "q_shared.h"
 
 

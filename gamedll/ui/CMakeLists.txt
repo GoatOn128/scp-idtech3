@@ -27,7 +27,9 @@ if ( MSVC )
     target_link_libraries(ui PRIVATE odbc32 odbccp32)
     target_link_options(ui PRIVATE /BASE:0x40000000 /MAP:${CMAKE_SOURCE_DIR}/bin/main/uix86.map)
 endif()
-target_include_directories(ui PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client")
+target_include_directories(ui PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client" "${CMAKE_SOURCE_DIR}/engine")
+# q_math.cpp/q_shared.cpp build on idlib now, link the pieces they reference
+target_link_libraries(ui PRIVATE idlib)
 if ( APPLE )
     # the ui module imports engine symbols (Com_Printf, Com_Error) from
     # the host executable at load time, the same way it does on windows, so

@@ -33,6 +33,21 @@ If you have questions concerning this license or the applicable additional terms
 // contract for every script, menu and config file this engine reads, and the
 // game modules parse the same formats with their own copies of these rules.
 #include "idlib/precompiled.h"
+
+// idlib's Str.h redirects the standard string routines; this file still
+// talks to the C library directly, so undo the redirects here
+#undef strcmp
+#undef strncmp
+#undef stricmp
+#undef _stricmp
+#undef strcasecmp
+#undef strnicmp
+#undef _strnicmp
+#undef _memicmp
+#undef snprintf
+#undef _snprintf
+#undef vsnprintf
+#undef _vsnprintf
 #include "q_shared.h"
 
 /*

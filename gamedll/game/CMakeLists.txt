@@ -92,7 +92,9 @@ endif()
 if ( WIN32 )
     add_dependencies(game genFuncTable)
 endif()
-target_include_directories(game PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
+target_include_directories(game PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine")
+# q_math.cpp/q_shared.cpp build on idlib now, link the pieces they reference
+target_link_libraries(game PRIVATE idlib)
 if ( APPLE )
     # the game module imports engine symbols (Com_Printf, Com_Error) from
     # the host executable at load time, the same way it does on windows, so
