@@ -299,6 +299,11 @@ typedef int fixed16_t;
 void SetPlaneSignbits( struct cplane_s *out );
 int BoxOnPlaneSide( const idVec3 &emins, const idVec3 &emaxs, struct cplane_s *plane );
 
+// bit field helpers for arrays wider than 32 bits, implemented in q_shared.cpp
+void COM_BitSet( int array[], int bitNum );
+void COM_BitClear( int array[], int bitNum );
+qboolean COM_BitCheck( const int array[], int bitNum );
+
 // engine string helpers
 void QDECL Com_sprintf( char *dest, int size, const char *fmt, ... );
 char * QDECL va( char *format, ... );
