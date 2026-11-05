@@ -30,7 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../precompiled.h"
 
 idVec2 vec2_origin( 0.0f, 0.0f );
-idVec3 vec3_origin( 0.0f, 0.0f, 0.0f );
+idVec3 idlib_vec3_origin( 0.0f, 0.0f, 0.0f );
 idVec4 vec4_origin( 0.0f, 0.0f, 0.0f, 0.0f );
 idVec5 vec5_origin( 0.0f, 0.0f, 0.0f, 0.0f, 0.0f );
 idVec6 vec6_origin( 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f );

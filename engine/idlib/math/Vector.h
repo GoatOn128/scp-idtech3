@@ -389,8 +389,9 @@ public:
 	void			SLerp( const idVec3 &v1, const idVec3 &v2, const float l );
 };
 
-extern idVec3 vec3_origin;
-#define vec3_zero vec3_origin
+// renamed so it does not collide with the engine's float array of the same name
+extern idVec3 idlib_vec3_origin;
+#define vec3_zero idlib_vec3_origin
 
 ID_INLINE idVec3::idVec3() {
 }

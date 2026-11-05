@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 // Copyright (C) 1999-2000 Id Software, Inc.
 //
 // q_math.c -- stateless support routines that are included in each code module
+// The implementations sit on idlib (idMath, idVec3, idMat3); the angle and axis
+// helpers keep the engine's Q3 conventions, which differ from idlib's.
+#include "idlib/precompiled.h"
 #include "q_shared.h"
 
 
@@ -165,42 +168,27 @@ float   Q_crandom( int *seed ) {
 //=======================================================
 
 signed char ClampChar( int i ) {
-	if ( i < -128 ) {
-		return -128;
-	}
-	if ( i > 127 ) {
-		return 127;
-	}
-	return i;
+	return idMath::ClampChar( i );
 }
 
 signed short ClampShort( int i ) {
-	if ( i < -32768 ) {
-		return -32768;
-	}
-	if ( i > 0x7fff ) {
-		return 0x7fff;
-	}
-	return i;
+	return idMath::ClampShort( i );
 }
 
 
 // this isn't a real cheap function to call!
 int DirToByte( vec3_t dir ) {
-	int i, best;
-	float d, bestd;
-
 	if ( !dir ) {
 		return 0;
 	}
 
-	bestd = 0;
-	best = 0;
-	for ( i = 0 ; i < NUMVERTEXNORMALS ; i++ )
-	{
-		d = DotProduct( dir, bytedirs[i] );
-		if ( d > bestd ) {
-			bestd = d;
+	const idVec3 & d = *( const idVec3 * ) dir;
+	float bestd = 0.0F;
+	int best = 0;
+	for ( int i = 0 ; i < NUMVERTEXNORMALS ; i++ ) {
+		float dot = d * ( *( const idVec3 * ) bytedirs[i] );
+		if ( dot > bestd ) {
+			bestd = dot;
 			best = i;
 		}
 	}
@@ -210,10 +198,10 @@ int DirToByte( vec3_t dir ) {
 
 void ByteToDir( int b, vec3_t dir ) {
 	if ( b < 0 || b >= NUMVERTEXNORMALS ) {
-		VectorCopy( vec3_origin, dir );
+		*( idVec3 * ) dir = *( const idVec3 * ) vec3_origin;
 		return;
 	}
-	VectorCopy( bytedirs[b], dir );
+	*( idVec3 * ) dir = *( const idVec3 * ) bytedirs[b];
 }
 
 
@@ -269,16 +257,16 @@ The normal will point out of the clock for clockwise ordered points
 =====================
 */
 qboolean PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c ) {
-	vec3_t d1, d2;
+	idVec3 d1 = *( const idVec3 * ) b - *( const idVec3 * ) a;
+	idVec3 d2 = *( const idVec3 * ) c - *( const idVec3 * ) a;
 
-	VectorSubtract( b, a, d1 );
-	VectorSubtract( c, a, d2 );
-	CrossProduct( d2, d1, plane );
-	if ( VectorNormalize( plane ) == 0 ) {
+	idVec3 & n = *( idVec3 * ) plane;
+	n = d2.Cross( d1 );
+	if ( n.Normalize() == 0.0F ) {
 		return qfalse;
 	}
 
-	plane[3] = DotProduct( a, plane );
+	plane[3] = *( const idVec3 * ) a * n;
 	return qtrue;
 }
 
@@ -291,58 +279,27 @@ This is not implemented very well...
 */
 void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point,
 							  float degrees ) {
-	float m[3][3];
-	float im[3][3];
-	float zrot[3][3];
-	float tmpmat[3][3];
-	float rot[3][3];
-	int i;
-	vec3_t vr, vup, vf;
-	float rad;
+	const idVec3 & vf = *( const idVec3 * ) dir;
+	idVec3 vr, vup;
 
-	vf[0] = dir[0];
-	vf[1] = dir[1];
-	vf[2] = dir[2];
+	PerpendicularVector( vr.ToFloatPtr(), dir );
+	vup = vr.Cross( vf );
 
-	PerpendicularVector( vr, dir );
-	CrossProduct( vr, vf, vup );
+	// idMat3( a, b, c ) sets the rows; the engine's basis matrix has
+	// vr, vup and vf as its columns
+	idMat3 im( vr, vup, vf );
+	idMat3 m = im.Transpose();
 
-	m[0][0] = vr[0];
-	m[1][0] = vr[1];
-	m[2][0] = vr[2];
+	float rad = DEG2RAD( degrees );
+	idMat3 zrot( cos( rad ), sin( rad ), 0.0F,
+				 -sin( rad ), cos( rad ), 0.0F,
+				 0.0F, 0.0F, 1.0F );
 
-	m[0][1] = vup[0];
-	m[1][1] = vup[1];
-	m[2][1] = vup[2];
+	idMat3 rot = m * zrot * im;
 
-	m[0][2] = vf[0];
-	m[1][2] = vf[1];
-	m[2][2] = vf[2];
-
-	memcpy( im, m, sizeof( im ) );
-
-	im[0][1] = m[1][0];
-	im[0][2] = m[2][0];
-	im[1][0] = m[0][1];
-	im[1][2] = m[2][1];
-	im[2][0] = m[0][2];
-	im[2][1] = m[1][2];
-
-	memset( zrot, 0, sizeof( zrot ) );
-	zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0F;
-
-	rad = DEG2RAD( degrees );
-	zrot[0][0] = cos( rad );
-	zrot[0][1] = sin( rad );
-	zrot[1][0] = -sin( rad );
-	zrot[1][1] = cos( rad );
-
-	MatrixMultiply( m, zrot, tmpmat );
-	MatrixMultiply( tmpmat, im, rot );
-
-	for ( i = 0; i < 3; i++ ) {
-		dst[i] = rot[i][0] * point[0] + rot[i][1] * point[1] + rot[i][2] * point[2];
-	}
+	// the engine multiplies the matrix rows by the point, idMat3
+	// multiplies by its columns
+	*( idVec3 * ) dst = rot.Transpose() * ( *( const idVec3 * ) point );
 }
 
 /*
@@ -419,39 +376,22 @@ void AnglesToAxis( const vec3_t angles, vec3_t axis[3] ) {
 }
 
 void AxisClear( vec3_t axis[3] ) {
-	axis[0][0] = 1;
-	axis[0][1] = 0;
-	axis[0][2] = 0;
-	axis[1][0] = 0;
-	axis[1][1] = 1;
-	axis[1][2] = 0;
-	axis[2][0] = 0;
-	axis[2][1] = 0;
-	axis[2][2] = 1;
+	*( idMat3 * ) axis = idMat3( 1, 0, 0, 0, 1, 0, 0, 0, 1 );
 }
 
 void AxisCopy( vec3_t in[3], vec3_t out[3] ) {
-	VectorCopy( in[0], out[0] );
-	VectorCopy( in[1], out[1] );
-	VectorCopy( in[2], out[2] );
+	*( idMat3 * ) out = *( const idMat3 * ) in;
 }
 
 void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal ) {
-	float d;
-	vec3_t n;
-	float inv_denom;
+	const idVec3 & n = *( const idVec3 * ) normal;
+	const idVec3 & pt = *( const idVec3 * ) p;
 
-	inv_denom = 1.0F / DotProduct( normal, normal );
+	float inv_denom = 1.0F / ( n * n );
+	float d = ( n * pt ) * inv_denom;
+	idVec3 nscaled = n * inv_denom;
 
-	d = DotProduct( normal, p ) * inv_denom;
-
-	n[0] = normal[0] * inv_denom;
-	n[1] = normal[1] * inv_denom;
-	n[2] = normal[2] * inv_denom;
-
-	dst[0] = p[0] - d * n[0];
-	dst[1] = p[1] - d * n[1];
-	dst[2] = p[2] - d * n[2];
+	*( idVec3 * ) dst = pt - nscaled * d;
 }
 
 /*
@@ -463,25 +403,22 @@ other perpendicular vectors
 ================
 */
 void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up ) {
-	float d;
+	const idVec3 & f = *( const idVec3 * ) forward;
+	idVec3 r( f[2], -f[0], f[1] );	// rotate and negate: not colinear with f
 
-	// this rotate and negate guarantees a vector
-	// not colinear with the original
-	right[1] = -forward[0];
-	right[2] = forward[1];
-	right[0] = forward[2];
+	float d = r * f;
+	r -= f * d;
+	r.Normalize();
 
-	d = DotProduct( right, forward );
-	VectorMA( right, -d, forward, right );
-	VectorNormalize( right );
-	CrossProduct( right, forward, up );
+	*( idVec3 * ) right = r;
+	*( idVec3 * ) up = r.Cross( f );
 }
 
 
 void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out ) {
-	out[0] = DotProduct( in, matrix[0] );
-	out[1] = DotProduct( in, matrix[1] );
-	out[2] = DotProduct( in, matrix[2] );
+	// the engine multiplies the matrix rows by the vector, idMat3
+	// multiplies by its columns
+	*( idVec3 * ) out = ( *( idMat3 * ) matrix ).Transpose() * ( *( const idVec3 * ) in );
 }
 
 //============================================================================
@@ -490,25 +427,11 @@ void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out ) {
 ** float q_rsqrt( float number )
 */
 float Q_rsqrt( float number ) {
-	long i;
-	float x2, y;
-	const float threehalfs = 1.5F;
-
-	x2 = number * 0.5F;
-	y  = number;
-	i  = *( long * ) &y;                        // evil floating point bit level hacking
-	i  = 0x5f3759df - ( i >> 1 );               // what the fuck?
-	y  = *( float * ) &i;
-	y  = y * ( threehalfs - ( x2 * y * y ) );   // 1st iteration
-//	y  = y * ( threehalfs - ( x2 * y * y ) );   // 2nd iteration, this can be removed
-
-	return y;
+	return idMath::InvSqrt( number );
 }
 
 float Q_fabs( float f ) {
-	int tmp = *( int * ) &f;
-	tmp &= 0x7FFFFFFF;
-	return *( float * ) &tmp;
+	return idMath::Fabs( f );
 }
 
 //============================================================
@@ -576,7 +499,7 @@ returns angle normalized to the range [0 <= angle < 360]
 =================
 */
 float AngleNormalize360( float angle ) {
-	return ( 360.0 / 65536 ) * ( (int)( angle * ( 65536 / 360.0 ) ) & 65535 );
+	return idMath::AngleNormalize360( angle );
 }
 
 
@@ -588,11 +511,7 @@ returns angle normalized to the range [-180 < angle <= 180]
 =================
 */
 float AngleNormalize180( float angle ) {
-	angle = AngleNormalize360( angle );
-	if ( angle > 180.0 ) {
-		angle -= 360.0;
-	}
-	return angle;
+	return idMath::AngleNormalize180( angle );
 }
 
 
@@ -604,7 +523,7 @@ returns the normalized delta from angle1 to angle2
 =================
 */
 float AngleDelta( float angle1, float angle2 ) {
-	return AngleNormalize180( angle1 - angle2 );
+	return idMath::AngleDelta( angle1, angle2 );
 }
 
 
@@ -670,9 +589,6 @@ int BoxOnPlaneSide2 (vec3_t emins, vec3_t emaxs, struct cplane_s *p)
 
 ==================
 */
-#if !( defined __linux__ && defined __i386__ && !defined C_ONLY )
-#if defined __LCC__ || defined C_ONLY || !id386
-
 int BoxOnPlaneSide( vec3_t emins, vec3_t emaxs, struct cplane_s *p ) {
 	float dist1, dist2;
 	int sides;
@@ -738,241 +654,7 @@ int BoxOnPlaneSide( vec3_t emins, vec3_t emaxs, struct cplane_s *p ) {
 
 	return sides;
 }
-#else
-#pragma warning( disable: 4035 )
 
-__declspec( naked ) int BoxOnPlaneSide( vec3_t emins, vec3_t emaxs, struct cplane_s *p ) {
-	static int bops_initialized;
-	static int Ljmptab[8];
-
-	__asm {
-
-		push ebx
-
-		cmp bops_initialized, 1
-		je initialized
-		mov bops_initialized, 1
-
-		mov Ljmptab[0 * 4], offset Lcase0
-		mov Ljmptab[1 * 4], offset Lcase1
-		mov Ljmptab[2 * 4], offset Lcase2
-		mov Ljmptab[3 * 4], offset Lcase3
-		mov Ljmptab[4 * 4], offset Lcase4
-		mov Ljmptab[5 * 4], offset Lcase5
-		mov Ljmptab[6 * 4], offset Lcase6
-		mov Ljmptab[7 * 4], offset Lcase7
-
-initialized:
-
-		mov edx,dword ptr[4 + 12 + esp]
-		mov ecx,dword ptr[4 + 4 + esp]
-		xor eax,eax
-		mov ebx,dword ptr[4 + 8 + esp]
-		mov al,byte ptr[17 + edx]
-		cmp al,8
-		jge Lerror
-		fld dword ptr[0 + edx]
-		fld st( 0 )
-		jmp dword ptr[Ljmptab + eax * 4]
-		Lcase0 :
-			fmul dword ptr[ebx]
-			fld dword ptr[0 + 4 + edx]
-			fxch st( 2 )
-			fmul dword ptr[ecx]
-			fxch st( 2 )
-			fld st( 0 )
-			fmul dword ptr[4 + ebx]
-			fld dword ptr[0 + 8 + edx]
-			fxch st( 2 )
-			fmul dword ptr[4 + ecx]
-			fxch st( 2 )
-			fld st( 0 )
-			fmul dword ptr[8 + ebx]
-			fxch st( 5 )
-			faddp st( 3 ),st( 0 )
-			fmul dword ptr[8 + ecx]
-			fxch st( 1 )
-			faddp st( 3 ),st( 0 )
-			fxch st( 3 )
-			faddp st( 2 ),st( 0 )
-			jmp LSetSides
-			Lcase1 :
-				fmul dword ptr[ecx]
-				fld dword ptr[0 + 4 + edx]
-				fxch st( 2 )
-				fmul dword ptr[ebx]
-				fxch st( 2 )
-				fld st( 0 )
-				fmul dword ptr[4 + ebx]
-				fld dword ptr[0 + 8 + edx]
-				fxch st( 2 )
-				fmul dword ptr[4 + ecx]
-				fxch st( 2 )
-				fld st( 0 )
-				fmul dword ptr[8 + ebx]
-				fxch st( 5 )
-				faddp st( 3 ),st( 0 )
-				fmul dword ptr[8 + ecx]
-				fxch st( 1 )
-				faddp st( 3 ),st( 0 )
-				fxch st( 3 )
-				faddp st( 2 ),st( 0 )
-				jmp LSetSides
-				Lcase2 :
-					fmul dword ptr[ebx]
-					fld dword ptr[0 + 4 + edx]
-					fxch st( 2 )
-					fmul dword ptr[ecx]
-					fxch st( 2 )
-					fld st( 0 )
-					fmul dword ptr[4 + ecx]
-					fld dword ptr[0 + 8 + edx]
-					fxch st( 2 )
-					fmul dword ptr[4 + ebx]
-					fxch st( 2 )
-					fld st( 0 )
-					fmul dword ptr[8 + ebx]
-					fxch st( 5 )
-					faddp st( 3 ),st( 0 )
-					fmul dword ptr[8 + ecx]
-					fxch st( 1 )
-					faddp st( 3 ),st( 0 )
-					fxch st( 3 )
-					faddp st( 2 ),st( 0 )
-					jmp LSetSides
-					Lcase3 :
-						fmul dword ptr[ecx]
-						fld dword ptr[0 + 4 + edx]
-						fxch st( 2 )
-						fmul dword ptr[ebx]
-						fxch st( 2 )
-						fld st( 0 )
-						fmul dword ptr[4 + ecx]
-						fld dword ptr[0 + 8 + edx]
-						fxch st( 2 )
-						fmul dword ptr[4 + ebx]
-						fxch st( 2 )
-						fld st( 0 )
-						fmul dword ptr[8 + ebx]
-						fxch st( 5 )
-						faddp st( 3 ),st( 0 )
-						fmul dword ptr[8 + ecx]
-						fxch st( 1 )
-						faddp st( 3 ),st( 0 )
-						fxch st( 3 )
-						faddp st( 2 ),st( 0 )
-						jmp LSetSides
-						Lcase4 :
-							fmul dword ptr[ebx]
-							fld dword ptr[0 + 4 + edx]
-							fxch st( 2 )
-							fmul dword ptr[ecx]
-							fxch st( 2 )
-							fld st( 0 )
-							fmul dword ptr[4 + ebx]
-							fld dword ptr[0 + 8 + edx]
-							fxch st( 2 )
-							fmul dword ptr[4 + ecx]
-							fxch st( 2 )
-							fld st( 0 )
-							fmul dword ptr[8 + ecx]
-							fxch st( 5 )
-							faddp st( 3 ),st( 0 )
-							fmul dword ptr[8 + ebx]
-							fxch st( 1 )
-							faddp st( 3 ),st( 0 )
-							fxch st( 3 )
-							faddp st( 2 ),st( 0 )
-							jmp LSetSides
-							Lcase5 :
-								fmul dword ptr[ecx]
-								fld dword ptr[0 + 4 + edx]
-								fxch st( 2 )
-								fmul dword ptr[ebx]
-								fxch st( 2 )
-								fld st( 0 )
-								fmul dword ptr[4 + ebx]
-								fld dword ptr[0 + 8 + edx]
-								fxch st( 2 )
-								fmul dword ptr[4 + ecx]
-								fxch st( 2 )
-								fld st( 0 )
-								fmul dword ptr[8 + ecx]
-								fxch st( 5 )
-								faddp st( 3 ),st( 0 )
-								fmul dword ptr[8 + ebx]
-								fxch st( 1 )
-								faddp st( 3 ),st( 0 )
-								fxch st( 3 )
-								faddp st( 2 ),st( 0 )
-								jmp LSetSides
-								Lcase6 :
-									fmul dword ptr[ebx]
-									fld dword ptr[0 + 4 + edx]
-									fxch st( 2 )
-									fmul dword ptr[ecx]
-									fxch st( 2 )
-									fld st( 0 )
-									fmul dword ptr[4 + ecx]
-									fld dword ptr[0 + 8 + edx]
-									fxch st( 2 )
-									fmul dword ptr[4 + ebx]
-									fxch st( 2 )
-									fld st( 0 )
-									fmul dword ptr[8 + ecx]
-									fxch st( 5 )
-									faddp st( 3 ),st( 0 )
-									fmul dword ptr[8 + ebx]
-									fxch st( 1 )
-									faddp st( 3 ),st( 0 )
-									fxch st( 3 )
-									faddp st( 2 ),st( 0 )
-									jmp LSetSides
-									Lcase7 :
-										fmul dword ptr[ecx]
-										fld dword ptr[0 + 4 + edx]
-										fxch st( 2 )
-										fmul dword ptr[ebx]
-										fxch st( 2 )
-										fld st( 0 )
-										fmul dword ptr[4 + ecx]
-										fld dword ptr[0 + 8 + edx]
-										fxch st( 2 )
-										fmul dword ptr[4 + ebx]
-										fxch st( 2 )
-										fld st( 0 )
-										fmul dword ptr[8 + ecx]
-										fxch st( 5 )
-										faddp st( 3 ),st( 0 )
-										fmul dword ptr[8 + ebx]
-										fxch st( 1 )
-										faddp st( 3 ),st( 0 )
-										fxch st( 3 )
-										faddp st( 2 ),st( 0 )
-										LSetSides :
-											faddp st( 2 ),st( 0 )
-											fcomp dword ptr[12 + edx]
-											xor ecx,ecx
-											fnstsw ax
-											fcomp dword ptr[12 + edx]
-											and ah,1
-											xor ah,1
-											add cl,ah
-											fnstsw ax
-											and ah,1
-											add ah,ah
-											add cl,ah
-											pop ebx
-											mov eax,ecx
-											ret
-											Lerror :
-												int 3
-	}
-}
-#pragma warning( default: 4035 )
-
-#endif
-#endif
 
 /*
 =================
@@ -980,17 +662,15 @@ RadiusFromBounds
 =================
 */
 float RadiusFromBounds( const vec3_t mins, const vec3_t maxs ) {
-	int i;
-	vec3_t corner;
-	float a, b;
+	idVec3 corner;
 
-	for ( i = 0 ; i < 3 ; i++ ) {
-		a = fabs( mins[i] );
-		b = fabs( maxs[i] );
+	for ( int i = 0 ; i < 3 ; i++ ) {
+		float a = idMath::Fabs( mins[i] );
+		float b = idMath::Fabs( maxs[i] );
 		corner[i] = a > b ? a : b;
 	}
 
-	return VectorLength( corner );
+	return corner.Length();
 }
 
 
@@ -1024,28 +704,12 @@ void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs ) {
 
 
 int VectorCompare( const vec3_t v1, const vec3_t v2 ) {
-	if ( v1[0] != v2[0] || v1[1] != v2[1] || v1[2] != v2[2] ) {
-		return 0;
-	}
-
-	return 1;
+	return ( *( const idVec3 * ) v1 == *( const idVec3 * ) v2 ) ? 1 : 0;
 }
 
 
 vec_t VectorNormalize( vec3_t v ) {
-	float length, ilength;
-
-	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-	length = sqrt( length );
-
-	if ( length ) {
-		ilength = 1 / length;
-		v[0] *= ilength;
-		v[1] *= ilength;
-		v[2] *= ilength;
-	}
-
-	return length;
+	return ( *( idVec3 * ) v ).Normalize();
 }
 
 //
@@ -1053,102 +717,64 @@ vec_t VectorNormalize( vec3_t v ) {
 // that length != 0, nor does it return length
 //
 void VectorNormalizeFast( vec3_t v ) {
-	float ilength;
-
-	ilength = Q_rsqrt( DotProduct( v, v ) );
-
-	v[0] *= ilength;
-	v[1] *= ilength;
-	v[2] *= ilength;
+	( *( idVec3 * ) v ).NormalizeFast();
 }
 
 vec_t VectorNormalize2( const vec3_t v, vec3_t out ) {
-	float length, ilength;
-
-	length = v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
-	length = sqrt( length );
-
-	if ( length ) {
-		ilength = 1 / length;
-		out[0] = v[0] * ilength;
-		out[1] = v[1] * ilength;
-		out[2] = v[2] * ilength;
-	} else {
-		VectorClear( out );
-	}
-
+	idVec3 n = *( const idVec3 * ) v;
+	float length = n.Normalize();
+	*( idVec3 * ) out = n;
 	return length;
-
 }
 
 void _VectorMA( const vec3_t veca, float scale, const vec3_t vecb, vec3_t vecc ) {
-	vecc[0] = veca[0] + scale * vecb[0];
-	vecc[1] = veca[1] + scale * vecb[1];
-	vecc[2] = veca[2] + scale * vecb[2];
+	*( idVec3 * ) vecc = *( const idVec3 * ) veca + *( const idVec3 * ) vecb * scale;
 }
 
 
 vec_t _DotProduct( const vec3_t v1, const vec3_t v2 ) {
-	return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
+	return ( *( const idVec3 * ) v1 ) * ( *( const idVec3 * ) v2 );
 }
 
 void _VectorSubtract( const vec3_t veca, const vec3_t vecb, vec3_t out ) {
-	out[0] = veca[0] - vecb[0];
-	out[1] = veca[1] - vecb[1];
-	out[2] = veca[2] - vecb[2];
+	*( idVec3 * ) out = *( const idVec3 * ) veca - *( const idVec3 * ) vecb;
 }
 
 void _VectorAdd( const vec3_t veca, const vec3_t vecb, vec3_t out ) {
-	out[0] = veca[0] + vecb[0];
-	out[1] = veca[1] + vecb[1];
-	out[2] = veca[2] + vecb[2];
+	*( idVec3 * ) out = *( const idVec3 * ) veca + *( const idVec3 * ) vecb;
 }
 
 void _VectorCopy( const vec3_t in, vec3_t out ) {
-	out[0] = in[0];
-	out[1] = in[1];
-	out[2] = in[2];
+	*( idVec3 * ) out = *( const idVec3 * ) in;
 }
 
 void _VectorScale( const vec3_t in, vec_t scale, vec3_t out ) {
-	out[0] = in[0] * scale;
-	out[1] = in[1] * scale;
-	out[2] = in[2] * scale;
+	*( idVec3 * ) out = *( const idVec3 * ) in * scale;
 }
 
 void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross ) {
-	cross[0] = v1[1] * v2[2] - v1[2] * v2[1];
-	cross[1] = v1[2] * v2[0] - v1[0] * v2[2];
-	cross[2] = v1[0] * v2[1] - v1[1] * v2[0];
+	*( idVec3 * ) cross = ( *( const idVec3 * ) v1 ).Cross( *( const idVec3 * ) v2 );
 }
 
 vec_t VectorLength( const vec3_t v ) {
-	return sqrt( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
+	return ( *( const idVec3 * ) v ).Length();
 }
 
 vec_t VectorLengthSquared( const vec3_t v ) {
-	return ( v[0] * v[0] + v[1] * v[1] + v[2] * v[2] );
+	return ( *( const idVec3 * ) v ).LengthSqr();
 }
 
 vec_t Distance( const vec3_t p1, const vec3_t p2 ) {
-	vec3_t v;
-
-	VectorSubtract( p2, p1, v );
-	return VectorLength( v );
+	return ( *( const idVec3 * ) p2 - *( const idVec3 * ) p1 ).Length();
 }
 
 vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 ) {
-	vec3_t v;
-
-	VectorSubtract( p2, p1, v );
-	return v[0] * v[0] + v[1] * v[1] + v[2] * v[2];
+	return ( *( const idVec3 * ) p2 - *( const idVec3 * ) p1 ).LengthSqr();
 }
 
 
 void VectorInverse( vec3_t v ) {
-	v[0] = -v[0];
-	v[1] = -v[1];
-	v[2] = -v[2];
+	*( idVec3 * ) v = -( *( const idVec3 * ) v );
 }
 
 void Vector4Scale( const vec4_t in, vec_t scale, vec4_t out ) {
@@ -1196,24 +822,7 @@ MatrixMultiply
 ================
 */
 void MatrixMultiply( float in1[3][3], float in2[3][3], float out[3][3] ) {
-	out[0][0] = in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] +
-				in1[0][2] * in2[2][0];
-	out[0][1] = in1[0][0] * in2[0][1] + in1[0][1] * in2[1][1] +
-				in1[0][2] * in2[2][1];
-	out[0][2] = in1[0][0] * in2[0][2] + in1[0][1] * in2[1][2] +
-				in1[0][2] * in2[2][2];
-	out[1][0] = in1[1][0] * in2[0][0] + in1[1][1] * in2[1][0] +
-				in1[1][2] * in2[2][0];
-	out[1][1] = in1[1][0] * in2[0][1] + in1[1][1] * in2[1][1] +
-				in1[1][2] * in2[2][1];
-	out[1][2] = in1[1][0] * in2[0][2] + in1[1][1] * in2[1][2] +
-				in1[1][2] * in2[2][2];
-	out[2][0] = in1[2][0] * in2[0][0] + in1[2][1] * in2[1][0] +
-				in1[2][2] * in2[2][0];
-	out[2][1] = in1[2][0] * in2[0][1] + in1[2][1] * in2[1][1] +
-				in1[2][2] * in2[2][1];
-	out[2][2] = in1[2][0] * in2[0][2] + in1[2][1] * in2[1][2] +
-				in1[2][2] * in2[2][2];
+	*( idMat3 * ) out = ( *( const idMat3 * ) in1 ) * ( *( const idMat3 * ) in2 );
 }
 
 
@@ -1253,32 +862,21 @@ void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up 
 ** assumes "src" is normalized
 */
 void PerpendicularVector( vec3_t dst, const vec3_t src ) {
-	int pos;
-	int i;
+	// find the smallest magnitude axially aligned vector
+	int pos = 0;
 	float minelem = 1.0F;
-	vec3_t tempvec;
-
-	/*
-	** find the smallest magnitude axially aligned vector
-	*/
-	for ( pos = 0, i = 0; i < 3; i++ )
-	{
-		if ( fabs( src[i] ) < minelem ) {
+	for ( int i = 0; i < 3; i++ ) {
+		if ( idMath::Fabs( src[i] ) < minelem ) {
 			pos = i;
-			minelem = fabs( src[i] );
+			minelem = idMath::Fabs( src[i] );
 		}
 	}
-	tempvec[0] = tempvec[1] = tempvec[2] = 0.0F;
+
+	idVec3 tempvec( 0.0F, 0.0F, 0.0F );
 	tempvec[pos] = 1.0F;
 
-	/*
-	** project the point onto the plane defined by src
-	*/
-	ProjectPointOnPlane( dst, tempvec, src );
-
-	/*
-	** normalize the result
-	*/
+	// project the point onto the plane defined by src and normalize
+	ProjectPointOnPlane( dst, tempvec.ToFloatPtr(), src );
 	VectorNormalize( dst );
 }
 
@@ -1291,16 +889,14 @@ GetPerpendicularViewVector
 =================
 */
 void GetPerpendicularViewVector( const vec3_t point, const vec3_t p1, const vec3_t p2, vec3_t up ) {
-	vec3_t v1, v2;
+	idVec3 v1 = *( const idVec3 * ) point - *( const idVec3 * ) p1;
+	idVec3 v2 = *( const idVec3 * ) point - *( const idVec3 * ) p2;
+	v1.Normalize();
+	v2.Normalize();
 
-	VectorSubtract( point, p1, v1 );
-	VectorNormalize( v1 );
-
-	VectorSubtract( point, p2, v2 );
-	VectorNormalize( v2 );
-
-	CrossProduct( v1, v2, up );
-	VectorNormalize( up );
+	idVec3 & upvec = *( idVec3 * ) up;
+	upvec = v1.Cross( v2 );
+	upvec.Normalize();
 }
 
 /*
@@ -1309,13 +905,11 @@ ProjectPointOntoVector
 ================
 */
 void ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vEnd, vec3_t vProj ) {
-	vec3_t pVec, vec;
-
-	VectorSubtract( point, vStart, pVec );
-	VectorSubtract( vEnd, vStart, vec );
-	VectorNormalize( vec );
+	idVec3 pVec = *( const idVec3 * ) point - *( const idVec3 * ) vStart;
+	idVec3 vec = *( const idVec3 * ) vEnd - *( const idVec3 * ) vStart;
+	vec.Normalize();
 	// project onto the directional vector for this segment
-	VectorMA( vStart, DotProduct( pVec, vec ), vec, vProj );
+	*( idVec3 * ) vProj = *( const idVec3 * ) vStart + vec * ( pVec * vec );
 }
 
 float vectoyaw( const vec3_t vec ) {
@@ -1376,9 +970,6 @@ void AxisToAngles( vec3_t axis[3], vec3_t angles ) {
 }
 
 float VectorDistance( vec3_t v1, vec3_t v2 ) {
-	vec3_t dir;
-
-	VectorSubtract( v2, v1, dir );
-	return VectorLength( dir );
+	return ( *( const idVec3 * ) v2 - *( const idVec3 * ) v1 ).Length();
 }
 // done.

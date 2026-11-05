@@ -157,13 +157,13 @@ idRotation idAngles::ToRotation() const {
 
 	if ( pitch == 0.0f ) {
 		if ( yaw == 0.0f ) {
-			return idRotation( vec3_origin, idVec3( -1.0f, 0.0f, 0.0f ), roll );
+			return idRotation( idlib_vec3_origin, idVec3( -1.0f, 0.0f, 0.0f ), roll );
 		}
 		if ( roll == 0.0f ) {
-			return idRotation( vec3_origin, idVec3( 0.0f, 0.0f, -1.0f ), yaw );
+			return idRotation( idlib_vec3_origin, idVec3( 0.0f, 0.0f, -1.0f ), yaw );
 		}
 	} else if ( yaw == 0.0f && roll == 0.0f ) {
-		return idRotation( vec3_origin, idVec3( 0.0f, -1.0f, 0.0f ), pitch );
+		return idRotation( idlib_vec3_origin, idVec3( 0.0f, -1.0f, 0.0f ), pitch );
 	}
 
 	idMath::SinCos( DEG2RAD( yaw ) * 0.5f, sz, cz );
@@ -188,7 +188,7 @@ idRotation idAngles::ToRotation() const {
 		vec.FixDegenerateNormal();
 		angle *= 2.0f * idMath::M_RAD2DEG;
 	}
-	return idRotation( vec3_origin, vec, angle );
+	return idRotation( idlib_vec3_origin, vec, angle );
 }
 
 /*

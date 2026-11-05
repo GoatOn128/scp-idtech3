@@ -59,7 +59,7 @@ idRotation idQuat::ToRotation() const {
 		vec.FixDegenerateNormal();
 		angle *= 2.0f * idMath::M_RAD2DEG;
 	}
-	return idRotation( vec3_origin, vec, angle );
+	return idRotation( idlib_vec3_origin, vec, angle );
 }
 
 /*
