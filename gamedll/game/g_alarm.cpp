@@ -118,7 +118,7 @@ void alarmbox_updateparts( gentity_t *ent, qboolean matestoo ) {
 		} else
 		{
 			// give the dlight the sound
-			if ( !Q_stricmp( t->classname, "dlight" ) ) {
+			if ( !idStr::Icmp( t->classname, "dlight" ) ) {
 				t->soundLoop = ent->soundLoop;
 				t->r.svFlags |= SVF_BROADCAST;  // no pvs
 
@@ -135,7 +135,7 @@ void alarmbox_updateparts( gentity_t *ent, qboolean matestoo ) {
 			}
 			// alarmbox can tell script_trigger about activation
 			// (but don't trigger if dying, only activation)
-			else if ( !Q_stricmp( t->classname, "target_script_trigger" ) ) {
+			else if ( !idStr::Icmp( t->classname, "target_script_trigger" ) ) {
 				if ( ent->active && matestoo ) { // not dead (and this is the box that was used)
 					t->use( t, ent, 0 );
 				}
