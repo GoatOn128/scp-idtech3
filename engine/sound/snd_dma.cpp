@@ -78,8 +78,8 @@ int numLoopChannels;
 dma_t dma;
 
 static int listener_number;
-static vec3_t listener_origin;
-static vec3_t listener_axis[3];
+static idVec3 listener_origin;
+static idVec3 listener_axis[3];
 
 int s_soundtime;                // sample PAIRS
 int s_paintedtime;              // sample PAIRS
@@ -203,8 +203,8 @@ void S_Init( void ) {
 	Com_Printf( "------------------------------------\n" );
 
 	if ( r ) {
-		Com_Memset( &snd, 0, sizeof( snd ) );
-//		Com_Memset(snd.sfxHash, 0, sizeof(sfx_t *)*LOOP_HASH);
+		memset( &snd, 0, sizeof( snd ) );
+//		memset(snd.sfxHash, 0, sizeof(sfx_t *)*LOOP_HASH);
 
 		snd.s_soundStarted = 1;
 		snd.s_soundMute = 1;
@@ -277,7 +277,7 @@ void S_ChannelSetup() {
 	channel_t *p, *q;
 
 	// clear all the sounds so they don't
-	Com_Memset( s_channels, 0, sizeof( s_channels ) );
+	memset( s_channels, 0, sizeof( s_channels ) );
 
 	p = s_channels;;
 	q = p + MAX_CHANNELS;
@@ -380,7 +380,7 @@ static sfx_t *S_FindName( const char *name ) {
 	sfx = snd.sfxHash[hash];
 	// see if already loaded
 	while ( sfx ) {
-		if ( !Q_stricmp( sfx->soundName, name ) ) {
+		if ( !idStr::Icmp( sfx->soundName, name ) ) {
 			return sfx;
 		}
 		sfx = sfx->next;
@@ -401,7 +401,7 @@ static sfx_t *S_FindName( const char *name ) {
 	}
 
 	sfx = &s_knownSfx[i];
-	Com_Memset( sfx, 0, sizeof( *sfx ) );
+	memset( sfx, 0, sizeof( *sfx ) );
 	strcpy( sfx->soundName, name );
 
 	sfx->next = snd.sfxHash[hash];
@@ -468,8 +468,8 @@ void S_BeginRegistration( void ) {
 		SND_setup();
 
 		snd.s_numSfx = 0;
-		Com_Memset( s_knownSfx, 0, sizeof( s_knownSfx ) );
-		Com_Memset( snd.sfxHash, 0, sizeof( sfx_t * ) * LOOP_HASH );
+		memset( s_knownSfx, 0, sizeof( s_knownSfx ) );
+		memset( snd.sfxHash, 0, sizeof( sfx_t * ) * LOOP_HASH );
 
 		sfx = S_FindName( "***DEFAULT***" );
 		S_DefaultSound( sfx );
@@ -547,12 +547,12 @@ S_SpatializeOrigin
 Used for spatializing s_channels
 =================
 */
-void S_SpatializeOrigin( vec3_t origin, int master_vol, int *left_vol, int *right_vol, float range ) {
-	vec_t dot;
-	vec_t dist;
-	vec_t lscale, rscale, scale;
-	vec3_t source_vec;
-	vec3_t vec;
+void S_SpatializeOrigin( const idVec3 &origin, int master_vol, int *left_vol, int *right_vol, float range ) {
+	float dot;
+	float dist;
+	float lscale, rscale, scale;
+	idVec3 source_vec;
+	idVec3 vec;
 
 //	const float dist_mult = SOUND_ATTENUATE;
 	float dist_mult, dist_fullvol;
@@ -562,9 +562,9 @@ void S_SpatializeOrigin( vec3_t origin, int master_vol, int *left_vol, int *righ
 //	dist_mult = range*0.00000064f;		// default range of 1250 gives .0008
 
 	// calculate stereo seperation and distance attenuation
-	VectorSubtract( origin, listener_origin, source_vec );
+	source_vec = origin - listener_origin;
 
-	dist = VectorNormalize( source_vec );
+	dist = source_vec.Normalize();
 //	dist -= SOUND_FULLVOLUME;
 	dist -= dist_fullvol;
 	if ( dist < 0 ) {
@@ -576,7 +576,7 @@ void S_SpatializeOrigin( vec3_t origin, int master_vol, int *left_vol, int *righ
 	}
 //	dist *= dist_mult;		// different attenuation levels
 
-	VectorRotate( source_vec, listener_axis, vec );
+	vec = idVec3( source_vec * listener_axis[0], source_vec * listener_axis[1], source_vec * listener_axis[2] );
 
 	dot = -vec[1];
 
@@ -627,9 +627,9 @@ Entchannel 0 will never override a playing sound
 	SND_CUTOFF_ALL		0x008	- cut off all sounds on this channel
 ====================
 */
-void S_ThreadStartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfxHandle, int flags );
+void S_ThreadStartSoundEx( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfxHandle, int flags );
 
-void S_StartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfxHandle, int flags ) {
+void S_StartSoundEx( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfxHandle, int flags ) {
 	if ( !snd.s_soundStarted || snd.s_soundMute || ( cls.state != CA_ACTIVE && cls.state != CA_DISCONNECTED ) ) {
 		return;
 	}
@@ -645,7 +645,7 @@ void S_StartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHandle_t s
 	if (snd.tart < MAX_PUSHSTACK) {
 		sfx_t		*sfx;
 		if (origin) {
-			VectorCopy( origin, snd.pushPop[snd.tart].origin );
+		snd.pushPop[snd.tart].origin = *origin;
 			snd.pushPop[snd.tart].fixedOrigin = qtrue;
 		} else {
 			snd.pushPop[snd.tart].fixedOrigin = qfalse;
@@ -665,7 +665,7 @@ void S_StartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHandle_t s
 */
 }
 
-void S_ThreadStartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfxHandle, int flags ) {
+void S_ThreadStartSoundEx( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfxHandle, int flags ) {
 	channel_t   *ch;
 	sfx_t       *sfx;
 	int i, oldest, chosen;
@@ -814,7 +814,7 @@ void S_ThreadStartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHand
 	}
 #endif
 	if ( origin ) {
-		VectorCopy( origin, ch->origin );
+	ch->origin = *origin;
 		ch->fixed_origin = qtrue;
 	} else {
 		ch->fixed_origin = qfalse;
@@ -830,9 +830,9 @@ void S_ThreadStartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHand
 	ch->doppler = qfalse;
 
 	if ( ch->fixed_origin ) {
-		S_SpatializeOrigin( ch->origin, ch->master_vol, &ch->leftvol, &ch->rightvol, SOUND_RANGE_DEFAULT );
+		S_SpatializeOrigin( &ch->origin, ch->master_vol, &ch->leftvol, &ch->rightvol, SOUND_RANGE_DEFAULT );
 	} else {
-		S_SpatializeOrigin( snd.entityPositions[ ch->entnum ], ch->master_vol, &ch->leftvol, &ch->rightvol, SOUND_RANGE_DEFAULT );
+		S_SpatializeOrigin( &snd.entityPositions[ ch->entnum ], ch->master_vol, &ch->leftvol, &ch->rightvol, SOUND_RANGE_DEFAULT );
 	}
 
 	ch->startSample = START_SAMPLE_IMMEDIATE;
@@ -844,7 +844,7 @@ void S_ThreadStartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHand
 S_StartSound
 ==============
 */
-void S_StartSound( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfxHandle ) {
+void S_StartSound( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfxHandle ) {
 	S_StartSoundEx( origin, entityNum, entchannel, sfxHandle, 0 );
 }
 
@@ -955,7 +955,7 @@ NOTE: 'volume' with underwater bit set stays at set volume underwater
 
 #define UNDERWATER_BIT  8
 
-void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, const int range, sfxHandle_t sfxHandle, int volume ) {
+void S_AddLoopingSound( int entityNum, const idVec3 &origin, const idVec3 &velocity, const int range, sfxHandle_t sfxHandle, int volume ) {
 	sfx_t *sfx;
 
 	if ( !snd.s_soundStarted || snd.s_soundMute || cls.state != CA_ACTIVE ) {
@@ -981,8 +981,8 @@ void S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocit
 	if ( !sfx->soundLength ) {
 		Com_Error( ERR_DROP, "%s has length 0", sfx->soundName );
 	}
-	VectorCopy( origin, snd.loopSounds[snd.numLoopSounds].origin );
-	VectorCopy( velocity, snd.loopSounds[snd.numLoopSounds].velocity );
+snd.loopSounds[snd.numLoopSounds].origin = origin;
+snd.loopSounds[snd.numLoopSounds].velocity = velocity;
 	snd.loopSounds[snd.numLoopSounds].sfx = sfx;
 	if ( range ) {
 		snd.loopSounds[snd.numLoopSounds].range = range;
@@ -1035,9 +1035,9 @@ void S_AddLoopSounds( void ) {
 		}
 
 		//if (loop->kill) {
-		//	S_SpatializeOrigin( loop->origin, 127, &left_total, &right_total, loop->range);	// 3d
+		//	S_SpatializeOrigin( &loop->origin, 127, &left_total, &right_total, loop->range);	// 3d
 		//} else {
-		S_SpatializeOrigin( loop->origin, 90,  &left_total, &right_total, loop->range );    // sphere
+		S_SpatializeOrigin( &loop->origin, 90,  &left_total, &right_total, loop->range );    // sphere
 		//}
 
 		// adjust according to volume
@@ -1054,9 +1054,9 @@ void S_AddLoopSounds( void ) {
 			loop2->mergeFrame = loopFrame;
 
 			//if (loop2->kill) {
-			//	S_SpatializeOrigin( loop2->origin, 127, &left, &right, loop2->range);	// 3d
+			//	S_SpatializeOrigin( &loop2->origin, 127, &left, &right, loop2->range);	// 3d
 			//} else {
-			S_SpatializeOrigin( loop2->origin, 90,  &left, &right, loop2->range );      // sphere
+			S_SpatializeOrigin( &loop2->origin, 90,  &left, &right, loop2->range );      // sphere
 			//}
 
 			// adjust according to volume
@@ -1255,11 +1255,11 @@ S_UpdateEntityPosition
 let the sound system know where an entity currently is
 ======================
 */
-void S_UpdateEntityPosition( int entityNum, const vec3_t origin ) {
+void S_UpdateEntityPosition( int entityNum, const idVec3 &origin ) {
 	if ( entityNum < 0 || entityNum > MAX_GENTITIES ) {
 		Com_Error( ERR_DROP, "S_UpdateEntityPosition: bad entitynum %i", entityNum );
 	}
-	VectorCopy( origin, snd.entityPositions[entityNum] );
+snd.entityPositions[entityNum] = origin;
 }
 
 
@@ -1270,23 +1270,23 @@ S_Respatialize
 Change the volumes of all the playing sounds for changes in their positions
 ============
 */
-void S_Respatialize( int entityNum, const vec3_t head, vec3_t axis[3], int inwater ) {
+void S_Respatialize( int entityNum, const idVec3 &head, const idVec3 *axis, int inwater ) {
 
 	if ( !snd.s_soundStarted || ( snd.s_soundMute == 1 ) ) {
 		return;
 	}
 
 	listener_number = entityNum;
-	VectorCopy( head, listener_origin );
-	VectorCopy( axis[0], listener_axis[0] );
-	VectorCopy( axis[1], listener_axis[1] );
-	VectorCopy( axis[2], listener_axis[2] );
+listener_origin = head;
+listener_axis[0] = axis[0];
+listener_axis[1] = axis[1];
+listener_axis[2] = axis[2];
 }
 
 void S_ThreadRespatialize() {
 	int i;
 	channel_t   *ch;
-	vec3_t origin;
+	idVec3 origin;
 	// update spatialization for dynamic sounds
 	ch = s_channels;
 	for ( i = 0 ; i < MAX_CHANNELS ; i++, ch++ ) {
@@ -1299,12 +1299,12 @@ void S_ThreadRespatialize() {
 			ch->rightvol = ch->master_vol;
 		} else {
 			if ( ch->fixed_origin ) {
-				VectorCopy( ch->origin, origin );
+			origin = ch->origin;
 			} else {
-				VectorCopy( snd.entityPositions[ ch->entnum ], origin );
+			origin = snd.entityPositions[ ch->entnum ];
 			}
 
-			S_SpatializeOrigin( origin, ch->master_vol, &ch->leftvol, &ch->rightvol, SOUND_RANGE_DEFAULT );
+			S_SpatializeOrigin( &origin, ch->master_vol, &ch->leftvol, &ch->rightvol, SOUND_RANGE_DEFAULT );
 		}
 	}
 }
@@ -1340,7 +1340,7 @@ qboolean S_ScanChannelStarts( void ) {
 		// if it is completely finished by now, clear it
 		if ( ch->startSample + ( ch->thesfx->soundLength ) <= s_paintedtime ) {
 //----(SA)	got from TA sound.  correct?
-//			Com_Memset(ch, 0, sizeof(*ch));
+//			memset(ch, 0, sizeof(*ch));
 			S_ChannelFree( ch );
 		}
 	}
@@ -1437,7 +1437,7 @@ void S_ClearSounds( qboolean clearStreaming, qboolean clearMusic ) {
 	// RF, moved this up so streaming sounds dont get updated with the music, below, and leave us with a snippet off streaming sounds after we reload
 	if ( clearStreaming ) {    // we don't want to stop guys with long dialogue from getting cut off by a file read
 		// RF, clear talking amplitudes
-		Com_Memset( s_entityTalkAmplitude, 0, sizeof( s_entityTalkAmplitude ) );
+		memset( s_entityTalkAmplitude, 0, sizeof( s_entityTalkAmplitude ) );
 
 		for ( i = 0, ss = streamingSounds; i < MAX_STREAMING_SOUNDS; i++, ss++ ) {
 			if ( i > 0 || clearMusic ) {
@@ -1473,7 +1473,7 @@ void S_ClearSounds( qboolean clearStreaming, qboolean clearMusic ) {
 
 		SNDDMA_BeginPainting();
 		if ( dma.buffer ) {
-			Com_Memset( dma.buffer, clear, dma.samples * dma.samplebits / 8 );
+			memset( dma.buffer, clear, dma.samples * dma.samplebits / 8 );
 		}
 		SNDDMA_Submit();
 
@@ -1665,10 +1665,10 @@ void S_Play_f( void ) {
 
 	i = 1;
 	while ( i < Cmd_Argc() ) {
-		if ( !Q_strrchr( Cmd_Argv( i ), '.' ) ) {
+		if ( !strrchr( Cmd_Argv( i ), '.' ) ) {
 			Com_sprintf( name, sizeof( name ), "%s.wav", Cmd_Argv( 1 ) );
 		} else {
-			Q_strncpyz( name, Cmd_Argv( i ), sizeof( name ) );
+			idStr::Copynz( name, Cmd_Argv( i ), sizeof( name ) );
 		}
 		h = S_RegisterSound( name, qfalse );
 		if ( h ) {
@@ -1711,7 +1711,7 @@ void S_Music_f( void ) {
 		S_StartBackgroundTrack( Cmd_Argv( 1 ), Cmd_Argv( 1 ), 0 );
 	} else if ( c == 3 ) {
 		S_StartBackgroundTrack( Cmd_Argv( 1 ), Cmd_Argv( 2 ), 0 );
-		Q_strncpyz( streamingSounds[0].loop, Cmd_Argv( 2 ), sizeof( streamingSounds[0].loop ) );
+		idStr::Copynz( streamingSounds[0].loop, Cmd_Argv( 2 ), sizeof( streamingSounds[0].loop ) );
 	} else {
 		Com_Printf( "music <musicfile> [loopfile]\n" );
 		return;
@@ -1880,20 +1880,20 @@ void S_StartBackgroundTrack( const char *intro, const char *loop, int fadeupTime
 		intro = "";
 	}
 	if ( !loop || !loop[0] ) {
-		Q_strncpyz( loopMusic, intro, sizeof( loopMusic ) );
+		idStr::Copynz( loopMusic, intro, sizeof( loopMusic ) );
 	} else {
-		Q_strncpyz( loopMusic, loop, sizeof( loopMusic ) );
+		idStr::Copynz( loopMusic, loop, sizeof( loopMusic ) );
 	}
 
 	Cvar_Set( "s_currentMusic", "" ); //----(SA)	so the savegame will have the right music
 
-	if ( !Q_stricmp( loop, "onetimeonly" ) ) { // don't change the loop if you're playing a single hit
-		Q_strncpyz( loopMusic, ss->loop, sizeof( loopMusic ) );
+	if ( !idStr::Icmp( loop, "onetimeonly" ) ) { // don't change the loop if you're playing a single hit
+		idStr::Copynz( loopMusic, ss->loop, sizeof( loopMusic ) );
 	}
 
-	Q_strncpyz( ss->loop, loopMusic, sizeof( ss->loop ) - 4 );
+	idStr::Copynz( ss->loop, loopMusic, sizeof( ss->loop ) - 4 );
 
-	Q_strncpyz( ss->name, intro, sizeof( ss->name ) - 4 );
+	idStr::Copynz( ss->name, intro, sizeof( ss->name ) - 4 );
 	COM_DefaultExtension( ss->name, sizeof( ss->name ), ".wav" );
 
 	// close the current sound if present, but DON'T reset s_rawend
@@ -2169,12 +2169,12 @@ void S_StartStreamingSound( const char *intro, const char *loop, int entnum, int
 	}
 
 	if ( ss->loop && loop ) {
-		Q_strncpyz( ss->loop, loop, sizeof( ss->loop ) - 4 );
+		idStr::Copynz( ss->loop, loop, sizeof( ss->loop ) - 4 );
 	} else {
 		ss->loop[0] = 0;
 	}
 
-	Q_strncpyz( ss->name, intro, sizeof( ss->name ) - 4 );
+	idStr::Copynz( ss->name, intro, sizeof( ss->name ) - 4 );
 	COM_DefaultExtension( ss->name, sizeof( ss->name ), ".wav" );
 
 	// close the current sound if present, but DON'T reset s_rawend
@@ -2435,7 +2435,7 @@ void S_UpdateStreamingSounds( void ) {
 			} else {        // attenuate if required
 				if ( ss->entnum >= 0 && ss->attenuation ) {
 					int lOut, rOut;
-					S_SpatializeOrigin( snd.entityPositions[ ss->entnum ], s_volume->value * 255.0f, &lOut, &rOut, SOUND_RANGE_DEFAULT );
+					S_SpatializeOrigin( &snd.entityPositions[ ss->entnum ], s_volume->value * 255.0f, &lOut, &rOut, SOUND_RANGE_DEFAULT );
 					if ( ( lvol = ( (float)lOut / 255.0 ) ) > 1.0 ) {
 						lvol = 1.0;
 					}

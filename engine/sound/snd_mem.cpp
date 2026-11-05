@@ -107,7 +107,7 @@ void SND_setup() {
 
 	buffer = (sndBuffer *) malloc( scs * sizeof( sndBuffer ) );
 	// allocate the stack based hunk allocator
-	sfxScratchBuffer = (short *) malloc( SND_CHUNK_SIZE * sizeof( short ) * 4 );  //Hunk_Alloc(SND_CHUNK_SIZE * sizeof(short) * 4);
+	sfxScratchBuffer = (short *) malloc( SND_CHUNK_SIZE * sizeof( short ) * 4 );  // allocated with malloc
 	sfxScratchPointer = NULL;
 
 	inUse = scs * sizeof( sndBuffer );
@@ -211,7 +211,7 @@ GetWavinfo
 static wavinfo_t GetWavinfo( char *name, byte *wav, int wavlength ) {
 	wavinfo_t info;
 
-	Com_Memset( &info, 0, sizeof( info ) );
+	memset( &info, 0, sizeof( info ) );
 
 	if ( !wav ) {
 		return info;
@@ -391,7 +391,7 @@ qboolean S_LoadSound( sfx_t *sfx ) {
 		Com_DPrintf( S_COLOR_YELLOW "WARNING: %s is not a 22kHz wav file\n", sfx->soundName );
 	}
 
-	samples = (short *) Hunk_AllocateTempMemory( info.samples * sizeof( short ) * 2 );
+	samples = (short *) Mem_ClearedAlloc( info.samples * sizeof( short ) * 2, TAG_IDLIB );
 
 	sfx->lastTimeUsed = Sys_Milliseconds() + 1;
 
@@ -430,7 +430,7 @@ qboolean S_LoadSound( sfx_t *sfx ) {
 		sfx->soundData = NULL;
 		ResampleSfx( sfx, info.rate, info.width, data + info.dataofs, qfalse );
 	}
-	Hunk_FreeTempMemory( samples );
+	Mem_Free( samples );
 	FS_FreeFile( data );
 
 	return qtrue;

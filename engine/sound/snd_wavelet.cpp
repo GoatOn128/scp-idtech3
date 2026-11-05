@@ -37,8 +37,6 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "snd_local.h"
 
-long myftol( float f );
-
 #define C0 0.4829629131445341
 #define C1 0.8365163037378079
 #define C2 0.2241438680420134

@@ -86,8 +86,8 @@ typedef struct {
 #define START_SAMPLE_IMMEDIATE  0x7fffffff
 
 typedef struct loopSound_s {
-	vec3_t origin;
-	vec3_t velocity;
+	idVec3 origin;
+	idVec3 velocity;
 	float range;            //----(SA)	added
 	sfx_t       *sfx;
 	int mergeFrame;
@@ -107,7 +107,7 @@ typedef struct
 	int master_vol;             // 0-255 volume before spatialization
 	float dopplerScale;
 	float oldDopplerScale;
-	vec3_t origin;              // only use if fixed_origin is set
+	idVec3 origin;              // only use if fixed_origin is set
 	qboolean fixed_origin;      // use origin instead of fetching entnum's origin
 	sfx_t       *thesfx;        // sfx structure
 	qboolean doppler;
@@ -163,9 +163,9 @@ extern channel_t loop_channels[MAX_CHANNELS];
 extern int numLoopChannels;
 
 extern int s_paintedtime;
-extern vec3_t listener_forward;
-extern vec3_t listener_right;
-extern vec3_t listener_up;
+extern idVec3 listener_forward;
+extern idVec3 listener_right;
+extern idVec3 listener_up;
 extern dma_t dma;
 
 #ifdef TALKANIM
@@ -201,7 +201,7 @@ typedef struct {
 
 
 typedef struct {
-	vec3_t origin;
+	idVec3 origin;
 	qboolean fixedOrigin;
 	int entityNum;
 	int entityChannel;
@@ -241,7 +241,7 @@ typedef struct {
 //	qboolean	s_soundMute;
 	int s_soundMute;                // 0 - not muted, 1 - muted, 2 - no new sounds, but play out remaining sounds (so they can die if necessary)
 
-	vec3_t entityPositions[MAX_GENTITIES];
+	idVec3 entityPositions[MAX_GENTITIES];
 
 	char nextMusicTrack[MAX_QPATH];         // extracted from CS_MUSIC_QUEUE //----(SA)	added
 	int nextMusicTrackType;

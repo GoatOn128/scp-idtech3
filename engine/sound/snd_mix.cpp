@@ -763,7 +763,7 @@ void S_PaintChannels( int endtime ) {
 		}
 
 		// clear pain buffer for the current time
-		Com_Memset( paintbuffer, 0, ( end - s_paintedtime ) * sizeof( portable_samplepair_t ) );
+		memset( paintbuffer, 0, ( end - s_paintedtime ) * sizeof( portable_samplepair_t ) );
 		// mix all streaming sounds into paint buffer
 		for ( si = 0, ss = streamingSounds; si < MAX_STREAMING_SOUNDS; si++, ss++ ) {
 			// if this streaming sound is still playing
