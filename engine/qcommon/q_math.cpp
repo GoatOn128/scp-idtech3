@@ -38,6 +38,8 @@ If you have questions concerning this license or the applicable additional terms
 #undef strcmp
 #undef strncmp
 #undef stricmp
+// glibc predefines this one, so idlib redirects it too
+#undef strcmpi
 #undef _stricmp
 #undef strcasecmp
 #undef strnicmp
