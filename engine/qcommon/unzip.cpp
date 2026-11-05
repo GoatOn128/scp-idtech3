@@ -1041,9 +1041,9 @@ typedef unsigned long  ulg;
 #  define zstrerror(errnum) ""
 #endif
 
-#define zmemcpy Com_Memcpy
+#define zmemcpy memcpy
 #define zmemcmp memcmp
-#define zmemzero(dest, len) Com_Memset(dest, 0, len)
+#define zmemzero(dest, len) memset(dest, 0, len)
 
 /* Diagnostic functions */
 #ifdef _ZIP_DEBUG_
@@ -1090,10 +1090,10 @@ static void   zcfree  OF((voidp opaque, voidp ptr));
 #endif
 
 #ifndef ALLOC
-# define ALLOC(size) (Z_Malloc(size))
+# define ALLOC(size) (Mem_ClearedAlloc(size, TAG_IDLIB))
 #endif
 #ifndef TRYFREE
-# define TRYFREE(p) {if (p) Z_Free(p);}
+# define TRYFREE(p) {if (p) Mem_Free(p);}
 #endif
 
 #define SIZECENTRALDIRITEM (0x2e)
@@ -1321,7 +1321,7 @@ extern unzFile unzReOpen (const char* path, unzFile file)
 		return NULL;
 
 	s=(unz_s*)ALLOC(sizeof(unz_s));
-	Com_Memcpy(s, (unz_s*)file, sizeof(unz_s));
+	memcpy(s, (unz_s*)file, sizeof(unz_s));
 
 	s->file = fin;
 	s->pfile_in_zip_read = NULL;
@@ -4317,12 +4317,12 @@ int inflateSyncPoint(z_streamp z)
 voidp zcalloc (voidp opaque, unsigned items, unsigned size)
 {
     if (opaque) items += size - size; /* make compiler happy */
-    return (voidp)Z_Malloc(items*size);
+    return (voidp)Mem_ClearedAlloc(items*size, TAG_IDLIB);
 }
 
 void  zcfree (voidp opaque, voidp ptr)
 {
-    Z_Free(ptr);
+    Mem_Free(ptr);
     if (opaque) return; /* make compiler happy */
 }
 
