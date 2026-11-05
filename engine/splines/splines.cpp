@@ -88,7 +88,7 @@ idCameraDef *g_splineList = &splineList;
 idVec3 idSplineList::zero( 0,0,0 );
 
 void glLabeledPoint( idVec3 &color, idVec3 &point, float size, const char *label ) {
-	qglColor3fv( $1.ToFloatPtr() );colorqglColor3fv( $1.ToFloatPtr() );
+	qglColor3fv( color.ToFloatPtr() );
 	qglPointSize( size );
 	qglBegin( GL_POINTS );
 	qglVertex3fv( point.ToFloatPtr() );
@@ -111,7 +111,7 @@ void glBox( idVec3 &color, idVec3 &point, float size ) {
 	maxs[0] += size;
 	maxs[1] -= size;
 	maxs[2] += size;
-	qglColor3fv( $1.ToFloatPtr() );colorqglColor3fv( $1.ToFloatPtr() );
+	qglColor3fv( color.ToFloatPtr() );
 	qglBegin( GL_LINE_LOOP );
 	qglVertex3f( mins[0],mins[1],mins[2] );
 	qglVertex3f( maxs[0],mins[1],mins[2] );
@@ -247,12 +247,12 @@ void idSplineList::draw( bool edit ) {
 	}
 
 
-	qglColor3fv( $1.ToFloatPtr() );controlColorqglColor3fv( $1.ToFloatPtr() );
+	qglColor3fv( controlColor.ToFloatPtr() );
 	qglPointSize( 5 );
 
 	qglBegin( GL_POINTS );
 	for ( i = 0; i < controlPoints.Num(); i++ ) {
-		qglVertex3fv( (*$1[$2]).ToFloatPtr() );controlPointsqglVertex3fv( (*$1[$2]).ToFloatPtr() );iqglVertex3fv( (*$1[$2]).ToFloatPtr() );
+		qglVertex3fv( (*controlPoints[i]).ToFloatPtr() );
 	}
 	qglEnd();
 
@@ -263,20 +263,20 @@ void idSplineList::draw( bool edit ) {
 	}
 
 	//Draw the curve
-	qglColor3fv( $1.ToFloatPtr() );pathColorqglColor3fv( $1.ToFloatPtr() );
+	qglColor3fv( pathColor.ToFloatPtr() );
 	qglBegin( GL_LINE_STRIP );
 	int count = splinePoints.Num();
 	for ( i = 0; i < count; i++ ) {
-		qglVertex3fv( (*$1[$2]).ToFloatPtr() );splinePointsqglVertex3fv( (*$1[$2]).ToFloatPtr() );iqglVertex3fv( (*$1[$2]).ToFloatPtr() );
+		qglVertex3fv( (*splinePoints[i]).ToFloatPtr() );
 	}
 	qglEnd();
 
 	if ( edit ) {
-		qglColor3fv( $1.ToFloatPtr() );segmentColorqglColor3fv( $1.ToFloatPtr() );
+		qglColor3fv( segmentColor.ToFloatPtr() );
 		qglPointSize( 3 );
 		qglBegin( GL_POINTS );
 		for ( i = 0; i < count; i++ ) {
-			qglVertex3fv( (*$1[$2]).ToFloatPtr() );splinePointsqglVertex3fv( (*$1[$2]).ToFloatPtr() );iqglVertex3fv( (*$1[$2]).ToFloatPtr() );
+			qglVertex3fv( (*splinePoints[i]).ToFloatPtr() );
 		}
 		qglEnd();
 	}
@@ -284,7 +284,7 @@ void idSplineList::draw( bool edit ) {
 		//assert(activeSegment >=0 && activeSegment < count);
 		if ( activeSegment >= 0 && activeSegment < count ) {
 			glBox( activeColor, *splinePoints[activeSegment], 6 );
-			glBox( yellow.ToVec3(), *splinePoints[activeSegment], $1 )8glBox( yellow.ToVec3(), *splinePoints[activeSegment], $1 );
+			glBox( yellow.ToVec3(), *splinePoints[activeSegment], 8 );
 		}
 	}
 
@@ -418,13 +418,11 @@ const idVec3 *idSplineList::getPosition( long t ) {
 
 void idSplineList::parse( idLexer &src ) {
 	idToken token;
-	//src.ExpectTokenString( "$1" );{src.ExpectTokenString( "$1" );
+	//src.ExpectTokenString( "{" );
 	do {
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
@@ -438,46 +436,39 @@ $1}
 			if ( !token[0] || !idStr::Icmp( token, "(" ) || !idStr::Icmp( token, "}" ) ) {
 				break;
 			}
-$1src.UnreadToken( &token );
-			$1src.UnreadToken( &token );
-$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}			$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 			if ( idStr::Icmp( key.c_str(), "granularity" ) == 0 ) {
-				granularity = $1( token.c_str() )atof$1( token.c_str() );
+				granularity = atof( token.c_str() );
 			} else if ( idStr::Icmp( key.c_str(), "name" ) == 0 ) {
 				name = token.c_str();
 			}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
 		if ( !idStr::Icmp( token, "}" ) ) {
 			break;
 		}
-$1src.UnreadToken( &token );
-		$1src.UnreadToken( &token );
+
+		src.UnreadToken( &token );
 		// read the control point
 		idVec3 point;
-		src.Parse1DMatrix( 3, $1.ToFloatPtr() );pointsrc.Parse1DMatrix( 3, $1.ToFloatPtr() );
+		src.Parse1DMatrix( 3, point.ToFloatPtr() );
 		addPoint( point.x, point.y, point.z );
 	} while ( 1 );
 
 	//Com_UngetToken();
-	//src.ExpectTokenString( "$1" );}src.ExpectTokenString( "$1" );
+	//src.ExpectTokenString( "}" );
 	dirty = true;
 }
 
@@ -785,11 +776,9 @@ void idCameraDef::parse( idLexer &src ) {
 
 	idToken token;
 	do {
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
@@ -802,30 +791,30 @@ $1}
 			baseTime = src.ParseFloat();
 		} else if ( idStr::Icmp( token, "camera_fixed" ) == 0 )        {
 			cameraPosition = new idFixedPosition();
-			cameraPosition$1parse( src )->$1parse( src );
+			cameraPosition->parse( src );
 		} else if ( idStr::Icmp( token, "camera_interpolated" ) == 0 )        {
 			cameraPosition = new idInterpolatedPosition();
-			cameraPosition$1parse( src )->$1parse( src );
+			cameraPosition->parse( src );
 		} else if ( idStr::Icmp( token, "camera_spline" ) == 0 )        {
 			cameraPosition = new idSplinePosition();
-			cameraPosition$1parse( src )->$1parse( src );
+			cameraPosition->parse( src );
 		} else if ( idStr::Icmp( token, "target_fixed" ) == 0 )        {
 			idFixedPosition *pos = new idFixedPosition();
-			pos$1parse( src )->$1parse( src );
+			pos->parse( src );
 			targetPositions.Append( pos );
 		} else if ( idStr::Icmp( token, "target_interpolated" ) == 0 )        {
 			idInterpolatedPosition *pos = new idInterpolatedPosition();
-			pos$1parse( src )->$1parse( src );
+			pos->parse( src );
 			targetPositions.Append( pos );
 		} else if ( idStr::Icmp( token, "target_spline" ) == 0 )        {
 			idSplinePosition *pos = new idSplinePosition();
-			pos$1parse( src )->$1parse( src );
+			pos->parse( src );
 			targetPositions.Append( pos );
 		} else if ( idStr::Icmp( token, "fov" ) == 0 )        {
-			fov$1parse( src ).$1parse( src );
+			fov.parse( src );
 		} else if ( idStr::Icmp( token, "event" ) == 0 )        {
 			idCameraEvent *event = new idCameraEvent();
-			event$1parse( src )->$1parse( src );
+			event->parse( src );
 			addEvent( event );
 		}
 
@@ -837,9 +826,9 @@ $1}
 		// prevent a crash later on
 		cameraPosition = new idFixedPosition();
 	}
-$1src.UnreadToken( &token );
-	$1src.UnreadToken( &token );
-	src.ExpectTokenString( "$1" );}src.ExpectTokenString( "$1" );
+
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 
 }
 
@@ -929,13 +918,11 @@ const char *idCameraEvent::eventStr[] = {
 
 void idCameraEvent::parse( idLexer &src ) {
 	idToken token;
-	src.ExpectTokenString( "$1" );{src.ExpectTokenString( "$1" );
+	src.ExpectTokenString( "{" );
 	do {
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
@@ -950,32 +937,25 @@ $1}
 			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
-$1src.UnreadToken( &token );
-			$1src.UnreadToken( &token );
-$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}			$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 			if ( idStr::Icmp( key.c_str(), "type" ) == 0 ) {
-				type = static_cast<idCameraEvent::eventType>( $1( token.c_str() )atoi$1( token.c_str() ) );
+				type = static_cast<idCameraEvent::eventType>( atoi( token.c_str() ) );
 			} else if ( idStr::Icmp( key.c_str(), "param" ) == 0 ) {
 				paramStr = token.c_str();
 			} else if ( idStr::Icmp( key.c_str(), "time" ) == 0 ) {
-				time = $1( token.c_str() )atoi$1( token.c_str() );
+				time = atoi( token.c_str() );
 			}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
@@ -984,9 +964,9 @@ $1}
 		}
 
 	} while ( 1 );
-$1src.UnreadToken( &token );
-	$1src.UnreadToken( &token );
-	src.ExpectTokenString( "$1" );}src.ExpectTokenString( "$1" );
+
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
 void idCameraEvent::write( fileHandle_t file, const char *name ) {
@@ -1057,13 +1037,11 @@ const idVec3 *idInterpolatedPosition::getPosition( long t ) {
 
 void idCameraFOV::parse( idLexer &src ) {
 	idToken token;
-	src.ExpectTokenString( "$1" );{src.ExpectTokenString( "$1" );
+	src.ExpectTokenString( "{" );
 	do {
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
@@ -1078,34 +1056,27 @@ $1}
 			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
-$1src.UnreadToken( &token );
-			$1src.UnreadToken( &token );
-$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}			$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
-			if ( idStr::Icmp( key.c_str(), "fov" ) == 0 ) {
-				fov = $1( token.c_str() )atof$1( token.c_str() );
-			} else if ( idStr::Icmp( key.c_str(), "startFOV" ) == 0 ) {
-				startFOV = $1( token.c_str() )atof$1( token.c_str() );
-			} else if ( idStr::Icmp( key.c_str(), "endFOV" ) == 0 ) {
-				endFOV = $1( token.c_str() )atof$1( token.c_str() );
-			} else if ( idStr::Icmp( key.c_str(), "time" ) == 0 ) {
-				time = $1( token.c_str() )atoi$1( token.c_str() );
+
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
 			}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
+			if ( idStr::Icmp( key.c_str(), "fov" ) == 0 ) {
+				fov = atof( token.c_str() );
+			} else if ( idStr::Icmp( key.c_str(), "startFOV" ) == 0 ) {
+				startFOV = atof( token.c_str() );
+			} else if ( idStr::Icmp( key.c_str(), "endFOV" ) == 0 ) {
+				endFOV = atof( token.c_str() );
+			} else if ( idStr::Icmp( key.c_str(), "time" ) == 0 ) {
+				time = atoi( token.c_str() );
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
@@ -1114,9 +1085,9 @@ $1}
 		}
 
 	} while ( 1 );
-$1src.UnreadToken( &token );
-	$1src.UnreadToken( &token );
-	src.ExpectTokenString( "$1" );}src.ExpectTokenString( "$1" );
+
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
 bool idCameraPosition::parseToken( const char *key, idLexer &src ) {
@@ -1125,38 +1096,34 @@ bool idCameraPosition::parseToken( const char *key, idLexer &src ) {
 		token.Empty();
 	}
 	if ( idStr::Icmp( key, "time" ) == 0 ) {
-		time = $1( token.c_str() )atol$1( token.c_str() );
+		time = atol( token.c_str() );
 		return true;
 	} else if ( idStr::Icmp( key, "type" ) == 0 ) {
-		type = static_cast<idCameraPosition::positionType>( $1( token.c_str() )atoi$1( token.c_str() ) );
+		type = static_cast<idCameraPosition::positionType>( atoi( token.c_str() ) );
 		return true;
 	} else if ( idStr::Icmp( key, "velocity" ) == 0 ) {
-		long t = $1( token.c_str() )atol$1( token.c_str() );
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
-		long d = $1( token.c_str() )atol$1( token.c_str() );
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
-		float s = $1( token.c_str() )atof$1( token.c_str() );
+		long t = atol( token.c_str() );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
+		long d = atol( token.c_str() );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
+		float s = atof( token.c_str() );
 		addVelocity( t, d, s );
 		return true;
 	} else if ( idStr::Icmp( key, "baseVelocity" ) == 0 ) {
-		baseVelocity = $1( token.c_str() )atof$1( token.c_str() );
+		baseVelocity = atof( token.c_str() );
 		return true;
 	} else if ( idStr::Icmp( key, "name" ) == 0 ) {
 		name = token.c_str();
 		return true;
 	} else if ( idStr::Icmp( key, "time" ) == 0 ) {
-		time = $1( token.c_str() )atoi$1( token.c_str() );
+		time = atoi( token.c_str() );
 		return true;
 	}
-$1src.UnreadToken( &token );	$1src.UnreadToken( &token );
+	src.UnreadToken( &token );
 	return false;
 }
 
@@ -1164,13 +1131,11 @@ $1src.UnreadToken( &token );	$1src.UnreadToken( &token );
 
 void idFixedPosition::parse( idLexer &src ) {
 	idToken token;
-	src.ExpectTokenString( "$1" );{src.ExpectTokenString( "$1" );
+	src.ExpectTokenString( "{" );
 	do {
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
@@ -1185,33 +1150,28 @@ $1}
 			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
-$1src.UnreadToken( &token );
-			$1src.UnreadToken( &token );
-$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}			$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
-			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
+			}
+
+			if ( !src.ReadToken( &token ) ) {
+
+				token.Empty();
+
+			}
 			if ( idStr::Icmp( key.c_str(), "pos" ) == 0 ) {
-$1src.UnreadToken( &token );				$1src.UnreadToken( &token );
-				src.Parse1DMatrix( 3, $1.ToFloatPtr() );possrc.Parse1DMatrix( 3, $1.ToFloatPtr() );
+				src.UnreadToken( &token );
+				src.Parse1DMatrix( 3, pos.ToFloatPtr() );
 			} else {
-$1src.UnreadToken( &token );				$1src.UnreadToken( &token );
+				src.UnreadToken( &token );
 				idCameraPosition::parseToken( key.c_str(), src );
 			}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
@@ -1220,20 +1180,18 @@ $1}
 		}
 
 	} while ( 1 );
-$1src.UnreadToken( &token );
-	$1src.UnreadToken( &token );
-	src.ExpectTokenString( "$1" );}src.ExpectTokenString( "$1" );
+
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
 void idInterpolatedPosition::parse( idLexer &src ) {
 	idToken token;
-	src.ExpectTokenString( "$1" );{src.ExpectTokenString( "$1" );
+	src.ExpectTokenString( "{" );
 	do {
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
@@ -1248,36 +1206,31 @@ $1}
 			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
-$1src.UnreadToken( &token );
-			$1src.UnreadToken( &token );
-$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}			$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
-			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
+			}
+
+			if ( !src.ReadToken( &token ) ) {
+
+				token.Empty();
+
+			}
 			if ( idStr::Icmp( key.c_str(), "startPos" ) == 0 ) {
-$1src.UnreadToken( &token );				$1src.UnreadToken( &token );
-				src.Parse1DMatrix( 3, $1.ToFloatPtr() );startPossrc.Parse1DMatrix( 3, $1.ToFloatPtr() );
+				src.UnreadToken( &token );
+				src.Parse1DMatrix( 3, startPos.ToFloatPtr() );
 			} else if ( idStr::Icmp( key.c_str(), "endPos" ) == 0 ) {
-$1src.UnreadToken( &token );				$1src.UnreadToken( &token );
-				src.Parse1DMatrix( 3, $1.ToFloatPtr() );endPossrc.Parse1DMatrix( 3, $1.ToFloatPtr() );
+				src.UnreadToken( &token );
+				src.Parse1DMatrix( 3, endPos.ToFloatPtr() );
 			} else {
-$1src.UnreadToken( &token );				$1src.UnreadToken( &token );
+				src.UnreadToken( &token );
 				idCameraPosition::parseToken( key.c_str(), src );
 			}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
@@ -1286,21 +1239,19 @@ $1}
 		}
 
 	} while ( 1 );
-$1src.UnreadToken( &token );
-	$1src.UnreadToken( &token );
-	src.ExpectTokenString( "$1" );}src.ExpectTokenString( "$1" );
+
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
 
 void idSplinePosition::parse( idLexer &src ) {
 	idToken token;
-	src.ExpectTokenString( "$1" );{src.ExpectTokenString( "$1" );
+	src.ExpectTokenString( "{" );
 	do {
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}		$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
@@ -1315,32 +1266,27 @@ $1}
 			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
-$1src.UnreadToken( &token );
-			$1src.UnreadToken( &token );
-$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}			$1idToken key;
-$1if ( !src.ReadTokenOnLine( &key ) ) {
-$1	key.Empty();
-$1}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
-			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
+			}
+
+			if ( !src.ReadToken( &token ) ) {
+
+				token.Empty();
+
+			}
 			if ( idStr::Icmp( key.c_str(), "target" ) == 0 ) {
-				target$1parse( src ).$1parse( src );
+				target.parse( src );
 			} else {
-$1src.UnreadToken( &token );				$1src.UnreadToken( &token );
+				src.UnreadToken( &token );
 				idCameraPosition::parseToken( key.c_str(), src );
 			}
-$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}			$1if ( !src.ReadToken( &token ) ) {
-$1	token.Empty();
-$1}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
@@ -1349,9 +1295,9 @@ $1}
 		}
 
 	} while ( 1 );
-$1src.UnreadToken( &token );
-	$1src.UnreadToken( &token );
-	src.ExpectTokenString( "$1" );}src.ExpectTokenString( "$1" );
+
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
 
