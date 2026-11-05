@@ -25,6 +25,10 @@ add_library( idlib STATIC ${IDLIB_SOURCES} )
 # own relative includes
 target_include_directories( idlib PUBLIC ${CMAKE_SOURCE_DIR}/engine )
 
+# the game modules link idlib into their shared objects, so the static
+# library must be built position independent
+set_target_properties( idlib PROPERTIES POSITION_INDEPENDENT_CODE ON )
+
 if ( MSVC )
 	target_compile_definitions( idlib PRIVATE
 		WIN32 _WINDOWS _CRT_SECURE_NO_WARNINGS _CRT_NONSTDC_NO_WARNINGS

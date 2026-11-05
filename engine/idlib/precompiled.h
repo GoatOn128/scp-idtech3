@@ -52,6 +52,14 @@ If you have questions concerning this license or the applicable additional terms
 #pragma warning( disable : 4467 )
 #endif
 
+// The idlib headers below are third-party code and are not held to the
+// project's /W4 bar; keep their header-level warnings out of the first
+// party translation units that include this header.
+#if defined( _MSC_VER )
+#pragma warning( push )
+#pragma warning( disable : 4100 4244 4458 4499 )
+#endif
+
 #include "sys/sys_assert.h"
 #include "sys/sys_defines.h"
 #include "sys/sys_types.h"
@@ -79,5 +87,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "containers/HashIndex.h"
 #include "bv/Sphere.h"
 #include "bv/Bounds.h"
+
+#if defined( _MSC_VER )
+#pragma warning( pop )
+#endif
 
 #endif /* !__PRECOMPILED_H__ */

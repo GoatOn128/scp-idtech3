@@ -36,7 +36,14 @@ Getting assert() to work as we want on all platforms and code analysis tools can
 ================================================================================================
 */
 
-bool AssertFailed( const char *file, int line, const char *expression );
+// The trimmed idlib ships without the Doom 3 sys layer that used to host
+// the assert handler, so provide a small inline definition here: report the
+// failure and keep running.
+#include <stdio.h>
+inline bool AssertFailed( const char *file, int line, const char *expression ) {
+	fprintf( stderr, "Assert failed in %s (%d): %s\n", file, line, expression );
+	return true;
+}
 
 // tell PC-Lint that assert failed won't return, which means it can assume the conditions
 // are true for subsequent analysis.

@@ -47,6 +47,21 @@ If you have questions concerning this license or the applicable additional terms
 #undef _snprintf
 #undef vsnprintf
 #undef _vsnprintf
+// idlib also predefines the console color macros and the angle shortcuts
+// with Doom 3 values; q_shared.h redefines them with the engine's values,
+// which must win here
+#undef S_COLOR_DEFAULT
+#undef S_COLOR_RED
+#undef S_COLOR_GREEN
+#undef S_COLOR_YELLOW
+#undef S_COLOR_BLUE
+#undef S_COLOR_CYAN
+#undef S_COLOR_ORANGE
+#undef S_COLOR_WHITE
+#undef S_COLOR_GRAY
+#undef S_COLOR_BLACK
+#undef ANGLE2SHORT
+#undef SHORT2ANGLE
 #include "q_shared.h"
 
 
