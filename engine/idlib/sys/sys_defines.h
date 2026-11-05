@@ -74,8 +74,16 @@ If you have questions concerning this license or the applicable additional terms
 	#define ID_PC_WIN
 	#define ID_WIN32
 	#define ID_LITTLE_ENDIAN
+#elif defined( __APPLE__ )
+	#define ID_PC
+	#define ID_PC_MACOS
+	#define ID_PC_POSIX
+	#define ID_LITTLE_ENDIAN
 #else
-#error Unknown Platform
+	#define ID_PC
+	#define ID_PC_LINUX
+	#define ID_PC_POSIX
+	#define ID_LITTLE_ENDIAN
 #endif
 
 #define ID_OPENGL
@@ -90,7 +98,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifdef ID_PC_WIN
 
+#ifndef CPUSTRING
 #define	CPUSTRING						"x86"
+#endif
 
 #define	BUILD_STRING					"win-" CPUSTRING
 #define BUILD_OS_ID						0
@@ -127,6 +137,43 @@ If you have questions concerning this license or the applicable additional terms
 /*
 ================================================================================================
 
+	PC POSIX ( Linux / macOS )
+
+================================================================================================
+*/
+
+#ifdef ID_PC_POSIX
+
+#ifndef CPUSTRING
+#define	CPUSTRING						"x86"
+#endif
+
+#define	BUILD_STRING					"posix-" CPUSTRING
+#define	BUILD_OS_ID					0
+
+#define ALIGN16( x )					__attribute__( ( aligned( 16 ) ) ) x
+#define ALIGNTYPE16						__attribute__( ( aligned( 16 ) ) )
+#define ALIGNTYPE128					__attribute__( ( aligned( 128 ) ) )
+#define FORMAT_PRINTF( x )
+#define VERIFY_FORMAT_STRING
+
+#define PATHSEPARATOR_STR				"/"
+#define PATHSEPARATOR_CHAR				'/'
+#define NEWLINE							"\n"
+
+#define ID_INLINE						inline
+#define ID_FORCE_INLINE					inline __attribute__( ( always_inline ) )
+
+#define ID_INLINE_EXTERN				inline
+#define ID_FORCE_INLINE_EXTERN			inline __attribute__( ( always_inline ) )
+
+#define NO_RETURN						__attribute__( ( noreturn ) )
+
+#endif // ID_PC_POSIX
+
+/*
+================================================================================================
+
 Defines and macros usable in all code
 
 ================================================================================================
@@ -134,8 +181,17 @@ Defines and macros usable in all code
 
 #define ALIGN( x, a ) ( ( ( x ) + ((a)-1) ) & ~((a)-1) )
 
+#if defined( _WIN32 )
 #define _alloca16( x )					((void *)ALIGN( (UINT_PTR)_alloca( ALIGN( x, 16 ) + 16 ), 16 ) )
 #define _alloca128( x )					((void *)ALIGN( (UINT_PTR)_alloca( ALIGN( x, 128 ) + 128 ), 128 ) )
+#else
+#define _alloca16( x )					((void *)ALIGN( (uintptr_t)__builtin_alloca( ALIGN( x, 16 ) + 16 ), 16 ) )
+#define _alloca128( x )					((void *)ALIGN( (uintptr_t)__builtin_alloca( ALIGN( x, 128 ) + 128 ), 128 ) )
+#endif
+
+#if !defined( _WIN32 ) && !defined( UINT_PTR )
+#define UINT_PTR uintptr_t
+#endif
 
 #define likely( x )	( x )
 #define unlikely( x )	( x )
