@@ -72,14 +72,14 @@ typedef struct {
 	// Nothing is drawn until R_RenderScene is called.
 	void ( *ClearScene )( void );
 	void ( *AddRefEntityToScene )( const refEntity_t *re );
-	int ( *LightForPoint )( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
+	int ( *LightForPoint )( const idVec3 &point, idVec3 &ambientLight, idVec3 &directedLight, idVec3 &lightDir );
 	void ( *AddPolyToScene )( qhandle_t hShader, int numVerts, const polyVert_t *verts );
 	// Ridah
 	void ( *AddPolysToScene )( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 	// done.
-	void ( *AddLightToScene )( const vec3_t org, float intensity, float r, float g, float b, int overdraw );
+	void ( *AddLightToScene )( const idVec3 &org, float intensity, float r, float g, float b, int overdraw );
 //----(SA)
-	void ( *AddCoronaToScene )( const vec3_t org, float r, float g, float b, float scale, int id, int flags );
+	void ( *AddCoronaToScene )( const idVec3 &org, float r, float g, float b, float scale, int id, int flags );
 	void ( *SetFog )( int fogvar, int var1, int var2, float r, float g, float b, float density );
 //----(SA)
 	void ( *RenderScene )( const refdef_t *fd );
@@ -100,11 +100,11 @@ typedef struct {
 	void ( *EndFrame )( int *frontEndMsec, int *backEndMsec );
 
 
-	int ( *MarkFragments )( int numPoints, const vec3_t *points, const vec3_t projection,
-							int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+	int ( *MarkFragments )( int numPoints, const idVec3 *points, const idVec3 &projection,
+						int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
 	int ( *LerpTag )( orientation_t *tag,  const refEntity_t *refent, const char *tagName, int startIndex );
-	void ( *ModelBounds )( qhandle_t model, vec3_t mins, vec3_t maxs );
+	void ( *ModelBounds )( qhandle_t model, idVec3 &mins, idVec3 &maxs );
 
 #ifdef __USEA3D
 	void ( *A3D_RenderGeometry )( void *pVoidA3D, void *pVoidGeom, void *pVoidMat, void *pVoidGeomStatus );
@@ -113,7 +113,7 @@ typedef struct {
 	void ( *RegisterFont )( const char *fontName, int pointSize, fontInfo_t *font );
 	void ( *RemapShader )( const char *oldShader, const char *newShader, const char *offsetTime );
 	// RF
-	void ( *ZombieFXAddNewHit )( int entityNum, const vec3_t hitPos, const vec3_t hitDir );
+	void ( *ZombieFXAddNewHit )( int entityNum, const idVec3 &hitPos, const idVec3 &hitDir );
 
 	qboolean ( *GetEntityToken )( char *buffer, int size );
 } refexport_t;
@@ -131,17 +131,6 @@ typedef struct {
 	// milliseconds should only be used for profiling, never
 	// for anything game related.  Get time from the refdef
 	int ( *Milliseconds )( void );
-
-	// stack based memory allocation for per-level things that
-	// won't be freed
-	void ( *Hunk_Clear )( void );
-#ifdef HUNK_DEBUG
-	void    *( *Hunk_AllocDebug )( int size, ha_pref pref, char *label, char *file, int line );
-#else
-	void    *( *Hunk_Alloc )( int size, ha_pref pref );
-#endif
-	void    *( *Hunk_AllocateTempMemory )( int size );
-	void ( *Hunk_FreeTempMemory )( void *block );
 
 	cvar_t  *( *Cvar_Get )( const char *name, const char *value, int flags );
 	void ( *Cvar_Set )( const char *name, const char *value );

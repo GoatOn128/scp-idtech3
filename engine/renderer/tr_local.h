@@ -40,12 +40,6 @@ If you have questions concerning this license or the applicable additional terms
 #define GL_INDEX_TYPE       GL_UNSIGNED_INT
 typedef unsigned int glIndex_t;
 
-// fast float to int conversion
-#if id386 && !( ( defined __linux__ || defined __FreeBSD__ ) && ( defined __i386__ ) ) // rb010123
-long myftol( float f );
-#else
-#define myftol( x ) ( (int)( x ) )
-#endif
 
 
 // everything that is needed by the backend needs
@@ -71,17 +65,17 @@ typedef struct {
 
 	qboolean needDlights;       // true for bmodels that touch a dlight
 	qboolean lightingCalculated;
-	vec3_t lightDir;            // normalized direction towards light
-	vec3_t ambientLight;        // color normalized to 0-255
+	idVec3 lightDir;            // normalized direction towards light
+	idVec3 ambientLight;        // color normalized to 0-255
 	int ambientLightInt;            // 32 bit rgba packed
-	vec3_t directedLight;
+	idVec3 directedLight;
 	float brightness;
 } trRefEntity_t;
 
 typedef struct {
-	vec3_t origin;              // in world coordinates
-	vec3_t axis[3];             // orientation in world
-	vec3_t viewOrigin;          // viewParms->orent.origin in local coordinates
+	idVec3 origin;              // in world coordinates
+	idVec3 axis[3];             // orientation in world
+	idVec3 viewOrigin;          // viewParms->orent.origin in local coordinates
 	float modelMatrix[16];
 } orientationr_t;
 
@@ -246,7 +240,7 @@ typedef enum {
 typedef struct {
 	deform_t deformation;               // vertex coordinate modification type
 
-	vec3_t moveVector;
+	idVec3 moveVector;
 	waveForm_t deformationWave;
 	float deformationSpread;
 
@@ -291,7 +285,7 @@ typedef struct {
 	float imageAnimationSpeed;
 
 	texCoordGen_t tcGen;
-	vec3_t tcGenVectors[2];
+	idVec3 tcGenVectors[2];
 
 	int numTexMods;
 	texModInfo_t    *texMods;
@@ -353,7 +347,7 @@ typedef struct {
 } skyParms_t;
 
 typedef struct {
-	vec3_t color;
+	idVec3 color;
 	float depthForOpaque;
 } fogParms_t;
 
@@ -429,9 +423,9 @@ typedef struct shader_s {
 } shader_t;
 
 typedef struct corona_s {
-	vec3_t origin;
-	vec3_t color;               // range from 0.0 to 1.0, should be color normalized
-	vec3_t transformed;         // origin in local coordinate system
+	idVec3 origin;
+	idVec3 color;               // range from 0.0 to 1.0, should be color normalized
+	idVec3 transformed;         // origin in local coordinate system
 	float scale;                // uses r_flaresize as the baseline (1.0)
 	int id;
 	int flags;                  // '1' is 'visible'
@@ -439,11 +433,11 @@ typedef struct corona_s {
 } corona_t;
 
 typedef struct dlight_s {
-	vec3_t origin;
-	vec3_t color;               // range from 0.0 to 1.0, should be color normalized
+	idVec3 origin;
+	idVec3 color;               // range from 0.0 to 1.0, should be color normalized
 	float radius;
 
-	vec3_t transformed;         // origin in local coordinate system
+	idVec3 transformed;         // origin in local coordinate system
 
 	// Ridah
 	int overdraw;
@@ -461,8 +455,8 @@ typedef struct dlight_s {
 typedef struct {
 	int x, y, width, height;
 	float fov_x, fov_y;
-	vec3_t vieworg;
-	vec3_t viewaxis[3];             // transformation matrix
+	idVec3 vieworg;
+	idVec3 viewaxis[3];             // transformation matrix
 
 	int time;                       // time in milliseconds for shader effects and other time dependent rendering issues
 	int rdflags;                    // RDF_NOWORLDMODEL, etc
@@ -515,13 +509,13 @@ typedef struct skin_s {
 	int numModels;
 	skinSurface_t   *surfaces[MD3_MAX_SURFACES];
 	skinModel_t     *models[MAX_PART_MODELS];
-	vec3_t scale;       //----(SA)	added
+	idVec3 scale;       //----(SA)	added
 } skin_t;
 //----(SA) end
 
 typedef struct {
 	int originalBrushNumber;
-	vec3_t bounds[2];
+	idVec3 bounds[2];
 
 	unsigned colorInt;                  // in packed byte format
 	float tcScale;                      // texture coordinate vector scales
@@ -535,7 +529,7 @@ typedef struct {
 typedef struct {
 	orientationr_t  orent;
 	orientationr_t world;
-	vec3_t pvsOrigin;               // may be different than or.origin for portals
+	idVec3 pvsOrigin;               // may be different than or.origin for portals
 	qboolean isPortal;              // true if this view is through a portal
 	qboolean isMirror;              // the portal is a mirror, invert the face culling
 	int frameSceneNum;              // copied from tr.frameSceneNum
@@ -545,7 +539,7 @@ typedef struct {
 	float fovX, fovY;
 	float projectionMatrix[16];
 	cplane_t frustum[4];
-	vec3_t visBounds[2];
+	idVec3 visBounds[2];
 	float zFar;
 
 	int dirty;
@@ -611,9 +605,9 @@ typedef struct srfDisplayList_s {
 
 typedef struct srfFlare_s {
 	surfaceType_t surfaceType;
-	vec3_t origin;
-	vec3_t normal;
-	vec3_t color;
+	idVec3 origin;
+	idVec3 normal;
+	idVec3 color;
 } srfFlare_t;
 
 typedef struct srfGridMesh_s {
@@ -623,14 +617,14 @@ typedef struct srfGridMesh_s {
 	int dlightBits[SMP_FRAMES];
 
 	// culling information
-	vec3_t meshBounds[2];
-	vec3_t localOrigin;
+	idVec3 meshBounds[2];
+	idVec3 localOrigin;
 	float meshRadius;
 
 	// lod information, which may be different
 	// than the culling information to allow for
 	// groups of curves that LOD as a unit
-	vec3_t lodOrigin;
+	idVec3 lodOrigin;
 	float lodRadius;
 	int lodFixed;
 	int lodStitched;
@@ -669,8 +663,8 @@ typedef struct {
 	int dlightBits[SMP_FRAMES];
 
 	// culling information (FIXME: use this!)
-	vec3_t bounds[2];
-	vec3_t localOrigin;
+	idVec3 bounds[2];
+	idVec3 localOrigin;
 	float radius;
 
 	// triangle definitions
@@ -716,7 +710,7 @@ typedef struct mnode_s {
 	// common with leaf and node
 	int contents;               // -1 for nodes, to differentiate from leafs
 	int visframe;               // node needs to be traversed if current
-	vec3_t mins, maxs;          // for bounding box culling
+	idVec3 mins, maxs;          // for bounding box culling
 	struct mnode_s  *parent;
 
 	// node specific
@@ -732,7 +726,7 @@ typedef struct mnode_s {
 } mnode_t;
 
 typedef struct {
-	vec3_t bounds[2];           // for culling
+	idVec3 bounds[2];           // for culling
 	msurface_t  *firstSurface;
 	int numSurfaces;
 } bmodel_t;
@@ -764,9 +758,9 @@ typedef struct {
 	int numfogs;
 	fog_t       *fogs;
 
-	vec3_t lightGridOrigin;
-	vec3_t lightGridSize;
-	vec3_t lightGridInverseSize;
+	idVec3 lightGridOrigin;
+	idVec3 lightGridSize;
+	idVec3 lightGridInverseSize;
 	int lightGridBounds[3];
 	byte        *lightGridData;
 
@@ -813,7 +807,7 @@ typedef struct model_s {
 void        R_ModelInit( void );
 model_t     *R_GetModelByHandle( qhandle_t hModel );
 int         R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex );
-void        R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs );
+void R_ModelBounds( qhandle_t handle, idVec3 &mins, idVec3 &maxs );
 
 void        R_Modellist_f( void );
 
@@ -999,8 +993,8 @@ typedef struct {
 
 	int viewCluster;
 
-	vec3_t sunLight;                            // from the sky shader for this level
-	vec3_t sunDirection;
+	idVec3 sunLight;                            // from the sky shader for this level
+	idVec3 sunDirection;
 
 //----(SA)	added
 	float lightGridMulAmbient;          // lightgrid multipliers specified in sky shader
@@ -1240,11 +1234,11 @@ void R_AddDrawSurf( surfaceType_t *surface, shader_t *shader, int fogIndex, int 
 #define CULL_IN     0       // completely unclipped
 #define CULL_CLIP   1       // clipped by one or more planes
 #define CULL_OUT    2       // completely outside the clipping planes
-void R_LocalNormalToWorld( vec3_t local, vec3_t world );
-void R_LocalPointToWorld( vec3_t local, vec3_t world );
-int R_CullLocalBox( vec3_t bounds[2] );
-int R_CullPointAndRadius( vec3_t origin, float radius );
-int R_CullLocalPointAndRadius( vec3_t origin, float radius );
+void R_LocalNormalToWorld( const idVec3 &local, idVec3 &world );
+void R_LocalPointToWorld( const idVec3 &local, idVec3 &world );
+int R_CullLocalBox( idVec3 bounds[2] );
+int R_CullPointAndRadius( idVec3 origin, float radius );
+int R_CullLocalPointAndRadius( idVec3 origin, float radius );
 
 void R_RotateForEntity( const trRefEntity_t * ent, const viewParms_t * viewParms, orientationr_t * orent );
 
@@ -1398,15 +1392,15 @@ typedef byte color4ub_t[4];
 typedef struct stageVars
 {
 	color4ub_t colors[SHADER_MAX_VERTEXES];
-	vec2_t texcoords[NUM_TEXTURE_BUNDLES][SHADER_MAX_VERTEXES];
+	idVec2 texcoords[NUM_TEXTURE_BUNDLES][SHADER_MAX_VERTEXES];
 } stageVars_t;
 
 typedef struct shaderCommands_s
 {
 	glIndex_t indexes[SHADER_MAX_INDEXES];
-	vec4_t xyz[SHADER_MAX_VERTEXES];
-	vec4_t normal[SHADER_MAX_VERTEXES];
-	vec2_t texCoords[SHADER_MAX_VERTEXES][2];
+	idVec4 xyz[SHADER_MAX_VERTEXES];
+	idVec4 normal[SHADER_MAX_VERTEXES];
+	idVec2 texCoords[SHADER_MAX_VERTEXES][2];
 	color4ub_t vertexColors[SHADER_MAX_VERTEXES];
 	int vertexDlightBits[SHADER_MAX_VERTEXES];
 
@@ -1443,9 +1437,9 @@ void RB_StageIteratorSky( void );
 void RB_StageIteratorVertexLitTexture( void );
 void RB_StageIteratorLightmappedMultitexture( void );
 
-void RB_AddQuadStamp( vec3_t origin, vec3_t left, vec3_t up, byte *color );
-void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, float s1, float t1, float s2, float t2 );
-void RB_AddQuadStampFadingCornersExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, float s1, float t1, float s2, float t2 );
+void RB_AddQuadStamp( idVec3 origin, idVec3 left, idVec3 up, byte *color );
+void RB_AddQuadStampExt( idVec3 origin, idVec3 left, idVec3 up, byte *color, float s1, float t1, float s2, float t2 );
+void RB_AddQuadStampFadingCornersExt( idVec3 origin, idVec3 left, idVec3 up, byte *color, float s1, float t1, float s2, float t2 );
 
 void RB_ShowImages( void );
 
@@ -1472,7 +1466,7 @@ FLARES
 
 void R_ClearFlares( void );
 
-void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, float scale, vec3_t normal, int id, int flags ); // TTimo updated prototype
+void RB_AddFlare( void *surface, int fogNum, idVec3 point, idVec3 color, float scale, idVec3 normal, int id, int flags ); // TTimo updated prototype
 void RB_AddDlightFlares( void );
 void RB_RenderFlares( void );
 
@@ -1487,7 +1481,7 @@ LIGHTS
 void R_DlightBmodel( bmodel_t *bmodel );
 void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent );
 void R_TransformDlights( int count, dlight_t * dl, orientationr_t * orent );
-int R_LightForPoint( vec3_t point, vec3_t ambientLight, vec3_t directedLight, vec3_t lightDir );
+int R_LightForPoint( const idVec3 &point, idVec3 &ambientLight, idVec3 &directedLight, idVec3 &lightDir );
 
 
 /*
@@ -1528,8 +1522,8 @@ CURVE TESSELATION
 
 srfGridMesh_t *R_SubdividePatchToGrid( int width, int height,
 									   drawVert_t points[MAX_PATCH_SIZE * MAX_PATCH_SIZE] );
-srfGridMesh_t *R_GridInsertColumn( srfGridMesh_t *grid, int column, int row, vec3_t point, float loderror );
-srfGridMesh_t *R_GridInsertRow( srfGridMesh_t *grid, int row, int column, vec3_t point, float loderror );
+srfGridMesh_t *R_GridInsertColumn( srfGridMesh_t *grid, int column, int row, idVec3 point, float loderror );
+srfGridMesh_t *R_GridInsertRow( srfGridMesh_t *grid, int row, int column, idVec3 point, float loderror );
 void R_FreeSurfaceGridMesh( srfGridMesh_t *grid );
 
 /*
@@ -1540,8 +1534,8 @@ MARKERS, POLYGON PROJECTION ON WORLD POLYGONS
 ============================================================
 */
 
-int R_MarkFragments( int orientation, const vec3_t *points, const vec3_t projection,
-					 int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projection,
+						 int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
 
 /*
@@ -1561,10 +1555,10 @@ void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts
 void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts, int numPolys );
 // done.
 // Ridah
-void RE_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b, int overdraw );
+void RE_AddLightToScene( const idVec3 &org, float intensity, float r, float g, float b, int overdraw );
 // done.
 //----(SA)
-void RE_AddCoronaToScene( const vec3_t org, float r, float g, float b, float scale, int id, int flags );
+void RE_AddCoronaToScene( const idVec3 &org, float r, float g, float b, float scale, int id, int flags );
 //----(SA)
 void RE_RenderScene( const refdef_t *fd );
 
@@ -1585,9 +1579,9 @@ int R_GetBoneTag( orientation_t *outTag, mdsHeader_t *mds, int startTagIndex, co
 =============================================================
 =============================================================
 */
-void    R_TransformModelToClip( const vec3_t src, const float *modelMatrix, const float *projectionMatrix,
-								vec4_t eye, vec4_t dst );
-void    R_TransformClipToWindow( const vec4_t clip, const viewParms_t *view, vec4_t normalized, vec4_t window );
+void    R_TransformModelToClip( const idVec3 &src, const float *modelMatrix, const float *projectionMatrix,
+								idVec4 eye, idVec4 dst );
+void    R_TransformClipToWindow( const idVec4 clip, const viewParms_t *view, idVec4 normalized, idVec4 window );
 
 void    RB_DeformTessGeometry( void );
 
@@ -1614,7 +1608,7 @@ void    RB_CalcSpecularAlpha( unsigned char *alphas );
 void    RB_CalcDiffuseColor( unsigned char *colors );
 
 void    RB_ZombieFXInit( void );
-void    RB_ZombieFXAddNewHit( int entityNum, const vec3_t hitPos, const vec3_t hitDir );
+void    RB_ZombieFXAddNewHit( int entityNum, const idVec3 &hitPos, const idVec3 &hitDir );
 
 
 /*
@@ -1808,20 +1802,20 @@ extern float r_anormals[NUMMDCVERTEXNORMALS][3];
 #define MDC_MAX_DIST        ( MDC_MAX_OFS * MDC_DIST_SCALE )
 
 #if 0
-void R_MDC_DecodeXyzCompressed( mdcXyzCompressed_t *xyzComp, vec3_t out, vec3_t normal );
+void R_MDC_DecodeXyzCompressed( mdcXyzCompressed_t *xyzComp, idVec3 out, idVec3 normal );
 #else   // optimized version
 #define R_MDC_DecodeXyzCompressed( ofsVec, out, normal ) \
 	( out )[0] = ( (float)( ( ofsVec ) & 255 ) - MDC_MAX_OFS ) * MDC_DIST_SCALE; \
 	( out )[1] = ( (float)( ( ofsVec >> 8 ) & 255 ) - MDC_MAX_OFS ) * MDC_DIST_SCALE; \
 	( out )[2] = ( (float)( ( ofsVec >> 16 ) & 255 ) - MDC_MAX_OFS ) * MDC_DIST_SCALE; \
-	VectorCopy( ( r_anormals )[( ofsVec >> 24 )], normal );
+	normal = ( r_anormals )[( ofsVec >> 24 )];
 #endif
 
 void R_AddMDCSurfaces( trRefEntity_t *ent );
 // done.
 //------------------------------------------------------------------------------
 
-void R_LatLongToNormal( vec3_t outNormal, short latLong );
+void R_LatLongToNormal( idVec3 &outNormal, short latLong );
 
 
 /*

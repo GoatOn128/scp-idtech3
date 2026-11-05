@@ -291,7 +291,7 @@ static void InitOpenGL( void ) {
 		R_InitRenderProgramDiagnostics();
 
 		strcpy( renderer_buffer, glConfig.renderer_string );
-		Q_strlwr( renderer_buffer );
+		idStr::ToLower( renderer_buffer );
 
 		// OpenGL driver constants
 		qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
@@ -443,7 +443,7 @@ void R_TakeScreenshot( int x, int y, int width, int height, char *fileName ) {
 	byte        *buffer;
 	int i, c, temp;
 
-	buffer = (byte *) ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight * 3 + 18 );
+	buffer = (byte *) Mem_ClearedAlloc( glConfig.vidWidth * glConfig.vidHeight * 3 + 18, TAG_IDLIB );
 
 	memset( buffer, 0, 18 );
 	buffer[2] = 2;      // uncompressed type
@@ -470,7 +470,7 @@ void R_TakeScreenshot( int x, int y, int width, int height, char *fileName ) {
 
 	ri.FS_WriteFile( fileName, buffer, c );
 
-	ri.Hunk_FreeTempMemory( buffer );
+	Mem_Free( buffer );
 }
 
 /*
@@ -481,7 +481,7 @@ R_TakeScreenshotJPEG
 void R_TakeScreenshotJPEG( int x, int y, int width, int height, char *fileName ) {
 	byte        *buffer;
 
-	buffer = (byte *) ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight * 4 );
+	buffer = (byte *) Mem_ClearedAlloc( glConfig.vidWidth * glConfig.vidHeight * 4, TAG_IDLIB );
 
 	qglReadPixels( x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer );
 
@@ -493,7 +493,7 @@ void R_TakeScreenshotJPEG( int x, int y, int width, int height, char *fileName )
 	ri.FS_WriteFile( fileName, buffer, 1 );     // create path
 	SaveJPG( fileName, 95, glConfig.vidWidth, glConfig.vidHeight, buffer );
 
-	ri.Hunk_FreeTempMemory( buffer );
+	Mem_Free( buffer );
 }
 
 /*
@@ -566,9 +566,9 @@ void R_LevelShot( void ) {
 
 	sprintf( checkname, "levelshots/%s.tga", tr.world->baseName );
 
-	source = (byte *) ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight * 3 );
+	source = (byte *) Mem_ClearedAlloc( glConfig.vidWidth * glConfig.vidHeight * 3, TAG_IDLIB );
 
-	buffer = (byte *) ri.Hunk_AllocateTempMemory( 128 * 128 * 3 + 18 );
+	buffer = (byte *) Mem_ClearedAlloc( 128 * 128 * 3 + 18, TAG_IDLIB );
 	memset( buffer, 0, 18 );
 	buffer[2] = 2;      // uncompressed type
 	buffer[12] = 128;
@@ -605,8 +605,8 @@ void R_LevelShot( void ) {
 
 	ri.FS_WriteFile( checkname, buffer, 128 * 128 * 3 + 18 );
 
-	ri.Hunk_FreeTempMemory( buffer );
-	ri.Hunk_FreeTempMemory( source );
+	Mem_Free( buffer );
+	Mem_Free( source );
 
 	ri.Printf( PRINT_ALL, "Wrote %s\n", checkname );
 }
@@ -1202,12 +1202,12 @@ void R_Init( void ) {
 		max_polyverts = MAX_POLYVERTS;
 	}
 
-//	backEndData[0] = ri.Hunk_Alloc( sizeof( *backEndData[0] ), h_low );
-	backEndData[0] = (backEndData_t *) ri.Hunk_Alloc( sizeof( *backEndData[0] ) + sizeof( srfPoly_t ) * max_polys + sizeof( polyVert_t ) * max_polyverts, h_low );
+//	backEndData[0] = Mem_ClearedAlloc( sizeof( *backEndData[0] ), TAG_IDLIB );
+	backEndData[0] = (backEndData_t *) Mem_ClearedAlloc( sizeof( *backEndData[0] ) + sizeof( srfPoly_t ) * max_polys + sizeof( polyVert_t ) * max_polyverts, TAG_IDLIB );
 
 	if ( r_smp->integer ) {
-//		backEndData[1] = ri.Hunk_Alloc( sizeof( *backEndData[1] ), h_low );
-		backEndData[1] = (backEndData_t *) ri.Hunk_Alloc( sizeof( *backEndData[1] ) + sizeof( srfPoly_t ) * max_polys + sizeof( polyVert_t ) * max_polyverts, h_low );
+//		backEndData[1] = Mem_ClearedAlloc( sizeof( *backEndData[1] ), TAG_IDLIB );
+		backEndData[1] = (backEndData_t *) Mem_ClearedAlloc( sizeof( *backEndData[1] ) + sizeof( srfPoly_t ) * max_polys + sizeof( polyVert_t ) * max_polyverts, TAG_IDLIB );
 	} else {
 		backEndData[1] = NULL;
 	}
