@@ -1916,6 +1916,12 @@ ID_INLINE float AngleMod( float a ) {
 	return ( 360.0f / 65536 ) * ( (int)( a * ( 65536 / 360.0 ) ) & 65535 );
 }
 
+// ported from the old q3 mathlib
+ID_INLINE float VectorDistance( const idVec3 &p1, const idVec3 &p2 ) {
+	idVec3 v = p2 - p1;
+	return v.Length();
+}
+
 ID_INLINE void SnapVector( idVec3 &v ) {
 	v.Snap();
 }
