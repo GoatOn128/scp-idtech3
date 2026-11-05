@@ -161,7 +161,7 @@ G_Script_EventMatch_StringEqual
 ===============
 */
 qboolean G_Script_EventMatch_StringEqual( g_script_event_t *event, char *eventParm ) {
-	if ( eventParm && !Q_strcasecmp( event->params, eventParm ) ) {
+	if ( eventParm && !idStr::Icmp( event->params, eventParm ) ) {
 		return qtrue;
 	} else {
 		return qfalse;
@@ -174,19 +174,24 @@ G_Script_EventMatch_IntInRange
 ===============
 */
 qboolean G_Script_EventMatch_IntInRange( g_script_event_t *event, char *eventParm ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int int1, int2, eInt;
 
+	if ( !eventParm ) {
+		return qfalse;
+	}
+
 	// get the cast name
-	pString = eventParm;
-	token = COM_ParseExt( &pString, qfalse );
-	int1 = atoi( token );
-	token = COM_ParseExt( &pString, qfalse );
-	int2 = atoi( token );
+	lexer.LoadMemory( eventParm, strlen( eventParm ), "G_Script_EventMatch_IntInRange" );
+	lexer.ReadToken( &token );
+	int1 = atoi( token.c_str() );
+	lexer.ReadToken( &token );
+	int2 = atoi( token.c_str() );
 
 	eInt = atoi( event->params );
 
-	if ( eventParm && eInt > int1 && eInt <= int2 ) {
+	if ( eInt > int1 && eInt <= int2 ) {
 		return qtrue;
 	} else {
 		return qfalse;
@@ -198,12 +203,12 @@ qboolean G_Script_EventMatch_IntInRange( g_script_event_t *event, char *eventPar
 G_Script_EventForString
 ===============
 */
-int G_Script_EventForString( char *string ) {
+int G_Script_EventForString( const char *string ) {
 	int i;
 
 	for ( i = 0; gScriptEvents[i].eventStr; i++ )
 	{
-		if ( !Q_strcasecmp( string, gScriptEvents[i].eventStr ) ) {
+		if ( !idStr::Icmp( string, gScriptEvents[i].eventStr ) ) {
 			return i;
 		}
 	}
@@ -216,13 +221,13 @@ int G_Script_EventForString( char *string ) {
 G_Script_ActionForString
 ===============
 */
-g_script_stack_action_t *G_Script_ActionForString( char *string ) {
+g_script_stack_action_t *G_Script_ActionForString( const char *string ) {
 	int i;
 
 	for ( i = 0; gScriptActions[i].actionString; i++ )
 	{
-		if ( !Q_strcasecmp( string, gScriptActions[i].actionString ) ) {
-			if ( !Q_strcasecmp( string, "foundsecret" ) ) {
+		if ( !idStr::Icmp( string, gScriptActions[i].actionString ) ) {
+			if ( !idStr::Icmp( string, "foundsecret" ) ) {
 				level.numSecrets++;
 				G_SendMissionStats();
 			}
@@ -256,9 +261,9 @@ void G_Script_ScriptLoad( void ) {
 	} else {
 		trap_Cvar_Register( &mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM );
 	}
-	Q_strncpyz( filename, "maps/", sizeof( filename ) );
-	Q_strcat( filename, sizeof( filename ), mapname.string );
-	Q_strcat( filename, sizeof( filename ), ".script" );
+	idStr::Copynz( filename, "maps/", sizeof( filename ) );
+	idStr::Append( filename, sizeof( filename ), mapname.string );
+	idStr::Append( filename, sizeof( filename ), ".script" );
 
 	len = trap_FS_FOpenFile( filename, &f, FS_READ );
 
@@ -269,8 +274,9 @@ void G_Script_ScriptLoad( void ) {
 		return;
 	}
 
-	level.scriptEntity = (char *) G_Alloc( len );
+	level.scriptEntity = (char *) G_Alloc( len + 1 );
 	trap_FS_Read( level.scriptEntity, len, f );
+	level.scriptEntity[len] = '\0';
 
 	trap_FS_FCloseFile( f );
 }
@@ -284,8 +290,8 @@ G_Script_ScriptParse
 */
 void G_Script_ScriptParse( gentity_t *ent ) {
 	#define MAX_SCRIPT_EVENTS   64
-	char        *pScript;
-	char        *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	qboolean wantName;
 	qboolean inScript;
 	int eventNum;
@@ -311,10 +317,10 @@ void G_Script_ScriptParse( gentity_t *ent ) {
 	buildScript = trap_Cvar_VariableIntegerValue( "com_buildScript" );
 	buildScript = qtrue;
 
-	pScript = level.scriptEntity;
+	// tokenize the whole script with the idlib lexer
+	lexer.LoadMemory( level.scriptEntity, strlen( level.scriptEntity ), "G_Script_ScriptParse" );
 	wantName = qtrue;
 	inScript = qfalse;
-	COM_BeginParseSession( "G_Script_ScriptParse" );
 	bracketLevel = 0;
 	numEventItems = 0;
 
@@ -322,11 +328,13 @@ void G_Script_ScriptParse( gentity_t *ent ) {
 
 	while ( 1 )
 	{
-		token = COM_Parse( &pScript );
+		if ( !lexer.ReadToken( &token ) ) {
+			token.Clear();    // end of script
+		}
 
 		if ( !token[0] ) {
 			if ( !wantName ) {
-				G_Error( "G_Script_ScriptParse(), Error (line %d): '}' expected, end of script found.\n", COM_GetCurrentParseLine() );
+				G_Error( "G_Script_ScriptParse(), Error (line %d): '}' expected, end of script found.\n", lexer.GetLineNum() );
 			}
 			break;
 		}
@@ -337,31 +345,31 @@ void G_Script_ScriptParse( gentity_t *ent ) {
 				break;
 			}
 			if ( wantName ) {
-				G_Error( "G_Script_ScriptParse(), Error (line %d): '}' found, but not expected.\n", COM_GetCurrentParseLine() );
+				G_Error( "G_Script_ScriptParse(), Error (line %d): '}' found, but not expected.\n", lexer.GetLineNum() );
 			}
 			wantName = qtrue;
 		} else if ( token[0] == '{' )    {
 			if ( wantName ) {
-				G_Error( "G_Script_ScriptParse(), Error (line %d): '{' found, NAME expected.\n", COM_GetCurrentParseLine() );
+				G_Error( "G_Script_ScriptParse(), Error (line %d): '{' found, NAME expected.\n", lexer.GetLineNum() );
 			}
 		} else if ( wantName )   {
-			if ( !Q_strcasecmp( ent->scriptName, token ) ) {
+			if ( !idStr::Icmp( ent->scriptName, token.c_str() ) ) {
 				inScript = qtrue;
 				numEventItems = 0;
 			}
 			wantName = qfalse;
 		} else if ( inScript )   {
-			//if ( !Q_strcasecmp( token, "attributes" ) ) {
+			//if ( !idStr::Icmp( token, "attributes" ) ) {
 			//	// read in all the attributes
 			//	G_Script_CheckLevelAttributes( cs, ent, &pScript );
 			//	continue;
 			//}
 			eventNum = G_Script_EventForString( token );
 			if ( eventNum < 0 ) {
-				G_Error( "G_Script_ScriptParse(), Error (line %d): unknown event: %s.\n", COM_GetCurrentParseLine(), token );
+				G_Error( "G_Script_ScriptParse(), Error (line %d): unknown event: %s.\n", lexer.GetLineNum(), token );
 			}
 			if ( numEventItems >= MAX_SCRIPT_EVENTS ) {
-				G_Error( "G_Script_ScriptParse(), Error (line %d): MAX_SCRIPT_EVENTS reached (%d)\n", COM_GetCurrentParseLine(), MAX_SCRIPT_EVENTS );
+				G_Error( "G_Script_ScriptParse(), Error (line %d): MAX_SCRIPT_EVENTS reached (%d)\n", lexer.GetLineNum(), MAX_SCRIPT_EVENTS );
 			}
 
 			curEvent = &events[numEventItems];
@@ -369,100 +377,106 @@ void G_Script_ScriptParse( gentity_t *ent ) {
 			memset( params, 0, sizeof( params ) );
 
 			// parse any event params before the start of this event's actions
-			while ( ( token = COM_Parse( &pScript ) ) && ( token[0] != '{' ) )
+			while ( 1 )
 			{
-				if ( !token[0] ) {
-					G_Error( "G_Script_ScriptParse(), Error (line %d): '}' expected, end of script found.\n", COM_GetCurrentParseLine() );
+				if ( !lexer.ReadToken( &token ) ) {
+					G_Error( "G_Script_ScriptParse(), Error (line %d): '}' expected, end of script found.\n", lexer.GetLineNum() );
+				}
+				if ( token[0] == '{' ) {
+					break;
 				}
 
 				if ( strlen( params ) ) { // add a space between each param
-					Q_strcat( params, sizeof( params ), " " );
+					idStr::Append( params, sizeof( params ), " " );
 				}
-				Q_strcat( params, sizeof( params ), token );
+				idStr::Append( params, sizeof( params ), token.c_str() );
 			}
 
 			if ( strlen( params ) ) { // copy the params into the event
 					curEvent->params = (char *) G_Alloc( strlen( params ) + 1 );
-				Q_strncpyz( curEvent->params, params, strlen( params ) + 1 );
+				idStr::Copynz( curEvent->params, params, strlen( params ) + 1 );
 			}
 
 			// parse the actions for this event
-			while ( ( token = COM_Parse( &pScript ) ) && ( token[0] != '}' ) )
+			while ( 1 )
 			{
-				if ( !token[0] ) {
-					G_Error( "G_Script_ScriptParse(), Error (line %d): '}' expected, end of script found.\n", COM_GetCurrentParseLine() );
+				if ( !lexer.ReadToken( &token ) ) {
+					G_Error( "G_Script_ScriptParse(), Error (line %d): '}' expected, end of script found.\n", lexer.GetLineNum() );
+				}
+				if ( token[0] == '}' ) {
+					break;
 				}
 
-				action = G_Script_ActionForString( token );
+				action = G_Script_ActionForString( token.c_str() );
 				if ( !action ) {
-					G_Error( "G_Script_ScriptParse(), Error (line %d): unknown action: %s.\n", COM_GetCurrentParseLine(), token );
+					G_Error( "G_Script_ScriptParse(), Error (line %d): unknown action: %s.\n", lexer.GetLineNum(), token.c_str() );
 				}
 
 				curEvent->stack.items[curEvent->stack.numItems].action = action;
 
 				memset( params, 0, sizeof( params ) );
-				token = COM_ParseExt( &pScript, qfalse );
-				for ( i = 0; token[0]; i++ )
+				i = 0;
+				while ( lexer.ReadTokenOnLine( &token ) )
 				{
 					if ( strlen( params ) ) { // add a space between each param
-						Q_strcat( params, sizeof( params ), " " );
+						idStr::Append( params, sizeof( params ), " " );
 					}
 
 					if ( i == 0 ) {
 						// Special case: playsound's need to be cached on startup to prevent in-game pauses
-						if ( !Q_stricmp( action->actionString, "playsound" ) ) {
-							G_SoundIndex( token );
+						if ( !idStr::Icmp( action->actionString, "playsound" ) ) {
+							G_SoundIndex( token.c_str() );
 						}
 
 //----(SA)	added a bit more
 						if (    buildScript && (
-									!Q_stricmp( action->actionString, "mu_start" ) ||
-									!Q_stricmp( action->actionString, "mu_play" ) ||
-									!Q_stricmp( action->actionString, "mu_queue" ) ||
-									!Q_stricmp( action->actionString, "startcam" ) ||
-									!Q_stricmp( action->actionString, "startcamblack" ) )
+									!idStr::Icmp( action->actionString, "mu_start" ) ||
+									!idStr::Icmp( action->actionString, "mu_play" ) ||
+									!idStr::Icmp( action->actionString, "mu_queue" ) ||
+									!idStr::Icmp( action->actionString, "startcam" ) ||
+									!idStr::Icmp( action->actionString, "startcamblack" ) )
 								) {
-							if ( strlen( token ) ) { // we know there's a [0], but don't know if it's '0'
-								trap_SendServerCommand( ent->s.number, va( "addToBuild %s\n", token ) );
+							if ( strlen( token.c_str() ) ) { // we know there's a [0], but don't know if it's '0'
+								trap_SendServerCommand( ent->s.number, va( "addToBuild %s\n", token.c_str() ) );
 							}
 						}
 					}
 //----(SA)	end
 
-					if ( strrchr( token,' ' ) ) { // need to wrap this param in quotes since it has more than one word
-						Q_strcat( params, sizeof( params ), "\"" );
+					if ( strrchr( token.c_str(),' ' ) ) { // need to wrap this param in quotes since it has more than one word
+						idStr::Append( params, sizeof( params ), "\"" );
 					}
 
-					Q_strcat( params, sizeof( params ), token );
+					idStr::Append( params, sizeof( params ), token.c_str() );
 
-					if ( strrchr( token,' ' ) ) { // need to wrap this param in quotes since it has more than one word
-						Q_strcat( params, sizeof( params ), "\"" );
+					if ( strrchr( token.c_str(),' ' ) ) { // need to wrap this param in quotes since it has more than one word
+						idStr::Append( params, sizeof( params ), "\"" );
 					}
 
-					token = COM_ParseExt( &pScript, qfalse );
+					i++;
 				}
 
 				if ( strlen( params ) ) { // copy the params into the event
 						curEvent->stack.items[curEvent->stack.numItems].params = (char *) G_Alloc( strlen( params ) + 1 );
-					Q_strncpyz( curEvent->stack.items[curEvent->stack.numItems].params, params, strlen( params ) + 1 );
+					idStr::Copynz( curEvent->stack.items[curEvent->stack.numItems].params, params, strlen( params ) + 1 );
 				}
 
 				curEvent->stack.numItems++;
 
 				if ( curEvent->stack.numItems >= G_MAX_SCRIPT_STACK_ITEMS ) {
-					G_Error( "G_Script_ScriptParse(): script exceeded MAX_SCRIPT_ITEMS (%d), line %d\n", G_MAX_SCRIPT_STACK_ITEMS, COM_GetCurrentParseLine() );
+					G_Error( "G_Script_ScriptParse(): script exceeded MAX_SCRIPT_ITEMS (%d), line %d\n", G_MAX_SCRIPT_STACK_ITEMS, lexer.GetLineNum() );
 				}
 			}
 
 			numEventItems++;
 		} else    // skip this character completely
 		{
-			// TTimo: gcc: suggest parentheses around assignment used as truth value
-			while ( ( token = COM_Parse( &pScript ) ) )
+			while ( 1 )
 			{
-				if ( !token[0] ) {
-					G_Error( "G_Script_ScriptParse(), Error (line %d): '}' expected, end of script found.\n", COM_GetCurrentParseLine() );
-				} else if ( token[0] == '{' ) {
+				if ( !lexer.ReadToken( &token ) ) {
+					G_Error( "G_Script_ScriptParse(), Error (line %d): '}' expected, end of script found.\n", lexer.GetLineNum() );
+				}
+				if ( token[0] == '{' ) {
 					bracketLevel++;
 				} else if ( token[0] == '}' ) {
 					if ( !--bracketLevel ) {
@@ -521,7 +535,7 @@ void G_Script_ScriptEvent( gentity_t *ent, char *eventStr, char *params ) {
 	// find out which event this is
 	for ( i = 0; gScriptEvents[i].eventStr; i++ )
 	{
-		if ( !Q_strcasecmp( eventStr, gScriptEvents[i].eventStr ) ) { // match found
+		if ( !idStr::Icmp( eventStr, gScriptEvents[i].eventStr ) ) { // match found
 			eventNum = i;
 			break;
 		}
@@ -661,7 +675,7 @@ void script_mover_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacke
 	G_FreeEntity( self );
 }
 
-void script_mover_pain( gentity_t *self, gentity_t *attacker, int damage, vec3_t point ) {
+void script_mover_pain( gentity_t *self, gentity_t *attacker, int damage, idVec3 &point ) {
 	G_Script_ScriptEvent( self, "pain", va( "%d %d", self->health, self->health + damage ) );
 }
 
@@ -703,7 +717,7 @@ void script_mover_blocked( gentity_t *ent, gentity_t *other ) {
 	// start us on our way again (theoretically speaking).
 
 	// kill them
-	G_Damage( other, ent, ent, NULL, NULL, 9999, 0, MOD_CRUSH );
+	G_Damage( other, ent, ent, vec3_origin, vec3_origin, 9999, 0, MOD_CRUSH );
 }
 
 /*QUAKED script_mover (0.5 0.25 1.0) ? TRIGGERSPAWN SOLID EXPLOSIVEDAMAGEONLY
@@ -717,8 +731,8 @@ Scripted brush entity. A simplified means of moving brushes around based on even
 */
 void SP_script_mover( gentity_t *ent ) {
 
-	float scale[3] = {1,1,1};
-	vec3_t scalevec;
+	idVec3 scale( 1, 1, 1 );
+	idVec3 scalevec;
 
 	if ( !ent->model ) {
 		G_Error( "script_model_med must have a \"model\"\n" );
@@ -730,10 +744,10 @@ void SP_script_mover( gentity_t *ent ) {
 	ent->blocked = script_mover_blocked;
 
 	// first position at start
-	VectorCopy( ent->s.origin, ent->pos1 );
+	ent->pos1 = ent->s.origin;;
 
 //	VectorCopy( ent->r.currentOrigin, ent->pos1 );
-	VectorCopy( ent->pos1, ent->pos2 ); // don't go anywhere just yet
+	ent->pos2 = ent->pos1;; // don't go anywhere just yet
 
 	trap_SetBrushModel( ent, ent->model );
 
@@ -763,14 +777,14 @@ void SP_script_mover( gentity_t *ent ) {
 
 	// look for axis specific scaling
 	if ( G_SpawnVector( "modelscale_vec", "1 1 1", &scalevec[0] ) ) {
-		VectorCopy( scalevec, scale );
+		scale = scalevec;;
 	}
 
 	if ( scale[0] != 1 || scale[1] != 1 || scale[2] != 1 ) {
 //		ent->s.eType		= ET_MOVERSCALED;
 		ent->s.density      = ET_MOVERSCALED;
 		// scale is stored in 'angles2'
-		VectorCopy( scale, ent->s.angles2 );
+		ent->s.angles2 = scale;;
 	}
 
 	script_mover_spawn( ent );
@@ -788,7 +802,7 @@ void script_model_med_spawn( gentity_t *ent ) {
 	ent->s.modelindex = G_ModelIndex( ent->model );
 	ent->s.frame = 0;
 
-	VectorCopy( ent->s.origin, ent->s.pos.trBase );
+	ent->s.pos.trBase = ent->s.origin;;
 	ent->s.pos.trType = TR_STATIONARY;
 
 	trap_LinkEntity( ent );
@@ -817,8 +831,8 @@ void SP_script_model_med( gentity_t *ent ) {
 	ent->s.apos.trType = TR_STATIONARY;
 	ent->s.apos.trTime = 0;
 	ent->s.apos.trDuration = 0;
-	VectorCopy( ent->s.angles, ent->s.apos.trBase );
-	VectorClear( ent->s.apos.trDelta );
+	ent->s.apos.trBase = ent->s.angles;;
+	ent->s.apos.trDelta.Zero();;
 
 	if ( ent->spawnflags & 1 ) {
 		ent->use = script_model_med_use;
@@ -847,8 +861,8 @@ void SP_script_camera( gentity_t *ent ) {
 	ent->s.apos.trType = TR_STATIONARY;
 	ent->s.apos.trTime = 0;
 	ent->s.apos.trDuration = 0;
-	VectorCopy( ent->s.angles, ent->s.apos.trBase );
-	VectorClear( ent->s.apos.trDelta );
+	ent->s.apos.trBase = ent->s.angles;;
+	ent->s.apos.trDelta.Zero();;
 
 	ent->s.frame = 0;
 

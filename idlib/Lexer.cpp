@@ -630,7 +630,9 @@ int idLexer::ReadName( idToken *token ) {
 				// if treating all tokens as strings, don't parse '-' as a seperate token
 				((idLexer::flags & LEXFL_ONLYSTRINGS) && (c == '-')) ||
 				// if special path name characters are allowed
-				((idLexer::flags & LEXFL_ALLOWPATHNAMES) && (c == '/' || c == '\\' || c == ':' || c == '.')) );
+				((idLexer::flags & LEXFL_ALLOWPATHNAMES) && (c == '/' || c == '\\' || c == ':' || c == '.')) ||
+				// if the '$' sign is allowed in names
+				((idLexer::flags & LEXFL_ALLOWDOLLARNAMES) && c == '$') );
 	token->data[token->len] = '\0';
 	//the sub type is the length of the name
 	token->subtype = token->Length();

@@ -60,7 +60,8 @@ typedef enum {
 	LEXFL_ALLOWFLOATEXCEPTIONS			= BIT(10),	// allow float exceptions like 1.#INF or 1.#IND to be parsed
 	LEXFL_ALLOWMULTICHARLITERALS		= BIT(11),	// allow multi character literals
 	LEXFL_ALLOWBACKSLASHSTRINGCONCAT	= BIT(12),	// allow multiple strings seperated by '\' to be concatenated
-	LEXFL_ONLYSTRINGS					= BIT(13)	// parse as whitespace deliminated strings (quoted strings keep quotes)
+	LEXFL_ONLYSTRINGS					= BIT(13),	// parse as whitespace deliminated strings (quoted strings keep quotes)
+	LEXFL_ALLOWDOLLARNAMES				= BIT(14)	// allow the $ sign in names
 } lexerFlags_t;
 
 // punctuation ids
