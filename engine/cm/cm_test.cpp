@@ -35,7 +35,7 @@ CM_PointLeafnum_r
 
 ==================
 */
-int CM_PointLeafnum_r( const vec3_t p, int num ) {
+int CM_PointLeafnum_r( const idVec3 p, int num ) {
 	float d;
 	cNode_t     *node;
 	cplane_t    *plane;
@@ -48,7 +48,7 @@ int CM_PointLeafnum_r( const vec3_t p, int num ) {
 		if ( plane->type < 3 ) {
 			d = p[plane->type] - plane->dist;
 		} else {
-			d = DotProduct( plane->normal, p ) - plane->dist;
+			d = ( plane->normal * p ) - plane->dist;
 		}
 		if ( d < 0 ) {
 			num = node->children[1];
@@ -62,7 +62,7 @@ int CM_PointLeafnum_r( const vec3_t p, int num ) {
 	return -1 - num;
 }
 
-int CM_PointLeafnum( const vec3_t p ) {
+int CM_PointLeafnum( const idVec3 p ) {
 	if ( !cm.numNodes ) {   // map not loaded
 		return 0;
 	}
@@ -178,13 +178,13 @@ void CM_BoxLeafnums_r( leafList_t *ll, int nodenum ) {
 CM_BoxLeafnums
 ==================
 */
-int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsize, int *lastLeaf ) {
+int CM_BoxLeafnums( const idVec3 mins, const idVec3 maxs, int *list, int listsize, int *lastLeaf ) {
 	leafList_t ll;
 
 	cm.checkcount++;
 
-	VectorCopy( mins, ll.bounds[0] );
-	VectorCopy( maxs, ll.bounds[1] );
+	( ll.bounds[0] = mins );
+	( ll.bounds[1] = maxs );
 	ll.count = 0;
 	ll.maxcount = listsize;
 	ll.list = list;
@@ -203,13 +203,13 @@ int CM_BoxLeafnums( const vec3_t mins, const vec3_t maxs, int *list, int listsiz
 CM_BoxBrushes
 ==================
 */
-int CM_BoxBrushes( const vec3_t mins, const vec3_t maxs, cbrush_t **list, int listsize ) {
+int CM_BoxBrushes( const idVec3 mins, const idVec3 maxs, cbrush_t **list, int listsize ) {
 	leafList_t ll;
 
 	cm.checkcount++;
 
-	VectorCopy( mins, ll.bounds[0] );
-	VectorCopy( maxs, ll.bounds[1] );
+	( ll.bounds[0] = mins );
+	( ll.bounds[1] = maxs );
 	ll.count = 0;
 	ll.maxcount = listsize;
 	ll.list = (int *) (void *)list;
@@ -232,7 +232,7 @@ CM_PointContents
 
 ==================
 */
-int CM_PointContents( const vec3_t p, clipHandle_t model ) {
+int CM_PointContents( const idVec3 p, clipHandle_t model ) {
 	int leafnum;
 	int i, k;
 	int brushnum;
@@ -261,7 +261,7 @@ int CM_PointContents( const vec3_t p, clipHandle_t model ) {
 
 		// see if the point is in the brush
 		for ( i = 0 ; i < b->numsides ; i++ ) {
-			d = DotProduct( p, b->sides[i].plane->normal );
+			d = ( p * b->sides[i].plane->normal );
 // FIXME test for Cash
 //			if ( d >= b->sides[i].plane->dist ) {
 			if ( d > b->sides[i].plane->dist ) {
@@ -285,23 +285,23 @@ Handles offseting and rotation of the end points for moving and
 rotating entities
 ==================
 */
-int CM_TransformedPointContents( const vec3_t p, clipHandle_t model, const vec3_t origin, const vec3_t angles ) {
-	vec3_t p_l;
-	vec3_t temp;
-	vec3_t forward, right, up;
+int CM_TransformedPointContents( const idVec3 p, clipHandle_t model, const idVec3 origin, const idVec3 angles ) {
+	idVec3 p_l;
+	idVec3 temp;
+	idVec3 forward, right, up;
 
 	// subtract origin offset
-	VectorSubtract( p, origin, p_l );
+	( p_l = p - origin );
 
 	// rotate start and end into the models frame of reference
 	if ( model != BOX_MODEL_HANDLE &&
 		 ( angles[0] || angles[1] || angles[2] ) ) {
-		AngleVectors( angles, forward, right, up );
+		idAngles( angles[PITCH], angles[YAW], angles[ROLL] ).ToVectors( &forward, &right, &up );
 
-		VectorCopy( p_l, temp );
-		p_l[0] = DotProduct( temp, forward );
-		p_l[1] = -DotProduct( temp, right );
-		p_l[2] = DotProduct( temp, up );
+		( temp = p_l );
+		p_l[0] = ( temp * forward );
+		p_l[1] = -( temp * right );
+		p_l[2] = ( temp * up );
 	}
 
 	return CM_PointContents( p_l, model );
@@ -469,7 +469,7 @@ int CM_WriteAreaBits( byte *buffer, int area ) {
 	if ( area == -1 )
 #endif
 	{   // for debugging, send everything
-		Com_Memset( buffer, 255, bytes );
+		memset( buffer, 255, bytes );
 	} else
 	{
 		floodnum = cm.areas[area].floodnum;
