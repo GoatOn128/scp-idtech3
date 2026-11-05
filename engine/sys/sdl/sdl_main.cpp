@@ -81,7 +81,7 @@ void Sys_EndProfiling( void ) {
 Sys_SnapVector
 ================
 */
-void Sys_SnapVector( float *v ) {
+void Sys_SnapVector( idVec3 &v ) {
 	int i;
 
 	for ( i = 0; i < 3; i++ ) {
@@ -150,7 +150,7 @@ char *Sys_GetCurrentUser( void ) {
 		userName = "player";
 	}
 
-	Q_strncpyz( s_userName, userName, sizeof( s_userName ) );
+	idStr::Copynz( s_userName, userName, sizeof( s_userName ) );
 	return s_userName;
 }
 
@@ -165,8 +165,8 @@ char *Sys_GetClipboardData( void ) {
 
 	if ( cliptext != NULL && cliptext[0] != '\0' ) {
 		int len = (int)strlen( cliptext );
-		data = (char *)Z_Malloc( len + 1 );
-		Q_strncpyz( data, cliptext, len + 1 );
+		data = (char *)Mem_ClearedAlloc( len + 1, TAG_IDLIB );
+		idStr::Copynz( data, cliptext, len + 1 );
 	}
 
 	if ( cliptext != NULL ) {
@@ -525,7 +525,7 @@ static void Sys_ListFilteredFiles( const char *basedir, const char *subdirs, cha
 	}
 
 	do {
-		if ( Q_stricmp( findinfo.cFileName, "." ) == 0 || Q_stricmp( findinfo.cFileName, ".." ) == 0 ) {
+		if ( idStr::Icmp( findinfo.cFileName, "." ) == 0 || idStr::Icmp( findinfo.cFileName, ".." ) == 0 ) {
 			continue;
 		}
 
@@ -584,7 +584,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 		}
 
 		list[nfiles] = NULL;
-		listCopy = (char **)Z_Malloc( ( nfiles + 1 ) * sizeof( char * ) );
+		listCopy = (char **)Mem_ClearedAlloc( ( nfiles + 1 ) * sizeof( char * ), TAG_IDLIB );
 		memcpy( listCopy, list, ( nfiles + 1 ) * sizeof( char * ) );
 		return listCopy;
 	}
@@ -602,7 +602,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 	}
 
 	do {
-		if ( Q_stricmp( findinfo.cFileName, "." ) == 0 || Q_stricmp( findinfo.cFileName, ".." ) == 0 ) {
+		if ( idStr::Icmp( findinfo.cFileName, "." ) == 0 || idStr::Icmp( findinfo.cFileName, ".." ) == 0 ) {
 			continue;
 		}
 
@@ -615,7 +615,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 		if ( !wantsubs ) {
 			dlen = (int)strlen( findinfo.cFileName );
 			elen = (int)strlen( extension );
-			if ( elen > 0 && ( dlen < elen || Q_stricmp( findinfo.cFileName + dlen - elen, extension ) != 0 ) ) {
+			if ( elen > 0 && ( dlen < elen || idStr::Icmp( findinfo.cFileName + dlen - elen, extension ) != 0 ) ) {
 				continue;
 			}
 		}
@@ -646,7 +646,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 	}
 
 	list[nfiles] = NULL;
-	listCopy = (char **)Z_Malloc( ( nfiles + 1 ) * sizeof( char * ) );
+	listCopy = (char **)Mem_ClearedAlloc( ( nfiles + 1 ) * sizeof( char * ), TAG_IDLIB );
 	memcpy( listCopy, list, ( nfiles + 1 ) * sizeof( char * ) );
 	return listCopy;
 }
@@ -678,7 +678,7 @@ static void Sys_ListFilteredFiles( const char *basedir, const char *subdirs, cha
 	}
 
 	while ( ( d = readdir( dir ) ) != NULL ) {
-		if ( Q_stricmp( d->d_name, "." ) == 0 || Q_stricmp( d->d_name, ".." ) == 0 ) {
+		if ( idStr::Icmp( d->d_name, "." ) == 0 || idStr::Icmp( d->d_name, ".." ) == 0 ) {
 			continue;
 		}
 
@@ -733,7 +733,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 		}
 
 		list[nfiles] = NULL;
-		listCopy = (char **)Z_Malloc( ( nfiles + 1 ) * sizeof( char * ) );
+		listCopy = (char **)Mem_ClearedAlloc( ( nfiles + 1 ) * sizeof( char * ), TAG_IDLIB );
 		memcpy( listCopy, list, ( nfiles + 1 ) * sizeof( char * ) );
 		return listCopy;
 	}
@@ -750,7 +750,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 	}
 
 	while ( ( d = readdir( dir ) ) != NULL && nfiles < MAX_FOUND_FILES - 1 ) {
-		if ( Q_stricmp( d->d_name, "." ) == 0 || Q_stricmp( d->d_name, ".." ) == 0 ) {
+		if ( idStr::Icmp( d->d_name, "." ) == 0 || idStr::Icmp( d->d_name, ".." ) == 0 ) {
 			continue;
 		}
 
@@ -768,7 +768,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 		if ( !wantsubs ) {
 			dlen = (int)strlen( d->d_name );
 			elen = (int)strlen( extension );
-			if ( elen > 0 && ( dlen < elen || Q_stricmp( d->d_name + dlen - elen, extension ) != 0 ) ) {
+			if ( elen > 0 && ( dlen < elen || idStr::Icmp( d->d_name + dlen - elen, extension ) != 0 ) ) {
 				continue;
 			}
 		}
@@ -795,7 +795,7 @@ char **Sys_ListFiles( const char *directory, const char *extension, char *filter
 	}
 
 	list[nfiles] = NULL;
-	listCopy = (char **)Z_Malloc( ( nfiles + 1 ) * sizeof( char * ) );
+	listCopy = (char **)Mem_ClearedAlloc( ( nfiles + 1 ) * sizeof( char * ), TAG_IDLIB );
 	memcpy( listCopy, list, ( nfiles + 1 ) * sizeof( char * ) );
 	return listCopy;
 }
@@ -810,9 +810,9 @@ void Sys_FreeFileList( char **list ) {
 	}
 
 	for ( i = 0; list[i] != NULL; i++ ) {
-		Z_Free( list[i] );
+		Mem_Free( list[i] );
 	}
-	Z_Free( list );
+	Mem_Free( list );
 }
 
 /*
@@ -836,7 +836,7 @@ void Sys_QueEvent( int time, sysEventType_t type, int value, int value2, int ptr
 	if ( eventHead - eventTail >= MAX_QUED_EVENTS ) {
 		Com_Printf( "Sys_QueEvent: overflow\n" );
 		if ( ev->evPtr ) {
-			Z_Free( ev->evPtr );
+			Mem_Free( ev->evPtr );
 		}
 		eventTail++;
 	} else {
@@ -1089,7 +1089,7 @@ sysEvent_t Sys_GetEvent( void ) {
 		char *b;
 		int len = (int)strlen( s ) + 1;
 
-		b = (char *)Z_Malloc( len );
+		b = (char *)Mem_ClearedAlloc( len, TAG_IDLIB );
 		memcpy( b, s, len );
 		Sys_QueEvent( 0, SE_CONSOLE, 0, 0, len, b );
 	}
@@ -1105,7 +1105,7 @@ sysEvent_t Sys_GetEvent( void ) {
 			netadr_t *buf;
 			int len = sizeof( netadr_t ) + netmsg.cursize;
 
-			buf = (netadr_t *)Z_Malloc( len );
+			buf = (netadr_t *)Mem_ClearedAlloc( len, TAG_IDLIB );
 			*buf = from;
 			memcpy( buf + 1, netmsg.data, netmsg.cursize );
 			Sys_QueEvent( 0, SE_PACKET, 0, 0, len, buf );
@@ -1157,7 +1157,7 @@ void Sys_Init( void ) {
 
 	// figure out our cpu
 	cv = Cvar_Get( "sys_cpustring", "detect", 0 );
-	if ( Q_stricmp( cv->string, "detect" ) == 0 ) {
+	if ( idStr::Icmp( cv->string, "detect" ) == 0 ) {
 		// the old per-cpu detection is gone, everything modern is generic
 		Cvar_Set( "sys_cpustring", "generic" );
 	}
@@ -1235,7 +1235,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	(void) hPrevInstance;
 	(void) nCmdShow;
 
-	Q_strncpyz( sys_cmdline, lpCmdLine, sizeof( sys_cmdline ) );
+	idStr::Copynz( sys_cmdline, lpCmdLine, sizeof( sys_cmdline ) );
 
 	if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_GAMEPAD ) ) {
 		return Sys_MainBody();
@@ -1252,8 +1252,8 @@ int main( int argc, char **argv ) {
 
 	sys_cmdline[0] = '\0';
 	for ( i = 1; i < argc; i++ ) {
-		Q_strcat( sys_cmdline, sizeof( sys_cmdline ), argv[i] );
-		Q_strcat( sys_cmdline, sizeof( sys_cmdline ), " " );
+		{ idStr s = sys_cmdline; s += argv[i]; idStr::Copynz( sys_cmdline, s.c_str(), sizeof( sys_cmdline ) ); }
+		{ idStr s = sys_cmdline; s += " "; idStr::Copynz( sys_cmdline, s.c_str(), sizeof( sys_cmdline ) ); }
 	}
 
 	if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_GAMEPAD ) ) {

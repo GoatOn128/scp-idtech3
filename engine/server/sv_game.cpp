@@ -485,7 +485,7 @@ static gameImport_t SV_CreateGameImports() {
 	imports.Com_RealTime = []( qtime_t *qtime ) -> int {
 		return Com_RealTime( qtime );
 	};
-	imports.Sys_SnapVector = []( float *v ) -> void {
+	imports.Sys_SnapVector = []( idVec3 &v ) -> void {
 		Sys_SnapVector( v );
 		return;
 	};

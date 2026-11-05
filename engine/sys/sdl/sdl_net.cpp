@@ -413,7 +413,7 @@ static int NET_IPSocket( char *net_interface, int port ) {
 		return 0;
 	}
 
-	if ( !net_interface || !net_interface[0] || !Q_stricmp( net_interface, "localhost" ) ) {
+	if ( !net_interface || !net_interface[0] || !idStr::Icmp( net_interface, "localhost" ) ) {
 		memset( &address, 0, sizeof( address ) );
 		address.sin_addr.s_addr = INADDR_ANY;
 	} else {

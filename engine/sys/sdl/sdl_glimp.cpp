@@ -280,7 +280,7 @@ void GLimp_EndFrame( void ) {
 		}
 	}
 
-	if ( Q_stricmp( r_drawBuffer->string, "GL_FRONT" ) != 0 ) {
+	if ( idStr::Icmp( r_drawBuffer->string, "GL_FRONT" ) != 0 ) {
 		SDL_GL_SwapWindow( sdl_window );
 	}
 }
@@ -463,16 +463,16 @@ void GLimp_Init( void ) {
 	}
 
 	// get our config strings
-	Q_strncpyz( glConfig.vendor_string, (const char *)qglGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
-	Q_strncpyz( glConfig.renderer_string, (const char *)qglGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
-	Q_strncpyz( glConfig.version_string, (const char *)qglGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
-	Q_strncpyz( glConfig.extensions_string, (const char *)qglGetString( GL_EXTENSIONS ), sizeof( glConfig.extensions_string ) );
+	idStr::Copynz( glConfig.vendor_string, (const char *)qglGetString( GL_VENDOR ), sizeof( glConfig.vendor_string ) );
+	idStr::Copynz( glConfig.renderer_string, (const char *)qglGetString( GL_RENDERER ), sizeof( glConfig.renderer_string ) );
+	idStr::Copynz( glConfig.version_string, (const char *)qglGetString( GL_VERSION ), sizeof( glConfig.version_string ) );
+	idStr::Copynz( glConfig.extensions_string, (const char *)qglGetString( GL_EXTENSIONS ), sizeof( glConfig.extensions_string ) );
 
 	//
 	// chipset specific configuration
 	//
-	Q_strncpyz( buf, glConfig.renderer_string, sizeof( buf ) );
-	Q_strlwr( buf );
+	idStr::Copynz( buf, glConfig.renderer_string, sizeof( buf ) );
+	idStr::ToLower( buf );
 
 	// all of the legacy per-chipset workarounds (Voodoo, Rage Pro, Riva,
 	// Permedia, ...) are gone, modern drivers only need generic handling
@@ -480,7 +480,7 @@ void GLimp_Init( void ) {
 
 	// reset the default texture filtering when the renderer changes so new
 	// hardware starts from a known state
-	if ( Q_stricmp( lastValidRenderer->string, glConfig.renderer_string ) ) {
+	if ( idStr::Icmp( lastValidRenderer->string, glConfig.renderer_string ) ) {
 		ri.Cvar_Set( "r_textureMode", "GL_LINEAR_MIPMAP_NEAREST" );
 	}
 
