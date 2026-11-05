@@ -265,7 +265,7 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data ) {
 	if ( length >= FRAGMENT_SIZE ) {
 		chan->unsentFragments = qtrue;
 		chan->unsentLength = length;
-		Com_Memcpy( chan->unsentBuffer, data, length );
+		memcpy( chan->unsentBuffer, data, length );
 
 		// only send the first fragment now
 		Netchan_TransmitNextFragment( chan );
@@ -688,7 +688,7 @@ qboolean    NET_StringToAdr( const char *s, netadr_t *a ) {
 	}
 
 	// look for a port number
-	Q_strncpyz( base, s, sizeof( base ) );
+	idStr::Copynz( base, s, sizeof( base ) );
 	port = strstr( base, ":" );
 	if ( port ) {
 		*port = 0;
