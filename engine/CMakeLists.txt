@@ -45,7 +45,7 @@ set(ENGINE_SOURCES
     sys/sdl/sdl_input.cpp
     sys/sdl/sdl_main.cpp
     sys/sdl/sdl_net.cpp
-    sys/sdl/sdl_snd.cpp)
+    sys/openal/snd_openal.cpp)
 
 if ( WIN32 )
     # the win32 console window and resources only exist on Windows
@@ -64,14 +64,18 @@ set_target_properties(wolf PROPERTIES OUTPUT_NAME WolfSP)
 target_compile_definitions(wolf PRIVATE __USEA3D __A3D_GEOM CINTERFACE)
 
 if ( WIN32 )
-    target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 ws2_32 winmm opengl32)
+    target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 OpenAL::OpenAL ws2_32 winmm opengl32)
     target_link_options(wolf PRIVATE /STACK:8388608 /MAP:${CMAKE_SOURCE_DIR}/WolfSP.map /NXCOMPAT:NO)
     # the vendored SDL3 ships as a dll next to the exe
     add_custom_command(TARGET wolf POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/external/SDL3/lib/x86/SDL3.dll" "$<TARGET_FILE_DIR:wolf>"
         COMMENT "Copying SDL3.dll next to WolfSP")
+    # OpenAL Soft is shipped renamed: the import library talks to OpenAL32.dll
+    add_custom_command(TARGET wolf POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/external/openal-soft/bin/Win32/soft_oal.dll" "$<TARGET_FILE_DIR:wolf>/OpenAL32.dll"
+        COMMENT "Copying soft_oal.dll as OpenAL32.dll next to WolfSP")
 else()
-    target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 ${CMAKE_DL_LIBS})
+    target_link_libraries(wolf PRIVATE renderer botlib Splines SDL3::SDL3 OpenAL::OpenAL ${CMAKE_DL_LIBS})
     # GNU ld has no --stack option; Linux uses the system default main-thread
     # stack size (ulimit -s, typically 8 MiB, matching the Windows setting)
 endif()
