@@ -3705,7 +3705,7 @@ gitem_t *BG_FindItem( const char *pickupName ) {
 	gitem_t *it;
 
 	for ( it = bg_itemlist + 1 ; it->classname ; it++ ) {
-		if ( !Q_stricmp( it->pickup_name, pickupName ) ) {
+		if ( !idStr::Icmp( it->pickup_name, pickupName ) ) {
 			return it;
 		}
 	}
@@ -3726,11 +3726,11 @@ gitem_t *BG_FindItem2( const char *name ) {
 	name2 = (char*)name;
 
 	for ( it = bg_itemlist + 1 ; it->classname ; it++ ) {
-		if ( !Q_stricmp( it->pickup_name, name ) ) {
+		if ( !idStr::Icmp( it->pickup_name, name ) ) {
 			return it;
 		}
 
-		if ( !Q_strcasecmp( it->classname, name2 ) ) {
+		if ( !idStr::Icmp( it->classname, name2 ) ) {
 			return it;
 		}
 	}
@@ -3758,12 +3758,12 @@ qboolean BG_PlayerSeesItem(playerState_t *ps, entityState_t *item, int atTime)
 
    BG_EvaluateTrajectory( &item->pos, atTime, eorigin );
 
-   VectorCopy(ps->origin, vorigin);
+   vorigin = ps->origin;
    vorigin[2] += ps->viewheight;			// get the view loc up to the viewheight
    eorigin[2] += 16;						// and subtract the item's offset (that is used to place it on the ground)
-   VectorSubtract(vorigin, eorigin, dir);
+   dir = vorigin - eorigin;
 
-   dist = VectorNormalize(dir);			// dir is now the direction from the item to the player
+   dist = dir.Normalize();			// dir is now the direction from the item to the player
 
    if(dist > 255)
 	   return qfalse;						// only run the remaining stuff on items that are close enough
@@ -3775,7 +3775,7 @@ qboolean BG_PlayerSeesItem(playerState_t *ps, entityState_t *item, int atTime)
    //		for the current frame please let me know so I don't
    //		have to do redundant calcs)
    AngleVectors(ps->viewangles, viewa, 0, 0);
-   dot = DotProduct(viewa, dir );
+   dot = viewa * dir ;
 
    // give more range based on distance (the hit area is wider when closer)
 
@@ -3803,7 +3803,7 @@ grabbing them easier
 extern int trap_Cvar_VariableIntegerValue( const char *var_name );
 
 qboolean    BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int atTime ) {
-	vec3_t origin;
+	idVec3 origin;
 
 	BG_EvaluateTrajectory( &item->pos, atTime, origin );
 
@@ -3987,25 +3987,25 @@ BG_EvaluateTrajectory
 
 ================
 */
-void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result ) {
+void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, idVec3 &result ) {
 	float deltaTime;
 	float phase;
-	vec3_t v;
+	idVec3 v;
 
 	switch ( tr->trType ) {
 	case TR_STATIONARY:
 	case TR_INTERPOLATE:
 	case TR_GRAVITY_PAUSED: //----(SA)
-		VectorCopy( tr->trBase, result );
+		result = tr->trBase;
 		break;
 	case TR_LINEAR:
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
-		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
+		result = tr->trBase + tr->trDelta * deltaTime;
 		break;
 	case TR_SINE:
 		deltaTime = ( atTime - tr->trTime ) / (float) tr->trDuration;
 		phase = sin( deltaTime * M_PI * 2 );
-		VectorMA( tr->trBase, phase, tr->trDelta, result );
+		result = tr->trBase + tr->trDelta * phase;
 		break;
 //----(SA)	removed
 	case TR_LINEAR_STOP:
@@ -4016,24 +4016,24 @@ void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result ) 
 		if ( deltaTime < 0 ) {
 			deltaTime = 0;
 		}
-		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
+		result = tr->trBase + tr->trDelta * deltaTime;
 		break;
 	case TR_GRAVITY:
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
-		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
+		result = tr->trBase + tr->trDelta * deltaTime;
 		result[2] -= 0.5 * DEFAULT_GRAVITY * deltaTime * deltaTime;     // FIXME: local gravity...
 		break;
 		// Ridah
 	case TR_GRAVITY_LOW:
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
-		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
+		result = tr->trBase + tr->trDelta * deltaTime;
 		result[2] -= 0.5 * ( DEFAULT_GRAVITY * 0.3 ) * deltaTime * deltaTime;     // FIXME: local gravity...
 		break;
 		// done.
 //----(SA)
 	case TR_GRAVITY_FLOAT:
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
-		VectorMA( tr->trBase, deltaTime, tr->trDelta, result );
+		result = tr->trBase + tr->trDelta * deltaTime;
 		result[2] -= 0.5 * ( DEFAULT_GRAVITY * 0.2 ) * deltaTime;
 		break;
 //----(SA)	end
@@ -4044,11 +4044,12 @@ void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result ) 
 		}
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
 		// phase is the acceleration constant
-		phase = VectorLength( tr->trDelta ) / ( tr->trDuration * 0.001 );
+		phase = tr->trDelta.Length() / ( tr->trDuration * 0.001 );
 		// trDelta at least gives us the acceleration direction
-		VectorNormalize2( tr->trDelta, result );
+		result = tr->trDelta;
+		result.Normalize();
 		// get distance travelled at current time
-		VectorMA( tr->trBase, phase * 0.5 * deltaTime * deltaTime, result, result );
+		result = tr->trBase + result * phase * 0.5 * deltaTime * deltaTime;
 		break;
 	case TR_DECCELERATE:    // trDelta is the starting speed
 		if ( atTime > tr->trTime + tr->trDuration ) {
@@ -4056,13 +4057,14 @@ void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result ) 
 		}
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
 		// phase is the breaking constant
-		phase = VectorLength( tr->trDelta ) / ( tr->trDuration * 0.001 );
+		phase = tr->trDelta.Length() / ( tr->trDuration * 0.001 );
 		// trDelta at least gives us the acceleration direction
-		VectorNormalize2( tr->trDelta, result );
+		result = tr->trDelta;
+		result.Normalize();
 		// get distance travelled at current time (without breaking)
-		VectorMA( tr->trBase, deltaTime, tr->trDelta, v );
+		v = tr->trBase + tr->trDelta * deltaTime;
 		// subtract breaking force
-		VectorMA( v, -phase * 0.5 * deltaTime * deltaTime, result, result );
+		result = v + result * -phase * 0.5 * deltaTime * deltaTime;
 		break;
 	default:
 		Com_Error( ERR_DROP, "BG_EvaluateTrajectory: unknown trType: %i", tr->trTime );
@@ -4077,68 +4079,68 @@ BG_EvaluateTrajectoryDelta
 For determining velocity at a given time
 ================
 */
-void BG_EvaluateTrajectoryDelta( const trajectory_t *tr, int atTime, vec3_t result ) {
+void BG_EvaluateTrajectoryDelta( const trajectory_t *tr, int atTime, idVec3 &result ) {
 	float deltaTime;
 	float phase;
 
 	switch ( tr->trType ) {
 	case TR_STATIONARY:
 	case TR_INTERPOLATE:
-		VectorClear( result );
+		result.Zero();
 		break;
 	case TR_LINEAR:
-		VectorCopy( tr->trDelta, result );
+		result = tr->trDelta;
 		break;
 	case TR_SINE:
 		deltaTime = ( atTime - tr->trTime ) / (float) tr->trDuration;
 		phase = cos( deltaTime * M_PI * 2 );    // derivative of sin = cos
 		phase *= 0.5;
-		VectorScale( tr->trDelta, phase, result );
+		result = tr->trDelta * phase;
 		break;
 //----(SA)	removed
 	case TR_LINEAR_STOP:
 		if ( atTime > tr->trTime + tr->trDuration ) {
-			VectorClear( result );
+			result.Zero();
 			return;
 		}
-		VectorCopy( tr->trDelta, result );
+		result = tr->trDelta;
 		break;
 	case TR_GRAVITY:
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
-		VectorCopy( tr->trDelta, result );
+		result = tr->trDelta;
 		result[2] -= DEFAULT_GRAVITY * deltaTime;       // FIXME: local gravity...
 		break;
 		// Ridah
 	case TR_GRAVITY_LOW:
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
-		VectorCopy( tr->trDelta, result );
+		result = tr->trDelta;
 		result[2] -= ( DEFAULT_GRAVITY * 0.3 ) * deltaTime;       // FIXME: local gravity...
 		break;
 		// done.
 //----(SA)
 	case TR_GRAVITY_FLOAT:
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
-		VectorCopy( tr->trDelta, result );
+		result = tr->trDelta;
 		result[2] -= ( DEFAULT_GRAVITY * 0.2 ) * deltaTime;
 		break;
 //----(SA)	end
 		// RF, acceleration
 	case TR_ACCELERATE: // trDelta is eventual speed
 		if ( atTime > tr->trTime + tr->trDuration ) {
-			VectorClear( result );
+			result.Zero();
 			return;
 		}
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
 		phase = deltaTime / (float)tr->trDuration;
-		VectorScale( tr->trDelta, deltaTime * deltaTime, result );
+		result = tr->trDelta * deltaTime * deltaTime;
 		break;
 	case TR_DECCELERATE:    // trDelta is breaking force
 		if ( atTime > tr->trTime + tr->trDuration ) {
-			VectorClear( result );
+			result.Zero();
 			return;
 		}
 		deltaTime = ( atTime - tr->trTime ) * 0.001;    // milliseconds to seconds
-		VectorScale( tr->trDelta, deltaTime, result );
+		result = tr->trDelta * deltaTime;
 		break;
 	default:
 		Com_Error( ERR_DROP, "BG_EvaluateTrajectoryDelta: unknown trType: %i", tr->trTime );
@@ -4156,28 +4158,29 @@ BG_GetMarkDir
   dir is the direction of the projectile or trace that has resulted in a surface being hit
 ============
 */
-void BG_GetMarkDir( const vec3_t dir, const vec3_t normal, vec3_t out ) {
-	vec3_t ndir, lnormal;
+void BG_GetMarkDir( const idVec3 &dir, const idVec3 &normal, idVec3 &out ) {
+	idVec3 ndir, lnormal;
 	float minDot = 0.3;
 
-	if ( VectorLength( normal ) < 1.0 ) {
-		VectorSet( lnormal, 0, 0, 1 );
+	if ( normal.Length() < 1.0 ) {
+		lnormal.Set( 0, 0, 1 );
 	} else {
-		VectorCopy( normal, lnormal );
+		lnormal = normal;
 	}
 
-	VectorNegate( dir, ndir );
-	VectorNormalize( ndir );
+	ndir = dir;
+	ndir.Negate();
+	ndir.Normalize();
 	if ( normal[2] > 0.8 ) {
 		minDot = 0.7;
 	}
 	// make sure it makrs the impact surface
-	while ( DotProduct( ndir, lnormal ) < minDot ) {
-		VectorMA( ndir, 0.5, lnormal, ndir );
-		VectorNormalize( ndir );
+	while (  ndir * lnormal  < minDot ) {
+		ndir = ndir + lnormal * 0.5;
+		ndir.Normalize();
 	}
 
-	VectorCopy( ndir, out );
+	out = ndir;
 }
 
 
@@ -4379,13 +4382,13 @@ void BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean 
 	s->number = ps->clientNum;
 
 	s->pos.trType = TR_INTERPOLATE;
-	VectorCopy( ps->origin, s->pos.trBase );
+	s->pos.trBase = ps->origin;
 	if ( snap ) {
 		SnapVector( s->pos.trBase );
 	}
 
 	s->apos.trType = TR_INTERPOLATE;
-	VectorCopy( ps->viewangles, s->apos.trBase );
+	s->apos.trBase = ps->viewangles;
 	if ( snap ) {
 		SnapVector( s->apos.trBase );
 	}
@@ -4486,19 +4489,19 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 	s->number = ps->clientNum;
 
 	s->pos.trType = TR_LINEAR_STOP;
-	VectorCopy( ps->origin, s->pos.trBase );
+	s->pos.trBase = ps->origin;
 	if ( snap ) {
 		SnapVector( s->pos.trBase );
 	}
 	// set the trDelta for flag direction and linear prediction
-	VectorCopy( ps->velocity, s->pos.trDelta );
+	s->pos.trDelta = ps->velocity;
 	// set the time for linear prediction
 	s->pos.trTime = time;
 	// set maximum extra polation time
 	s->pos.trDuration = 50; // 1000 / sv_fps (default = 20)
 
 	s->apos.trType = TR_INTERPOLATE;
-	VectorCopy( ps->viewangles, s->apos.trBase );
+	s->apos.trBase = ps->viewangles;
 	if ( snap ) {
 		SnapVector( s->apos.trBase );
 	}
