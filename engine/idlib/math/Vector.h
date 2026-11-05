@@ -1775,6 +1775,18 @@ ID_INLINE float AngleNormalize180( float angle ) {
 
 /*
 ================
+AngleDelta
+
+returns the normalized delta from angle1 to angle2
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE float AngleDelta( float angle1, float angle2 ) {
+	return AngleNormalize180( angle1 - angle2 );
+}
+
+/*
+================
 AxisToAngles
 
 ported from the old q3 mathlib
