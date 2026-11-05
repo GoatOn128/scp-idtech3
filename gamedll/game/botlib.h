@@ -464,6 +464,10 @@ typedef struct botlib_export_s
 } botlib_export_t;
 
 //linking of bot library
+// extern "C" so the botlib DLL can export it through its def file
+#ifdef __cplusplus
+extern "C"
+#endif
 botlib_export_t *GetBotLibAPI( int apiVersion, botlib_import_t *import );
 
 /* Library variables:

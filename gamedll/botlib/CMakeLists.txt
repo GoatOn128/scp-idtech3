@@ -16,11 +16,18 @@ set(BOTLIB_SOURCES
     l_precomp.cpp
     l_script.cpp
     l_struct.cpp)
+
+if ( WIN32 )
+    # export GetBotLibAPI through a def file like the game module does
+    list(APPEND BOTLIB_SOURCES botlib.def)
+endif()
 	
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${BOTLIB_SOURCES})
 
-add_library(botlib STATIC ${BOTLIB_SOURCES})
-set_target_properties(botlib PROPERTIES FOLDER "libs")
+# built as its own library, the exe loads it at startup instead of
+# carrying the code statically
+add_library(botlib SHARED ${BOTLIB_SOURCES})
+set_target_properties(botlib PROPERTIES FOLDER "dlls")
 target_compile_definitions(botlib PRIVATE _LIB BOTLIB)
 target_compile_features(botlib PRIVATE cxx_std_17)
 target_link_libraries(botlib PUBLIC detour)
