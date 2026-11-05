@@ -34,9 +34,9 @@ If you have questions concerning this license or the applicable additional terms
 #else
   #include "../renderer/qgl.h"
 #endif
-#include "util_list.h"
-#include "util_str.h"
-#include "math_vector.h"
+#include "idlib/precompiled.h"
+#include "idlib/Lexer.h"
+#include "idlib/Token.h"
 
 typedef int fileHandle_t;
 
@@ -83,8 +83,8 @@ int selectPointByRay( const idVec3 origin, const idVec3 direction, bool single )
 		temp = *getPoint( i );
 		temp2 = temp;
 		temp -= origin;
-		d = DotProduct( temp, direction );
-		__VectorMA( origin, d, direction, temp );
+		d = temp * direction;
+		temp = origin + direction * d;
 		temp2 -= temp;
 		d = temp2.Length();
 		if ( d <= bestd ) {
@@ -116,7 +116,7 @@ int selectPoint( int index, bool single ) {
 			deselectAll();
 		} else {
 			if ( isPointSelected( index ) >= 0 ) {
-				selectedPoints.Remove( index );
+				selectedPoints.RemoveIndex( index );
 			}
 		}
 		return selectedPoints.Append( index );
@@ -157,7 +157,7 @@ virtual void updateSelection( const idVec3 &move ) {
 void drawSelection() {
 	int count = selectedPoints.Num();
 	for ( int i = 0; i < count; i++ ) {
-		glBox( red, *getPoint( selectedPoints[i] ), 4 );
+		glBox( red.ToVec3(), *getPoint( selectedPoints[i] ), 4 );
 	}
 }
 
@@ -198,7 +198,7 @@ void clearSpline() {
 	splinePoints.Clear();
 }
 
-void parse( const char *( *text ) );
+void parse( idLexer &src );
 void write( fileHandle_t file, const char *name );
 
 void clear() {
@@ -209,10 +209,10 @@ void clear() {
 	dirty = true;
 	activeSegment = 0;
 	granularity = 0.025;
-	pathColor.set( 1.0, 0.5, 0.0 );
-	controlColor.set( 0.7, 0.0, 1.0 );
-	segmentColor.set( 0.0, 0.0, 1.0 );
-	activeColor.set( 1.0, 0.0, 0.0 );
+	pathColor.Set( 1.0, 0.5, 0.0 );
+	controlColor.Set( 0.7, 0.0, 1.0 );
+	segmentColor.Set( 0.0, 0.0, 1.0 );
+	activeColor.Set( 1.0, 0.0, 0.0 );
 }
 
 void initPosition( long startTime, long totalTime );
@@ -451,9 +451,9 @@ virtual const idVec3 *getPosition( long t ) {
 
 virtual void draw( bool edit ) {};
 
-virtual void parse( const char *( *text ) ) {};
+virtual void parse( idLexer &src ) {};
 virtual void write( fileHandle_t file, const char *name );
-virtual bool parseToken( const char *key, const char *( *text ) );
+virtual bool parseToken( const char *key, idLexer &src );
 
 const char *getName() {
 	return name.c_str();
@@ -517,7 +517,7 @@ virtual void addPoint( const idVec3 &v ) {
 }
 
 virtual void addPoint( const float x, const float y, const float z ) {
-	pos.set( x, y, z );
+	pos.Set( x, y, z );
 }
 
 
@@ -527,7 +527,7 @@ virtual const idVec3 *getPosition( long t ) {
 	return &pos;
 }
 
-void parse( const char *( *text ) );
+void parse( idLexer &src );
 void write( fileHandle_t file, const char *name );
 
 virtual int numPoints() {
@@ -543,7 +543,7 @@ virtual idVec3 *getPoint( int index ) {
 }
 
 virtual void draw( bool edit ) {
-	glLabeledPoint( blue, pos, ( edit ) ? 5 : 3, "Fixed point" );
+	glLabeledPoint( blue.ToVec3(), pos, ( edit ) ? 5 : 3, "Fixed point" );
 }
 
 protected:
@@ -575,7 +575,7 @@ idInterpolatedPosition( idVec3 start, idVec3 end, long time ) : idCameraPosition
 
 virtual const idVec3 *getPosition( long t );
 
-void parse( const char *( *text ) );
+void parse( idLexer &src );
 void write( fileHandle_t file, const char *name );
 
 virtual int numPoints() {
@@ -592,10 +592,10 @@ virtual idVec3 *getPoint( int index ) {
 
 virtual void addPoint( const float x, const float y, const float z ) {
 	if ( first ) {
-		startPos.set( x, y, z );
+		startPos.Set( x, y, z );
 		first = false;
 	} else {
-		endPos.set( x, y, z );
+		endPos.Set( x, y, z );
 		first = true;
 	}
 }
@@ -611,11 +611,11 @@ virtual void addPoint( const idVec3 &v ) {
 }
 
 virtual void draw( bool edit ) {
-	glLabeledPoint( blue, startPos, ( edit ) ? 5 : 3, "Start interpolated" );
-	glLabeledPoint( blue, endPos, ( edit ) ? 5 : 3, "End interpolated" );
+	glLabeledPoint( blue.ToVec3(), startPos, ( edit ) ? 5 : 3, "Start interpolated" );
+	glLabeledPoint( blue.ToVec3(), endPos, ( edit ) ? 5 : 3, "End interpolated" );
 	qglBegin( GL_LINES );
-	qglVertex3fv( startPos );
-	qglVertex3fv( endPos );
+	qglVertex3fv( startPos.ToFloatPtr() );
+	qglVertex3fv( endPos.ToFloatPtr() );
 	qglEnd();
 }
 
@@ -668,7 +668,7 @@ void addControlPoint( idVec3 &v ) {
 	target.addPoint( v );
 }
 
-void parse( const char *( *text ) );
+void parse( idLexer &src );
 void write( fileHandle_t file, const char *name );
 
 virtual int numPoints() {
@@ -761,7 +761,7 @@ void reset( float startfov, float endfov, int start, float len ) {
 	length = len * 1000;
 }
 
-void parse( const char *( *text ) );
+void parse( idLexer &src );
 void write( fileHandle_t file, const char *name );
 
 protected:
@@ -833,7 +833,7 @@ void setTime( long n ) {
 	time = n;
 }
 
-void parse( const char *( *text ) );
+void parse( idLexer &src );
 void write( fileHandle_t file, const char *name );
 
 void setTriggered( bool b ) {
@@ -912,7 +912,7 @@ idCameraEvent *getEvent( int index ) {
 	return events[index];
 }
 
-void parse( const char *( *text ) );
+void parse( idLexer &src );
 bool load( const char *filename );
 void save( const char *filename );
 
@@ -953,7 +953,7 @@ int numTargets() {
 
 void setActiveTargetByName( const char *n ) {
 	for ( int i = 0; i < targetPositions.Num(); i++ ) {
-		if ( Q_stricmp( n, targetPositions[i]->getName() ) == 0 ) {
+		if ( idStr::Icmp( n, targetPositions[i]->getName() ) == 0 ) {
 			setActiveTarget( i );
 			return;
 		}
