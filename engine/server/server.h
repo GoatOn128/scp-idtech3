@@ -71,7 +71,6 @@ typedef struct {
 	char            *configstrings[MAX_CONFIGSTRINGS];
 	svEntity_t svEntities[MAX_GENTITIES];
 
-	char            *entityParsePoint;  // used during game VM init
 
 	// the game virtual machine will update these on init and changes
 	sharedEntity_t  *gentities;
@@ -340,7 +339,7 @@ sharedEntity_t *SV_GEntityForSvEntity( svEntity_t *svEnt );
 void        SV_InitGameProgs( void );
 void        SV_ShutdownGameProgs( void );
 void        SV_RestartGameProgs( void );
-qboolean    SV_inPVS( const vec3_t p1, const vec3_t p2 );
+qboolean    SV_inPVS( const idVec3 &p1, const idVec3 &p2 );
 qboolean SV_GetTag( int clientNum, char *tagname, orientation_t *ori );
 
 //
@@ -356,7 +355,7 @@ int         SV_BotLibShutdown( void );
 int         SV_BotGetSnapshotEntity( int client, int ent );
 int         SV_BotGetConsoleMessage( int client, char *buf, int size );
 
-int BotImport_DebugPolygonCreate( int color, int numPoints, vec3_t *points );
+int BotImport_DebugPolygonCreate( int color, int numPoints, const idVec3 *points );
 void BotImport_DebugPolygonDelete( int id );
 
 //============================================================
@@ -385,7 +384,7 @@ clipHandle_t SV_ClipHandleForEntity( const sharedEntity_t *ent );
 void SV_SectorList_f( void );
 
 
-int SV_AreaEntities( const vec3_t mins, const vec3_t maxs, int *entityList, int maxcount );
+int SV_AreaEntities( const idVec3 &mins, const idVec3 &maxs, int *entityList, int maxcount );
 // fills in a table of entity numbers with entities that have bounding boxes
 // that intersect the given area.  It is possible for a non-axial bmodel
 // to be returned that doesn't actually intersect the area on an exact
@@ -394,11 +393,11 @@ int SV_AreaEntities( const vec3_t mins, const vec3_t maxs, int *entityList, int 
 // The world entity is never returned in this list.
 
 
-int SV_PointContents( const vec3_t p, int passEntityNum );
+int SV_PointContents( const idVec3 &p, int passEntityNum );
 // returns the CONTENTS_* value from the world and all entities at the given point.
 
 
-void SV_Trace( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask, int capsule );
+void SV_Trace( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask, int capsule );
 // mins and maxs are relative
 
 // if the entire move stays in a solid volume, trace.allsolid will be set,
@@ -410,7 +409,7 @@ void SV_Trace( trace_t *results, const vec3_t start, const vec3_t mins, const ve
 // passEntityNum is explicitly excluded from clipping checks (normally ENTITYNUM_NONE)
 
 
-void SV_ClipToEntity( trace_t *trace, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int entityNum, int contentmask, int capsule );
+void SV_ClipToEntity( trace_t *trace, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int entityNum, int contentmask, int capsule );
 // clip to a specific entity
 
 //

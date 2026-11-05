@@ -60,7 +60,7 @@ void SV_SetConfigstring( int index, const char *val ) {
 	}
 
 	// change the string in sv
-	Z_Free( sv.configstrings[index] );
+	Mem_Free( sv.configstrings[index] );
 	sv.configstrings[index] = CopyString( val );
 
 	// send it to all the clients if we aren't
@@ -100,7 +100,7 @@ void SV_SetConfigstring( int index, const char *val ) {
 					} else {
 						cmd = "bcs1";
 					}
-					Q_strncpyz( buf, &val[sent], maxChunkSize );
+					idStr::Copynz( buf, &val[sent], maxChunkSize );
 
 					SV_SendServerCommand( client, "%s %i \"%s\"\n", cmd, index, buf );
 
@@ -135,7 +135,7 @@ void SV_GetConfigstring( int index, char *buffer, int bufferSize ) {
 		return;
 	}
 
-	Q_strncpyz( buffer, sv.configstrings[index], bufferSize );
+	idStr::Copynz( buffer, sv.configstrings[index], bufferSize );
 }
 
 
@@ -154,8 +154,8 @@ void SV_SetUserinfo( int index, const char *val ) {
 		val = "";
 	}
 
-	Q_strncpyz( svs.clients[index].userinfo, val, sizeof( svs.clients[ index ].userinfo ) );
-	Q_strncpyz( svs.clients[index].name, Info_ValueForKey( val, "name" ), sizeof( svs.clients[index].name ) );
+	idStr::Copynz( svs.clients[index].userinfo, val, sizeof( svs.clients[ index ].userinfo ) );
+	idStr::Copynz( svs.clients[index].name, Info_ValueForKey( val, "name" ), sizeof( svs.clients[index].name ) );
 }
 
 
@@ -173,7 +173,7 @@ void SV_GetUserinfo( int index, char *buffer, int bufferSize ) {
 	if ( index < 0 || index >= sv_maxclients->integer ) {
 		Com_Error( ERR_DROP, "SV_GetUserinfo: bad index %i\n", index );
 	}
-	Q_strncpyz( buffer, svs.clients[ index ].userinfo, bufferSize );
+	idStr::Copynz( buffer, svs.clients[ index ].userinfo, bufferSize );
 }
 
 
@@ -231,13 +231,13 @@ SV_InitReliableCommandsForClient
 */
 void SV_InitReliableCommandsForClient( client_t *cl, int commands ) {
 	if ( !commands ) {
-		Com_Memset( &cl->reliableCommands, 0, sizeof( cl->reliableCommands ) );
+		memset( &cl->reliableCommands, 0, sizeof( cl->reliableCommands ) );
 	}
 	//
 	cl->reliableCommands.bufSize = commands * RELIABLE_COMMANDS_CHARS;
-	cl->reliableCommands.buf = (char *) Z_Malloc( cl->reliableCommands.bufSize );
-	cl->reliableCommands.commandLengths = (int *) Z_Malloc( commands * sizeof( *cl->reliableCommands.commandLengths ) );
-	cl->reliableCommands.commands = (char **) Z_Malloc( commands * sizeof( *cl->reliableCommands.commands ) );
+	cl->reliableCommands.buf = (char *) Mem_ClearedAlloc( cl->reliableCommands.bufSize, TAG_IDLIB );
+	cl->reliableCommands.commandLengths = (int *) Mem_ClearedAlloc( commands * sizeof( *cl->reliableCommands.commandLengths ), TAG_IDLIB );
+	cl->reliableCommands.commands = (char **) Mem_ClearedAlloc( commands * sizeof( *cl->reliableCommands.commands ), TAG_IDLIB );
 	//
 	cl->reliableCommands.rover = cl->reliableCommands.buf;
 }
@@ -276,11 +276,11 @@ void SV_FreeReliableCommandsForClient( client_t *cl ) {
 	if ( !cl->reliableCommands.bufSize ) {
 		return;
 	}
-	Z_Free( cl->reliableCommands.buf );
-	Z_Free( cl->reliableCommands.commandLengths );
-	Z_Free( cl->reliableCommands.commands );
+	Mem_Free( cl->reliableCommands.buf );
+	Mem_Free( cl->reliableCommands.commandLengths );
+	Mem_Free( cl->reliableCommands.commands );
 	//
-	Com_Memset( &cl->reliableCommands, 0, sizeof( cl->reliableCommands.bufSize ) );
+	memset( &cl->reliableCommands, 0, sizeof( cl->reliableCommands.bufSize ) );
 }
 
 /*
@@ -354,7 +354,7 @@ qboolean SV_AddReliableCommand( client_t *cl, int index, const char *cmd ) {
 	//
 	// insert the command at the rover
 	cl->reliableCommands.commands[index] = cl->reliableCommands.rover;
-	Q_strncpyz( cl->reliableCommands.commands[index], cmd, length + 1 );
+	idStr::Copynz( cl->reliableCommands.commands[index], cmd, length + 1 );
 	cl->reliableCommands.commandLengths[index] = length;
 	//
 	// move the rover along
@@ -419,10 +419,10 @@ void SV_Startup( void ) {
 	SV_BoundMaxClients( 1 );
 
 #ifdef ZONECLIENTS
-	svs.clients = Z_Malloc( sizeof( client_t ) * sv_maxclients->integer );
+	svs.clients = Mem_ClearedAlloc( sizeof( client_t ) * sv_maxclients->integer, TAG_IDLIB );
 #else
 	// RF, avoid trying to allocate large chunk on a fragmented zone
-	svs.clients = (client_t *) calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
+	svs.clients = (client_t *) Mem_ClearedAlloc( sizeof( client_t ) * sv_maxclients->integer, TAG_IDLIB );
 	if ( !svs.clients ) {
 		Com_Error( ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
 	}
@@ -478,35 +478,35 @@ void SV_ChangeMaxClients( void ) {
 		}
 	}
 
-	oldClients = (client_t *) Hunk_AllocateTempMemory( count * sizeof( client_t ) );
+	oldClients = (client_t *) Mem_ClearedAlloc( count * sizeof( client_t ), TAG_IDLIB );
 	// copy the clients to hunk memory
 	for ( i = 0 ; i < count ; i++ ) {
 		if ( svs.clients[i].state >= CS_CONNECTED ) {
 			oldClients[i] = svs.clients[i];
 		} else {
-			Com_Memset( &oldClients[i], 0, sizeof( client_t ) );
+			memset( &oldClients[i], 0, sizeof( client_t ) );
 		}
 	}
 
 	// free old clients arrays
 #ifdef ZONECLIENTS
-	Z_Free( svs.clients );
+	Mem_Free( svs.clients );
 #else
-	free( svs.clients );    // RF, avoid trying to allocate large chunk on a fragmented zone
+	Mem_Free( svs.clients );
 #endif
 
 	// allocate new clients
 #ifdef ZONECLIENTS
-	svs.clients = Z_Malloc( sv_maxclients->integer * sizeof( client_t ) );
+	svs.clients = Mem_ClearedAlloc( sv_maxclients->integer * sizeof( client_t ), TAG_IDLIB );
 #else
 	// RF, avoid trying to allocate large chunk on a fragmented zone
-	svs.clients = (client_t *) calloc( sizeof( client_t ) * sv_maxclients->integer, 1 );
+	svs.clients = (client_t *) Mem_ClearedAlloc( sizeof( client_t ) * sv_maxclients->integer, TAG_IDLIB );
 	if ( !svs.clients ) {
 		Com_Error( ERR_FATAL, "SV_Startup: unable to allocate svs.clients" );
 	}
 #endif
 
-	Com_Memset( svs.clients, 0, sv_maxclients->integer * sizeof( client_t ) );
+	memset( svs.clients, 0, sv_maxclients->integer * sizeof( client_t ) );
 
 	// copy the clients over
 	for ( i = 0 ; i < count ; i++ ) {
@@ -516,7 +516,7 @@ void SV_ChangeMaxClients( void ) {
 	}
 
 	// free the old clients on the hunk
-	Hunk_FreeTempMemory( oldClients );
+	Mem_Free( oldClients );
 
 	// allocate new snapshot entities
 	if ( com_dedicated->integer ) {
@@ -553,35 +553,34 @@ void SV_SetExpectedHunkUsage( char *mapname ) {
 	int handle;
 	char *memlistfile = "hunkusage.dat";
 	char *buf;
-	char *buftrav;
-	char *token;
 	int len;
 
 	len = FS_FOpenFileByMode( memlistfile, &handle, FS_READ );
 	if ( len >= 0 ) { // the file exists, so read it in, strip out the current entry for this map, and save it out, so we can append the new value
 
-		buf = (char *)Z_Malloc( len + 1 );
-		memset( buf, 0, len + 1 );
+		buf = (char *)Mem_ClearedAlloc( len + 1, TAG_IDLIB );
 
 		FS_Read( (void *)buf, len, handle );
 		FS_FCloseFile( handle );
 
 		// now parse the file, filtering out the current map
-		buftrav = buf;
-		while ( ( token = COM_Parse( &buftrav ) ) && token[0] ) {
-			if ( !Q_strcasecmp( token, mapname ) ) {
+		idLexer usageLexer;
+		idToken token;
+		usageLexer.LoadMemory( buf, len, "hunkusage.dat" );
+		while ( usageLexer.ReadToken( &token ) && token[0] ) {
+			if ( !idStr::Icmp( token.c_str(), mapname ) ) {
 				// found a match
-				token = COM_Parse( &buftrav );  // read the size
-				if ( token && token[0] ) {
+				idToken sizeToken;  // read the size
+				if ( usageLexer.ReadToken( &sizeToken ) && sizeToken[0] ) {
 					// this is the usage
-					Cvar_Set( "com_expectedhunkusage", token );
-					Z_Free( buf );
+					Cvar_Set( "com_expectedhunkusage", sizeToken.c_str() );
+					Mem_Free( buf );
 					return;
 				}
 			}
 		}
 
-		Z_Free( buf );
+		Mem_Free( buf );
 	}
 	// just set it to a negative number,so the cgame knows not to draw the percent bar
 	Cvar_Set( "com_expectedhunkusage", "-1" );
@@ -597,10 +596,10 @@ void SV_ClearServer( void ) {
 
 	for ( i = 0 ; i < MAX_CONFIGSTRINGS ; i++ ) {
 		if ( sv.configstrings[i] ) {
-			Z_Free( sv.configstrings[i] );
+			Mem_Free( sv.configstrings[i] );
 		}
 	}
-	Com_Memset( &sv, 0, sizeof( sv ) );
+	memset( &sv, 0, sizeof( sv ) );
 }
 
 /*
@@ -684,7 +683,6 @@ void SV_SpawnServer( char *server, qboolean killBots ) {
 	CL_ShutdownAll();
 
 	// clear the whole hunk because we're (re)loading the server
-	Hunk_Clear();
 
 //	// clear collision map data		// (SA) NOTE: TODO: used in missionpack
 //	CM_ClearMap();
@@ -711,7 +709,7 @@ void SV_SpawnServer( char *server, qboolean killBots ) {
 	FS_ClearPakReferences( 0 );
 
 	// allocate the snapshot entities on the hunk
-	svs.snapshotEntities = (entityState_t *) Hunk_Alloc( sizeof( entityState_t ) * svs.numSnapshotEntities, h_high );
+	svs.snapshotEntities = (entityState_t *) Mem_ClearedAlloc( sizeof( entityState_t ) * svs.numSnapshotEntities, TAG_IDLIB );
 	svs.nextSnapshotEntities = 0;
 
 	// toggle the server bit so clients can detect that a
@@ -853,7 +851,7 @@ void SV_SpawnServer( char *server, qboolean killBots ) {
 	Cvar_Set( "sv_referencedPakNames", p );
 
 	// save systeminfo and serverinfo strings
-	Q_strncpyz( systemInfo, Cvar_InfoString_Big( CVAR_SYSTEMINFO ), sizeof( systemInfo ) );
+	idStr::Copynz( systemInfo, Cvar_InfoString_Big( CVAR_SYSTEMINFO ), sizeof( systemInfo ) );
 	cvar_modifiedFlags &= ~CVAR_SYSTEMINFO;
 	SV_SetConfigstring( CS_SYSTEMINFO, systemInfo );
 
@@ -868,14 +866,13 @@ void SV_SpawnServer( char *server, qboolean killBots ) {
 	// send a heartbeat now so the master will get up to date info
 	SV_Heartbeat_f();
 
-	Hunk_SetMark();
 
 	Com_Printf( "-----------------------------------\n" );
 
 	/* MrE: 2000-09-13: now called in CL_DownloadsComplete
 	// don't call when running dedicated
 	if ( !com_dedicated->integer ) {
-		// note that this is called after setting the hunk mark with Hunk_SetMark
+		// note that this is called after setting the hunk mark with the hunk mark
 		CL_StartHunkUsers();
 	}
 	*/
@@ -1021,8 +1018,7 @@ void SV_Shutdown( char *finalmsg ) {
 
 	// free server static data
 	if ( svs.clients ) {
-		//Z_Free( svs.clients );
-		free( svs.clients );    // RF, avoid trying to allocate large chunk on a fragmented zone
+		Mem_Free( svs.clients );
 	}
 	memset( &svs, 0, sizeof( svs ) );
 

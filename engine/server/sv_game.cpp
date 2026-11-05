@@ -34,6 +34,12 @@ If you have questions concerning this license or the applicable additional terms
 
 botlib_export_t *botlib_export;
 
+// entity string lexer used while the game VM spawns entities
+static idLexer &SV_EntityLexer() {
+	static idLexer lexer;
+	return lexer;
+}
+
 void SV_GameError( const char *string ) {
 	Com_Error( ERR_DROP, "%s", string );
 }
@@ -125,7 +131,7 @@ sets mins and maxs for inline bmodels
 */
 void SV_SetBrushModel( sharedEntity_t *ent, const char *name ) {
 	clipHandle_t h;
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 
 	if ( !name ) {
 		Com_Error( ERR_DROP, "SV_SetBrushModel: NULL" );
@@ -140,8 +146,8 @@ void SV_SetBrushModel( sharedEntity_t *ent, const char *name ) {
 
 	h = CM_InlineModel( ent->s.modelindex );
 	CM_ModelBounds( h, mins, maxs );
-	VectorCopy( mins, ent->r.mins );
-	VectorCopy( maxs, ent->r.maxs );
+	ent->r.mins = mins;
+	ent->r.maxs = maxs;
 	ent->r.bmodel = qtrue;
 
 	ent->r.contents = -1;       // we don't know exactly what is in the brushes
@@ -158,7 +164,7 @@ SV_inPVS
 Also checks portalareas so that doors block sight
 =================
 */
-qboolean SV_inPVS( const vec3_t p1, const vec3_t p2 ) {
+qboolean SV_inPVS( const idVec3 &p1, const idVec3 &p2 ) {
 	int leafnum;
 	int cluster;
 	int area1, area2;
@@ -189,7 +195,7 @@ SV_inPVSIgnorePortals
 Does NOT check portalareas
 =================
 */
-qboolean SV_inPVSIgnorePortals( const vec3_t p1, const vec3_t p2 ) {
+qboolean SV_inPVSIgnorePortals( const idVec3 &p1, const idVec3 &p2 ) {
 	int leafnum;
 	int cluster;
 	int area1, area2;
@@ -233,18 +239,14 @@ void SV_AdjustAreaPortalState( sharedEntity_t *ent, qboolean open ) {
 SV_GameAreaEntities
 ==================
 */
-qboolean    SV_EntityContact( const vec3_t mins, const vec3_t maxs, const sharedEntity_t *gEnt, const int capsule ) {
-	const float *origin, *angles;
+qboolean    SV_EntityContact( const idVec3 &mins, const idVec3 &maxs, const sharedEntity_t *gEnt, const int capsule ) {
 	clipHandle_t ch;
 	trace_t trace;
 
 	// check for exact collision
-	origin = gEnt->r.currentOrigin;
-	angles = gEnt->r.currentAngles;
-
 	ch = SV_ClipHandleForEntity( gEnt );
 	CM_TransformedBoxTrace( &trace, vec3_origin, vec3_origin, mins, maxs,
-							ch, -1, origin, angles, capsule );
+							ch, -1, gEnt->r.currentOrigin, gEnt->r.currentAngles, capsule );
 
 	return trace.startsolid;
 }
@@ -260,7 +262,7 @@ void SV_GetServerinfo( char *buffer, int bufferSize ) {
 	if ( bufferSize < 1 ) {
 		Com_Error( ERR_DROP, "SV_GetServerinfo: bufferSize == %i", bufferSize );
 	}
-	Q_strncpyz( buffer, Cvar_InfoString( CVAR_SERVERINFO ), bufferSize );
+	idStr::Copynz( buffer, Cvar_InfoString( CVAR_SERVERINFO ), bufferSize );
 }
 
 /*
@@ -410,21 +412,21 @@ static gameImport_t SV_CreateGameImports() {
 		SV_SetBrushModel( (sharedEntity_t *)ent, name );
 		return;
 	};
-	imports.SV_Trace = []( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask ) -> void {
+	imports.SV_Trace = []( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask ) -> void {
 		SV_Trace( results, start, mins, maxs, end, passEntityNum, contentmask, /* int capsule */ qfalse );
 		return;
 	};
-	imports.SV_TraceCapsule = []( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask ) -> void {
+	imports.SV_TraceCapsule = []( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask ) -> void {
 		SV_Trace( results, start, mins, maxs, end, passEntityNum, contentmask, /* int capsule */ qtrue );
 		return;
 	};
-	imports.SV_PointContents = []( const vec3_t point, int passEntityNum ) -> int {
+	imports.SV_PointContents = []( const idVec3 &point, int passEntityNum ) -> int {
 		return SV_PointContents( point, passEntityNum );
 	};
-	imports.SV_inPVS = []( const vec3_t p1, const vec3_t p2 ) -> qboolean {
+	imports.SV_inPVS = []( const idVec3 &p1, const idVec3 &p2 ) -> qboolean {
 		return SV_inPVS( p1, p2 );
 	};
-	imports.SV_inPVSIgnorePortals = []( const vec3_t p1, const vec3_t p2 ) -> qboolean {
+	imports.SV_inPVSIgnorePortals = []( const idVec3 &p1, const idVec3 &p2 ) -> qboolean {
 		return SV_inPVSIgnorePortals( p1, p2 );
 	};
 	imports.SV_AdjustAreaPortalState = []( gentity_t *ent, qboolean open ) -> void {
@@ -442,13 +444,13 @@ static gameImport_t SV_CreateGameImports() {
 		SV_UnlinkEntity( (sharedEntity_t *)ent );
 		return;
 	};
-	imports.SV_AreaEntities = []( const vec3_t mins, const vec3_t maxs, int *list, int maxcount ) -> int {
+	imports.SV_AreaEntities = []( const idVec3 &mins, const idVec3 &maxs, int *list, int maxcount ) -> int {
 		return SV_AreaEntities( mins, maxs, list, maxcount );
 	};
-	imports.SV_EntityContact = []( const vec3_t mins, const vec3_t maxs, const gentity_t *ent ) -> qboolean {
+	imports.SV_EntityContact = []( const idVec3 &mins, const idVec3 &maxs, const gentity_t *ent ) -> qboolean {
 		return SV_EntityContact( mins, maxs, (const sharedEntity_t *)ent, /* int capsule */ qfalse );
 	};
-	imports.SV_EntityContactCapsule = []( const vec3_t mins, const vec3_t maxs, const gentity_t *ent ) -> qboolean {
+	imports.SV_EntityContactCapsule = []( const idVec3 &mins, const idVec3 &maxs, const gentity_t *ent ) -> qboolean {
 		return SV_EntityContact( mins, maxs, (const sharedEntity_t *)ent, /* int capsule */ qtrue );
 	};
 	imports.SV_BotAllocateClient = []( void ) -> int {
@@ -463,19 +465,17 @@ static gameImport_t SV_CreateGameImports() {
 		return;
 	};
 	imports.SV_GetEntityToken = []( char *buffer, int bufferSize ) -> qboolean {
-		{
-		const char  *s;
-
-		s = COM_Parse( &sv.entityParsePoint );
-		Q_strncpyz( buffer, s, bufferSize );
-		if ( !sv.entityParsePoint && !s[0] ) {
-		return qfalse;
-		} else {
+		idToken token;
+		if ( !SV_EntityLexer().IsLoaded() ) {
+			SV_EntityLexer().LoadMemory( CM_EntityString(), strlen( CM_EntityString() ), "entities" );
+		}
+		if ( !SV_EntityLexer().ReadToken( &token ) ) {
+			return qfalse;
+		}
+		idStr::Copynz( buffer, token.c_str(), bufferSize );
 		return qtrue;
-		}
-		}
 	};
-	imports.BotImport_DebugPolygonCreate = []( int color, int numPoints, vec3_t *points ) -> int {
+	imports.BotImport_DebugPolygonCreate = []( int color, int numPoints, const idVec3 *points ) -> int {
 		return BotImport_DebugPolygonCreate( color, numPoints, points );
 	};
 	imports.BotImport_DebugPolygonDelete = []( int id ) -> void {
@@ -518,7 +518,7 @@ static gameImport_t SV_CreateGameImports() {
 	imports.BotLibUpdateEntity = []( int ent, struct bot_entitystate_s *bue ) -> int {
 		return botlib_export->BotLibUpdateEntity( ent, (bot_entitystate_t *)bue );
 	};
-	imports.Test = []( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) -> int {
+	imports.Test = []( int parm0, char *parm1, const idVec3 &parm2, const idVec3 &parm3 ) -> int {
 		return botlib_export->Test( parm0, parm1, parm2, parm3 );
 	};
 	imports.SV_BotGetSnapshotEntity = []( int clientNum, int sequence ) -> int {
@@ -538,7 +538,7 @@ static gameImport_t SV_CreateGameImports() {
 	imports.AAS_Initialized = []( void ) -> int {
 		return botlib_export->aas.AAS_Initialized();
 	};
-	imports.AAS_PresenceTypeBoundingBox = []( int presencetype, vec3_t mins, vec3_t maxs ) -> void {
+	imports.AAS_PresenceTypeBoundingBox = []( int presencetype, idVec3 &mins, idVec3 &maxs ) -> void {
 		botlib_export->aas.AAS_PresenceTypeBoundingBox( presencetype, mins, maxs );
 		return;
 	};
@@ -552,13 +552,13 @@ static gameImport_t SV_CreateGameImports() {
 		return;
 		// done.
 	};
-	imports.AAS_PointAreaNum = []( vec3_t point ) -> int {
+	imports.AAS_PointAreaNum = []( const idVec3 &point ) -> int {
 		return botlib_export->aas.AAS_PointAreaNum( point );
 	};
-	imports.AAS_TraceAreas = []( vec3_t start, vec3_t end, int *areas, vec3_t *points, int maxareas ) -> int {
+	imports.AAS_TraceAreas = []( const idVec3 &start, const idVec3 &end, int *areas, idVec3 *points, int maxareas ) -> int {
 		return botlib_export->aas.AAS_TraceAreas( start, end, areas, points, maxareas );
 	};
-	imports.AAS_PointContents = []( vec3_t point ) -> int {
+	imports.AAS_PointContents = []( const idVec3 &point ) -> int {
 		return botlib_export->aas.AAS_PointContents( point );
 	};
 	imports.AAS_NextBSPEntity = []( int ent ) -> int {
@@ -567,7 +567,7 @@ static gameImport_t SV_CreateGameImports() {
 	imports.AAS_ValueForBSPEpairKey = []( int ent, char *key, char *value, int size ) -> int {
 		return botlib_export->aas.AAS_ValueForBSPEpairKey( ent, key, value, size );
 	};
-	imports.AAS_VectorForBSPEpairKey = []( int ent, char *key, vec3_t v ) -> int {
+	imports.AAS_VectorForBSPEpairKey = []( int ent, char *key, idVec3 &v ) -> int {
 		return botlib_export->aas.AAS_VectorForBSPEpairKey( ent, key, v );
 	};
 	imports.AAS_FloatForBSPEpairKey = []( int ent, char *key, float *value ) -> int {
@@ -579,32 +579,32 @@ static gameImport_t SV_CreateGameImports() {
 	imports.AAS_AreaReachability = []( int areanum ) -> int {
 		return botlib_export->aas.AAS_AreaReachability( areanum );
 	};
-	imports.AAS_AreaTravelTimeToGoalArea = []( int areanum, vec3_t origin, int goalareanum, int travelflags ) -> int {
+	imports.AAS_AreaTravelTimeToGoalArea = []( int areanum, const idVec3 &origin, int goalareanum, int travelflags ) -> int {
 		return botlib_export->aas.AAS_AreaTravelTimeToGoalArea( areanum, origin, goalareanum, travelflags );
 	};
-	imports.AAS_Swimming = []( vec3_t origin ) -> int {
+	imports.AAS_Swimming = []( const idVec3 &origin ) -> int {
 		return botlib_export->aas.AAS_Swimming( origin );
 	};
-	imports.AAS_PredictClientMovement = []( struct aas_clientmove_s *move, int entnum, vec3_t origin, int presencetype, int onground, vec3_t velocity, vec3_t cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize ) -> int {
+	imports.AAS_PredictClientMovement = []( struct aas_clientmove_s *move, int entnum, const idVec3 &origin, int presencetype, int onground, const idVec3 &velocity, const idVec3 &cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize ) -> int {
 		return botlib_export->aas.AAS_PredictClientMovement( (struct aas_clientmove_s *)move, entnum, origin, presencetype, onground,
 		 velocity, cmdmove, cmdframes, maxframes, frametime, stopevent, stopareanum, visualize );
 
 		// Ridah, route-tables
 	};
-	imports.AAS_RT_ShowRoute = []( vec3_t srcpos, int srcnum, int destnum ) -> void {
+	imports.AAS_RT_ShowRoute = []( const idVec3 &srcpos, int srcnum, int destnum ) -> void {
 		botlib_export->aas.AAS_RT_ShowRoute( srcpos, srcnum, destnum );
 		return;
 	};
-	imports.AAS_RT_GetHidePos = []( vec3_t srcpos, int srcnum, int srcarea, vec3_t destpos, int destnum, int destarea, vec3_t returnPos ) -> qboolean {
+	imports.AAS_RT_GetHidePos = []( const idVec3 &srcpos, int srcnum, int srcarea, const idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos ) -> qboolean {
 		return botlib_export->aas.AAS_RT_GetHidePos( srcpos, srcnum, srcarea, destpos, destnum, destarea, returnPos );
 	};
 	imports.AAS_FindAttackSpotWithinRange = []( int srcnum, int rangenum, int enemynum, float rangedist, int travelflags, float *outpos ) -> int {
 		return botlib_export->aas.AAS_FindAttackSpotWithinRange( srcnum, rangenum, enemynum, rangedist, travelflags, outpos );
 	};
-	imports.AAS_GetRouteFirstVisPos = []( vec3_t srcpos, vec3_t destpos, int travelflags, vec3_t retpos ) -> qboolean {
+	imports.AAS_GetRouteFirstVisPos = []( const idVec3 &srcpos, const idVec3 &destpos, int travelflags, idVec3 &retpos ) -> qboolean {
 		return botlib_export->aas.AAS_GetRouteFirstVisPos( srcpos, destpos, travelflags, retpos );
 	};
-	imports.AAS_SetAASBlockingEntity = []( vec3_t absmin, vec3_t absmax, qboolean blocking ) -> void {
+	imports.AAS_SetAASBlockingEntity = []( const idVec3 &absmin, const idVec3 &absmax, qboolean blocking ) -> void {
 		botlib_export->aas.AAS_SetAASBlockingEntity( absmin, absmax, blocking );
 		return;
 		// done.
@@ -701,11 +701,11 @@ static gameImport_t SV_CreateGameImports() {
 		botlib_export->ea.EA_MoveRight( client );
 		return;
 	};
-	imports.EA_Move = []( int client, vec3_t dir, float speed ) -> void {
+	imports.EA_Move = []( int client, const idVec3 &dir, float speed ) -> void {
 		botlib_export->ea.EA_Move( client, dir, speed );
 		return;
 	};
-	imports.EA_View = []( int client, vec3_t viewangles ) -> void {
+	imports.EA_View = []( int client, const idVec3 &viewangles ) -> void {
 		botlib_export->ea.EA_View( client, viewangles );
 		return;
 	};
@@ -857,16 +857,16 @@ static gameImport_t SV_CreateGameImports() {
 	imports.BotGetSecondGoal = []( int goalstate, struct bot_goal_s *goal ) -> int {
 		return botlib_export->ai.BotGetSecondGoal( goalstate, (struct bot_goal_s *)goal );
 	};
-	imports.BotChooseLTGItem = []( int goalstate, vec3_t origin, int *inventory, int travelflags ) -> int {
+	imports.BotChooseLTGItem = []( int goalstate, const idVec3 &origin, int *inventory, int travelflags ) -> int {
 		return botlib_export->ai.BotChooseLTGItem( goalstate, origin, inventory, travelflags );
 	};
-	imports.BotChooseNBGItem = []( int goalstate, vec3_t origin, int *inventory, int travelflags, struct bot_goal_s *ltg, float maxtime ) -> int {
+	imports.BotChooseNBGItem = []( int goalstate, const idVec3 &origin, int *inventory, int travelflags, struct bot_goal_s *ltg, float maxtime ) -> int {
 		return botlib_export->ai.BotChooseNBGItem( goalstate, origin, inventory, travelflags, (struct bot_goal_s *)ltg, maxtime );
 	};
-	imports.BotTouchingGoal = []( vec3_t origin, struct bot_goal_s *goal ) -> int {
+	imports.BotTouchingGoal = []( const idVec3 &origin, struct bot_goal_s *goal ) -> int {
 		return botlib_export->ai.BotTouchingGoal( origin, (struct bot_goal_s *)goal );
 	};
-	imports.BotItemGoalInVisButNotVisible = []( int viewer, vec3_t eye, vec3_t viewangles, struct bot_goal_s *goal ) -> int {
+	imports.BotItemGoalInVisButNotVisible = []( int viewer, const idVec3 &eye, const idVec3 &viewangles, struct bot_goal_s *goal ) -> int {
 		return botlib_export->ai.BotItemGoalInVisButNotVisible( viewer, eye, viewangles, (struct bot_goal_s *)goal );
 	};
 	imports.BotGetLevelItemGoal = []( int index, char *classname, struct bot_goal_s *goal ) -> int {
@@ -923,7 +923,7 @@ static gameImport_t SV_CreateGameImports() {
 		botlib_export->ai.BotMoveToGoal( (struct bot_moveresult_s *)result, movestate, (struct bot_goal_s *)goal, travelflags );
 		return;
 	};
-	imports.BotMoveInDirection = []( int movestate, vec3_t dir, float speed, int type ) -> int {
+	imports.BotMoveInDirection = []( int movestate, const idVec3 &dir, float speed, int type ) -> int {
 		return botlib_export->ai.BotMoveInDirection( movestate, dir, speed, type );
 	};
 	imports.BotResetAvoidReach = []( int movestate ) -> void {
@@ -934,13 +934,13 @@ static gameImport_t SV_CreateGameImports() {
 		botlib_export->ai.BotResetLastAvoidReach( movestate );
 		return;
 	};
-	imports.BotReachabilityArea = []( vec3_t origin, int testground ) -> int {
+	imports.BotReachabilityArea = []( const idVec3 &origin, int testground ) -> int {
 		return botlib_export->ai.BotReachabilityArea( origin, testground );
 	};
-	imports.BotMovementViewTarget = []( int movestate, struct bot_goal_s *goal, int travelflags, float lookahead, vec3_t target ) -> int {
+	imports.BotMovementViewTarget = []( int movestate, struct bot_goal_s *goal, int travelflags, float lookahead, idVec3 &target ) -> int {
 		return botlib_export->ai.BotMovementViewTarget( movestate, (struct bot_goal_s *)goal, travelflags, lookahead, target );
 	};
-	imports.BotPredictVisiblePosition = []( vec3_t origin, int areanum, struct bot_goal_s *goal, int travelflags, vec3_t target ) -> int {
+	imports.BotPredictVisiblePosition = []( const idVec3 &origin, int areanum, struct bot_goal_s *goal, int travelflags, idVec3 &target ) -> int {
 		return botlib_export->ai.BotPredictVisiblePosition( origin, areanum, (struct bot_goal_s *)goal, travelflags, target );
 	};
 	imports.BotAllocMoveState = []( void ) -> int {
@@ -1017,7 +1017,8 @@ static void SV_InitGameVM( qboolean restart ) {
 	int i;
 
 	// start the entity parsing at the beginning
-	sv.entityParsePoint = CM_EntityString();
+	SV_EntityLexer().Reset();
+	SV_EntityLexer().LoadMemory( CM_EntityString(), strlen( CM_EntityString() ), "entities" );
 
 	// use the current msec count for a random seed
 	// init for this gamestate

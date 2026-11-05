@@ -177,7 +177,7 @@ void SV_AuthorizeIpPacket( netadr_t from ) {
 	s = Cmd_Argv( 2 );
 	r = Cmd_Argv( 3 );          // reason
 
-	if ( !Q_stricmp( s, "demo" ) ) {
+	if ( !idStr::Icmp( s, "demo" ) ) {
 		if ( Cvar_VariableValue( "fs_restrict" ) ) {
 			// a demo client connecting to a demo server
 			NET_OutOfBandPrint( NS_SERVER, svs.challenges[i].adr,
@@ -190,12 +190,12 @@ void SV_AuthorizeIpPacket( netadr_t from ) {
 		memset( &svs.challenges[i], 0, sizeof( svs.challenges[i] ) );
 		return;
 	}
-	if ( !Q_stricmp( s, "accept" ) ) {
+	if ( !idStr::Icmp( s, "accept" ) ) {
 		NET_OutOfBandPrint( NS_SERVER, svs.challenges[i].adr,
 							"challengeResponse %i", svs.challenges[i].challenge );
 		return;
 	}
-	if ( !Q_stricmp( s, "unknown" ) ) {
+	if ( !idStr::Icmp( s, "unknown" ) ) {
 		if ( !r ) {
 			NET_OutOfBandPrint( NS_SERVER, svs.challenges[i].adr, "print\nAwaiting CD key authorization\n" );
 		} else {
@@ -243,7 +243,7 @@ void SV_DirectConnect( netadr_t from ) {
 
 	Com_DPrintf( "SVC_DirectConnect ()\n" );
 
-	Q_strncpyz( userinfo, Cmd_Argv( 1 ), sizeof( userinfo ) );
+	idStr::Copynz( userinfo, Cmd_Argv( 1 ), sizeof( userinfo ) );
 
 	version = atoi( Info_ValueForKey( userinfo, "protocol" ) );
 	if ( version != PROTOCOL_VERSION ) {
@@ -410,7 +410,7 @@ gotnewcl:
 	Netchan_Setup( NS_SERVER, &newcl->netchan, from, qport );
 
 	// save the userinfo
-	Q_strncpyz( newcl->userinfo, userinfo, sizeof( newcl->userinfo ) );
+	idStr::Copynz( newcl->userinfo, userinfo, sizeof( newcl->userinfo ) );
 
 	// get the game a chance to reject this connection or modify the userinfo
 	denied = gvm->GAME_CLIENT_CONNECT( clientNum, qtrue, qfalse );
@@ -655,7 +655,7 @@ static void SV_CloseDownload( client_t *cl ) {
 	// Free the temporary buffer space
 	for ( i = 0; i < MAX_DOWNLOAD_WINDOW; i++ ) {
 		if ( cl->downloadBlocks[i] ) {
-			Z_Free( cl->downloadBlocks[i] );
+			Mem_Free( cl->downloadBlocks[i] );
 			cl->downloadBlocks[i] = NULL;
 		}
 	}
@@ -733,7 +733,7 @@ void SV_BeginDownload_f( client_t *cl ) {
 
 	// cl->downloadName is non-zero now, SV_WriteDownloadToClient will see this and open
 	// the file itself
-	Q_strncpyz( cl->downloadName, Cmd_Argv( 1 ), sizeof( cl->downloadName ) );
+	idStr::Copynz( cl->downloadName, Cmd_Argv( 1 ), sizeof( cl->downloadName ) );
 }
 
 /*
@@ -811,7 +811,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg ) {
 		curindex = ( cl->downloadCurrentBlock % MAX_DOWNLOAD_WINDOW );
 
 		if ( !cl->downloadBlocks[curindex] ) {
-			cl->downloadBlocks[curindex] = (unsigned char *) Z_Malloc( MAX_DOWNLOAD_BLKSIZE );
+			cl->downloadBlocks[curindex] = (unsigned char *) Mem_ClearedAlloc( MAX_DOWNLOAD_BLKSIZE, TAG_IDLIB );
 		}
 
 		cl->downloadBlockSize[curindex] = FS_Read( cl->downloadBlocks[curindex], MAX_DOWNLOAD_BLKSIZE, cl->download );
@@ -1096,7 +1096,7 @@ void SV_UserinfoChanged( client_t *cl ) {
 	int i;
 
 	// name for C code
-	Q_strncpyz( cl->name, Info_ValueForKey( cl->userinfo, "name" ), sizeof( cl->name ) );
+	idStr::Copynz( cl->name, Info_ValueForKey( cl->userinfo, "name" ), sizeof( cl->name ) );
 
 	// rate command
 
@@ -1148,7 +1148,7 @@ SV_UpdateUserinfo_f
 ==================
 */
 static void SV_UpdateUserinfo_f( client_t *cl ) {
-	Q_strncpyz( cl->userinfo, Cmd_Argv( 1 ), sizeof( cl->userinfo ) );
+	idStr::Copynz( cl->userinfo, Cmd_Argv( 1 ), sizeof( cl->userinfo ) );
 
 	SV_UserinfoChanged( cl );
 	// call prog code to allow overrides

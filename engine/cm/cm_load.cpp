@@ -854,7 +854,7 @@ clipHandle_t CM_TempBoxModel( const idVec3 mins, const idVec3 maxs, int capsule 
 CM_ModelBounds
 ===================
 */
-void CM_ModelBounds( clipHandle_t model, idVec3 mins, idVec3 maxs ) {
+void CM_ModelBounds( clipHandle_t model, idVec3 &mins, idVec3 &maxs ) {
 	cmodel_t    *cmod;
 
 	cmod = CM_ClipHandleToModel( model );

@@ -290,7 +290,7 @@ static void SV_AddEntToSnapshot( svEntity_t *svEnt, sharedEntity_t *gEnt, snapsh
 SV_AddEntitiesVisibleFromPoint
 ===============
 */
-static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *frame,
+static void SV_AddEntitiesVisibleFromPoint( const idVec3 &origin, clientSnapshot_t *frame,
 //									snapshotEntityNumbers_t *eNums, qboolean portal, clientSnapshot_t *oldframe, qboolean localClient ) {
 //									snapshotEntityNumbers_t *eNums, qboolean portal ) {
 											snapshotEntityNumbers_t *eNums, qboolean portal, qboolean localClient  ) {
@@ -531,7 +531,7 @@ For viewing through other player's eyes, clent can be something other than clien
 =============
 */
 static void SV_BuildClientSnapshot( client_t *client ) {
-	vec3_t org;
+	idVec3 org;
 //	clientSnapshot_t			*frame, *oldframe;
 	clientSnapshot_t            *frame;
 	snapshotEntityNumbers_t entityNumbers;
@@ -593,17 +593,17 @@ static void SV_BuildClientSnapshot( client_t *client ) {
 	svEnt->snapshotCounter = sv.snapshotCounter;
 
 	// find the client's viewpoint
-	VectorCopy( ps->origin, org );
+	org = ps->origin;
 	org[2] += ps->viewheight;
 
 //----(SA)	added for 'lean'
 	// need to account for lean, so areaportal doors draw properly
 	if ( frame->ps.leanf != 0 ) {
-		vec3_t right, v3ViewAngles;
-		VectorCopy( ps->viewangles, v3ViewAngles );
+		idVec3 right, v3ViewAngles;
+		v3ViewAngles = ps->viewangles;
 		v3ViewAngles[2] += frame->ps.leanf / 2.0f;
-		AngleVectors( v3ViewAngles, NULL, right, NULL );
-		VectorMA( org, frame->ps.leanf, right, org );
+		idAngles( v3ViewAngles ).ToVectors( NULL, &right, NULL );
+		org = org + right * frame->ps.leanf;
 	}
 //----(SA)	end
 

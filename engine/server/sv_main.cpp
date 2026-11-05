@@ -113,13 +113,13 @@ int SV_ReplacePendingServerCommands( client_t *client, const char *cmd ) {
 	for ( i = client->reliableSent + 1; i <= client->reliableSequence; i++ ) {
 		index = i & ( MAX_RELIABLE_COMMANDS - 1 );
 		//
-		//if ( !Q_strncmp(cmd, client->reliableCommands[ index ], strlen("cs")) ) {
-		if ( !Q_strncmp( cmd, SV_GetReliableCommand( client, index ), strlen( "cs" ) ) ) {
+		//if ( !idStr::Cmpn( cmd, client->reliableCommands[ index ], strlen("cs") ) ) {
+		if ( !idStr::Cmpn( cmd, SV_GetReliableCommand( client, index ), strlen( "cs" ) ) ) {
 			sscanf( cmd, "cs %i", &csnum1 );
 			//sscanf(client->reliableCommands[ index ], "cs %i", &csnum2);
 			sscanf( SV_GetReliableCommand( client, index ), "cs %i", &csnum2 );
 			if ( csnum1 == csnum2 ) {
-				//Q_strncpyz( client->reliableCommands[ index ], cmd, sizeof( client->reliableCommands[ index ] ) );
+				//idStr::Copynz( client->reliableCommands[ index ], cmd, sizeof( client->reliableCommands[ index ] ) );
 
 				/*
 				if ( client->netchan.remoteAddress.type != NA_BOT ) {
@@ -167,7 +167,7 @@ void SV_AddServerCommand( client_t *client, const char *cmd ) {
 		return;
 	}
 	index = client->reliableSequence & ( MAX_RELIABLE_COMMANDS - 1 );
-	//Q_strncpyz( client->reliableCommands[ index ], cmd, sizeof( client->reliableCommands[ index ] ) );
+	//idStr::Copynz( client->reliableCommands[ index ], cmd, sizeof( client->reliableCommands[ index ] ) );
 	SV_AddReliableCommand( client, index, cmd );
 }
 
@@ -520,19 +520,19 @@ void SV_ConnectionlessPacket( netadr_t from, msg_t *msg ) {
 	c = Cmd_Argv( 0 );
 	Com_DPrintf( "SV packet %s : %s\n", NET_AdrToString( from ), c );
 
-	if ( !Q_stricmp( c,"getstatus" ) ) {
+	if ( !idStr::Icmp( c, "getstatus" ) ) {
 		SVC_Status( from  );
-	} else if ( !Q_stricmp( c,"getinfo" ) ) {
+	} else if ( !idStr::Icmp( c, "getinfo" ) ) {
 		SVC_Info( from );
-	} else if ( !Q_stricmp( c,"getchallenge" ) ) {
+	} else if ( !idStr::Icmp( c, "getchallenge" ) ) {
 		SV_GetChallenge( from );
-	} else if ( !Q_stricmp( c,"connect" ) ) {
+	} else if ( !idStr::Icmp( c, "connect" ) ) {
 		SV_DirectConnect( from );
-	} else if ( !Q_stricmp( c,"ipAuthorize" ) ) {
+	} else if ( !idStr::Icmp( c, "ipAuthorize" ) ) {
 		SV_AuthorizeIpPacket( from );
-	} else if ( !Q_stricmp( c, "rcon" ) ) {
+	} else if ( !idStr::Icmp( c, "rcon" ) ) {
 		SVC_RemoteCommand( from, msg );
-	} else if ( !Q_stricmp( c,"disconnect" ) ) {
+	} else if ( !idStr::Icmp( c, "disconnect" ) ) {
 		// if a client starts up a local server, we may see some spurious
 		// server disconnect messages when their new server sees our final
 		// sequenced messages to the old client
