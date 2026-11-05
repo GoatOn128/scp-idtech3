@@ -1957,6 +1957,9 @@ Com_Init
 void Com_Init( char *commandLine ) {
 	char    *s;
 
+	// bind the console and error functions into the idlib interfaces
+	Idlib_Init();
+
 	Com_Printf( "%s %s %s\n", Q3_VERSION, CPUSTRING, __DATE__ );
 
 #pragma warning( push )

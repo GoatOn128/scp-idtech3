@@ -23,7 +23,6 @@ add_library( idlib STATIC ${IDLIB_SOURCES} )
 
 # let includers write #include "idlib/..." while the idlib sources keep their
 # own relative includes
-add_dependencies( idlib )
 target_include_directories( idlib PUBLIC ${CMAKE_SOURCE_DIR}/engine )
 
 if ( MSVC )

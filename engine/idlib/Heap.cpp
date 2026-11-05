@@ -47,7 +47,15 @@ void * Mem_Alloc16( const int size, const memTag_t tag ) {
 		return NULL;
 	}
 	const int paddedSize = ( size + 15 ) & ~15;
+#if defined( _WIN32 )
 	return _aligned_malloc( paddedSize, 16 );
+#else
+	void * ptr = NULL;
+	if ( posix_memalign( &ptr, 16, paddedSize ) != 0 ) {
+		return NULL;
+	}
+	return ptr;
+#endif
 }
 
 /*
@@ -59,7 +67,11 @@ void Mem_Free16( void *ptr ) {
 	if ( ptr == NULL ) {
 		return;
 	}
+#if defined( _WIN32 )
 	_aligned_free( ptr );
+#else
+	free( ptr );
+#endif
 }
 
 /*
