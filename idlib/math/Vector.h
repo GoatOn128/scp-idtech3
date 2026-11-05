@@ -1927,6 +1927,22 @@ ID_INLINE float AngleSubtract( float a1, float a2 ) {
 	return AngleNormalize180( a1 - a2 );
 }
 
+// ported from the old q3 mathlib
+ID_INLINE int Q_rand( int *seed ) {
+	*seed = ( 69069 * *seed ) & 0x7fffffff;
+	return *seed;
+}
+
+// ported from the old q3 mathlib
+ID_INLINE float Q_random( int *seed ) {
+	return ( Q_rand( seed ) & 0x7fff ) / (float)0x7fff;
+}
+
+// ported from the old q3 mathlib
+ID_INLINE float Q_crandom( int *seed ) {
+	return 2.0 * ( Q_random( seed ) - 0.5 );
+}
+
 ID_INLINE void SnapVector( idVec3 &v ) {
 	v.Snap();
 }
