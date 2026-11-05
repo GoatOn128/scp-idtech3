@@ -1833,4 +1833,17 @@ ID_INLINE bool PlaneFromPoints( idVec4 &plane, const idVec3 &a, const idVec3 &b,
 	return true;
 }
 
+/*
+================
+AxisCopy
+
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void AxisCopy( const idVec3 *in, idVec3 *out ) {
+	out[0] = in[0];
+	out[1] = in[1];
+	out[2] = in[2];
+}
+
 #endif /* !__MATH_VECTOR_H__ */
