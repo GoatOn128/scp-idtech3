@@ -1922,6 +1922,11 @@ ID_INLINE float VectorDistance( const idVec3 &p1, const idVec3 &p2 ) {
 	return v.Length();
 }
 
+// ported from the old q3 mathlib
+ID_INLINE float AngleSubtract( float a1, float a2 ) {
+	return AngleNormalize180( a1 - a2 );
+}
+
 ID_INLINE void SnapVector( idVec3 &v ) {
 	v.Snap();
 }

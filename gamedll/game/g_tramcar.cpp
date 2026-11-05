@@ -125,10 +125,10 @@ int crash_part;
 
 // functions to be added
 void InitTramcar( gentity_t *ent ) {
-	vec3_t move;
+	idVec3 move;
 	float distance;
 	float light;
-	vec3_t color;
+	idVec3 color;
 	qboolean lightSet, colorSet;
 	char        *sound;
 
@@ -139,11 +139,11 @@ void InitTramcar( gentity_t *ent ) {
 		ent->s.modelindex2 = G_ModelIndex( ent->model2 );
 	}
 
-	if ( !Q_stricmp( ent->classname, "props_me109" ) ) {
+	if ( !idStr::Icmp( ent->classname, "props_me109" ) ) {
 		ent->s.modelindex2 = G_ModelIndex( "models/mapobjects/vehicles/m109s.md3" );
 	}
 
-	if ( !Q_stricmp( ent->classname, "truck_cam" ) ) {
+	if ( !idStr::Icmp( ent->classname, "truck_cam" ) ) {
 		ent->s.modelindex2 = G_ModelIndex( "models/mapobjects/vehicles/truck_base.md3" );
 	}
 
@@ -154,7 +154,7 @@ void InitTramcar( gentity_t *ent ) {
 
 	// if the "color" or "light" keys are set, setup constantLight
 	lightSet = G_SpawnFloat( "light", "100", &light );
-	colorSet = G_SpawnVector( "color", "1 1 1", color );
+	colorSet = G_SpawnVector( "color", "1 1 1", color.ToFloatPtr() );
 	if ( lightSet || colorSet ) {
 		int r, g, b, i;
 
@@ -184,20 +184,20 @@ void InitTramcar( gentity_t *ent ) {
 	ent->r.svFlags = SVF_USE_CURRENT_ORIGIN;
 	ent->s.eType = ET_MOVER;
 
-	VectorCopy( ent->pos1, ent->r.currentOrigin );
+	ent->r.currentOrigin = ent->pos1;
 
 	trap_LinkEntity( ent );
 
 	ent->s.pos.trType = TR_STATIONARY;
-	VectorCopy( ent->pos1, ent->s.pos.trBase );
+	ent->s.pos.trBase = ent->pos1;
 
 	// calculate time to reach second position from speed
-	VectorSubtract( ent->pos2, ent->pos1, move );
-	distance = VectorLength( move );
+	move = ent->pos2 - ent->pos1;
+	distance = move.Length();
 	if ( !ent->speed ) {
 		ent->speed = 100;
 	}
-	VectorScale( move, ent->speed, ent->s.pos.trDelta );
+	ent->s.pos.trDelta = move * ent->speed;
 	ent->s.pos.trDuration = distance * 1000 / ent->speed;
 	if ( ent->s.pos.trDuration <= 0 ) {
 		ent->s.pos.trDuration = 1;
@@ -206,24 +206,24 @@ void InitTramcar( gentity_t *ent ) {
 
 void Calc_Roll( gentity_t *ent ) {
 	gentity_t *target;
-	vec3_t vec;
-	vec3_t forward;
-	vec3_t right;
+	idVec3 vec;
+	idVec3 forward;
+	idVec3 right;
 	float dot;
 	float dot2;
-	vec3_t tang;
+	idVec3 tang;
 
 	target = ent->nextTrain;
 
-	VectorCopy( ent->r.currentAngles, tang );
+	tang = ent->r.currentAngles;
 	tang[ROLL] = 0;
 
-	AngleVectors( tang, forward, right, NULL );
-	VectorSubtract( target->nextTrain->nextTrain->s.origin, ent->r.currentOrigin, vec );
-	VectorNormalize( vec );
+	idAngles( tang ).ToVectors( &forward, &right, NULL );
+	vec = target->nextTrain->nextTrain->s.origin - ent->r.currentOrigin;
+	vec.Normalize();
 
-	dot = DotProduct( vec, forward );
-	dot2 = DotProduct( vec, right );
+	dot = ( vec * forward );
+	dot2 = ( vec * right );
 
 	ent->angle = (int) ent->angle;
 
@@ -309,7 +309,7 @@ void GetNextTrack( gentity_t *ent ) {
 void Reached_Tramcar( gentity_t *ent ) {
 	gentity_t       *next;
 	float speed;
-	vec3_t move;
+	idVec3 move;
 	float length;
 
 	// copy the apropriate values
@@ -324,8 +324,8 @@ void Reached_Tramcar( gentity_t *ent ) {
 		return;
 	}
 
-	if ( !Q_stricmp( ent->classname, "props_me109" ) ) {
-		vec3_t vec, angles;
+	if ( !idStr::Icmp( ent->classname, "props_me109" ) ) {
+		idVec3 vec, angles;
 		float diff;
 
 		if ( next->spawnflags & 8 ) { // laps
@@ -363,7 +363,7 @@ void Reached_Tramcar( gentity_t *ent ) {
 			return;
 		}
 
-		VectorSubtract( ent->nextTrain->nextTrain->s.origin, ent->r.currentOrigin, vec );
+		vec = ent->nextTrain->nextTrain->s.origin - ent->r.currentOrigin;
 		vectoangles( vec, angles );
 
 
@@ -379,8 +379,8 @@ void Reached_Tramcar( gentity_t *ent ) {
 		//	ent->s.apos.trDuration = 1000;
 
 		{
-			VectorCopy( next->s.origin, ent->pos1 );
-			VectorCopy( next->nextTrain->s.origin, ent->pos2 );
+			ent->pos1 = next->s.origin;
+			ent->pos2 = next->nextTrain->s.origin;
 
 			// if the path_corner has a speed, use that
 			if ( next->speed ) {
@@ -394,8 +394,8 @@ void Reached_Tramcar( gentity_t *ent ) {
 			}
 
 			// calculate duration
-			VectorSubtract( ent->pos2, ent->pos1, move );
-			length = VectorLength( move );
+			move = ent->pos2 - ent->pos1;
+			length = move.Length();
 
 			ent->s.apos.trDuration = length * 1000 / speed;
 
@@ -406,16 +406,16 @@ void Reached_Tramcar( gentity_t *ent ) {
 
 		}
 
-		VectorClear( ent->s.apos.trDelta );
+		ent->s.apos.trDelta.Zero();
 
 		SetMoverState( ent, MOVER_1TO2ROTATE, level.time );
-		VectorCopy( ent->r.currentAngles, ent->s.apos.trBase );
+		ent->s.apos.trBase = ent->r.currentAngles;
 
 		trap_LinkEntity( ent );
 
 		ent->think = props_me109_think;
 		ent->nextthink = level.time + 50;
-	} else if ( !Q_stricmp( ent->classname, "truck_cam" ) )       {
+	} else if ( !idStr::Icmp( ent->classname, "truck_cam" ) )       {
 		G_Printf( "target: %s\n", next->targetname );
 
 		if ( next->spawnflags & 2 ) { // END
@@ -424,16 +424,16 @@ void Reached_Tramcar( gentity_t *ent ) {
 			return;
 		} else
 		{
-			vec3_t vec, angles;
+			idVec3 vec, angles;
 			float diff;
 
 			if ( next->spawnflags & 4 ) { // reverse
 				ent->props_frame_state = truck_reverse;
-				VectorSubtract( ent->r.currentOrigin, ent->nextTrain->nextTrain->s.origin, vec );
+				vec = ent->r.currentOrigin - ent->nextTrain->nextTrain->s.origin;
 			} else
 			{
 				ent->props_frame_state = truck_moving;
-				VectorSubtract( ent->nextTrain->nextTrain->s.origin, ent->r.currentOrigin, vec );
+				vec = ent->nextTrain->nextTrain->s.origin - ent->r.currentOrigin;
 			}
 
 			vectoangles( vec, angles );
@@ -452,10 +452,10 @@ void Reached_Tramcar( gentity_t *ent ) {
 //testing
 			ent->gDuration = ent->s.pos.trDuration;
 
-			VectorClear( ent->s.apos.trDelta );
+			ent->s.apos.trDelta.Zero();
 
 			SetMoverState( ent, MOVER_1TO2ROTATE, level.time );
-			VectorCopy( ent->r.currentAngles, ent->s.apos.trBase );
+			ent->s.apos.trBase = ent->r.currentAngles;
 
 			trap_LinkEntity( ent );
 		}
@@ -491,7 +491,7 @@ void Reached_Tramcar( gentity_t *ent ) {
 		ent->think = truck_cam_think;
 		ent->nextthink = level.time + ( FRAMETIME / 2 );
 
-	} else if ( !Q_stricmp( ent->classname, "camera_cam" ) )       {
+	} else if ( !idStr::Icmp( ent->classname, "camera_cam" ) )       {
 
 	}
 
@@ -505,8 +505,8 @@ void Reached_Tramcar( gentity_t *ent ) {
 		next->count = 1;
 	}
 
-	VectorCopy( next->s.origin, ent->pos1 );
-	VectorCopy( next->nextTrain->s.origin, ent->pos2 );
+	ent->pos1 = next->s.origin;
+	ent->pos2 = next->nextTrain->s.origin;
 
 	// if the path_corner has a speed, use that
 	if ( next->speed ) {
@@ -520,8 +520,8 @@ void Reached_Tramcar( gentity_t *ent ) {
 	}
 
 	// calculate duration
-	VectorSubtract( ent->pos2, ent->pos1, move );
-	length = VectorLength( move );
+	move = ent->pos2 - ent->pos1;
+	length = move.Length();
 
 	ent->s.pos.trDuration = length * 1000 / speed;
 
@@ -568,20 +568,20 @@ void Tramcar_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, in
 		slave->s.pos.trType = self->s.pos.trType;
 		slave->s.pos.trTime = self->s.pos.trTime;
 		slave->s.pos.trDuration = self->s.pos.trDuration;
-		VectorCopy( self->s.pos.trBase, slave->s.pos.trBase );
-		VectorCopy( self->s.pos.trDelta, slave->s.pos.trDelta );
+		slave->s.pos.trBase = self->s.pos.trBase;
+		slave->s.pos.trDelta = self->s.pos.trDelta;
 
 		slave->s.apos.trType = self->s.apos.trType;
 		slave->s.apos.trTime = self->s.apos.trTime;
 		slave->s.apos.trDuration = self->s.apos.trDuration;
-		VectorCopy( self->s.apos.trBase, slave->s.apos.trBase );
-		VectorCopy( self->s.apos.trDelta, slave->s.apos.trDelta );
+		slave->s.apos.trBase = self->s.apos.trBase;
+		slave->s.apos.trDelta = self->s.apos.trDelta;
 
 		slave->think = self->think;
 		slave->nextthink = self->nextthink;
 
-		VectorCopy( self->pos1, slave->pos1 );
-		VectorCopy( self->pos2, slave->pos2 );
+		slave->pos1 = self->pos1;
+		slave->pos2 = self->pos2;
 
 		slave->speed = self->speed;
 
@@ -607,8 +607,8 @@ void Tramcar_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, in
 
 	self->s.loopSound = 0;
 
-	VectorCopy( self->r.currentOrigin, self->s.pos.trBase );
-	VectorCopy( self->r.currentAngles, self->s.apos.trBase );
+	self->s.pos.trBase = self->r.currentOrigin;
+	self->s.apos.trBase = self->r.currentAngles;
 
 	self->flags |= FL_TEAMSLAVE;
 	trap_UnlinkEntity( self );
@@ -654,7 +654,7 @@ void Blocked_Tramcar( gentity_t *ent, gentity_t *other ) {
 		other->client->ps.stats[STAT_HEALTH] = other->health = 0;
 	}
 
-	G_Damage( other, ent, ent, NULL, NULL, 99999, 0, MOD_CRUSH );
+	G_Damage( other, ent, ent, vec3_origin, vec3_origin, 99999, 0, MOD_CRUSH );
 
 }
 
@@ -691,7 +691,7 @@ void SP_func_tramcar( gentity_t *self ) {
 	char    *s;
 	char buffer[MAX_QPATH];
 
-	VectorClear( self->s.angles );
+	self->s.angles.Zero();
 
 	//if (self->spawnflags & TRAMCAR_BLOCK_STOPS) {
 	//	self->damage = 0;
@@ -735,19 +735,19 @@ void SP_func_tramcar( gentity_t *self ) {
 	}
 
 	G_SpawnString( "type", "wood", &type );
-	if ( !Q_stricmp( type,"wood" ) ) {
+	if ( !idStr::Icmp( type,"wood" ) ) {
 		self->key = 0;
-	} else if ( !Q_stricmp( type,"glass" ) )   {
+	} else if ( !idStr::Icmp( type,"glass" ) )   {
 		self->key = 1;
-	} else if ( !Q_stricmp( type,"metal" ) )                                                            {
+	} else if ( !idStr::Icmp( type,"metal" ) )                                                            {
 		self->key = 2;
-	} else if ( !Q_stricmp( type,"gibs" ) )                                                                                                                     {
+	} else if ( !idStr::Icmp( type,"gibs" ) )                                                                                                                     {
 		self->key = 3;
 	}
 
 	if ( G_SpawnString( "noise", "NOSOUND", &s ) ) {
-		if ( Q_stricmp( s, "nosound" ) ) {
-			Q_strncpyz( buffer, s, sizeof( buffer ) );
+		if ( idStr::Icmp( s, "nosound" ) ) {
+			idStr::Copynz( buffer, s, sizeof( buffer ) );
 			self->s.dl_intensity = G_SoundIndex( buffer );
 		}
 	} else {
@@ -836,10 +836,10 @@ default health = 1000
 
 void ExplodePlaneSndFx( gentity_t *self ) {
 	gentity_t   *temp;
-	vec3_t dir;
+	idVec3 dir;
 	gentity_t   *part;
 	int i;
-	vec3_t start;
+	idVec3 start;
 
 	temp = G_Spawn();
 
@@ -858,7 +858,7 @@ void ExplodePlaneSndFx( gentity_t *self ) {
 	if ( self->nextTrain && self->nextTrain->spawnflags & 4 ) { // explode the plane
 		// spawn the wing at the player
 		gentity_t   *player;
-		vec3_t vec, ang;
+		idVec3 vec, ang;
 
 		player = AICast_FindEntityForName( "player" );
 
@@ -866,13 +866,13 @@ void ExplodePlaneSndFx( gentity_t *self ) {
 			return;
 		}
 
-		VectorSubtract( player->s.origin, self->r.currentOrigin, vec );
+		vec = player->s.origin - self->r.currentOrigin;
 		vectoangles( vec, ang );
-		AngleVectors( ang, dir, NULL, NULL );
+		idAngles( ang ).ToVectors( &dir, NULL, NULL );
 
 		dir[2] = 1;
 
-		VectorCopy( self->r.currentOrigin, start );
+		start = self->r.currentOrigin;
 
 		part = fire_flamebarrel( temp, start, dir );
 
@@ -888,11 +888,11 @@ void ExplodePlaneSndFx( gentity_t *self ) {
 		return;
 	}
 
-	AngleVectors( self->r.currentAngles, dir, NULL, NULL );
+	idAngles( self->r.currentAngles ).ToVectors( &dir, NULL, NULL );
 
 	for ( i = 0; i < 4; i++ )
 	{
-		VectorCopy( self->r.currentOrigin, start );
+		start = self->r.currentOrigin;
 
 		start[0] += crandom() * 64;
 		start[1] += crandom() * 64;
@@ -921,8 +921,8 @@ void ExplodePlaneSndFx( gentity_t *self ) {
 void props_me109_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod ) {
 	G_Printf( "dead\n" );
 
-	VectorClear( self->rotate );
-	VectorSet( self->rotate, 0, 1, 0 ); //sigh
+	self->rotate.Zero();
+	self->rotate.Set( 0, 1, 0 ); //sigh
 
 	if ( self->spawnflags & 8 ) { // FIXED_DIE
 		return;
@@ -934,29 +934,29 @@ void props_me109_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker
 	G_FreeEntity( self );
 }
 
-void props_me109_pain( gentity_t *self, gentity_t *attacker, int damage, vec3_t point ) {
-	vec3_t temp;
+void props_me109_pain( gentity_t *self, gentity_t *attacker, int damage, idVec3 &point ) {
+	idVec3 temp;
 
 	G_Printf( "pain: health = %i\n", self->health );
 
-	VectorCopy( self->r.currentOrigin, temp );
-	VectorCopy( self->pos3, self->r.currentOrigin );
+	temp = self->r.currentOrigin;
+	self->r.currentOrigin = self->pos3;
 	Spawn_Shard( self, NULL, 6, 999 );
-	VectorCopy( temp, self->r.currentOrigin );
+	self->r.currentOrigin = temp;
 
-	VectorClear( self->rotate );
-	VectorSet( self->rotate, 0, 1, 0 ); //sigh
+	self->rotate.Zero();
+	self->rotate.Set( 0, 1, 0 ); //sigh
 }
 
 void Plane_Fire_Lead( gentity_t *self ) {
-	vec3_t dir, right;
-	vec3_t pos1, pos2;
-	vec3_t position;
+	idVec3 dir, right;
+	idVec3 pos1, pos2;
+	idVec3 position;
 
-	AngleVectors( self->r.currentAngles, dir, right, NULL );
-	VectorCopy( self->r.currentOrigin, position );
-	VectorMA( position, 64, right, pos1 );
-	VectorMA( position, -64, right, pos2 );
+	idAngles( self->r.currentAngles ).ToVectors( &dir, &right, NULL );
+	position = self->r.currentOrigin;
+	pos1 = position + right * 64;
+	pos2 = position + right * -64;
 
 	fire_lead( self, pos1, dir, 12 );
 	fire_lead( self, pos2, dir, 12 );
@@ -1003,17 +1003,17 @@ void props_me109_think( gentity_t *self ) {
 
 				{
 					float len;
-					vec3_t vec;
-					vec3_t forward;
-					vec3_t dir;
-					vec3_t point;
+					idVec3 vec;
+					idVec3 forward;
+					idVec3 dir;
+					idVec3 point;
 
-					VectorCopy( player->r.currentOrigin, point );
-					VectorSubtract( player->r.currentOrigin, self->r.currentOrigin, vec );
-					len = VectorLength( vec );
+					point = player->r.currentOrigin;
+					vec = player->r.currentOrigin - self->r.currentOrigin;
+					len = vec.Length();
 					vectoangles( vec, dir );
-					AngleVectors( dir, forward, NULL, NULL );
-					VectorMA( point, len * 0.1, forward, point );
+					idAngles( dir ).ToVectors( &forward, NULL, NULL );
+					point = point + forward * len * 0.1;
 
 					G_SetOrigin( self->melee, point );
 				}
@@ -1032,11 +1032,11 @@ void props_me109_think( gentity_t *self ) {
 
 	if ( self->health < 250 ) {
 		gentity_t *tent;
-		vec3_t point;
+		idVec3 point;
 
-		VectorCopy( self->r.currentOrigin, point );
+		point = self->r.currentOrigin;
 		tent = G_TempEntity( point, EV_SMOKE );
-		VectorCopy( point, tent->s.origin );
+		tent->s.origin = point;
 		tent->s.time = 2000;
 		tent->s.time2 = 1000;
 		tent->s.density = 4;
@@ -1115,8 +1115,8 @@ void Think_SetupAirplaneWaypoints( gentity_t *ent ) {
 	}
 
 	if ( ent->spawnflags & 2 ) { // Toggle
-		VectorCopy( ent->nextTrain->s.origin, ent->s.pos.trBase );
-		VectorCopy( ent->nextTrain->s.origin, ent->r.currentOrigin );
+		ent->s.pos.trBase = ent->nextTrain->s.origin;
+		ent->r.currentOrigin = ent->nextTrain->s.origin;
 		trap_LinkEntity( ent );
 	} else {
 		Reached_Tramcar( ent );
@@ -1161,7 +1161,7 @@ void InitPlaneSpeaker( gentity_t *ent ) {
 
 	snd->r.svFlags |= SVF_BROADCAST;
 
-	VectorCopy( ent->s.origin, snd->s.pos.trBase );
+	snd->s.pos.trBase = ent->s.origin;
 
 	ent->melee = snd;
 
@@ -1171,8 +1171,8 @@ void InitPlaneSpeaker( gentity_t *ent ) {
 
 void SP_props_me109( gentity_t *ent ) {
 
-	VectorSet( ent->r.mins, -128, -128, -128 );
-	VectorSet( ent->r.maxs, 128, 128, 128 );
+	ent->r.mins.Set( -128, -128, -128 );
+	ent->r.maxs.Set( 128, 128, 128 );
 
 	ent->clipmask   = CONTENTS_SOLID;
 	ent->r.contents = CONTENTS_SOLID;
@@ -1259,20 +1259,20 @@ void truck_cam_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 	// lock the player to the moving truck
 	{
-		vec3_t point;
+		idVec3 point;
 
 		trap_UnlinkEntity( other );
 
 		// VectorCopy ( self->r.currentOrigin, other->client->ps.origin );
-		VectorCopy( self->r.currentOrigin, point );
+		point = self->r.currentOrigin;
 		point[2] = other->client->ps.origin[2];
-		VectorCopy( point, other->client->ps.origin );
+		other->client->ps.origin = point;
 
 		// save results of pmove
 		BG_PlayerStateToEntityState( &other->client->ps, &other->s, qtrue );
 
 		// use the precise origin for linking
-		VectorCopy( other->client->ps.origin, other->r.currentOrigin );
+		other->r.currentOrigin = other->client->ps.origin;
 
 		other->client->ps.persistant[PERS_HWEAPON_USE] = 1;
 
@@ -1288,7 +1288,7 @@ void truck_cam_think( gentity_t *ent ) {
 void SP_truck_cam( gentity_t *self ) {
 	int mass;
 
-	VectorClear( self->s.angles );
+	self->s.angles.Zero();
 
 	if ( !self->speed ) {
 		self->speed = 100;
@@ -1359,27 +1359,27 @@ void delayOnthink( gentity_t *ent ) {
 }
 
 void Init_Camera( gentity_t *ent ) {
-	vec3_t move;
+	idVec3 move;
 	float distance;
 
 	ent->moverState = MOVER_POS1;
 	ent->r.svFlags = SVF_USE_CURRENT_ORIGIN;
 	ent->s.eType = ET_MOVER;
 
-	VectorCopy( ent->pos1, ent->r.currentOrigin );
+	ent->r.currentOrigin = ent->pos1;
 
 	trap_LinkEntity( ent );
 
 	ent->s.pos.trType = TR_STATIONARY;
-	VectorCopy( ent->pos1, ent->s.pos.trBase );
+	ent->s.pos.trBase = ent->pos1;
 
 	// calculate time to reach second position from speed
-	VectorSubtract( ent->pos2, ent->pos1, move );
-	distance = VectorLength( move );
+	move = ent->pos2 - ent->pos1;
+	distance = move.Length();
 	if ( !ent->speed ) {
 		ent->speed = 100;
 	}
-	VectorScale( move, ent->speed, ent->s.pos.trDelta );
+	ent->s.pos.trDelta = move * ent->speed;
 	ent->s.pos.trDuration = distance * 1000 / ent->speed;
 	if ( ent->s.pos.trDuration <= 0 ) {
 		ent->s.pos.trDuration = 1;
@@ -1396,38 +1396,38 @@ void camera_cam_think( gentity_t *ent ) {
 	}
 
 	if ( ent->spawnflags & 2 ) { // tracking
-		vec3_t point;
+		idVec3 point;
 
 		trap_UnlinkEntity( player );
 
 		// VectorCopy ( self->r.currentOrigin, other->client->ps.origin );
-		VectorCopy( ent->r.currentOrigin, point );
+		point = ent->r.currentOrigin;
 		point[2] = player->client->ps.origin[2];
-		VectorCopy( point, player->client->ps.origin );
+		player->client->ps.origin = point;
 
 		// save results of pmove
 		BG_PlayerStateToEntityState( &player->client->ps, &player->s, qtrue );
 
 		// use the precise origin for linking
-		VectorCopy( player->client->ps.origin, player->r.currentOrigin );
+		player->r.currentOrigin = player->client->ps.origin;
 
 		// tracking
 		{
 			gentity_t   *target = NULL;
-			vec3_t dang;
-			vec3_t vec;
+			idVec3 dang;
+			idVec3 vec;
 
 			if ( ent->track ) {
 				target = G_Find( NULL, FOFS( targetname ), ent->track );
 			}
 
 			if ( target ) {
-				VectorSubtract( target->r.currentOrigin, ent->r.currentOrigin, vec );
+				vec = target->r.currentOrigin - ent->r.currentOrigin;
 				vectoangles( vec, dang );
 				SetClientViewAngle( player, dang );
 
-				VectorCopy( ent->r.currentOrigin, ent->s.pos.trBase );
-				VectorCopy( dang, ent->s.apos.trBase );
+				ent->s.pos.trBase = ent->r.currentOrigin;
+				ent->s.apos.trBase = dang;
 
 				trap_LinkEntity( ent );
 			}
@@ -1472,15 +1472,15 @@ void camera_cam_use( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 
 void camera_cam_firstthink( gentity_t *ent ) {
 	gentity_t   *target = NULL;
-	vec3_t dang;
-	vec3_t vec;
+	idVec3 dang;
+	idVec3 vec;
 
 	if ( ent->track ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->track );
 	}
 
 	if ( target ) {
-		VectorSubtract( target->s.origin, ent->r.currentOrigin, vec );
+		vec = target->s.origin - ent->r.currentOrigin;
 		vectoangles( vec, dang );
 		G_SetAngle( ent, dang );
 	}
@@ -1568,8 +1568,8 @@ void mark_players_pos( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 	player = AICast_FindEntityForName( "player" );
 
 	if ( player == other ) {
-		VectorCopy( player->r.currentOrigin, ent->s.origin2 );
-		VectorCopy( player->r.currentAngles, ent->s.angles2 );
+		ent->s.origin2 = player->r.currentOrigin;
+		ent->s.angles2 = player->r.currentAngles;
 
 		G_UseTargets( ent, NULL );
 	}
@@ -1588,13 +1588,13 @@ void reset_players_pos( gentity_t *ent, gentity_t *other, gentity_t *activator )
 
 	trap_UnlinkEntity( player );
 
-	VectorCopy( ent->s.origin2, player->client->ps.origin );
+	player->client->ps.origin = ent->s.origin2;
 
 	// save results of pmove
 	BG_PlayerStateToEntityState( &player->client->ps, &player->s, qtrue );
 
 	// use the precise origin for linking
-	VectorCopy( player->client->ps.origin, player->r.currentOrigin );
+	player->r.currentOrigin = player->client->ps.origin;
 
 	SetClientViewAngle( player, ent->s.angles2 );
 
