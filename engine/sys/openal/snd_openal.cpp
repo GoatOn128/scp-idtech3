@@ -29,7 +29,7 @@ static int s_numFree = 0;
 static int s_bufSamples[NUM_AL_BUFFERS];    // interleaved samples of each queued buffer
 
 static unsigned long long s_submittedSamples = 0;   // interleaved samples ever queued
-static unsigned long long s_playedSamples = 0;       // interleaved samples OpenAL finished
+static unsigned long long s_playedSamples = 0;      // interleaved samples OpenAL finished
 
 // OpenAL hands buffer names back as ALuints, keep our own index for them
 static int BufferIndex( ALuint buf ) {
@@ -73,8 +73,7 @@ Returns false if failed
 qboolean SNDDMA_Init( void ) {
 	int i;
 
-	Com_Printf( "Initializing OpenAL
-" );
+	Com_Printf( "Initializing OpenAL\n" );
 
 	memset( (void *)&dma, 0, sizeof( dma ) );
 	dma.channels = 2;
@@ -90,15 +89,13 @@ qboolean SNDDMA_Init( void ) {
 
 	s_device = alcOpenDevice( NULL );
 	if ( s_device == NULL ) {
-		Com_Printf( "alcOpenDevice failed
-" );
+		Com_Printf( "alcOpenDevice failed\n" );
 		return qfalse;
 	}
 
 	s_context = alcCreateContext( s_device, NULL );
 	if ( s_context == NULL || alcMakeContextCurrent( s_context ) == ALC_FALSE ) {
-		Com_Printf( "alcCreateContext failed
-" );
+		Com_Printf( "alcCreateContext failed\n" );
 		if ( s_context != NULL ) {
 			alcDestroyContext( s_context );
 			s_context = NULL;
@@ -113,8 +110,7 @@ qboolean SNDDMA_Init( void ) {
 	alGenSources( 1, &s_source );
 	alGenBuffers( NUM_AL_BUFFERS, s_buffers );
 	if ( alGetError() != AL_NO_ERROR || s_source == 0 ) {
-		Com_Printf( "OpenAL: failed to create the playback source
-" );
+		Com_Printf( "OpenAL: failed to create the playback source\n" );
 		SNDDMA_Shutdown();
 		return qfalse;
 	}
@@ -141,8 +137,7 @@ qboolean SNDDMA_Init( void ) {
 	s_submittedSamples = 0;
 	s_playedSamples = 0;
 
-	Com_DPrintf( "Completed successfully
-" );
+	Com_DPrintf( "Completed successfully\n" );
 
 	return qtrue;
 }
@@ -153,8 +148,7 @@ SNDDMA_Shutdown
 ==================
 */
 void SNDDMA_Shutdown( void ) {
-	Com_DPrintf( "Shutting down sound system
-" );
+	Com_DPrintf( "Shutting down sound system\n" );
 
 	if ( s_source != 0 ) {
 		alSourceStop( s_source );
@@ -197,7 +191,7 @@ SNDDMA_GetDMAPos
 return the current sample position (in interleaved samples)
 inside the recirculating dma buffer, so the mixing code will know
 how many sample are required to fill it up
-===============
+==============
 */
 int SNDDMA_GetDMAPos( void ) {
 	ALint offset;
@@ -228,7 +222,7 @@ int SNDDMA_GetDMAPos( void ) {
 SNDDMA_BeginPainting
 
 Makes sure dma.buffer is valid
-===============
+==============
 */
 void SNDDMA_BeginPainting( void ) {
 	dma.buffer = s_buffer;
@@ -240,7 +234,7 @@ SNDDMA_Submit
 
 Queue everything the mixer painted since the last submit into the
 OpenAL buffer pool
-===============
+==============
 */
 void SNDDMA_Submit( void ) {
 	unsigned long long end;
