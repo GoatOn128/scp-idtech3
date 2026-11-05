@@ -71,7 +71,7 @@ properly.
 #define MAX_PATCH_PLANES    2048
 
 typedef struct {
-	float plane[4];
+	idPlane plane;
 	int signbits;           // signx + (signy<<1) + (signz<<2), used as lookup during collision
 } patchPlane_t;
 
@@ -108,3 +108,4 @@ typedef struct {
 
 
 struct patchCollide_s   *CM_GeneratePatchCollide( int width, int height, idVec3 *points );
+

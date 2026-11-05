@@ -35,7 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 This file does not reference any globals, and has these entry points:
 
 void CM_ClearLevelPatches( void );
-struct patchCollide_s	*CM_GeneratePatchCollide( int width, int height, const vec3_t *points );
+struct patchCollide_s	*CM_GeneratePatchCollide( int width, int height, const idVec3 *points );
 void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *pc );
 qboolean CM_PositionTestInPatchCollide( traceWork_t *tw, const struct patchCollide_s *pc );
 void CM_DrawDebugSurface( void (*drawPoly)(int color, int numPoints, flaot *points) );
@@ -64,7 +64,7 @@ typedef struct {
 } facet_t;
 
 typedef struct patchCollide_s {
-	vec3_t	bounds[2];
+	idVec3	bounds[2];
 	int		numPlanes;			// surface planes plus edge planes
 	patchPlane_t	*planes;
 	int		numFacets;
@@ -79,7 +79,7 @@ typedef struct {
 	int			height;
 	qboolean	wrapWidth;
 	qboolean	wrapHeight;
-	vec3_t	points[MAX_GRID_SIZE][MAX_GRID_SIZE];	// [width][height]
+	idVec3	points[MAX_GRID_SIZE][MAX_GRID_SIZE];	// [width][height]
 } cGrid_t;
 
 #define	SUBDIVIDE_DISTANCE	16	//4	// never more than this units away from curve
@@ -94,7 +94,7 @@ int c_totalPatchEdges;
 static const patchCollide_t *debugPatchCollide;
 static const facet_t        *debugFacet;
 static qboolean debugBlock;
-static vec3_t debugBlockPoints[4];
+static idVec3 debugBlockPoints[4];
 
 /*
 =================
@@ -111,7 +111,7 @@ void CM_ClearLevelPatches( void ) {
 CM_SignbitsForNormal
 =================
 */
-static int CM_SignbitsForNormal( vec3_t normal ) {
+static int CM_SignbitsForNormal( idVec3 normal ) {
 	int bits, j;
 
 	bits = 0;
@@ -131,17 +131,17 @@ Returns false if the triangle is degenrate.
 The normal will point out of the clock for clockwise ordered points
 =====================
 */
-static qboolean CM_PlaneFromPoints( vec4_t plane, vec3_t a, vec3_t b, vec3_t c ) {
-	vec3_t d1, d2;
+static qboolean CM_PlaneFromPoints( idPlane &plane, const idVec3 &a, const idVec3 &b, const idVec3 &c ) {
+	idVec3 d1, d2;
 
-	VectorSubtract( b, a, d1 );
-	VectorSubtract( c, a, d2 );
-	CrossProduct( d2, d1, plane );
-	if ( VectorNormalize( plane ) == 0 ) {
+	d1 = b - a;
+	d2 = c - a;
+	plane.Normal().Cross( d2, d1 );
+	if ( plane.Normal().Normalize() == 0.0f ) {
 		return qfalse;
 	}
 
-	plane[3] = DotProduct( a, plane );
+	plane.SetDist( a * plane.Normal() );
 	return qtrue;
 }
 
@@ -162,10 +162,10 @@ Returns true if the given quadratic curve is not flat enough for our
 collision detection purposes
 =================
 */
-static qboolean CM_NeedsSubdivision( vec3_t a, vec3_t b, vec3_t c ) {
-	vec3_t cmid;
-	vec3_t lmid;
-	vec3_t delta;
+static qboolean CM_NeedsSubdivision( idVec3 a, idVec3 b, idVec3 c ) {
+	idVec3 cmid;
+	idVec3 lmid;
+	idVec3 delta;
 	float dist;
 	int i;
 
@@ -180,8 +180,8 @@ static qboolean CM_NeedsSubdivision( vec3_t a, vec3_t b, vec3_t c ) {
 	}
 
 	// see if the curve is far enough away from the linear mid
-	VectorSubtract( cmid, lmid, delta );
-	dist = VectorLength( delta );
+	delta = cmid - lmid;
+	dist = delta.Length();
 
 	return dist >= SUBDIVIDE_DISTANCE;
 }
@@ -194,7 +194,7 @@ a, b, and c are control points.
 the subdivided sequence will be: a, out1, out2, out3, c
 ===============
 */
-static void CM_Subdivide( vec3_t a, vec3_t b, vec3_t c, vec3_t out1, vec3_t out2, vec3_t out3 ) {
+static void CM_Subdivide( const idVec3 &a, const idVec3 &b, const idVec3 &c, idVec3 &out1, idVec3 &out2, idVec3 &out3 ) {
 	int i;
 
 	for ( i = 0 ; i < 3 ; i++ ) {
@@ -213,7 +213,7 @@ Swaps the rows and columns in place
 */
 static void CM_TransposeGrid( cGrid_t *grid ) {
 	int i, j, l;
-	vec3_t temp;
+	idVec3 temp;
 	qboolean tempWrap;
 
 	if ( grid->width > grid->height ) {
@@ -221,12 +221,12 @@ static void CM_TransposeGrid( cGrid_t *grid ) {
 			for ( j = i + 1 ; j < grid->width ; j++ ) {
 				if ( j < grid->height ) {
 					// swap the value
-					VectorCopy( grid->points[i][j], temp );
-					VectorCopy( grid->points[j][i], grid->points[i][j] );
-					VectorCopy( temp, grid->points[j][i] );
+					temp = grid->points[i][j];
+					grid->points[i][j] = grid->points[j][i];
+					grid->points[j][i] = temp;
 				} else {
 					// just copy
-					VectorCopy( grid->points[j][i], grid->points[i][j] );
+					grid->points[i][j] = grid->points[j][i];
 				}
 			}
 		}
@@ -235,12 +235,12 @@ static void CM_TransposeGrid( cGrid_t *grid ) {
 			for ( j = i + 1 ; j < grid->height ; j++ ) {
 				if ( j < grid->width ) {
 					// swap the value
-					VectorCopy( grid->points[j][i], temp );
-					VectorCopy( grid->points[i][j], grid->points[j][i] );
-					VectorCopy( temp, grid->points[i][j] );
+					temp = grid->points[j][i];
+					grid->points[j][i] = grid->points[i][j];
+					grid->points[i][j] = temp;
 				} else {
 					// just copy
-					VectorCopy( grid->points[i][j], grid->points[j][i] );
+					grid->points[j][i] = grid->points[i][j];
 				}
 			}
 		}
@@ -315,7 +315,7 @@ static void CM_SubdivideGridColumns( cGrid_t *grid ) {
 			for ( j = 0 ; j < grid->height ; j++ ) {
 				// remove the column
 				for ( k = i + 2 ; k < grid->width ; k++ ) {
-					VectorCopy( grid->points[k][j], grid->points[k - 1][j] );
+					grid->points[k - 1][j] = grid->points[k][j];
 				}
 			}
 
@@ -330,18 +330,18 @@ static void CM_SubdivideGridColumns( cGrid_t *grid ) {
 		// we need to subdivide the curve
 		//
 		for ( j = 0 ; j < grid->height ; j++ ) {
-			vec3_t prev, mid, next;
+			idVec3 prev, mid, next;
 
 			// save the control points now
-			VectorCopy( grid->points[i][j], prev );
-			VectorCopy( grid->points[i + 1][j], mid );
-			VectorCopy( grid->points[i + 2][j], next );
+			prev = grid->points[i][j];
+			mid = grid->points[i + 1][j];
+			next = grid->points[i + 2][j];
 
 			// make room for two additional columns in the grid
 			// columns i+1 will be replaced, column i+2 will become i+4
 			// i+1, i+2, and i+3 will be generated
 			for ( k = grid->width - 1 ; k > i + 1 ; k-- ) {
-				VectorCopy( grid->points[k][j], grid->points[k + 2][j] );
+				grid->points[k + 2][j] = grid->points[k][j];
 			}
 
 			// generate the subdivided points
@@ -361,7 +361,7 @@ CM_ComparePoints
 ======================
 */
 #define POINT_EPSILON   0.1
-static qboolean CM_ComparePoints( float *a, float *b ) {
+static qboolean CM_ComparePoints( const idVec3 &a, const idVec3 &b ) {
 	float d;
 
 	d = a[0] - b[0];
@@ -403,7 +403,7 @@ static void CM_RemoveDegenerateColumns( cGrid_t *grid ) {
 		for ( j = 0 ; j < grid->height ; j++ ) {
 			// remove the column
 			for ( k = i + 2 ; k < grid->width ; k++ ) {
-				VectorCopy( grid->points[k][j], grid->points[k - 1][j] );
+				grid->points[k - 1][j] = grid->points[k][j];
 			}
 		}
 		grid->width--;
@@ -435,26 +435,23 @@ static facet_t facets[MAX_PATCH_PLANES];          //maybe MAX_FACETS ??
 CM_PlaneEqual
 ==================
 */
-int CM_PlaneEqual( patchPlane_t *p, float plane[4], int *flipped ) {
-	float invplane[4];
+int CM_PlaneEqual( patchPlane_t *p, const idPlane &plane, int *flipped ) {
+	const idPlane invplane = -plane;
 
 	if (
-		fabs( p->plane[0] - plane[0] ) < NORMAL_EPSILON
-		&& fabs( p->plane[1] - plane[1] ) < NORMAL_EPSILON
-		&& fabs( p->plane[2] - plane[2] ) < NORMAL_EPSILON
-		&& fabs( p->plane[3] - plane[3] ) < DIST_EPSILON ) {
+		fabs( p->plane.Normal()[0] - plane.Normal()[0] ) < NORMAL_EPSILON
+		&& fabs( p->plane.Normal()[1] - plane.Normal()[1] ) < NORMAL_EPSILON
+		&& fabs( p->plane.Normal()[2] - plane.Normal()[2] ) < NORMAL_EPSILON
+		&& fabs( p->plane.Dist() - plane.Dist() ) < DIST_EPSILON ) {
 		*flipped = qfalse;
 		return qtrue;
 	}
 
-	VectorNegate( plane, invplane );
-	invplane[3] = -plane[3];
-
 	if (
-		fabs( p->plane[0] - invplane[0] ) < NORMAL_EPSILON
-		&& fabs( p->plane[1] - invplane[1] ) < NORMAL_EPSILON
-		&& fabs( p->plane[2] - invplane[2] ) < NORMAL_EPSILON
-		&& fabs( p->plane[3] - invplane[3] ) < DIST_EPSILON ) {
+		fabs( p->plane.Normal()[0] - invplane.Normal()[0] ) < NORMAL_EPSILON
+		&& fabs( p->plane.Normal()[1] - invplane.Normal()[1] ) < NORMAL_EPSILON
+		&& fabs( p->plane.Normal()[2] - invplane.Normal()[2] ) < NORMAL_EPSILON
+		&& fabs( p->plane.Dist() - invplane.Dist() ) < DIST_EPSILON ) {
 		*flipped = qtrue;
 		return qtrue;
 	}
@@ -467,18 +464,18 @@ int CM_PlaneEqual( patchPlane_t *p, float plane[4], int *flipped ) {
 CM_SnapVector
 ==================
 */
-void CM_SnapVector( vec3_t normal ) {
+void CM_SnapVector( idVec3 &normal ) {
 	int i;
 
 	for ( i = 0 ; i < 3 ; i++ )
 	{
 		if ( fabs( normal[i] - 1 ) < NORMAL_EPSILON ) {
-			VectorClear( normal );
+			normal.Zero();
 			normal[i] = 1;
 			break;
 		}
 		if ( fabs( normal[i] - -1 ) < NORMAL_EPSILON ) {
-			VectorClear( normal );
+			normal.Zero();
 			normal[i] = -1;
 			break;
 		}
@@ -490,7 +487,7 @@ void CM_SnapVector( vec3_t normal ) {
 CM_FindPlane2
 ==================
 */
-int CM_FindPlane2( float plane[4], int *flipped ) {
+int CM_FindPlane2( const idPlane &plane, int *flipped ) {
 	int i;
 
 	// see if the points are close enough to an existing plane
@@ -505,8 +502,8 @@ int CM_FindPlane2( float plane[4], int *flipped ) {
 		Com_Error( ERR_DROP, "MAX_PATCH_PLANES" );
 	}
 
-	Vector4Copy( plane, planes[numPlanes].plane );
-	planes[numPlanes].signbits = CM_SignbitsForNormal( plane );
+	planes[numPlanes].plane = plane;
+	planes[numPlanes].signbits = CM_SignbitsForNormal( plane.Normal() );
 
 	numPlanes++;
 
@@ -520,8 +517,8 @@ int CM_FindPlane2( float plane[4], int *flipped ) {
 CM_FindPlane
 ==================
 */
-static int CM_FindPlane( float *p1, float *p2, float *p3 ) {
-	float plane[4];
+static int CM_FindPlane( const idVec3 &p1, const idVec3 &p2, const idVec3 &p3 ) {
+	idPlane plane;
 	int i;
 	float d;
 
@@ -531,21 +528,21 @@ static int CM_FindPlane( float *p1, float *p2, float *p3 ) {
 
 	// see if the points are close enough to an existing plane
 	for ( i = 0 ; i < numPlanes ; i++ ) {
-		if ( DotProduct( plane, planes[i].plane ) < 0 ) {
+		if ( plane.Normal() * planes[i].plane.Normal() < 0 ) {
 			continue;   // allow backwards planes?
 		}
 
-		d = DotProduct( p1, planes[i].plane ) - planes[i].plane[3];
+		d = p1 * planes[i].plane.Normal() - planes[i].plane.Dist();
 		if ( d < -PLANE_TRI_EPSILON || d > PLANE_TRI_EPSILON ) {
 			continue;
 		}
 
-		d = DotProduct( p2, planes[i].plane ) - planes[i].plane[3];
+		d = p2 * planes[i].plane.Normal() - planes[i].plane.Dist();
 		if ( d < -PLANE_TRI_EPSILON || d > PLANE_TRI_EPSILON ) {
 			continue;
 		}
 
-		d = DotProduct( p3, planes[i].plane ) - planes[i].plane[3];
+		d = p3 * planes[i].plane.Normal() - planes[i].plane.Dist();
 		if ( d < -PLANE_TRI_EPSILON || d > PLANE_TRI_EPSILON ) {
 			continue;
 		}
@@ -559,8 +556,8 @@ static int CM_FindPlane( float *p1, float *p2, float *p3 ) {
 		Com_Error( ERR_DROP, "MAX_PATCH_PLANES" );
 	}
 
-	Vector4Copy( plane, planes[numPlanes].plane );
-	planes[numPlanes].signbits = CM_SignbitsForNormal( plane );
+	planes[numPlanes].plane = plane;
+	planes[numPlanes].signbits = CM_SignbitsForNormal( plane.Normal() );
 
 	numPlanes++;
 
@@ -572,16 +569,16 @@ static int CM_FindPlane( float *p1, float *p2, float *p3 ) {
 CM_PointOnPlaneSide
 ==================
 */
-static int CM_PointOnPlaneSide( float *p, int planeNum ) {
-	float   *plane;
+static int CM_PointOnPlaneSide( const idVec3 &p, int planeNum ) {
+	const idPlane *plane;
 	float d;
 
 	if ( planeNum == -1 ) {
 		return SIDE_ON;
 	}
-	plane = planes[ planeNum ].plane;
+	plane = &planes[ planeNum ].plane;
 
-	d = DotProduct( p, plane ) - plane[3];
+	d = p * plane->Normal() - plane->Dist();
 
 	if ( d > PLANE_TRI_EPSILON ) {
 		return SIDE_FRONT;
@@ -622,52 +619,52 @@ CM_EdgePlaneNum
 ==================
 */
 static int CM_EdgePlaneNum( cGrid_t *grid, int gridPlanes[MAX_GRID_SIZE][MAX_GRID_SIZE][2], int i, int j, int k ) {
-	float   *p1, *p2;
-	vec3_t up;
+	const idVec3 *p1, *p2;
+	idVec3 up;
 	int p;
 
 	switch ( k ) {
 	case 0: // top border
-		p1 = grid->points[i][j];
-		p2 = grid->points[i + 1][j];
+		p1 = &grid->points[i][j];
+		p2 = &grid->points[i + 1][j];
 		p = CM_GridPlane( gridPlanes, i, j, 0 );
-		VectorMA( p1, 4, planes[ p ].plane, up );
-		return CM_FindPlane( p1, p2, up );
+		up = *p1 + planes[ p ].plane.Normal() * 4;
+		return CM_FindPlane( *p1, *p2, up );
 
 	case 2: // bottom border
-		p1 = grid->points[i][j + 1];
-		p2 = grid->points[i + 1][j + 1];
+		p1 = &grid->points[i][j + 1];
+		p2 = &grid->points[i + 1][j + 1];
 		p = CM_GridPlane( gridPlanes, i, j, 1 );
-		VectorMA( p1, 4, planes[ p ].plane, up );
-		return CM_FindPlane( p2, p1, up );
+		up = *p1 + planes[ p ].plane.Normal() * 4;
+		return CM_FindPlane( *p2, *p1, up );
 
 	case 3: // left border
-		p1 = grid->points[i][j];
-		p2 = grid->points[i][j + 1];
+		p1 = &grid->points[i][j];
+		p2 = &grid->points[i][j + 1];
 		p = CM_GridPlane( gridPlanes, i, j, 1 );
-		VectorMA( p1, 4, planes[ p ].plane, up );
-		return CM_FindPlane( p2, p1, up );
+		up = *p1 + planes[ p ].plane.Normal() * 4;
+		return CM_FindPlane( *p2, *p1, up );
 
 	case 1: // right border
-		p1 = grid->points[i + 1][j];
-		p2 = grid->points[i + 1][j + 1];
+		p1 = &grid->points[i + 1][j];
+		p2 = &grid->points[i + 1][j + 1];
 		p = CM_GridPlane( gridPlanes, i, j, 0 );
-		VectorMA( p1, 4, planes[ p ].plane, up );
-		return CM_FindPlane( p1, p2, up );
+		up = *p1 + planes[ p ].plane.Normal() * 4;
+		return CM_FindPlane( *p1, *p2, up );
 
 	case 4: // diagonal out of triangle 0
-		p1 = grid->points[i + 1][j + 1];
-		p2 = grid->points[i][j];
+		p1 = &grid->points[i + 1][j + 1];
+		p2 = &grid->points[i][j];
 		p = CM_GridPlane( gridPlanes, i, j, 0 );
-		VectorMA( p1, 4, planes[ p ].plane, up );
-		return CM_FindPlane( p1, p2, up );
+		up = *p1 + planes[ p ].plane.Normal() * 4;
+		return CM_FindPlane( *p1, *p2, up );
 
 	case 5: // diagonal out of triangle 1
-		p1 = grid->points[i][j];
-		p2 = grid->points[i + 1][j + 1];
+		p1 = &grid->points[i][j];
+		p2 = &grid->points[i + 1][j + 1];
 		p = CM_GridPlane( gridPlanes, i, j, 1 );
-		VectorMA( p1, 4, planes[ p ].plane, up );
-		return CM_FindPlane( p1, p2, up );
+		up = *p1 + planes[ p ].plane.Normal() * 4;
+		return CM_FindPlane( *p1, *p2, up );
 
 	}
 
@@ -683,27 +680,27 @@ CM_SetBorderInward
 static void CM_SetBorderInward( facet_t *facet, cGrid_t *grid, int gridPlanes[MAX_GRID_SIZE][MAX_GRID_SIZE][2],
 								int i, int j, int which ) {
 	int k, l;
-	float   *points[4];
+	const idVec3 *points[4];
 	int numPoints;
 
 	switch ( which ) {
 	case - 1:
-		points[0] = grid->points[i][j];
-		points[1] = grid->points[i + 1][j];
-		points[2] = grid->points[i + 1][j + 1];
-		points[3] = grid->points[i][j + 1];
+		points[0] = &grid->points[i][j];
+		points[1] = &grid->points[i + 1][j];
+		points[2] = &grid->points[i + 1][j + 1];
+		points[3] = &grid->points[i][j + 1];
 		numPoints = 4;
 		break;
 	case 0:
-		points[0] = grid->points[i][j];
-		points[1] = grid->points[i + 1][j];
-		points[2] = grid->points[i + 1][j + 1];
+		points[0] = &grid->points[i][j];
+		points[1] = &grid->points[i + 1][j];
+		points[2] = &grid->points[i + 1][j + 1];
 		numPoints = 3;
 		break;
 	case 1:
-		points[0] = grid->points[i + 1][j + 1];
-		points[1] = grid->points[i][j + 1];
-		points[2] = grid->points[i][j];
+		points[0] = &grid->points[i + 1][j + 1];
+		points[1] = &grid->points[i][j + 1];
+		points[2] = &grid->points[i][j];
 		numPoints = 3;
 		break;
 	default:
@@ -721,7 +718,7 @@ static void CM_SetBorderInward( facet_t *facet, cGrid_t *grid, int gridPlanes[MA
 		for ( l = 0 ; l < numPoints ; l++ ) {
 			int side;
 
-			side = CM_PointOnPlaneSide( points[l], facet->borderPlanes[k] );
+			side = CM_PointOnPlaneSide( *points[l], facet->borderPlanes[k] );
 			if ( side == SIDE_FRONT ) {
 				front++;
 			}
@@ -743,10 +740,10 @@ static void CM_SetBorderInward( facet_t *facet, cGrid_t *grid, int gridPlanes[MA
 			facet->borderInward[k] = qfalse;
 			if ( !debugBlock ) {
 				debugBlock = qtrue;
-				VectorCopy( grid->points[i][j], debugBlockPoints[0] );
-				VectorCopy( grid->points[i + 1][j], debugBlockPoints[1] );
-				VectorCopy( grid->points[i + 1][j + 1], debugBlockPoints[2] );
-				VectorCopy( grid->points[i][j + 1], debugBlockPoints[3] );
+				debugBlockPoints[0] = grid->points[i][j];
+				debugBlockPoints[1] = grid->points[i + 1][j];
+				debugBlockPoints[2] = grid->points[i + 1][j + 1];
+				debugBlockPoints[3] = grid->points[i][j + 1];
 			}
 		}
 	}
@@ -760,27 +757,26 @@ If the facet isn't bounded by its borders, we screwed up.
 ==================
 */
 static qboolean CM_ValidateFacet( facet_t *facet ) {
-	float plane[4];
+	idPlane plane;
 	int j;
 	winding_t   *w;
-	vec3_t bounds[2];
+	idVec3 bounds[2];
 
 	if ( facet->surfacePlane == -1 ) {
 		return qfalse;
 	}
 
-	Vector4Copy( planes[ facet->surfacePlane ].plane, plane );
-	w = BaseWindingForPlane( plane,  plane[3] );
+	plane = planes[ facet->surfacePlane ].plane;
+	w = BaseWindingForPlane( plane.Normal(), plane.Dist() );
 	for ( j = 0 ; j < facet->numBorders && w ; j++ ) {
 		if ( facet->borderPlanes[j] == -1 ) {
 			return qfalse;
 		}
-		Vector4Copy( planes[ facet->borderPlanes[j] ].plane, plane );
+		plane = planes[ facet->borderPlanes[j] ].plane;
 		if ( !facet->borderInward[j] ) {
-			VectorSubtract( vec3_origin, plane, plane );
-			plane[3] = -plane[3];
+			plane = -plane;
 		}
-		ChopWindingInPlace( &w, plane, plane[3], 0.1f );
+		ChopWindingInPlace( &w, plane.Normal(), plane.Dist(), 0.1f );
 	}
 
 	if ( !w ) {
@@ -814,25 +810,25 @@ void CM_AddFacetBevels( facet_t *facet ) {
 
 	int i, j, k, l;
 	int axis, dir, order, flipped;
-	float plane[4], d, newplane[4];
+	idPlane plane, newplane;
+	float d;
 	winding_t *w, *w2;
-	vec3_t mins, maxs, vec, vec2;
+	idVec3 mins, maxs, vec, vec2;
 
-	Vector4Copy( planes[ facet->surfacePlane ].plane, plane );
+	plane = planes[ facet->surfacePlane ].plane;
 
-	w = BaseWindingForPlane( plane,  plane[3] );
+	w = BaseWindingForPlane( plane.Normal(), plane.Dist() );
 	for ( j = 0 ; j < facet->numBorders && w ; j++ ) {
 		if ( facet->borderPlanes[j] == facet->surfacePlane ) {
 			continue;
 		}
-		Vector4Copy( planes[ facet->borderPlanes[j] ].plane, plane );
+		plane = planes[ facet->borderPlanes[j] ].plane;
 
 		if ( !facet->borderInward[j] ) {
-			VectorSubtract( vec3_origin, plane, plane );
-			plane[3] = -plane[3];
+			plane = -plane;
 		}
 
-		ChopWindingInPlace( &w, plane, plane[3], 0.1f );
+		ChopWindingInPlace( &w, plane.Normal(), plane.Dist(), 0.1f );
 	}
 	if ( !w ) {
 		return;
@@ -846,12 +842,12 @@ void CM_AddFacetBevels( facet_t *facet ) {
 	{
 		for ( dir = -1 ; dir <= 1 ; dir += 2, order++ )
 		{
-			VectorClear( plane );
-			plane[axis] = dir;
+			plane.Normal().Zero();
+			plane.Normal()[axis] = dir;
 			if ( dir == 1 ) {
-				plane[3] = maxs[axis];
+				plane.SetDist( maxs[axis] );
 			} else {
-				plane[3] = -mins[axis];
+				plane.SetDist( -mins[axis] );
 			}
 			//if it's the surface plane
 			if ( CM_PlaneEqual( &planes[facet->surfacePlane], plane, &flipped ) ) {
@@ -882,9 +878,9 @@ void CM_AddFacetBevels( facet_t *facet ) {
 	for ( j = 0 ; j < w->numpoints ; j++ )
 	{
 		k = ( j + 1 ) % w->numpoints;
-		VectorSubtract( w->p[j], w->p[k], vec );
+		vec = w->p[j] - w->p[k];
 		//if it's a degenerate edge
-		if ( VectorNormalize( vec ) < 0.5 ) {
+		if ( vec.Normalize() < 0.5 ) {
 			continue;
 		}
 		CM_SnapVector( vec );
@@ -902,19 +898,19 @@ void CM_AddFacetBevels( facet_t *facet ) {
 			for ( dir = -1 ; dir <= 1 ; dir += 2 )
 			{
 				// construct a plane
-				VectorClear( vec2 );
+				vec2.Zero();
 				vec2[axis] = dir;
-				CrossProduct( vec, vec2, plane );
-				if ( VectorNormalize( plane ) < 0.5 ) {
+				plane.Normal().Cross( vec, vec2 );
+				if ( plane.Normal().Normalize() < 0.5 ) {
 					continue;
 				}
-				plane[3] = DotProduct( w->p[j], plane );
+				plane.SetDist( w->p[j] * plane.Normal() );
 
 				// if all the points of the facet winding are
 				// behind this plane, it is a proper edge bevel
 				for ( l = 0 ; l < w->numpoints ; l++ )
 				{
-					d = DotProduct( w->p[l], plane ) - plane[3];
+					d = w->p[l] * plane.Normal() - plane.Dist();
 					if ( d > 0.1 ) {
 						break;  // point in front
 					}
@@ -951,12 +947,11 @@ void CM_AddFacetBevels( facet_t *facet ) {
 					facet->borderInward[facet->numBorders] = flipped;
 					//
 					w2 = CopyWinding( w );
-					Vector4Copy( planes[facet->borderPlanes[facet->numBorders]].plane, newplane );
+					newplane = planes[facet->borderPlanes[facet->numBorders]].plane;
 					if ( !facet->borderInward[facet->numBorders] ) {
-						VectorNegate( newplane, newplane );
-						newplane[3] = -newplane[3];
+						newplane = -newplane;
 					} //end if
-					ChopWindingInPlace( &w2, newplane, newplane[3], 0.1f );
+					ChopWindingInPlace( &w2, newplane.Normal(), newplane.Dist(), 0.1f );
 					if ( !w2 ) {
 						Com_DPrintf( "WARNING: CM_AddFacetBevels... invalid bevel\n" );
 						continue;
@@ -997,8 +992,8 @@ CM_PatchCollideFromGrid
 */
 static void CM_PatchCollideFromGrid( cGrid_t *grid, patchCollide_t *pf ) {
 	int i, j;
-	float           *p1, *p2, *p3;
-	MAC_STATIC int gridPlanes[MAX_GRID_SIZE][MAX_GRID_SIZE][2];
+	const idVec3   *p1, *p2, *p3;
+	static int gridPlanes[MAX_GRID_SIZE][MAX_GRID_SIZE][2];
 	facet_t         *facet;
 	int borders[4];
 	int noAdjust[4];
@@ -1009,15 +1004,15 @@ static void CM_PatchCollideFromGrid( cGrid_t *grid, patchCollide_t *pf ) {
 	// find the planes for each triangle of the grid
 	for ( i = 0 ; i < grid->width - 1 ; i++ ) {
 		for ( j = 0 ; j < grid->height - 1 ; j++ ) {
-			p1 = grid->points[i][j];
-			p2 = grid->points[i + 1][j];
-			p3 = grid->points[i + 1][j + 1];
-			gridPlanes[i][j][0] = CM_FindPlane( p1, p2, p3 );
+			p1 = &grid->points[i][j];
+			p2 = &grid->points[i + 1][j];
+			p3 = &grid->points[i + 1][j + 1];
+			gridPlanes[i][j][0] = CM_FindPlane( *p1, *p2, *p3 );
 
-			p1 = grid->points[i + 1][j + 1];
-			p2 = grid->points[i][j + 1];
-			p3 = grid->points[i][j];
-			gridPlanes[i][j][1] = CM_FindPlane( p1, p2, p3 );
+			p1 = &grid->points[i + 1][j + 1];
+			p2 = &grid->points[i][j + 1];
+			p3 = &grid->points[i][j];
+			gridPlanes[i][j][1] = CM_FindPlane( *p1, *p2, *p3 );
 		}
 	}
 
@@ -1073,7 +1068,7 @@ static void CM_PatchCollideFromGrid( cGrid_t *grid, patchCollide_t *pf ) {
 				Com_Error( ERR_DROP, "MAX_FACETS" );
 			}
 			facet = &facets[numFacets];
-			Com_Memset( facet, 0, sizeof( *facet ) );
+			memset( facet, 0, sizeof( *facet ) );
 
 			if ( gridPlanes[i][j][0] == gridPlanes[i][j][1] ) {
 				if ( gridPlanes[i][j][0] == -1 ) {
@@ -1119,7 +1114,7 @@ static void CM_PatchCollideFromGrid( cGrid_t *grid, patchCollide_t *pf ) {
 					Com_Error( ERR_DROP, "MAX_FACETS" );
 				}
 				facet = &facets[numFacets];
-				Com_Memset( facet, 0, sizeof( *facet ) );
+				memset( facet, 0, sizeof( *facet ) );
 
 				facet->surfacePlane = gridPlanes[i][j][1];
 				facet->numBorders = 3;
@@ -1146,12 +1141,25 @@ static void CM_PatchCollideFromGrid( cGrid_t *grid, patchCollide_t *pf ) {
 	// copy the results out
 	pf->numPlanes = numPlanes;
 	pf->numFacets = numFacets;
-	pf->facets = (facet_t *) Hunk_Alloc( numFacets * sizeof( *pf->facets ), h_high );
-	Com_Memcpy( pf->facets, facets, numFacets * sizeof( *pf->facets ) );
-	pf->planes = (patchPlane_t *) Hunk_Alloc( numPlanes * sizeof( *pf->planes ), h_high );
-	Com_Memcpy( pf->planes, planes, numPlanes * sizeof( *pf->planes ) );
+	pf->facets = (facet_t *) Mem_ClearedAlloc( numFacets * sizeof( *pf->facets ), TAG_IDLIB );
+	memcpy( pf->facets, facets, numFacets * sizeof( *pf->facets ) );
+	pf->planes = (patchPlane_t *) Mem_ClearedAlloc( numPlanes * sizeof( *pf->planes ), TAG_IDLIB );
+	memcpy( pf->planes, planes, numPlanes * sizeof( *pf->planes ) );
 }
 
+
+static void CM_AddPointToBounds( const idVec3 &v, idVec3 &mins, idVec3 &maxs ) {
+	int i;
+
+	for ( i = 0 ; i < 3 ; i++ ) {
+		if ( v[i] < mins[i] ) {
+				mins[i] = v[i];
+			}
+		if ( v[i] > maxs[i] ) {
+				maxs[i] = v[i];
+			}
+	}
+}
 
 /*
 ===================
@@ -1163,9 +1171,9 @@ collision detection with a patch mesh.
 Points is packed as concatenated rows.
 ===================
 */
-struct patchCollide_s   *CM_GeneratePatchCollide( int width, int height, vec3_t *points ) {
+struct patchCollide_s   *CM_GeneratePatchCollide( int width, int height, idVec3 *points ) {
 	patchCollide_t  *pf;
-	MAC_STATIC cGrid_t grid;
+	static cGrid_t grid;
 	int i, j;
 
 	if ( width <= 2 || height <= 2 || !points ) {
@@ -1188,7 +1196,7 @@ struct patchCollide_s   *CM_GeneratePatchCollide( int width, int height, vec3_t 
 	grid.wrapHeight = qfalse;
 	for ( i = 0 ; i < width ; i++ ) {
 		for ( j = 0 ; j < height ; j++ ) {
-			VectorCopy( points[j * width + i], grid.points[i][j] );
+			grid.points[i][j] = points[j * width + i];
 		}
 	}
 
@@ -1206,11 +1214,12 @@ struct patchCollide_s   *CM_GeneratePatchCollide( int width, int height, vec3_t 
 	// we now have a grid of points exactly on the curve
 	// the aproximate surface defined by these points will be
 	// collided against
-	pf = (patchCollide_t *) Hunk_Alloc( sizeof( *pf ), h_high );
-	ClearBounds( pf->bounds[0], pf->bounds[1] );
+	pf = (patchCollide_t *) Mem_ClearedAlloc( sizeof( *pf ), TAG_IDLIB );
+	pf->bounds[0] = idVec3( 99999, 99999, 99999 );
+	pf->bounds[1] = idVec3( -99999, -99999, -99999 );
 	for ( i = 0 ; i < grid.width ; i++ ) {
 		for ( j = 0 ; j < grid.height ; j++ ) {
-			AddPointToBounds( grid.points[i][j], pf->bounds[0], pf->bounds[1] );
+			CM_AddPointToBounds( grid.points[i][j], pf->bounds[0], pf->bounds[1] );
 		}
 	}
 
@@ -1268,9 +1277,9 @@ void CM_TracePointThroughPatchCollide( traceWork_t *tw, const struct patchCollid
 	// determine the trace's relationship to all patchPlanes
 	patchPlanes = pc->planes;
 	for ( i = 0 ; i < pc->numPlanes ; i++, patchPlanes++ ) {
-		offset = DotProduct( tw->offsets[ patchPlanes->signbits ], patchPlanes->plane );
-		d1 = DotProduct( tw->start, patchPlanes->plane ) - patchPlanes->plane[3] + offset;
-		d2 = DotProduct( tw->end, patchPlanes->plane ) - patchPlanes->plane[3] + offset;
+		offset = tw->offsets[ patchPlanes->signbits ] * patchPlanes->plane.Normal();
+		d1 = tw->start * patchPlanes->plane.Normal() - patchPlanes->plane.Dist() + offset;
+		d2 = tw->end * patchPlanes->plane.Normal() - patchPlanes->plane.Dist() + offset;
 		if ( d1 <= 0 ) {
 			frontFacing[i] = qfalse;
 		} else {
@@ -1326,17 +1335,17 @@ void CM_TracePointThroughPatchCollide( traceWork_t *tw, const struct patchCollid
 			patchPlanes = &pc->planes[facet->surfacePlane];
 
 			// calculate intersection with a slight pushoff
-			offset = DotProduct( tw->offsets[ patchPlanes->signbits ], patchPlanes->plane );
-			d1 = DotProduct( tw->start, patchPlanes->plane ) - patchPlanes->plane[3] + offset;
-			d2 = DotProduct( tw->end, patchPlanes->plane ) - patchPlanes->plane[3] + offset;
+			offset = tw->offsets[ patchPlanes->signbits ] * patchPlanes->plane.Normal();
+			d1 = tw->start * patchPlanes->plane.Normal() - patchPlanes->plane.Dist() + offset;
+			d2 = tw->end * patchPlanes->plane.Normal() - patchPlanes->plane.Dist() + offset;
 			tw->trace.fraction = ( d1 - SURFACE_CLIP_EPSILON ) / ( d1 - d2 );
 
 			if ( tw->trace.fraction < 0 ) {
 				tw->trace.fraction = 0;
 			}
 
-			VectorCopy( patchPlanes->plane,  tw->trace.plane.normal );
-			tw->trace.plane.dist = patchPlanes->plane[3];
+			tw->trace.plane.normal = patchPlanes->plane.Normal();
+			tw->trace.plane.dist = patchPlanes->plane.Dist();
 		}
 	}
 }
@@ -1346,13 +1355,13 @@ void CM_TracePointThroughPatchCollide( traceWork_t *tw, const struct patchCollid
 CM_CheckFacetPlane
 ====================
 */
-int CM_CheckFacetPlane( float *plane, vec3_t start, vec3_t end, float *enterFrac, float *leaveFrac, int *hit ) {
+int CM_CheckFacetPlane( const idPlane &plane, const idVec3 &start, const idVec3 &end, float *enterFrac, float *leaveFrac, int *hit ) {
 	float d1, d2, f;
 
 	*hit = qfalse;
 
-	d1 = DotProduct( start, plane ) - plane[3];
-	d2 = DotProduct( end, plane ) - plane[3];
+	d1 = start * plane.Normal() - plane.Dist();
+	d2 = end * plane.Normal() - plane.Dist();
 
 	// if completely in front of face, no intersection with the entire facet
 	if ( d1 > 0 && ( d2 >= SURFACE_CLIP_EPSILON || d2 >= d1 )  ) {
@@ -1397,8 +1406,8 @@ void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *
 	float offset, enterFrac, leaveFrac, t;
 	patchPlane_t *patchPlanes;
 	facet_t *facet;
-	float plane[4], bestplane[4];
-	vec3_t startp, endp;
+	idPlane plane, bestplane;
+	idVec3 startp, endp;
 #ifndef BSPC
 	static cvar_t *cv;
 #endif //BSPC
@@ -1415,63 +1424,60 @@ void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *
 		hitnum = -1;
 		//
 		patchPlanes = &pc->planes[ facet->surfacePlane ];
-		VectorCopy( patchPlanes->plane, plane );
-		plane[3] = patchPlanes->plane[3];
+		plane = patchPlanes->plane;
 		if ( tw->sphere.use ) {
 			// adjust the plane distance apropriately for radius
-			plane[3] += tw->sphere.radius;
+			plane.SetDist( plane.Dist() + tw->sphere.radius );
 
 			// find the closest point on the capsule to the plane
-			t = DotProduct( plane, tw->sphere.offset );
+			t = plane.Normal() * tw->sphere.offset;
 			if ( t > 0.0f ) {
-				VectorSubtract( tw->start, tw->sphere.offset, startp );
-				VectorSubtract( tw->end, tw->sphere.offset, endp );
+				startp = tw->start - tw->sphere.offset;
+				endp = tw->end - tw->sphere.offset;
 			} else {
-				VectorAdd( tw->start, tw->sphere.offset, startp );
-				VectorAdd( tw->end, tw->sphere.offset, endp );
+				startp = tw->start + tw->sphere.offset;
+				endp = tw->end + tw->sphere.offset;
 			}
 		} else {
-			offset = DotProduct( tw->offsets[ patchPlanes->signbits ], plane );
-			plane[3] -= offset;
-			VectorCopy( tw->start, startp );
-			VectorCopy( tw->end, endp );
+			offset = tw->offsets[ patchPlanes->signbits ] * plane.Normal();
+			plane.SetDist( plane.Dist() - offset );
+			startp = tw->start;
+			endp = tw->end;
 		}
 
 		if ( !CM_CheckFacetPlane( plane, startp, endp, &enterFrac, &leaveFrac, &hit ) ) {
 			continue;
 		}
 		if ( hit ) {
-			Vector4Copy( plane, bestplane );
+			bestplane = plane;
 		}
 
 		for ( j = 0; j < facet->numBorders; j++ ) {
 			patchPlanes = &pc->planes[ facet->borderPlanes[j] ];
 			if ( facet->borderInward[j] ) {
-				VectorNegate( patchPlanes->plane, plane );
-				plane[3] = -patchPlanes->plane[3];
+				plane = -patchPlanes->plane;
 			} else {
-				VectorCopy( patchPlanes->plane, plane );
-				plane[3] = patchPlanes->plane[3];
+				plane = patchPlanes->plane;
 			}
 			if ( tw->sphere.use ) {
 				// adjust the plane distance apropriately for radius
-				plane[3] += tw->sphere.radius;
+				plane.SetDist( plane.Dist() + tw->sphere.radius );
 
 				// find the closest point on the capsule to the plane
-				t = DotProduct( plane, tw->sphere.offset );
+				t = plane.Normal() * tw->sphere.offset;
 				if ( t > 0.0f ) {
-					VectorSubtract( tw->start, tw->sphere.offset, startp );
-					VectorSubtract( tw->end, tw->sphere.offset, endp );
+					startp = tw->start - tw->sphere.offset;
+					endp = tw->end - tw->sphere.offset;
 				} else {
-					VectorAdd( tw->start, tw->sphere.offset, startp );
-					VectorAdd( tw->end, tw->sphere.offset, endp );
+					startp = tw->start + tw->sphere.offset;
+					endp = tw->end + tw->sphere.offset;
 				}
 			} else {
 				// NOTE: this works even though the plane might be flipped because the bbox is centered
-				offset = DotProduct( tw->offsets[ patchPlanes->signbits ], plane );
-				plane[3] += fabs( offset );
-				VectorCopy( tw->start, startp );
-				VectorCopy( tw->end, endp );
+				offset = tw->offsets[ patchPlanes->signbits ] * plane.Normal();
+				plane.SetDist( plane.Dist() + fabs( offset ) );
+				startp = tw->start;
+				endp = tw->end;
 			}
 
 			if ( !CM_CheckFacetPlane( plane, startp, endp, &enterFrac, &leaveFrac, &hit ) ) {
@@ -1479,7 +1485,7 @@ void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *
 			}
 			if ( hit ) {
 				hitnum = j;
-				Vector4Copy( plane, bestplane );
+				bestplane = plane;
 			}
 		}
 		if ( j < facet->numBorders ) {
@@ -1506,8 +1512,8 @@ void CM_TraceThroughPatchCollide( traceWork_t *tw, const struct patchCollide_s *
 #endif //BSPC
 
 				tw->trace.fraction = enterFrac;
-				VectorCopy( bestplane, tw->trace.plane.normal );
-				tw->trace.plane.dist = bestplane[3];
+				tw->trace.plane.normal = bestplane.Normal();
+				tw->trace.plane.dist = bestplane.Dist();
 			}
 		}
 	}
@@ -1532,8 +1538,8 @@ qboolean CM_PositionTestInPatchCollide( traceWork_t *tw, const struct patchColli
 	float offset, t;
 	patchPlane_t *patchPlanes;
 	facet_t *facet;
-	float plane[4];
-	vec3_t startp;
+	idPlane plane;
+	idVec3 startp;
 
 	if ( tw->isPoint ) {
 		return qfalse;
@@ -1542,57 +1548,54 @@ qboolean CM_PositionTestInPatchCollide( traceWork_t *tw, const struct patchColli
 	facet = pc->facets;
 	for ( i = 0 ; i < pc->numFacets ; i++, facet++ ) {
 		patchPlanes = &pc->planes[ facet->surfacePlane ];
-		VectorCopy( patchPlanes->plane, plane );
-		plane[3] = patchPlanes->plane[3];
+		plane = patchPlanes->plane;
 		if ( tw->sphere.use ) {
 			// adjust the plane distance apropriately for radius
-			plane[3] += tw->sphere.radius;
+			plane.SetDist( plane.Dist() + tw->sphere.radius );
 
 			// find the closest point on the capsule to the plane
-			t = DotProduct( plane, tw->sphere.offset );
+			t = plane.Normal() * tw->sphere.offset;
 			if ( t > 0 ) {
-				VectorSubtract( tw->start, tw->sphere.offset, startp );
+				startp = tw->start - tw->sphere.offset;
 			} else {
-				VectorAdd( tw->start, tw->sphere.offset, startp );
+				startp = tw->start + tw->sphere.offset;
 			}
 		} else {
-			offset = DotProduct( tw->offsets[ patchPlanes->signbits ], plane );
-			plane[3] -= offset;
-			VectorCopy( tw->start, startp );
+			offset = tw->offsets[ patchPlanes->signbits ] * plane.Normal();
+			plane.SetDist( plane.Dist() - offset );
+			startp = tw->start;
 		}
 
-		if ( DotProduct( plane, startp ) - plane[3] > 0.0f ) {
+		if ( plane.Normal() * startp - plane.Dist() > 0.0f ) {
 			continue;
 		}
 
 		for ( j = 0; j < facet->numBorders; j++ ) {
 			patchPlanes = &pc->planes[ facet->borderPlanes[j] ];
 			if ( facet->borderInward[j] ) {
-				VectorNegate( patchPlanes->plane, plane );
-				plane[3] = -patchPlanes->plane[3];
+				plane = -patchPlanes->plane;
 			} else {
-				VectorCopy( patchPlanes->plane, plane );
-				plane[3] = patchPlanes->plane[3];
+				plane = patchPlanes->plane;
 			}
 			if ( tw->sphere.use ) {
 				// adjust the plane distance apropriately for radius
-				plane[3] += tw->sphere.radius;
+				plane.SetDist( plane.Dist() + tw->sphere.radius );
 
 				// find the closest point on the capsule to the plane
-				t = DotProduct( plane, tw->sphere.offset );
+				t = plane.Normal() * tw->sphere.offset;
 				if ( t > 0.0f ) {
-					VectorSubtract( tw->start, tw->sphere.offset, startp );
+					startp = tw->start - tw->sphere.offset;
 				} else {
-					VectorAdd( tw->start, tw->sphere.offset, startp );
+					startp = tw->start + tw->sphere.offset;
 				}
 			} else {
 				// NOTE: this works even though the plane might be flipped because the bbox is centered
-				offset = DotProduct( tw->offsets[ patchPlanes->signbits ], plane );
-				plane[3] += fabs( offset );
-				VectorCopy( tw->start, startp );
+				offset = tw->offsets[ patchPlanes->signbits ] * plane.Normal();
+				plane.SetDist( plane.Dist() + fabs( offset ) );
+				startp = tw->start;
 			}
 
-			if ( DotProduct( plane, startp ) - plane[3] > 0.0f ) {
+			if ( plane.Normal() * startp - plane.Dist() > 0.0f ) {
 				break;
 			}
 		}
@@ -1635,10 +1638,10 @@ void CM_DrawDebugSurface( void ( *drawPoly )( int color, int numPoints, float *p
 	winding_t       *w;
 	int i, j, k, n;
 	int curplanenum, planenum, curinward, inward;
-	float plane[4];
-	vec3_t mins = {-15, -15, -28}, maxs = {15, 15, 28};
-	//vec3_t mins = {0, 0, 0}, maxs = {0, 0, 0};
-	vec3_t v1, v2;
+	idPlane plane;
+	idVec3 mins( -15, -15, -28 ), maxs( 15, 15, 28 );
+	//idVec3 mins = {0, 0, 0}, maxs = {0, 0, 0};
+	idVec3 v1, v2;
 
 #ifndef BSPC
 	if ( !cv2 ) {
@@ -1675,27 +1678,26 @@ void CM_DrawDebugSurface( void ( *drawPoly )( int color, int numPoints, float *p
 				//continue;
 			}
 
-			Vector4Copy( pc->planes[ planenum ].plane, plane );
+			plane = pc->planes[ planenum ].plane;
 
 			//planenum = facet->surfacePlane;
 			if ( inward ) {
-				VectorSubtract( vec3_origin, plane, plane );
-				plane[3] = -plane[3];
+				plane = -plane;
 			}
 
-			plane[3] += cv->value;
+			plane.SetDist( plane.Dist() + cv->value );
 			//*
 			for ( n = 0; n < 3; n++ )
 			{
-				if ( plane[n] > 0 ) {
+				if ( plane.Normal()[n] > 0 ) {
 					v1[n] = maxs[n];
 				} else { v1[n] = mins[n];}
 			} //end for
-			VectorNegate( plane, v2 );
-			plane[3] += fabs( DotProduct( v1, v2 ) );
+			v2 = -plane.Normal();
+			plane.SetDist( plane.Dist() + fabs( v1 * v2 ) );
 			//*/
 
-			w = BaseWindingForPlane( plane,  plane[3] );
+			w = BaseWindingForPlane( plane.Normal(), plane.Dist() );
 			for ( j = 0 ; j < facet->numBorders + 1 && w; j++ ) {
 				//
 				if ( j < facet->numBorders ) {
@@ -1711,31 +1713,30 @@ void CM_DrawDebugSurface( void ( *drawPoly )( int color, int numPoints, float *p
 					continue;
 				}
 
-				Vector4Copy( pc->planes[ curplanenum ].plane, plane );
+				plane = pc->planes[ curplanenum ].plane;
 				if ( !curinward ) {
-					VectorSubtract( vec3_origin, plane, plane );
-					plane[3] = -plane[3];
+					plane = -plane;
 				}
 				//			if ( !facet->borderNoAdjust[j] ) {
-				plane[3] -= cv->value;
+				plane.SetDist( plane.Dist() - cv->value );
 				//			}
 				for ( n = 0; n < 3; n++ )
 				{
-					if ( plane[n] > 0 ) {
+					if ( plane.Normal()[n] > 0 ) {
 						v1[n] = maxs[n];
 					} else { v1[n] = mins[n];}
 				} //end for
-				VectorNegate( plane, v2 );
-				plane[3] -= fabs( DotProduct( v1, v2 ) );
+				v2 = -plane.Normal();
+				plane.SetDist( plane.Dist() - fabs( v1 * v2 ) );
 
-				ChopWindingInPlace( &w, plane, plane[3], 0.1f );
+				ChopWindingInPlace( &w, plane.Normal(), plane.Dist(), 0.1f );
 			}
 			if ( w ) {
 				if ( facet == debugFacet ) {
-					drawPoly( 4, w->numpoints, w->p[0] );
+					drawPoly( 4, w->numpoints, w->p[0].ToFloatPtr() );
 					//Com_Printf("blue facet has %d border planes\n", facet->numBorders);
 				} else {
-					drawPoly( 1, w->numpoints, w->p[0] );
+					drawPoly( 1, w->numpoints, w->p[0].ToFloatPtr() );
 				}
 				FreeWinding( w );
 			} else {
@@ -1746,21 +1747,21 @@ void CM_DrawDebugSurface( void ( *drawPoly )( int color, int numPoints, float *p
 
 	// draw the debug block
 	{
-		vec3_t v[3];
+		idVec3 v[3];
 
-		VectorCopy( debugBlockPoints[0], v[0] );
-		VectorCopy( debugBlockPoints[1], v[1] );
-		VectorCopy( debugBlockPoints[2], v[2] );
-		drawPoly( 2, 3, v[0] );
+		v[0] = debugBlockPoints[0];
+		v[1] = debugBlockPoints[1];
+		v[2] = debugBlockPoints[2];
+		drawPoly( 2, 3, v[0].ToFloatPtr() );
 
-		VectorCopy( debugBlockPoints[2], v[0] );
-		VectorCopy( debugBlockPoints[3], v[1] );
-		VectorCopy( debugBlockPoints[0], v[2] );
-		drawPoly( 2, 3, v[0] );
+		v[0] = debugBlockPoints[2];
+		v[1] = debugBlockPoints[3];
+		v[2] = debugBlockPoints[0];
+		drawPoly( 2, 3, v[0].ToFloatPtr() );
 	}
 
 #if 0
-	vec3_t v[4];
+	idVec3 v[4];
 
 	v[0][0] = pc->bounds[1][0];
 	v[0][1] = pc->bounds[1][1];
@@ -1781,3 +1782,4 @@ void CM_DrawDebugSurface( void ( *drawPoly )( int color, int numPoints, float *p
 	drawPoly( 4, v[0] );
 #endif
 }
+
