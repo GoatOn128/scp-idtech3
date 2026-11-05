@@ -1705,6 +1705,76 @@ ID_INLINE void AddPointToBounds( const idVec3 &v, idVec3 &mins, idVec3 &maxs ) {
 
 /*
 ================
+vectoangles
+
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void vectoangles( const idVec3 &value1, idVec3 &angles ) {
+	float forward;
+	float yaw, pitch;
+
+	if ( value1[1] == 0 && value1[0] == 0 ) {
+		yaw = 0;
+		if ( value1[2] > 0 ) {
+			pitch = 90;
+		} else {
+			pitch = 270;
+		}
+	} else {
+		if ( value1[0] ) {
+			yaw = ( atan2( value1[1], value1[0] ) * 180 / idMath::M_PI );
+		} else if ( value1[1] > 0 ) {
+			yaw = 90;
+		} else {
+			yaw = 270;
+		}
+		if ( yaw < 0 ) {
+			yaw += 360;
+		}
+
+		forward = sqrt( value1[0] * value1[0] + value1[1] * value1[1] );
+		pitch = ( atan2( value1[2], forward ) * 180 / idMath::M_PI );
+		if ( pitch < 0 ) {
+			pitch += 360;
+		}
+	}
+
+	angles[0] = -pitch;      // PITCH
+	angles[1] = yaw;         // YAW
+	angles[2] = 0;           // ROLL
+}
+
+/*
+================
+AngleNormalize360
+
+returns angle normalized to the range [0 <= angle < 360]
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE float AngleNormalize360( float angle ) {
+	return ( 360.0f / 65536 ) * ( (int)( angle * ( 65536 / 360.0f ) ) & 65535 );
+}
+
+/*
+================
+AngleNormalize180
+
+returns angle normalized to the range [-180 < angle <= 180]
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE float AngleNormalize180( float angle ) {
+	angle = AngleNormalize360( angle );
+	if ( angle > 180.0f ) {
+		angle -= 360.0f;
+	}
+	return angle;
+}
+
+/*
+================
 AxisToAngles
 
 ported from the old q3 mathlib
@@ -1712,6 +1782,7 @@ ported from the old q3 mathlib
 */
 ID_INLINE void AxisToAngles( const idVec3 *axis, idVec3 &angles ) {
 	idVec3 right, roll_angles, tvec;
+	static const idVec3 axisDefault[3] = { idVec3( 1.0f, 0.0f, 0.0f ), idVec3( 0.0f, 1.0f, 0.0f ), idVec3( 0.0f, 0.0f, 1.0f ) };
 
 	// first get the pitch and yaw from the forward vector
 	vectoangles( axis[0], angles );
@@ -1719,20 +1790,21 @@ ID_INLINE void AxisToAngles( const idVec3 *axis, idVec3 &angles ) {
 	// now get the roll from the right vector
 	right = axis[1];
 	// get the angle difference between the tmpAxis[2] and axis[2] after they have been reverse-rotated
-	RotatePointAroundVector( tvec, axisDefault[2], right, -angles[YAW] );
-	RotatePointAroundVector( right, axisDefault[1], tvec, -angles[PITCH] );
+	tvec.RotatePointAroundVector( axisDefault[2], right, -angles[1] );      // YAW
+	right.RotatePointAroundVector( axisDefault[1], tvec, -angles[0] );      // PITCH
 	// now find the angles, the PITCH is effectively our ROLL
 	vectoangles( right, roll_angles );
-	roll_angles[PITCH] = AngleNormalize180( roll_angles[PITCH] );
+	roll_angles[0] = AngleNormalize180( roll_angles[0] );
 	// if the yaw is more than 90 degrees difference, we should adjust the pitch
 	if ( ( right ) * ( axisDefault[1] ) < 0 ) {
-		if ( roll_angles[PITCH] < 0 ) {
-			roll_angles[PITCH] = -90 + ( -90 - roll_angles[PITCH] );
+		if ( roll_angles[0] < 0 ) {
+			roll_angles[0] = -90 + ( -90 - roll_angles[0] );
 		} else {
-			roll_angles[PITCH] =  90 + ( 90 - roll_angles[PITCH] );
+			roll_angles[0] =  90 + ( 90 - roll_angles[0] );
 		}
 	}
 
-	angles[ROLL] = -roll_angles[PITCH];
+	angles[2] = -roll_angles[0];                                            // ROLL
 }
+
 #endif /* !__MATH_VECTOR_H__ */
