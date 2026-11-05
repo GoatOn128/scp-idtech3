@@ -142,7 +142,7 @@ void Team_FragBonuses( gentity_t *targ, gentity_t *inflictor, gentity_t *attacke
 	int otherteam;
 	gentity_t *flag, *carrier = NULL;
 	char *c;
-	vec3_t v1, v2;
+	idVec3 v1, v2;
 	int team;
 
 	// no bonus for fragging yourself
@@ -237,11 +237,11 @@ void Team_FragBonuses( gentity_t *targ, gentity_t *inflictor, gentity_t *attacke
 	// ok we have the attackers flag and a pointer to the carrier
 
 	// check to see if we are defending the base's flag
-	VectorSubtract( targ->s.origin, flag->s.origin, v1 );
-	VectorSubtract( attacker->s.origin, flag->s.origin, v2 );
+	v1 = targ->s.origin - flag->s.origin;
+	v2 = attacker->s.origin - flag->s.origin;
 
-	if ( ( VectorLength( v1 ) < CTF_TARGET_PROTECT_RADIUS ||
-		   VectorLength( v2 ) < CTF_TARGET_PROTECT_RADIUS ||
+	if ( ( v1.Length() < CTF_TARGET_PROTECT_RADIUS ||
+		   v2.Length() < CTF_TARGET_PROTECT_RADIUS ||
 		   CanDamage( flag, targ->s.origin ) || CanDamage( flag, attacker->s.origin ) ) &&
 		 attacker->client->sess.sessionTeam != targ->client->sess.sessionTeam ) {
 		// we defended the base flag
@@ -260,11 +260,11 @@ void Team_FragBonuses( gentity_t *targ, gentity_t *inflictor, gentity_t *attacke
 	}
 
 	if ( carrier && carrier != attacker ) {
-		VectorSubtract( targ->s.origin, carrier->s.origin, v1 );
-		VectorSubtract( attacker->s.origin, carrier->s.origin, v1 );
+		v1 = targ->s.origin - carrier->s.origin;
+		v1 = attacker->s.origin - carrier->s.origin;
 
-		if ( VectorLength( v1 ) < CTF_ATTACKER_PROTECT_RADIUS ||
-			 VectorLength( v2 ) < CTF_ATTACKER_PROTECT_RADIUS ||
+		if ( v1.Length() < CTF_ATTACKER_PROTECT_RADIUS ||
+			 v2.Length() < CTF_ATTACKER_PROTECT_RADIUS ||
 			 CanDamage( carrier, targ->s.origin ) || CanDamage( carrier, attacker->s.origin ) ) {
 			AddScore( attacker, CTF_CARRIER_PROTECT_BONUS );
 			attacker->client->pers.teamState.carrierdefense++;
@@ -535,12 +535,12 @@ Report a location for the player. Uses placed nearby target_location entities
 gentity_t *Team_GetLocation( gentity_t *ent ) {
 	gentity_t       *eloc, *best;
 	float bestlen, len;
-	vec3_t origin;
+	idVec3 origin;
 
 	best = NULL;
 	bestlen = 3 * 8192.0 * 8192.0;
 
-	VectorCopy( ent->r.currentOrigin, origin );
+	origin = ent->r.currentOrigin;
 
 	for ( eloc = level.locationHead; eloc; eloc = eloc->nextTrain ) {
 		len = ( origin[0] - eloc->r.currentOrigin[0] ) * ( origin[0] - eloc->r.currentOrigin[0] )
@@ -586,7 +586,7 @@ qboolean Team_GetLocationMsg( gentity_t *ent, char *loc, int loclen ) {
 		if ( best->count > 7 ) {
 			best->count = 7;
 		}
-		Com_sprintf( loc, loclen, "%c%c%s" S_COLOR_WHITE, Q_COLOR_ESCAPE, best->count + '0', best->message );
+		Com_sprintf( loc, loclen, "%c%c%s" S_COLOR_WHITE, C_COLOR_ESCAPE, best->count + '0', best->message );
 	} else {
 		Com_sprintf( loc, loclen, "%s", best->message );
 	}
@@ -605,17 +605,17 @@ FindFarthestObjectiveIndex
 pick MP objective farthest from passed in vector, return table index
 =======================
 */
-int FindFarthestObjectiveIndex( vec3_t source ) {
+int FindFarthestObjectiveIndex( const idVec3 &source ) {
 	int i,j = 0;
 	float dist = 0,tdist;
-	vec3_t tmp;
+	idVec3 tmp;
 //	int	cs_obj = CS_MULTI_SPAWNTARGETS;
 //	char	cs[MAX_STRING_CHARS];
 //	char *objectivename;
 
 	for ( i = 0; i < level.numspawntargets; i++ ) {
-		VectorSubtract( level.spawntargets[i],source,tmp );
-		tdist = VectorLength( tmp );
+		tmp = level.spawntargets[i] - source;
+		tdist = tmp.Length();
 		if ( tdist > dist ) {
 			dist = tdist;
 			j = i;
@@ -652,8 +652,8 @@ gentity_t *SelectRandomTeamSpawnPoint( int teamstate, team_t team ) {
 	int i = 0,j;       // JPW NERVE
 	int closest;         // JPW NERVE
 	float shortest,tmp;       // JPW NERVE
-	vec3_t target;      // JPW NERVE
-	vec3_t farthest;      // JPW NERVE FIXME this is temp
+	idVec3 target;      // JPW NERVE
+	idVec3 farthest;      // JPW NERVE FIXME this is temp
 
 	if ( teamstate == TEAM_BEGIN ) {
 
@@ -715,16 +715,16 @@ gentity_t *SelectRandomTeamSpawnPoint( int teamstate, team_t team ) {
 				j = count;
 			}
 		}
-		VectorCopy( level.spawntargets[i],farthest );
+		farthest = level.spawntargets[i];
 		// end FIXME
 
 		// now that we've got farthest vector, figure closest spawnpoint to it
-		VectorSubtract( farthest,spots[0]->s.origin,target );
-		shortest = VectorLength( target );
+		target = farthest - spots[0]->s.origin;
+		shortest = target.Length();
 		closest = 0;
 		for ( i = 0; i < count; i++ ) {
-			VectorSubtract( farthest,spots[i]->s.origin,target );
-			tmp = VectorLength( target );
+			target = farthest - spots[i]->s.origin;
+			tmp = target.Length();
 			if ( ( spots[i]->spawnflags & 2 ) && ( tmp < shortest ) ) {
 				shortest = tmp;
 				closest = i;
@@ -742,7 +742,7 @@ SelectCTFSpawnPoint
 
 ============
 */
-gentity_t *SelectCTFSpawnPoint( team_t team, int teamstate, vec3_t origin, vec3_t angles ) {
+gentity_t *SelectCTFSpawnPoint( team_t team, int teamstate, idVec3 &origin, idVec3 &angles ) {
 	gentity_t   *spot;
 
 	spot = SelectRandomTeamSpawnPoint( teamstate, team );
@@ -751,9 +751,9 @@ gentity_t *SelectCTFSpawnPoint( team_t team, int teamstate, vec3_t origin, vec3_
 		return SelectSpawnPoint( vec3_origin, origin, angles );
 	}
 
-	VectorCopy( spot->s.origin, origin );
+	origin = spot->s.origin;
 	origin[2] += 9;
-	VectorCopy( spot->s.angles, angles );
+	angles = spot->s.angles;
 
 	return spot;
 }
@@ -878,11 +878,11 @@ If target is set, point spawnpoint toward target activation
 */
 void SP_team_CTF_redspawn( gentity_t *ent ) {
 // JPW NERVE
-	vec3_t dir;
+	idVec3 dir;
 
 	ent->enemy = G_PickTarget( ent->target );
 	if ( ent->enemy ) {
-		VectorSubtract( ent->enemy->s.origin, ent->s.origin, dir );
+		dir = ent->enemy->s.origin - ent->s.origin;
 		vectoangles( dir, ent->s.angles );
 	}
 // jpw
@@ -905,11 +905,11 @@ If target is set, point spawnpoint toward target activation
 */
 void SP_team_CTF_bluespawn( gentity_t *ent ) {
 // JPW NERVE
-	vec3_t dir;
+	idVec3 dir;
 
 	ent->enemy = G_PickTarget( ent->target );
 	if ( ent->enemy ) {
-		VectorSubtract( ent->enemy->s.origin, ent->s.origin, dir );
+		dir = ent->enemy->s.origin - ent->s.origin;
 		vectoangles( dir, ent->s.angles );
 	}
 // jpw
@@ -934,7 +934,7 @@ void SP_team_WOLF_objective( gentity_t *ent ) {
 	static int numobjectives = 0;
 	int cs_obj = CS_MULTI_SPAWNTARGETS;
 	char cs[MAX_STRING_CHARS];
-	vec3_t test;
+	idVec3 test;
 
 	G_SpawnString( "description", "WARNING: No objective description set", &objectivename );
 
@@ -945,7 +945,7 @@ void SP_team_WOLF_objective( gentity_t *ent ) {
 		trap_GetConfigstring( cs_obj, cs, sizeof( cs ) );
 		Info_SetValueForKey( cs, "spawn_targ", objectivename );
 		trap_SetConfigstring( cs_obj, cs );
-		VectorCopy( ent->s.origin, level.spawntargets[numobjectives] );
+		level.spawntargets[numobjectives] = ent->s.origin;
 	}
 
 	numobjectives++;
@@ -957,7 +957,7 @@ void SP_team_WOLF_objective( gentity_t *ent ) {
 	Info_SetValueForKey( cs, "numspawntargets", numspawntargets );
 	trap_SetConfigstring( CS_MULTI_INFO, cs );
 
-	VectorCopy( level.spawntargets[numobjectives - 1],test );
+	test = level.spawntargets[numobjectives - 1];
 	G_Printf( "OBJECTIVE %d: %s (total %s) x=%f %f %f\n",numobjectives,objectivename,numspawntargets,test[0],test[1],test[2] );
 }
 // jpw
@@ -1155,8 +1155,8 @@ void SP_team_WOLF_checkpoint( gentity_t *ent ) {
 	ent->clipmask   = CONTENTS_SOLID;
 	ent->r.contents = CONTENTS_SOLID;
 
-	VectorSet( ent->r.mins, -8, -8, 0 );
-	VectorSet( ent->r.maxs, 8, 8, 128 );
+	ent->r.mins.Set( -8, -8, 0 );
+	ent->r.maxs.Set( 8, 8, 128 );
 
 	G_SetOrigin( ent, ent->s.origin );
 	G_SetAngle( ent, ent->s.angles );

@@ -249,7 +249,7 @@ void SP_target_speaker( gentity_t *ent ) {
 	//if (!strstr( s, ".wav" )) {
 	//	Com_sprintf (buffer, sizeof(buffer), "%s.wav", s );
 	//} else {
-	Q_strncpyz( buffer, s, sizeof( buffer ) );
+	idStr::Copynz( buffer, s, sizeof( buffer ) );
 	//}
 	ent->noise_index = G_SoundIndex( buffer );
 
@@ -272,7 +272,7 @@ void SP_target_speaker( gentity_t *ent ) {
 		ent->r.svFlags |= SVF_BROADCAST;
 	}
 
-	VectorCopy( ent->s.origin, ent->s.pos.trBase );
+	ent->s.pos.trBase = ent->s.origin;
 
 	if ( ent->spawnflags & 16 ) {
 		ent->think = target_speaker_multiple;
@@ -306,22 +306,22 @@ void SP_target_speaker( gentity_t *ent ) {
 When triggered, fires a laser.  You can either set a target or a direction.
 */
 void target_laser_think( gentity_t *self ) {
-	vec3_t end;
+	idVec3 end;
 	trace_t tr;
-	vec3_t point;
+	idVec3 point;
 
 	// if pointed at another entity, set movedir to point at it
 	if ( self->enemy ) {
-		VectorMA( self->enemy->s.origin, 0.5, self->enemy->r.mins, point );
-		VectorMA( point, 0.5, self->enemy->r.maxs, point );
-		VectorSubtract( point, self->s.origin, self->movedir );
-		VectorNormalize( self->movedir );
+		point = self->enemy->s.origin + 0.5 * self->enemy->r.mins;
+		point = point + 0.5 * self->enemy->r.maxs;
+		self->movedir = point - self->s.origin;
+		self->movedir.Normalize();
 	}
 
 	// fire forward and see what we hit
-	VectorMA( self->s.origin, 2048, self->movedir, end );
+	end = self->s.origin + 2048 * self->movedir;
 
-	trap_Trace( &tr, self->s.origin, NULL, NULL, end, self->s.number, CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE );
+	trap_Trace( &tr, self->s.origin, vec3_origin, vec3_origin, end, self->s.number, CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_CORPSE );
 
 	if ( tr.entityNum ) {
 		// hurt it if we can
@@ -329,7 +329,7 @@ void target_laser_think( gentity_t *self ) {
 				  tr.endpos, self->damage, DAMAGE_NO_KNOCKBACK, MOD_TARGET_LASER );
 	}
 
-	VectorCopy( tr.endpos, self->s.origin2 );
+	self->s.origin2 = tr.endpos;
 
 	trap_LinkEntity( self );
 	self->nextthink = level.time + FRAMETIME;
@@ -551,7 +551,7 @@ void target_kill_use( gentity_t *self, gentity_t *other, gentity_t *activator ) 
 	gentity_t *targ = NULL;
 
 	if ( self->spawnflags & 1 ) {  // kill usertoo
-		G_Damage( activator, NULL, NULL, NULL, NULL, 100000, DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
+		G_Damage( activator, NULL, NULL, vec3_origin, vec3_origin, 100000, DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
 	}
 
 	while ( ( targ = G_Find( targ, FOFS( targetname ), self->target ) ) != NULL ) {
@@ -566,7 +566,7 @@ void target_kill_use( gentity_t *self, gentity_t *other, gentity_t *activator ) 
 			}
 
 			// RF, script_movers should die!
-			if ( !Q_stricmp( targ->classname, "script_mover" ) && targ->die ) {
+			if ( !idStr::Icmp( targ->classname, "script_mover" ) && targ->die ) {
 				targ->die( targ, self, self, targ->health, 0 );
 				continue;
 			}
@@ -612,7 +612,7 @@ void target_location_linkup( gentity_t *ent ) {
 	for ( i = 0, ent = g_entities, n = 1;
 		  i < level.num_entities;
 		  i++, ent++ ) {
-		if ( ent->classname && !Q_stricmp( ent->classname, "target_location" ) ) {
+		if ( ent->classname && !idStr::Icmp( ent->classname, "target_location" ) ) {
 			// lets overload some variables!
 			ent->health = n; // use for location marking
 			trap_SetConfigstring( CS_LOCATIONS + n, ent->message );
@@ -820,7 +820,7 @@ void smoke_think( gentity_t *ent ) {
 	}
 
 	tent = G_TempEntity( ent->r.currentOrigin, EV_SMOKE );
-	VectorCopy( ent->r.currentOrigin, tent->s.origin );
+	tent->s.origin = ent->r.currentOrigin;
 	tent->s.time = ent->speed;
 	tent->s.time2 = ent->duration;
 	tent->s.density = ent->s.density;
@@ -830,7 +830,7 @@ void smoke_think( gentity_t *ent ) {
 	tent->s.angles2[1] = ent->end_size;
 	tent->s.angles2[2] = ent->wait;
 
-	VectorCopy( ent->pos3, tent->s.origin2 );
+	tent->s.origin2 = ent->pos3;
 
 	if ( ent->s.frame ) { // denotes reverse gravity effect
 		tent->s.frame = 1;
@@ -849,7 +849,7 @@ void smoke_toggle( gentity_t *ent, gentity_t *self, gentity_t *activator ) {
 
 void smoke_init( gentity_t *ent ) {
 	gentity_t *target;
-	vec3_t vec;
+	idVec3 vec;
 
 	ent->think = smoke_think;
 	ent->nextthink = level.time + FRAMETIME;
@@ -857,14 +857,14 @@ void smoke_init( gentity_t *ent ) {
 	if ( ent->target ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->target );
 		if ( target ) {
-			VectorSubtract( target->s.origin, ent->s.origin, vec );
-			VectorCopy( vec, ent->pos3 );
+			vec = target->s.origin - ent->s.origin;
+			ent->pos3 = vec;
 		} else {
-			VectorSet( ent->pos3, 0, 0, 1 );
+			ent->pos3.Set( 0, 0, 1 );
 		}
 	} else
 	{
-		VectorSet( ent->pos3, 0, 0, 1 );
+		ent->pos3.Set( 0, 0, 1 );
 	}
 
 	trap_LinkEntity( ent );
@@ -1021,7 +1021,7 @@ void target_rumble_think( gentity_t * ent ) {
 		}
 	}
 
-	VectorClear( ent->s.angles );
+	ent->s.angles.Zero();
 
 	if ( validrumble ) {
 		//ent->s.angles[0] = dapitch * ratio;
