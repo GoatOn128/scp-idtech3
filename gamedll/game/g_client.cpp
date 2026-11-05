@@ -31,10 +31,10 @@ If you have questions concerning this license or the applicable additional terms
 // g_client.c -- client functions that don't happen every frame
 
 // Ridah, new bounding box
-//static vec3_t	playerMins = {-15, -15, -24};
-//static vec3_t	playerMaxs = {15, 15, 32};
-vec3_t playerMins = {-18, -18, -24};
-vec3_t playerMaxs = {18, 18, 48};
+//static idVec3	playerMins = {-15, -15, -24};
+//static idVec3	playerMaxs = {15, 15, 32};
+idVec3 playerMins( -18, -18, -24 );
+idVec3 playerMaxs( 18, 18, 48 );
 // done.
 
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32) initial
@@ -47,7 +47,7 @@ If the start position is targeting an entity, the players camera will start out 
 */
 void SP_info_player_deathmatch( gentity_t *ent ) {
 	int i;
-	vec3_t dir;
+	idVec3 dir;
 
 	G_SpawnInt( "nobots", "0", &i );
 	if ( i ) {
@@ -60,7 +60,7 @@ void SP_info_player_deathmatch( gentity_t *ent ) {
 
 	ent->enemy = G_PickTarget( ent->target );
 	if ( ent->enemy ) {
-		VectorSubtract( ent->enemy->s.origin, ent->s.origin, dir );
+		dir = ent->enemy->s.origin - ent->s.origin;
 		vectoangles( dir, ent->s.angles );
 	}
 
@@ -103,10 +103,10 @@ qboolean SpotWouldTelefrag( gentity_t *spot ) {
 	int i, num;
 	int touch[MAX_GENTITIES];
 	gentity_t   *hit;
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 
-	VectorAdd( spot->s.origin, playerMins, mins );
-	VectorAdd( spot->s.origin, playerMaxs, maxs );
+	mins = spot->s.origin + playerMins;
+	maxs = spot->s.origin + playerMaxs;
 	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
 
 	for ( i = 0 ; i < num ; i++ ) {
@@ -128,9 +128,9 @@ Find the spot that we DON'T want to use
 ================
 */
 #define MAX_SPAWN_POINTS    128
-gentity_t *SelectNearestDeathmatchSpawnPoint( vec3_t from ) {
+gentity_t *SelectNearestDeathmatchSpawnPoint( idVec3 &from ) {
 	gentity_t   *spot;
-	vec3_t delta;
+	idVec3 delta;
 	float dist, nearestDist;
 	gentity_t   *nearestSpot;
 
@@ -140,8 +140,8 @@ gentity_t *SelectNearestDeathmatchSpawnPoint( vec3_t from ) {
 
 	while ( ( spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" ) ) != NULL ) {
 
-		VectorSubtract( spot->s.origin, from, delta );
-		dist = VectorLength( delta );
+		delta = spot->s.origin - from;
+		dist = delta.Length();
 		if ( dist < nearestDist ) {
 			nearestDist = dist;
 			nearestSpot = spot;
@@ -193,7 +193,7 @@ SelectSpawnPoint
 Chooses a player start, deathmatch start, etc
 ============
 */
-gentity_t *SelectSpawnPoint( vec3_t avoidPoint, vec3_t origin, vec3_t angles ) {
+gentity_t *SelectSpawnPoint( idVec3 &avoidPoint, idVec3 &origin, idVec3 &angles ) {
 	gentity_t   *spot;
 	gentity_t   *nearestSpot;
 
@@ -214,9 +214,9 @@ gentity_t *SelectSpawnPoint( vec3_t avoidPoint, vec3_t origin, vec3_t angles ) {
 		G_Error( "Couldn't find a spawn point" );
 	}
 
-	VectorCopy( spot->s.origin, origin );
+	origin = spot->s.origin;
 	origin[2] += 9;
-	VectorCopy( spot->s.angles, angles );
+	angles = spot->s.angles;
 
 	return spot;
 }
@@ -229,7 +229,7 @@ Try to find a spawn point marked 'initial', otherwise
 use normal spawn selection.
 ============
 */
-gentity_t *SelectInitialSpawnPoint( vec3_t origin, vec3_t angles ) {
+gentity_t *SelectInitialSpawnPoint( idVec3 &origin, idVec3 &angles ) {
 	gentity_t   *spot;
 
 	spot = NULL;
@@ -243,9 +243,9 @@ gentity_t *SelectInitialSpawnPoint( vec3_t origin, vec3_t angles ) {
 		return SelectSpawnPoint( vec3_origin, origin, angles );
 	}
 
-	VectorCopy( spot->s.origin, origin );
+	origin = spot->s.origin;
 	origin[2] += 9;
-	VectorCopy( spot->s.angles, angles );
+	angles = spot->s.angles;
 
 	return spot;
 }
@@ -256,11 +256,11 @@ SelectSpectatorSpawnPoint
 
 ============
 */
-gentity_t *SelectSpectatorSpawnPoint( vec3_t origin, vec3_t angles ) {
+gentity_t *SelectSpectatorSpawnPoint( idVec3 &origin, idVec3 &angles ) {
 	FindIntermissionPoint();
 
-	VectorCopy( level.intermission_origin, origin );
-	VectorCopy( level.intermission_angle, angles );
+	origin = level.intermission_origin;
+	angles = level.intermission_angle;
 
 	return NULL;
 }
@@ -351,7 +351,7 @@ void CopyToBodyQue( gentity_t *ent ) {
 	if ( body->s.groundEntityNum == ENTITYNUM_NONE ) {
 		body->s.pos.trType = TR_GRAVITY;
 		body->s.pos.trTime = level.time;
-		VectorCopy( ent->client->ps.velocity, body->s.pos.trDelta );
+		body->s.pos.trDelta = ent->client->ps.velocity;
 	} else {
 		body->s.pos.trType = TR_STATIONARY;
 	}
@@ -385,10 +385,10 @@ void CopyToBodyQue( gentity_t *ent ) {
 	// dhm
 
 	body->r.svFlags = ent->r.svFlags;
-	VectorCopy( ent->r.mins, body->r.mins );
-	VectorCopy( ent->r.maxs, body->r.maxs );
-	VectorCopy( ent->r.absmin, body->r.absmin );
-	VectorCopy( ent->r.absmax, body->r.absmax );
+	body->r.mins = ent->r.mins;
+	body->r.maxs = ent->r.maxs;
+	body->r.absmin = ent->r.absmin;
+	body->r.absmax = ent->r.absmax;
 
 	body->clipmask = CONTENTS_SOLID | CONTENTS_PLAYERCLIP;
 	body->r.contents = CONTENTS_CORPSE;
@@ -407,7 +407,7 @@ void CopyToBodyQue( gentity_t *ent ) {
 	}
 
 
-	VectorCopy( body->s.pos.trBase, body->r.currentOrigin );
+	body->r.currentOrigin = body->s.pos.trBase;
 	trap_LinkEntity( body );
 }
 
@@ -420,7 +420,7 @@ SetClientViewAngle
 
 ==================
 */
-void SetClientViewAngle( gentity_t *ent, vec3_t angle ) {
+void SetClientViewAngle( gentity_t *ent, idVec3 &angle ) {
 	int i;
 
 	// set the delta angle
@@ -430,8 +430,8 @@ void SetClientViewAngle( gentity_t *ent, vec3_t angle ) {
 		cmdAngle = ANGLE2SHORT( angle[i] );
 		ent->client->ps.delta_angles[i] = cmdAngle - ent->client->pers.cmd.angles[i];
 	}
-	VectorCopy( angle, ent->s.angles );
-	VectorCopy( ent->s.angles, ent->client->ps.viewangles );
+	ent->s.angles = angle;
+	ent->client->ps.viewangles = ent->s.angles;
 }
 
 /* JPW NERVE
@@ -738,8 +738,8 @@ void ForceClientSkin( gclient_t *client, char *model, const char *skin ) {
 		*p = 0;
 	}
 
-	Q_strcat( model, MAX_QPATH, "/" );
-	Q_strcat( model, MAX_QPATH, skin );
+	idStr::Append( model, MAX_QPATH, "/" );
+	idStr::Append( model, MAX_QPATH, skin );
 }
 
 
@@ -759,47 +759,47 @@ void SetWolfSkin( gclient_t *client, char *model ) {
 
 	switch ( client->sess.sessionTeam ) {
 	case TEAM_RED:
-		Q_strcat( model, MAX_QPATH, "red" );
+		idStr::Append( model, MAX_QPATH, "red" );
 		break;
 	case TEAM_BLUE:
-		Q_strcat( model, MAX_QPATH, "blue" );
+		idStr::Append( model, MAX_QPATH, "blue" );
 		break;
 	default:
-		Q_strcat( model, MAX_QPATH, "red" );
+		idStr::Append( model, MAX_QPATH, "red" );
 		break;
 	}
 
 	switch ( client->sess.playerType ) {
 	case PC_SOLDIER:
-		Q_strcat( model, MAX_QPATH, "soldier" );
+		idStr::Append( model, MAX_QPATH, "soldier" );
 		break;
 	case PC_MEDIC:
-		Q_strcat( model, MAX_QPATH, "medic" );
+		idStr::Append( model, MAX_QPATH, "medic" );
 		break;
 	case PC_ENGINEER:
-		Q_strcat( model, MAX_QPATH, "engineer" );
+		idStr::Append( model, MAX_QPATH, "engineer" );
 		break;
 	case PC_LT:
-		Q_strcat( model, MAX_QPATH, "lieutenant" );
+		idStr::Append( model, MAX_QPATH, "lieutenant" );
 		break;
 	default:
-		Q_strcat( model, MAX_QPATH, "soldier" );
+		idStr::Append( model, MAX_QPATH, "soldier" );
 		break;
 	}
 
 	// DHM - A skinnum will be in the session data soon...
 	switch ( client->sess.playerSkin ) {
 	case 1:
-		Q_strcat( model, MAX_QPATH, "1" );
+		idStr::Append( model, MAX_QPATH, "1" );
 		break;
 	case 2:
-		Q_strcat( model, MAX_QPATH, "2" );
+		idStr::Append( model, MAX_QPATH, "2" );
 		break;
 	case 3:
-		Q_strcat( model, MAX_QPATH, "3" );
+		idStr::Append( model, MAX_QPATH, "3" );
 		break;
 	default:
-		Q_strcat( model, MAX_QPATH, "1" );
+		idStr::Append( model, MAX_QPATH, "1" );
 		break;
 	}
 }
@@ -1100,7 +1100,7 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 		}
 
 		// check colors
-		if ( ch == Q_COLOR_ESCAPE ) {
+		if ( ch == C_COLOR_ESCAPE ) {
 			// solo trailing carat is not a color prefix
 			if ( !*in ) {
 				break;
@@ -1144,7 +1144,7 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 
 	// don't allow empty names
 	if ( *p == 0 || colorlessLen == 0 ) {
-		Q_strncpyz( out, "UnnamedPlayer", outSize );
+		idStr::Copynz( out, "UnnamedPlayer", outSize );
 	}
 }
 
@@ -1165,7 +1165,7 @@ qboolean G_CheckForExistingModelInfo( gclient_t *cl, char *modelName, animModelI
 	for ( i = 0; i < MAX_ANIMSCRIPT_MODELS; i++ ) {
 		trav = level.animScriptData.modelInfo[i];
 		if ( trav && trav->modelname[0] ) {
-			if ( !Q_stricmp( trav->modelname, modelName ) ) {
+			if ( !idStr::Icmp( trav->modelname, modelName ) ) {
 				// found a match, use this modelinfo
 				*modelInfo = trav;
 				level.animScriptData.clientModels[cl->ps.clientNum] = i + 1;
@@ -1216,7 +1216,7 @@ qboolean G_ParseAnimationFiles( char *modelname, gclient_t *cl ) {
 	int len;
 
 	// set the name of the model in the modelinfo structure
-	Q_strncpyz( cl->modelInfo->modelname, modelname, sizeof( cl->modelInfo->modelname ) );
+	idStr::Copynz( cl->modelInfo->modelname, modelname, sizeof( cl->modelInfo->modelname ) );
 
 	// load the cfg file
 	Com_sprintf( filename, sizeof( filename ), "models/players/%s/wolfanim.cfg", modelname );
@@ -1337,13 +1337,13 @@ void ClientUserinfoChanged( int clientNum ) {
 	}
 
 	// set name
-	Q_strncpyz( oldname, client->pers.netname, sizeof( oldname ) );
+	idStr::Copynz( oldname, client->pers.netname, sizeof( oldname ) );
 	s = Info_ValueForKey( userinfo, "name" );
 	ClientCleanName( s, client->pers.netname, sizeof( client->pers.netname ) );
 
 	if ( client->sess.sessionTeam == TEAM_SPECTATOR ) {
 		if ( client->sess.spectatorState == SPECTATOR_SCOREBOARD ) {
-			Q_strncpyz( client->pers.netname, "scoreboard", sizeof( client->pers.netname ) );
+			idStr::Copynz( client->pers.netname, "scoreboard", sizeof( client->pers.netname ) );
 		}
 	}
 
@@ -1363,10 +1363,10 @@ void ClientUserinfoChanged( int clientNum ) {
 
 	// set model
 	if ( g_forceModel.integer ) {
-		Q_strncpyz( model, DEFAULT_MODEL, sizeof( model ) );
-		Q_strcat( model, sizeof( model ), "/default" );
+		idStr::Copynz( model, DEFAULT_MODEL, sizeof( model ) );
+		idStr::Append( model, sizeof( model ), "/default" );
 	} else {
-		Q_strncpyz( model, Info_ValueForKey( userinfo, "model" ), sizeof( model ) );
+		idStr::Copynz( model, Info_ValueForKey( userinfo, "model" ), sizeof( model ) );
 	}
 
 	// RF, reset anims so client's dont freak out
@@ -1379,17 +1379,17 @@ void ClientUserinfoChanged( int clientNum ) {
 		// To communicate it to cgame
 		client->ps.stats[ STAT_PLAYER_CLASS ] = client->sess.playerType;
 
-		Q_strncpyz( model, MULTIPLAYER_MODEL, MAX_QPATH );
-		Q_strcat( model, MAX_QPATH, "/" );
+		idStr::Copynz( model, MULTIPLAYER_MODEL, MAX_QPATH );
+		idStr::Append( model, MAX_QPATH, "/" );
 
 		SetWolfSkin( client, model );
 
-		Q_strncpyz( head, "", MAX_QPATH );
+		idStr::Copynz( head, "", MAX_QPATH );
 		SetWolfSkin( client, head );
 	}
 
 	// strip the skin name
-	Q_strncpyz( modelname, model, sizeof( modelname ) );
+	idStr::Copynz( modelname, model, sizeof( modelname ) );
 	if ( strstr( modelname, "/" ) ) {
 		modelname[ strstr( modelname, "/" ) - modelname ] = 0;
 	} else if ( strstr( modelname, "\\" ) ) {
@@ -1409,9 +1409,9 @@ void ClientUserinfoChanged( int clientNum ) {
 //----(SA) added this for head separation
 		// set head
 		if ( g_forceModel.integer ) {
-			Q_strncpyz( head, DEFAULT_HEAD, sizeof( head ) );
+			idStr::Copynz( head, DEFAULT_HEAD, sizeof( head ) );
 		} else {
-			Q_strncpyz( head, Info_ValueForKey( userinfo, "head" ), sizeof( head ) );
+			idStr::Copynz( head, Info_ValueForKey( userinfo, "head" ), sizeof( head ) );
 		}
 
 //----(SA) end
@@ -1629,7 +1629,7 @@ Initializes all non-persistant parts of playerState
 */
 void ClientSpawn( gentity_t *ent ) {
 	int index;
-	vec3_t spawn_origin, spawn_angles;
+	idVec3 spawn_origin, spawn_angles;
 	gclient_t   *client;
 	int i;
 	clientPersistant_t saved;
@@ -1650,9 +1650,9 @@ void ClientSpawn( gentity_t *ent ) {
 	// Ridah
 	if ( ent->r.svFlags & SVF_CASTAI ) {
 		spawnPoint = ent;
-		VectorCopy( ent->s.origin, spawn_origin );
+		spawn_origin = ent->s.origin;
 		spawn_origin[2] += 9;   // spawns seem to be sunk into ground?
-		VectorCopy( ent->s.angles, spawn_angles );
+		spawn_angles = ent->s.angles;
 	} else
 	{
 		ent->aiName = "player";  // needed for script AI
@@ -1760,12 +1760,12 @@ void ClientSpawn( gentity_t *ent ) {
 	ent->watertype = 0;
 	ent->flags = 0;
 
-	VectorCopy( playerMins, ent->r.mins );
-	VectorCopy( playerMaxs, ent->r.maxs );
+	ent->r.mins = playerMins;
+	ent->r.maxs = playerMaxs;
 
 	// Ridah, setup the bounding boxes and viewheights for prediction
-	VectorCopy( ent->r.mins, client->ps.mins );
-	VectorCopy( ent->r.maxs, client->ps.maxs );
+	client->ps.mins = ent->r.mins;
+	client->ps.maxs = ent->r.maxs;
 
 	client->ps.crouchViewHeight = CROUCH_VIEWHEIGHT;
 	client->ps.standViewHeight = DEFAULT_VIEWHEIGHT;
@@ -1831,7 +1831,7 @@ void ClientSpawn( gentity_t *ent ) {
 	ent->health = client->ps.stats[STAT_HEALTH] = client->ps.stats[STAT_MAX_HEALTH];
 
 	G_SetOrigin( ent, spawn_origin );
-	VectorCopy( spawn_origin, client->ps.origin );
+	client->ps.origin = spawn_origin;
 
 	// the respawned flag will be cleared after the attack and jump keys come up
 	client->ps.pm_flags |= PMF_RESPAWNED;
@@ -1890,7 +1890,7 @@ void ClientSpawn( gentity_t *ent ) {
 	// positively link the client, even if the command times are weird
 	if ( ent->client->sess.sessionTeam != TEAM_SPECTATOR ) {
 		BG_PlayerStateToEntityState( &client->ps, &ent->s, qtrue );
-		VectorCopy( ent->client->ps.origin, ent->r.currentOrigin );
+		ent->r.currentOrigin = ent->client->ps.origin;
 		trap_LinkEntity( ent );
 	}
 
@@ -1985,49 +1985,42 @@ G_RetrieveMoveSpeedsFromClient
 ==================
 */
 void G_RetrieveMoveSpeedsFromClient( int entnum, char *text ) {
-	char *text_p, *token;
+	idLexer lexer;
+	idToken token;
 	animation_t *anim;
 	animModelInfo_t *modelInfo;
 
-	text_p = text;
+	lexer.LoadMemory( text, strlen( text ), "movespeeds" );
 
 	// get the model name
-	token = COM_Parse( &text_p );
-	if ( !token || !token[0] ) {
+	if ( !lexer.ReadToken( &token ) ) {
 		G_Error( "G_RetrieveMoveSpeedsFromClient: internal error" );
 	}
 
-	modelInfo = BG_ModelInfoForModelname( token );
+	modelInfo = BG_ModelInfoForModelname( token.c_str() );
 
 	if ( !modelInfo ) {
 		// ignore it
 		return;
 	}
 
-	while ( 1 ) {
-		token = COM_Parse( &text_p );
-		if ( !token || !token[0] ) {
-			break;
-		}
-
+	while ( lexer.ReadToken( &token ) ) {
 		// this is a name
-		anim = BG_AnimationForString( token, modelInfo );
+		anim = BG_AnimationForString( token.c_str(), modelInfo );
 		if ( anim->moveSpeed == 0 ) {
 			G_Error( "G_RetrieveMoveSpeedsFromClient: trying to set movespeed for non-moving animation" );
 		}
 
 		// get the movespeed
-		token = COM_Parse( &text_p );
-		if ( !token || !token[0] ) {
+		if ( !lexer.ReadToken( &token ) ) {
 			G_Error( "G_RetrieveMoveSpeedsFromClient: missing movespeed" );
 		}
-		anim->moveSpeed = atoi( token );
+		anim->moveSpeed = atoi( token.c_str() );
 
 		// get the stepgap
-		token = COM_Parse( &text_p );
-		if ( !token || !token[0] ) {
+		if ( !lexer.ReadToken( &token ) ) {
 			G_Error( "G_RetrieveMoveSpeedsFromClient: missing stepGap" );
 		}
-		anim->stepGap = atoi( token );
+		anim->stepGap = atoi( token.c_str() );
 	}
 }
