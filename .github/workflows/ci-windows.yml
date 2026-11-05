@@ -159,11 +159,13 @@ jobs:
       - name: build OpenAL Soft
         # build OpenAL Soft from the official tarball into the same
         # prefix as SDL3; homebrew's keg-only package needs extra wiring
+        # cmake 4 dropped compatibility with the <3.5 minimum this older
+        # tarball declares, the policy flag restores it
         run: |
           set -o pipefail
           curl -fsSL -o openal.tar.gz https://github.com/kcat/openal-soft/archive/refs/tags/1.23.1.tar.gz
           tar xf openal.tar.gz
-          cmake -S openal-soft-1.23.1 -B openal-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${PWD}/sdl-prefix" 2>&1 | tee -a build.log
+          cmake -S openal-soft-1.23.1 -B openal-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="${PWD}/sdl-prefix" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 2>&1 | tee -a build.log
           cmake --build openal-build --parallel 2>&1 | tee -a build.log
           cmake --install openal-build 2>&1 | tee -a build.log
       - name: build
