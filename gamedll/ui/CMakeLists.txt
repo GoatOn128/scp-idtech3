@@ -25,7 +25,7 @@ endif()
 target_compile_definitions(ui PRIVATE _USRDLL UI_EXPORTS)
 if ( MSVC )
     target_link_libraries(ui PRIVATE odbc32 odbccp32)
-    target_link_options(ui PRIVATE /BASE:0x40000000 /MAP:${CMAKE_SOURCE_DIR}/bin/uix86.map)
+    target_link_options(ui PRIVATE /BASE:0x40000000 /MAP:${CMAKE_SOURCE_DIR}/bin/main/uix86.map)
 endif()
 target_include_directories(ui PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client")
 if ( APPLE )
@@ -35,4 +35,6 @@ if ( APPLE )
     target_link_options(ui PRIVATE -Wl,-undefined,dynamic_lookup)
 endif()
 
-configure_target(ui)
+# the engine loads the game modules from the game directory next to
+# the exe, matching the retail WolfSP.exe + Main layout
+configure_target(ui main)

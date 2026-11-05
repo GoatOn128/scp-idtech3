@@ -87,7 +87,7 @@ endif()
 target_compile_definitions(game PRIVATE GAMEDLL $<$<CONFIG:Debug>:BUILDING_REF_GL>)
 if ( MSVC )
     target_link_libraries(game PRIVATE winmm)
-    target_link_options(game PRIVATE /BASE:0x20000000 /MAP:${CMAKE_SOURCE_DIR}/bin/qagamex86.map)
+    target_link_options(game PRIVATE /BASE:0x20000000 /MAP:${CMAKE_SOURCE_DIR}/bin/main/qagamex86.map)
 endif()
 if ( WIN32 )
     add_dependencies(game genFuncTable)
@@ -100,4 +100,6 @@ if ( APPLE )
     target_link_options(game PRIVATE -Wl,-undefined,dynamic_lookup)
 endif()
 
-configure_target(game)
+# the engine loads the game modules from the game directory next to
+# the exe, matching the retail WolfSP.exe + Main layout
+configure_target(game main)

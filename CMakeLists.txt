@@ -11,20 +11,25 @@ if ( WIN32 )
 endif()
 
 function(set_output_directory target)
+	set(output_dir "$<1:>${CMAKE_SOURCE_DIR}/bin")
+	# optional argument: subdirectory of bin/ the target's binaries belong to
+	if ( ARGN )
+		set(output_dir "${output_dir}/${ARGV1}")
+	endif()
 	set_target_properties(${target} PROPERTIES
-		RUNTIME_OUTPUT_DIRECTORY "$<1:>${CMAKE_SOURCE_DIR}/bin"
-		LIBRARY_OUTPUT_DIRECTORY "$<1:>${CMAKE_SOURCE_DIR}/bin"
+		RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
+		LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
 		ARCHIVE_OUTPUT_DIRECTORY "$<1:>${CMAKE_BINARY_DIR}/lib"
-		PDB_OUTPUT_DIRECTORY "$<1:>${CMAKE_SOURCE_DIR}/bin"
+		PDB_OUTPUT_DIRECTORY "${output_dir}"
 		COMPILE_PDB_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/pdb")
 	
 	foreach(configuration Debug Release RelWithDebInfo MinSizeRel)
 		string(TOUPPER "${configuration}" configuration_upper)
 		set_target_properties(${target} PROPERTIES
-			RUNTIME_OUTPUT_DIRECTORY_${configuration_upper} "$<1:>${CMAKE_SOURCE_DIR}/bin"
-			LIBRARY_OUTPUT_DIRECTORY_${configuration_upper} "$<1:>${CMAKE_SOURCE_DIR}/bin"
-			ARCHIVE_OUTPUT_DIRECTORY_${configuration_upper} "$<1:>${CMAKE_BINARY_DIR}/lib/${configuration}"
-			PDB_OUTPUT_DIRECTORY_${configuration_upper} "$<1:>${CMAKE_SOURCE_DIR}/bin"
+			RUNTIME_OUTPUT_DIRECTORY_${configuration_upper} "${output_dir}"
+			LIBRARY_OUTPUT_DIRECTORY_${configuration_upper} "${output_dir}"
+			ARCHIVE_OUTPUT_DIRECTORY_${configuration_upper} "${CMAKE_BINARY_DIR}/lib/${configuration}"
+			PDB_OUTPUT_DIRECTORY_${configuration_upper} "${output_dir}"
 			COMPILE_PDB_OUTPUT_DIRECTORY_${configuration_upper} "${CMAKE_BINARY_DIR}/pdb/${configuration}")
 	endforeach()
 endfunction()
@@ -53,7 +58,7 @@ function(configure_target target)
 			target_compile_options(${target} PRIVATE -Wno-write-strings)
 		endif()
 	endif()
-	set_output_directory(${target})
+	set_output_directory(${target} ${ARGN})
 endfunction()
 
 if ( MSVC )

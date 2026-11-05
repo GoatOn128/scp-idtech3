@@ -53,7 +53,7 @@ endif()
 target_compile_definitions(cgame PRIVATE CGAMEDLL)
 if ( MSVC )
     target_link_libraries(cgame PRIVATE odbc32 odbccp32)
-    target_link_options(cgame PRIVATE /BASE:0x30000000 /MAP:${CMAKE_SOURCE_DIR}/bin/cgamex86.map)
+    target_link_options(cgame PRIVATE /BASE:0x30000000 /MAP:${CMAKE_SOURCE_DIR}/bin/main/cgamex86.map)
 endif()
 target_include_directories(cgame PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client")
 if ( APPLE )
@@ -63,4 +63,6 @@ if ( APPLE )
     target_link_options(cgame PRIVATE -Wl,-undefined,dynamic_lookup)
 endif()
 
-configure_target(cgame)
+# the engine loads the game modules from the game directory next to
+# the exe, matching the retail WolfSP.exe + Main layout
+configure_target(cgame main)
