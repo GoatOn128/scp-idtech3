@@ -1807,4 +1807,30 @@ ID_INLINE void AxisToAngles( const idVec3 *axis, idVec3 &angles ) {
 	angles[2] = -roll_angles[0];                                            // ROLL
 }
 
+/*
+=====================
+PlaneFromPoints
+
+Returns false if the triangle is degenerate.
+The normal will point out of the clock for clockwise ordered points
+ported from the old q3 mathlib
+=====================
+*/
+ID_INLINE bool PlaneFromPoints( idVec4 &plane, const idVec3 &a, const idVec3 &b, const idVec3 &c ) {
+	idVec3 d1, d2, n;
+
+	d1 = b - a;
+	d2 = c - a;
+	n.Cross( d2, d1 );
+	if ( n.Normalize() == 0.0f ) {
+		return false;
+	}
+
+	plane.x = n.x;
+	plane.y = n.y;
+	plane.z = n.z;
+	plane.w = a * n;
+	return true;
+}
+
 #endif /* !__MATH_VECTOR_H__ */
