@@ -68,7 +68,7 @@ void AddScore( gentity_t *ent, int score ) {
 
 
 
-extern qboolean G_ThrowChair( gentity_t *ent, vec3_t dir, qboolean force );
+extern qboolean G_ThrowChair( gentity_t *ent, idVec3 &dir, qboolean force );
 
 /*
 =================
@@ -79,7 +79,7 @@ Toss the weapon and powerups for the killed player
 */
 void TossClientItems( gentity_t *self ) {
 	gitem_t     *item;
-	vec3_t forward;
+	idVec3 forward;
 	int weapon;
 	float angle;
 	int i;
@@ -97,7 +97,7 @@ void TossClientItems( gentity_t *self ) {
 		break;
 	}
 
-	AngleVectors( self->r.currentAngles, forward, NULL, NULL );
+	idAngles( self->r.currentAngles ).ToVectors( &forward, NULL, NULL );
 
 	G_ThrowChair( self, forward, qtrue ); // drop chair if you're holding one  //----(SA)	added
 
@@ -175,13 +175,13 @@ LookAtKiller
 ==================
 */
 void LookAtKiller( gentity_t *self, gentity_t *inflictor, gentity_t *attacker ) {
-	vec3_t dir;
-	vec3_t angles;
+	idVec3 dir;
+	idVec3 angles;
 
 	if ( attacker && attacker != self ) {
-		VectorSubtract( attacker->s.pos.trBase, self->s.pos.trBase, dir );
+		dir = attacker->s.pos.trBase - self->s.pos.trBase;
 	} else if ( inflictor && inflictor != self ) {
-		VectorSubtract( inflictor->s.pos.trBase, self->s.pos.trBase, dir );
+		dir = inflictor->s.pos.trBase - self->s.pos.trBase;
 	} else {
 		self->client->ps.stats[STAT_DEAD_YAW] = self->s.angles[YAW];
 		return;
@@ -211,15 +211,16 @@ GibEntity
 */
 void GibEntity( gentity_t *self, int killer ) {
 	gentity_t *other = &g_entities[killer];
-	vec3_t dir;
+	idVec3 dir;
 
-	VectorClear( dir );
+	dir.Zero();
 	if ( other->inuse ) {
 		if ( other->client ) {
-			VectorSubtract( self->r.currentOrigin, other->r.currentOrigin, dir );
-			VectorNormalize( dir );
-		} else if ( !VectorCompare( other->s.pos.trDelta, vec3_origin ) ) {
-			VectorNormalize2( other->s.pos.trDelta, dir );
+			dir = self->r.currentOrigin - other->r.currentOrigin;
+			dir.Normalize();
+		} else if ( !other->s.pos.trDelta.Compare( vec3_origin ) ) {
+			dir = other->s.pos.trDelta;
+			dir.Normalize();
 		}
 	}
 
@@ -344,7 +345,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	char        *killerName, *obit;
 	qboolean nogib = qtrue;
 	gitem_t     *item = NULL; // JPW NERVE for flag drop
-	vec3_t launchvel;      // JPW NERVE
+	idVec3 launchvel;      // JPW NERVE
 	gentity_t   *flag; // JPW NERVE
 
 	if ( self->client->ps.pm_type == PM_DEAD ) {
@@ -507,7 +508,7 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 	self->s.angles[2] = 0;
 	LookAtKiller( self, inflictor, attacker );
 
-	VectorCopy( self->s.angles, self->client->ps.viewangles );
+	self->client->ps.viewangles = self->s.angles;
 
 	self->s.loopSound = 0;
 
@@ -694,10 +695,10 @@ qboolean IsHeadShotWeapon( int mod, gentity_t *targ, gentity_t *attacker ) {
 IsHeadShot
 ==============
 */
-qboolean IsHeadShot( gentity_t *targ, gentity_t *attacker, vec3_t dir, vec3_t point, int mod ) {
+qboolean IsHeadShot( gentity_t *targ, gentity_t *attacker, idVec3 &dir, idVec3 &point, int mod ) {
 	gentity_t   *head;
 	trace_t tr;
-	vec3_t start, end;
+	idVec3 start, end;
 	gentity_t   *traceEnt;
 	orientation_t orent;
 
@@ -721,8 +722,8 @@ qboolean IsHeadShot( gentity_t *targ, gentity_t *attacker, vec3_t dir, vec3_t po
 
 		// RF, if there is a valid tag_head for this entity, then use that
 		if ( ( targ->r.svFlags & SVF_CASTAI ) && trap_GetTag( targ->s.number, "tag_head", &orent ) ) {
-			VectorCopy( orent.origin, head->r.currentOrigin );
-			VectorMA( head->r.currentOrigin, 6, orent.axis[2], head->r.currentOrigin );    // tag is at base of neck
+			head->r.currentOrigin = orent.origin;
+			head->r.currentOrigin = head->r.currentOrigin + orent.axis[2] * 6;    // tag is at base of neck
 		} else if ( targ->client->ps.pm_flags & PMF_DUCKED ) { // closer fake offset for 'head' box when crouching
 			head->r.currentOrigin[2] += targ->client->ps.crouchViewHeight + 8; // JPW NERVE 16 is kludge to get head height to match up
 		}
@@ -732,42 +733,42 @@ qboolean IsHeadShot( gentity_t *targ, gentity_t *attacker, vec3_t dir, vec3_t po
 			head->r.currentOrigin[2] += targ->client->ps.viewheight; // JPW NERVE pulled this	// 6 is fudged "head height" value
 
 		}
-		VectorCopy( head->r.currentOrigin, head->s.origin );
-		VectorCopy( targ->r.currentAngles, head->s.angles );
-		VectorCopy( head->s.angles, head->s.apos.trBase );
-		VectorCopy( head->s.angles, head->s.apos.trDelta );
-		VectorSet( head->r.mins, -6, -6, -6 ); // JPW NERVE changed this z from -12 to -6 for crouching, also removed standing offset
-		VectorSet( head->r.maxs, 6, 6, 6 ); // changed this z from 0 to 6
+		head->s.origin = head->r.currentOrigin;
+		head->s.angles = targ->r.currentAngles;
+		head->s.apos.trBase = head->s.angles;
+		head->s.apos.trDelta = head->s.angles;
+		head->r.mins.Set( -6, -6, -6 ); // JPW NERVE changed this z from -12 to -6 for crouching, also removed standing offset
+		head->r.maxs.Set( 6, 6, 6 ); // changed this z from 0 to 6
 		head->clipmask = CONTENTS_SOLID;
 		head->r.contents = CONTENTS_SOLID;
 
 		trap_LinkEntity( head );
 
 		// trace another shot see if we hit the head
-		VectorCopy( point, start );
-		VectorMA( start, 64, dir, end );
-		trap_Trace( &tr, start, NULL, NULL, end, targ->s.number, MASK_SHOT );
+		start = point;
+		end = start + dir * 64;
+		trap_Trace( &tr, start, vec3_origin, vec3_origin, end, targ->s.number, MASK_SHOT );
 
 		traceEnt = &g_entities[ tr.entityNum ];
 
 		if ( g_debugBullets.integer >= 3 ) {   // show hit player head bb
 			gentity_t *tent;
-			vec3_t b1, b2;
-			VectorCopy( head->r.currentOrigin, b1 );
-			VectorCopy( head->r.currentOrigin, b2 );
-			VectorAdd( b1, head->r.mins, b1 );
-			VectorAdd( b2, head->r.maxs, b2 );
+			idVec3 b1, b2;
+			b1 = head->r.currentOrigin;
+			b2 = head->r.currentOrigin;
+			b1 = b1 + head->r.mins;
+			b2 = b2 + head->r.maxs;
 			tent = G_TempEntity( b1, EV_RAILTRAIL );
-			VectorCopy( b2, tent->s.origin2 );
+			tent->s.origin2 = b2;
 			tent->s.dmgFlags = 1;
 
 			// show headshot trace
 			// end the headshot trace at the head box if it hits
 			if ( tr.fraction != 1 ) {
-				VectorMA( start, ( tr.fraction * 64 ), dir, end );
+				end = start + dir * ( tr.fraction * 64 );
 			}
 			tent = G_TempEntity( start, EV_RAILTRAIL );
-			VectorCopy( end, tent->s.origin2 );
+			tent->s.origin2 = end;
 			tent->s.dmgFlags = 0;
 		}
 
@@ -892,7 +893,7 @@ dflags		these flags are used to control how T_Damage works
 */
 
 void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
-			   vec3_t dir, vec3_t point, int damage, int dflags, int mod ) {
+			   idVec3 &dir, idVec3 &point, int damage, int dflags, int mod ) {
 	gclient_t   *client;
 	int take;
 	int save;
@@ -1039,10 +1040,10 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		}
 	}
 
-	if ( !dir ) {
+	if ( dir.LengthSqr() == 0.0f ) {
 		dflags |= DAMAGE_NO_KNOCKBACK;
 	} else {
-		VectorNormalize( dir );
+		dir.Normalize();
 	}
 
 	knockback = damage;
@@ -1062,7 +1063,7 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 
 	// figure momentum add, even if the damage won't be taken
 	if ( knockback && targ->client ) {
-		vec3_t kvel;
+		idVec3 kvel;
 		float mass;
 
 		mass = 200;
@@ -1072,8 +1073,8 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			dir[2] = 0.3;
 		}
 
-		VectorScale( dir, g_knockback.value * (float)knockback / mass, kvel );
-		VectorAdd( targ->client->ps.velocity, kvel, targ->client->ps.velocity );
+		kvel = dir * g_knockback.value * (float)knockback / mass;
+		targ->client->ps.velocity = targ->client->ps.velocity + kvel;
 
 		if ( targ == attacker && !(  mod != MOD_ROCKET &&
 									 mod != MOD_ROCKET_SPLASH &&
@@ -1279,11 +1280,11 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 		client->damage_blood += take;
 		client->damage_knockback += knockback;
 
-		if ( dir ) {
-			VectorCopy( dir, client->damage_from );
+		if ( dir.LengthSqr() > 0.0f ) {
+			client->damage_from = dir;
 			client->damage_fromWorld = qfalse;
 		} else {
-			VectorCopy( targ->r.currentOrigin, client->damage_from );
+			client->damage_from = targ->r.currentOrigin;
 			client->damage_fromWorld = qtrue;
 		}
 	}
@@ -1336,12 +1337,12 @@ void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker,
 			}
 
 		} else if ( targ->pain ) {
-			if ( dir ) {  // Ridah, had to add this to fix NULL dir crash
-				VectorCopy( dir, targ->rotate );
-				VectorCopy( point, targ->pos3 ); // this will pass loc of hit
+			if ( dir.LengthSqr() > 0.0f ) {  // Ridah, had to add this to fix NULL dir crash
+				targ->rotate = dir;
+				targ->pos3 = point; // this will pass loc of hit
 			} else {
-				VectorClear( targ->rotate );
-				VectorClear( targ->pos3 );
+				targ->rotate.Zero();
+				targ->pos3.Zero();
 			}
 
 			targ->pain( targ, attacker, take, point );
@@ -1366,17 +1367,17 @@ Returns qtrue if the inflictor can directly damage the target.  Used for
 explosions and melee attacks.
 ============
 */
-qboolean CanDamage( gentity_t *targ, vec3_t origin ) {
-	vec3_t dest;
+qboolean CanDamage( gentity_t *targ, idVec3 &origin ) {
+	idVec3 dest;
 	trace_t tr;
-	vec3_t midpoint;
+	idVec3 midpoint;
 
 	// use the midpoint of the bounds instead of the origin, because
 	// bmodels may have their origin is 0,0,0
-	VectorAdd( targ->r.absmin, targ->r.absmax, midpoint );
-	VectorScale( midpoint, 0.5, midpoint );
+	midpoint = targ->r.absmin + targ->r.absmax;
+	midpoint = midpoint * 0.5;
 
-	VectorCopy( midpoint, dest );
+	dest = midpoint;
 	trap_Trace( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID );
 	if ( tr.fraction == 1.0 ) {
 		return qtrue;
@@ -1390,7 +1391,7 @@ qboolean CanDamage( gentity_t *targ, vec3_t origin ) {
 
 	// this should probably check in the plane of projection,
 	// rather than in world coordinate, and also include Z
-	VectorCopy( midpoint, dest );
+	dest = midpoint;
 	dest[0] += 15.0;
 	dest[1] += 15.0;
 	trap_Trace( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID );
@@ -1398,7 +1399,7 @@ qboolean CanDamage( gentity_t *targ, vec3_t origin ) {
 		return qtrue;
 	}
 
-	VectorCopy( midpoint, dest );
+	dest = midpoint;
 	dest[0] += 15.0;
 	dest[1] -= 15.0;
 	trap_Trace( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID );
@@ -1406,7 +1407,7 @@ qboolean CanDamage( gentity_t *targ, vec3_t origin ) {
 		return qtrue;
 	}
 
-	VectorCopy( midpoint, dest );
+	dest = midpoint;
 	dest[0] -= 15.0;
 	dest[1] += 15.0;
 	trap_Trace( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID );
@@ -1414,7 +1415,7 @@ qboolean CanDamage( gentity_t *targ, vec3_t origin ) {
 		return qtrue;
 	}
 
-	VectorCopy( midpoint, dest );
+	dest = midpoint;
 	dest[0] -= 15.0;
 	dest[1] -= 15.0;
 	trap_Trace( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID );
@@ -1432,22 +1433,22 @@ qboolean CanDamage( gentity_t *targ, vec3_t origin ) {
 G_RadiusDamage
 ============
 */
-qboolean G_RadiusDamage( vec3_t origin, gentity_t *attacker, float damage, float radius,
+qboolean G_RadiusDamage( idVec3 &origin, gentity_t *attacker, float damage, float radius,
 						 gentity_t *ignore, int mod ) {
 	float points, dist;
 	gentity_t   *ent;
 	int entityList[MAX_GENTITIES];
 	int numListedEntities;
-	vec3_t mins, maxs;
-	vec3_t v;
-	vec3_t dir;
+	idVec3 mins, maxs;
+	idVec3 v;
+	idVec3 dir;
 	int i, e;
 	qboolean hitClient = qfalse;
 // JPW NERVE
 	float boxradius;
-	vec3_t dest;
+	idVec3 dest;
 	trace_t tr;
-	vec3_t midpoint;
+	idVec3 midpoint;
 // jpw
 
 
@@ -1488,7 +1489,7 @@ qboolean G_RadiusDamage( vec3_t origin, gentity_t *attacker, float damage, float
 */
 // JPW NERVE
 		if ( !ent->r.bmodel ) {
-			VectorSubtract( ent->r.currentOrigin,origin,v ); // JPW NERVE simpler centroid check that doesn't have box alignment weirdness
+			v = ent->r.currentOrigin - origin; // JPW NERVE simpler centroid check that doesn't have box alignment weirdness
 		} else {
 			for ( i = 0 ; i < 3 ; i++ ) {
 				if ( origin[i] < ent->r.absmin[i] ) {
@@ -1501,7 +1502,7 @@ qboolean G_RadiusDamage( vec3_t origin, gentity_t *attacker, float damage, float
 			}
 		}
 // jpw
-		dist = VectorLength( v );
+		dist = v.Length();
 
 		if ( dist >= radius ) {
 			continue;
@@ -1514,7 +1515,7 @@ qboolean G_RadiusDamage( vec3_t origin, gentity_t *attacker, float damage, float
 			if ( LogAccuracyHit( ent, attacker ) ) {
 				hitClient = qtrue;
 			}
-			VectorSubtract( ent->r.currentOrigin, origin, dir );
+			dir = ent->r.currentOrigin - origin;
 			// push the center of mass higher than the origin so players
 			// get knocked into the air more
 			dir[2] += 24;
@@ -1524,19 +1525,19 @@ qboolean G_RadiusDamage( vec3_t origin, gentity_t *attacker, float damage, float
 // JPW NERVE --  MP weapons should do 1/8 damage through walls over 1/8th distance
 		else {
 			if ( g_gametype.integer != GT_SINGLE_PLAYER ) {
-				VectorAdd( ent->r.absmin, ent->r.absmax, midpoint );
-				VectorScale( midpoint, 0.5, midpoint );
-				VectorCopy( midpoint, dest );
+				midpoint = ent->r.absmin + ent->r.absmax;
+				midpoint = midpoint * 0.5;
+				dest = midpoint;
 
 				trap_Trace( &tr, origin, vec3_origin, vec3_origin, dest, ENTITYNUM_NONE, MASK_SOLID );
 				if ( tr.fraction < 1.0 ) {
-					VectorSubtract( dest,origin,dest );
-					dist = VectorLength( dest );
+					dest = dest - origin;
+					dist = dest.Length();
 					if ( dist < radius * 0.2f ) { // closer than 1/4 dist
 						if ( LogAccuracyHit( ent, attacker ) ) {
 							hitClient = qtrue;
 						}
-						VectorSubtract( ent->r.currentOrigin, origin, dir );
+						dir = ent->r.currentOrigin - origin;
 						dir[2] += 24;
 						G_Damage( ent, NULL, attacker, dir, origin, (int)( points * 0.1f ), DAMAGE_RADIUS, mod );
 					}

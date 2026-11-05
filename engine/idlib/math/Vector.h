@@ -1889,6 +1889,28 @@ snap every component to the closest integer value
 ported from the old q3 mathlib
 ================
 */
+// returns the yaw heading for the given direction vector, ported from the old q3 mathlib
+ID_INLINE float vectoyaw( const idVec3 &vec ) {
+	float yaw;
+
+	if ( vec[1] == 0 && vec[0] == 0 ) {
+		yaw = 0;
+	} else {
+		if ( vec[0] ) {
+			yaw = ( atan2( vec[1], vec[0] ) * 180 / idMath::M_PI );
+		} else if ( vec[1] > 0 ) {
+			yaw = 90;
+		} else {
+			yaw = 270;
+		}
+		if ( yaw < 0 ) {
+			yaw += 360;
+		}
+	}
+
+	return yaw;
+}
+
 ID_INLINE void SnapVector( idVec3 &v ) {
 	v.Snap();
 }
