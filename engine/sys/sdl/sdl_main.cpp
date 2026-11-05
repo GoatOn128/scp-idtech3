@@ -113,11 +113,12 @@ void Sys_EndStreamedFile( fileHandle_t f ) {
 }
 
 int Sys_StreamedRead( void *buffer, int size, int count, fileHandle_t f ) {
-	return fread( buffer, size, count, (FILE *)f );
+	// f is an fsh index, not a FILE*, so the read must go through the filesystem
+	return FS_Read( buffer, size * count, f );
 }
 
 void Sys_StreamSeek( fileHandle_t f, int offset, int origin ) {
-	fseek( (FILE *)f, offset, origin );
+	FS_Seek( f, offset, origin );
 }
 
 void *Sys_InitializeCriticalSection() {
