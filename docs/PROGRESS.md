@@ -16,4 +16,11 @@ One file per milestone. Each milestone note carries the finish stamp in 12-hour 
   format contract. splines, botlib and the game modules still carry legacy copies, they
   move to idlib in the next phase.
 
+  phase 2 (modules): the game modules build against the idlib static library;
+  q_math.cpp and q_shared.cpp undef the idlib string redirects and the Doom 3 color
+  and angle macros so the engine's q_shared.h values win. idlib builds position
+  independent for the shared objects and carries an inline assert handler; its
+  third-party headers are kept out of the /W4 bar with a warning push in
+  precompiled.h.
+
 build-digest.md at the repo root is the source of truth for build health.
