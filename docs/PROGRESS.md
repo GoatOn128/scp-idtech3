@@ -11,4 +11,9 @@ One file per milestone. Each milestone note carries the finish stamp in 12-hour 
   
   that means, shrinking q_common/q_shared (or remove it all togeder)
 
+  phase 1 (engine): idlib vendored in as a static library; engine math (q_math.cpp) and
+  Com_Clamp now run on idlib; the COM_* parser keeps the Q3 token rules as the on-disk
+  format contract. splines, botlib and the game modules still carry legacy copies, they
+  move to idlib in the next phase.
+
 build-digest.md at the repo root is the source of truth for build health.
