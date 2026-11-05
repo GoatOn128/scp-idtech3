@@ -703,57 +703,6 @@ extern qboolean com_errorEntered;
 extern fileHandle_t com_journalFile;
 extern fileHandle_t com_journalDataFile;
 
-typedef enum {
-	TAG_FREE,
-	TAG_GENERAL,
-	TAG_BOTLIB,
-	TAG_RENDERER,
-	TAG_SMALL,
-	TAG_STATIC
-} memtag_t;
-
-/*
-
---- low memory ----
-server vm
-server clipmap
----mark---
-renderer initialization (shaders, etc)
-UI vm
-cgame vm
-renderer map
-renderer models
-
----free---
-
-temp file loading
---- high memory ---
-
-*/
-
-#if defined( _DEBUG ) && !defined( BSPC )
-	#define ZONE_DEBUG
-#endif
-
-void *Z_TagMalloc( int size, int tag ); // NOT 0 filled memory
-void *Z_Malloc( int size );         // returns 0 filled memory
-void Z_Free( void *ptr );
-void Z_FreeTags( int tag );
-
-void Hunk_Clear( void );
-void Hunk_ClearToMark( void );
-void Hunk_SetMark( void );
-qboolean Hunk_CheckMark( void );
-//void *Hunk_Alloc( int size );
-// void *Hunk_Alloc( int size, ha_pref preference );
-void Hunk_ClearTempMemory( void );
-void *Hunk_AllocateTempMemory( int size );
-void Hunk_FreeTempMemory( void *buf );
-int Hunk_MemoryRemaining( void );
-void Hunk_SmallLog( void );
-void Hunk_Log( void );
-
-void Com_TouchMemory( void );
 
 // commandLine should not include the executable name (argv[0])
 void Com_Init( char *commandLine );
