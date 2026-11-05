@@ -73,14 +73,17 @@ endif()
 set(PLATFORM_DEFINES "MAC_STATIC=")
 if ( WIN32 )
 	list(APPEND PLATFORM_DEFINES "QDECL=__cdecl")
+	# PATH_SEP is the backslash character on Windows. cl takes the /D
+	# definition raw while gcc and clang unescape it once, so assemble the
+	# value with string(ASCII) instead of backslash literals
+	string(ASCII 92 Q_BACKSLASH)
 	if ( MSVC )
-		# cl does not process escape sequences in /D definitions
-		list(APPEND PLATFORM_DEFINES "PATH_SEP='\\\\')
+		string(CONCAT Q_PATH_SEP "PATH_SEP='" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "'")
 	else()
-		# gcc and clang unescape the definition text once
-		list(APPEND PLATFORM_DEFINES "PATH_SEP='\\\\\\\\')
+		string(CONCAT Q_PATH_SEP "PATH_SEP='" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "'")
 	endif()
-	if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+	list(APPEND PLATFORM_DEFINES "${Q_PATH_SEP}")
+if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
 		set(Q_CPUSTRING "win-x64")
 	else()
 		set(Q_CPUSTRING "win-x86")
