@@ -489,8 +489,8 @@ static gameImport_t SV_CreateGameImports() {
 		Sys_SnapVector( v );
 		return;
 	};
-	imports.SV_GetTag = []( int clientNum, char *tagName, orientation_t *or ) -> qboolean {
-		return SV_GetTag( clientNum, tagName, or );
+	imports.SV_GetTag = []( int clientNum, char *tagName, orientation_t *ori ) -> qboolean {
+		return SV_GetTag( clientNum, tagName, ori );
 
 		//====================================
 	};
@@ -1135,14 +1135,14 @@ SV_GetTag
   return qfalse if unable to retrieve tag information for this client
 ====================
 */
-extern qboolean CL_GetTag( int clientNum, char *tagname, orientation_t *or );
+extern qboolean CL_GetTag( int clientNum, char *tagname, orientation_t *ori );
 
-qboolean SV_GetTag( int clientNum, char *tagname, orientation_t *or ) {
+qboolean SV_GetTag( int clientNum, char *tagname, orientation_t *ori ) {
 	if ( com_dedicated->integer ) {
 		return qfalse;
 	}
 
-	return CL_GetTag( clientNum, tagname, or );
+	return CL_GetTag( clientNum, tagname, ori );
 }
 
 /*

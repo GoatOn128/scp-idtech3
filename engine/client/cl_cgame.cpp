@@ -1311,10 +1311,10 @@ void CL_SetCGameTime( void ) {
 CL_GetTag
 ====================
 */
-qboolean CL_GetTag( int clientNum, char *tagname, orientation_t *or ) {
+qboolean CL_GetTag( int clientNum, char *tagname, orientation_t *ori ) {
 	if ( !cgvm ) {
 		return qfalse;
 	}
 
-	return cgvm->CG_GET_TAG(clientNum, tagname, or );
+	return cgvm->CG_GET_TAG(clientNum, tagname, ori );
 }
