@@ -36,7 +36,7 @@ If you have questions concerning this license or the applicable additional terms
 #define MARKER_OFFSET           0   // 1
 
 // Ridah, just make these global to prevent having to add more paramaters, which add overhead
-static vec3_t bestnormal;
+static idVec3 bestnormal;
 static float bestdist;
 
 /*
@@ -49,9 +49,9 @@ Out must have space for two more vertexes than in
 #define SIDE_FRONT  0
 #define SIDE_BACK   1
 #define SIDE_ON     2
-static void R_ChopPolyBehindPlane( int numInPoints, vec3_t inPoints[MAX_VERTS_ON_POLY],
-								   int *numOutPoints, vec3_t outPoints[MAX_VERTS_ON_POLY],
-								   vec3_t normal, vec_t dist, vec_t epsilon ) {
+static void R_ChopPolyBehindPlane( int numInPoints, idVec3 inPoints[MAX_VERTS_ON_POLY],
+								   int *numOutPoints, idVec3 outPoints[MAX_VERTS_ON_POLY],
+								   idVec3 normal, vec_t dist, vec_t epsilon ) {
 	float dists[MAX_VERTS_ON_POLY + 4];
 	int sides[MAX_VERTS_ON_POLY + 4];
 	int counts[3];
@@ -70,7 +70,7 @@ static void R_ChopPolyBehindPlane( int numInPoints, vec3_t inPoints[MAX_VERTS_ON
 
 	// determine sides for each point
 	for ( i = 0 ; i < numInPoints ; i++ ) {
-		dot = DotProduct( inPoints[i], normal );
+		dot = ( inPoints[i] ) * ( normal );
 		dot -= dist;
 		dists[i] = dot;
 		if ( dot > epsilon ) {
@@ -92,7 +92,7 @@ static void R_ChopPolyBehindPlane( int numInPoints, vec3_t inPoints[MAX_VERTS_ON
 	}
 	if ( !counts[1] ) {
 		*numOutPoints = numInPoints;
-		memcpy( outPoints, inPoints, numInPoints * sizeof( vec3_t ) );
+		memcpy( outPoints, inPoints, numInPoints * sizeof( idVec3 ) );
 		return;
 	}
 
@@ -101,13 +101,13 @@ static void R_ChopPolyBehindPlane( int numInPoints, vec3_t inPoints[MAX_VERTS_ON
 		clip = outPoints[ *numOutPoints ];
 
 		if ( sides[i] == SIDE_ON ) {
-			VectorCopy( p1, clip );
+			clip = p1;
 			( *numOutPoints )++;
 			continue;
 		}
 
 		if ( sides[i] == SIDE_FRONT ) {
-			VectorCopy( p1, clip );
+			clip = p1;
 			( *numOutPoints )++;
 			clip = outPoints[ *numOutPoints ];
 		}
@@ -142,7 +142,7 @@ R_BoxSurfaces_r
 
 =================
 */
-void R_BoxSurfaces_r( mnode_t *node, vec3_t mins, vec3_t maxs, surfaceType_t **list, int listsize, int *listlength, vec3_t dir ) {
+void R_BoxSurfaces_r( mnode_t *node, idVec3 mins, idVec3 maxs, surfaceType_t **list, int listsize, int *listlength, idVec3 dir ) {
 
 	int s, c;
 	msurface_t  *surf, **mark;
@@ -191,7 +191,7 @@ void R_BoxSurfaces_r( mnode_t *node, vec3_t mins, vec3_t maxs, surfaceType_t **l
 			s = BoxOnPlaneSide( mins, maxs, &( ( srfSurfaceFace_t * ) surf->data )->plane );
 			if ( s == 1 || s == 2 ) {
 				surf->viewCount = tr.viewCount;
-			} else if ( DotProduct( ( ( srfSurfaceFace_t * ) surf->data )->plane.normal, dir ) < -0.5 )         {
+			} else if ( ( ( ( srfSurfaceFace_t * ) surf->data )->plane.normal ) * ( dir ) < -0.5 )         {
 				// don't add faces that make sharp angles with the projection direction
 				surf->viewCount = tr.viewCount;
 			}
@@ -215,12 +215,12 @@ R_AddMarkFragments
 
 =================
 */
-void R_AddMarkFragments( int numClipPoints, vec3_t clipPoints[2][MAX_VERTS_ON_POLY],
-						 int numPlanes, vec3_t *normals, float *dists,
-						 int maxPoints, vec3_t pointBuffer,
+void R_AddMarkFragments( int numClipPoints, idVec3 clipPoints[2][MAX_VERTS_ON_POLY],
+						 int numPlanes, idVec3 *normals, float *dists,
+						 int maxPoints, idVec3 *pointBuffer,
 						 int maxFragments, markFragment_t *fragmentBuffer,
 						 int *returnedPoints, int *returnedFragments,
-						 vec3_t mins, vec3_t maxs ) {
+						 idVec3 mins, idVec3 maxs ) {
 	int pingPong, i;
 	markFragment_t  *mf;
 
@@ -262,9 +262,9 @@ void R_AddMarkFragments( int numClipPoints, vec3_t clipPoints[2][MAX_VERTS_ON_PO
 	mf = fragmentBuffer + ( *returnedFragments );
 	mf->firstPoint = ( *returnedPoints );
 	mf->numPoints = numClipPoints;
-	//memcpy( pointBuffer + (*returnedPoints) * 3, clipPoints[pingPong], numClipPoints * sizeof(vec3_t) );
+	//memcpy( pointBuffer + (*returnedPoints) * 3, clipPoints[pingPong], numClipPoints * sizeof(idVec3) );
 	for ( i = 0; i < numClipPoints; i++ ) {
-		VectorCopy( clipPoints[pingPong][i], (float *)pointBuffer + 5 * ( *returnedPoints + i ) );
+		(float *)pointBuffer + 5 * ( *returnedPoints + i ) = clipPoints[pingPong][i];
 	}
 
 	( *returnedPoints ) += numClipPoints;
@@ -277,42 +277,42 @@ R_OldMarkFragments
 
 =================
 */
-int R_OldMarkFragments( int numPoints, const vec3_t *points, const vec3_t projection,
-						int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
+int R_OldMarkFragments( int numPoints, const idVec3 *points, const idVec3 &projection,
+						int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
 	int numsurfaces, numPlanes;
 	int i, j, k, m, n;
 	surfaceType_t   *surfaces[64];
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 	int returnedFragments;
 	int returnedPoints;
-	vec3_t normals[MAX_VERTS_ON_POLY + 2];
+	idVec3 normals[MAX_VERTS_ON_POLY + 2];
 	float dists[MAX_VERTS_ON_POLY + 2];
-	vec3_t clipPoints[2][MAX_VERTS_ON_POLY];
+	idVec3 clipPoints[2][MAX_VERTS_ON_POLY];
 	int numClipPoints;
 	float           *v;
 	srfSurfaceFace_t *surf;
 	srfGridMesh_t   *cv;
 	drawVert_t      *dv;
-	vec3_t normal;
-	vec3_t projectionDir;
-	vec3_t v1, v2;
+	idVec3 normal;
+	idVec3 projectionDir;
+	idVec3 v1, v2;
 	int             *indexes;
 
 	//increment view count for double check prevention
 	tr.viewCount++;
 
 	//
-	VectorNormalize2( projection, projectionDir );
+	( projectionDir = projection, projectionDir.Normalize() );
 	// find all the brushes that are to be considered
 	ClearBounds( mins, maxs );
 	for ( i = 0 ; i < numPoints ; i++ ) {
-		vec3_t temp;
+		idVec3 temp;
 
 		AddPointToBounds( points[i], mins, maxs );
-		VectorAdd( points[i], projection, temp );
+		temp = points[i] + projection;
 		AddPointToBounds( temp, mins, maxs );
 		// make sure we get all the leafs (also the one(s) in front of the hit surface)
-		VectorMA( points[i], -20, projectionDir, temp );
+		temp = points[i] + projectionDir * -20;
 		AddPointToBounds( temp, mins, maxs );
 	}
 
@@ -321,19 +321,19 @@ int R_OldMarkFragments( int numPoints, const vec3_t *points, const vec3_t projec
 	}
 	// create the bounding planes for the to be projected polygon
 	for ( i = 0 ; i < numPoints ; i++ ) {
-		VectorSubtract( points[( i + 1 ) % numPoints], points[i], v1 );
-		VectorAdd( points[i], projection, v2 );
-		VectorSubtract( points[i], v2, v2 );
-		CrossProduct( v1, v2, normals[i] );
-		VectorNormalizeFast( normals[i] );
-		dists[i] = DotProduct( normals[i], points[i] );
+		v1 = points[( i + 1 ) % numPoints] - points[i];
+		v2 = points[i] + projection;
+		v2 = points[i] - v2;
+		normals[i].Cross( v1, v2 );
+		normals[i].NormalizeFast();
+		dists[i] = ( normals[i] ) * ( points[i] );
 	}
 	// add near and far clipping planes for projection
-	VectorCopy( projectionDir, normals[numPoints] );
-	dists[numPoints] = DotProduct( normals[numPoints], points[0] ) - 32;
-	VectorCopy( projectionDir, normals[numPoints + 1] );
-	VectorInverse( normals[numPoints + 1] );
-	dists[numPoints + 1] = DotProduct( normals[numPoints + 1], points[0] ) - 20;
+	normals[numPoints] = projectionDir;
+	dists[numPoints] = ( normals[numPoints] ) * ( points[0] ) - 32;
+	normals[numPoints + 1] = projectionDir;
+	normals[numPoints + 1].Negate();
+	dists[numPoints + 1] = ( normals[numPoints + 1] ) * ( points[0] ) - 20;
 	numPlanes = numPoints + 2;
 
 	numsurfaces = 0;
@@ -376,18 +376,18 @@ int R_OldMarkFragments( int numPoints, const vec3_t *points, const vec3_t projec
 
 					dv = cv->verts + m * cv->width + n;
 
-					VectorCopy( dv[0].xyz, clipPoints[0][0] );
-					VectorMA( clipPoints[0][0], MARKER_OFFSET, dv[0].normal, clipPoints[0][0] );
-					VectorCopy( dv[cv->width].xyz, clipPoints[0][1] );
-					VectorMA( clipPoints[0][1], MARKER_OFFSET, dv[cv->width].normal, clipPoints[0][1] );
-					VectorCopy( dv[1].xyz, clipPoints[0][2] );
-					VectorMA( clipPoints[0][2], MARKER_OFFSET, dv[1].normal, clipPoints[0][2] );
+					clipPoints[0][0] = dv[0].xyz;
+					clipPoints[0][0] = clipPoints[0][0] + dv[0].normal * MARKER_OFFSET;
+					clipPoints[0][1] = dv[cv->width].xyz;
+					clipPoints[0][1] = clipPoints[0][1] + dv[cv->width].normal * MARKER_OFFSET;
+					clipPoints[0][2] = dv[1].xyz;
+					clipPoints[0][2] = clipPoints[0][2] + dv[1].normal * MARKER_OFFSET;
 					// check the normal of this triangle
-					VectorSubtract( clipPoints[0][0], clipPoints[0][1], v1 );
-					VectorSubtract( clipPoints[0][2], clipPoints[0][1], v2 );
-					CrossProduct( v1, v2, normal );
-					VectorNormalizeFast( normal );
-					if ( DotProduct( normal, projectionDir ) < -0.1 ) {
+					v1 = clipPoints[0][0] - clipPoints[0][1];
+					v2 = clipPoints[0][2] - clipPoints[0][1];
+					normal.Cross( v1, v2 );
+					normal.NormalizeFast();
+					if ( ( normal ) * ( projectionDir ) < -0.1 ) {
 						// add the fragments of this triangle
 						R_AddMarkFragments( numClipPoints, clipPoints,
 											numPlanes, normals, dists,
@@ -400,18 +400,18 @@ int R_OldMarkFragments( int numPoints, const vec3_t *points, const vec3_t projec
 						}
 					}
 
-					VectorCopy( dv[1].xyz, clipPoints[0][0] );
-					VectorMA( clipPoints[0][0], MARKER_OFFSET, dv[1].normal, clipPoints[0][0] );
-					VectorCopy( dv[cv->width].xyz, clipPoints[0][1] );
-					VectorMA( clipPoints[0][1], MARKER_OFFSET, dv[cv->width].normal, clipPoints[0][1] );
-					VectorCopy( dv[cv->width + 1].xyz, clipPoints[0][2] );
-					VectorMA( clipPoints[0][2], MARKER_OFFSET, dv[cv->width + 1].normal, clipPoints[0][2] );
+					clipPoints[0][0] = dv[1].xyz;
+					clipPoints[0][0] = clipPoints[0][0] + dv[1].normal * MARKER_OFFSET;
+					clipPoints[0][1] = dv[cv->width].xyz;
+					clipPoints[0][1] = clipPoints[0][1] + dv[cv->width].normal * MARKER_OFFSET;
+					clipPoints[0][2] = dv[cv->width + 1].xyz;
+					clipPoints[0][2] = clipPoints[0][2] + dv[cv->width + 1].normal * MARKER_OFFSET;
 					// check the normal of this triangle
-					VectorSubtract( clipPoints[0][0], clipPoints[0][1], v1 );
-					VectorSubtract( clipPoints[0][2], clipPoints[0][1], v2 );
-					CrossProduct( v1, v2, normal );
-					VectorNormalizeFast( normal );
-					if ( DotProduct( normal, projectionDir ) < -0.05 ) {
+					v1 = clipPoints[0][0] - clipPoints[0][1];
+					v2 = clipPoints[0][2] - clipPoints[0][1];
+					normal.Cross( v1, v2 );
+					normal.NormalizeFast();
+					if ( ( normal ) * ( projectionDir ) < -0.05 ) {
 						// add the fragments of this triangle
 						R_AddMarkFragments( numClipPoints, clipPoints,
 											numPlanes, normals, dists,
@@ -429,22 +429,22 @@ int R_OldMarkFragments( int numPoints, const vec3_t *points, const vec3_t projec
 
 			surf = ( srfSurfaceFace_t * ) surfaces[i];
 			// check the normal of this face
-			if ( DotProduct( surf->plane.normal, projectionDir ) > -0.5 ) {
+			if ( ( surf->plane.normal ) * ( projectionDir ) > -0.5 ) {
 				continue;
 			}
 
 			/*
-			VectorSubtract(clipPoints[0][0], clipPoints[0][1], v1);
-			VectorSubtract(clipPoints[0][2], clipPoints[0][1], v2);
-			CrossProduct(v1, v2, normal);
-			VectorNormalize(normal);
-			if (DotProduct(normal, projectionDir) > -0.5) continue;
+			v1 = clipPoints[0][0] - clipPoints[0][1];
+			v2 = clipPoints[0][2] - clipPoints[0][1];
+			normal.Cross( v1, v2 );
+			normal.Normalize();
+			if (( normal ) * ( projectionDir ) > -0.5) continue;
 			*/
 			indexes = ( int * )( (byte *)surf + surf->ofsIndices );
 			for ( k = 0 ; k < surf->numIndices ; k += 3 ) {
 				for ( j = 0 ; j < 3 ; j++ ) {
 					v = surf->points[0] + VERTEXSIZE * indexes[k + j];;
-					VectorMA( v, MARKER_OFFSET, surf->plane.normal, clipPoints[0][j] );
+					clipPoints[0][j] = v + surf->plane.normal * MARKER_OFFSET;
 				}
 				// add the fragments of this face
 				R_AddMarkFragments( 3, clipPoints,
@@ -474,29 +474,29 @@ R_MarkFragments
 
 =================
 */
-int R_MarkFragments( int orientation, const vec3_t *points, const vec3_t projection,
-					 int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
+int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projection,
+					 int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
 	int numsurfaces, numPlanes;
 	int i, j, k, m, n;
 	surfaceType_t   *surfaces[4096];
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 	int returnedFragments;
 	int returnedPoints;
-	vec3_t normals[MAX_VERTS_ON_POLY + 2];
+	idVec3 normals[MAX_VERTS_ON_POLY + 2];
 	float dists[MAX_VERTS_ON_POLY + 2];
-	vec3_t clipPoints[2][MAX_VERTS_ON_POLY];
+	idVec3 clipPoints[2][MAX_VERTS_ON_POLY];
 	int numClipPoints;
 	float           *v;
 	srfSurfaceFace_t *surf;
 	srfGridMesh_t   *cv;
 	drawVert_t      *dv;
-	vec3_t normal;
-	vec3_t projectionDir;
-	vec3_t v1, v2;
+	idVec3 normal;
+	idVec3 projectionDir;
+	idVec3 v1, v2;
 	int             *indexes;
 	float radius;
-	vec3_t center;          // center of original mark
-	//vec3_t			bestCenter;	// center point projected onto the closest surface
+	idVec3 center;          // center of original mark
+	//idVec3			bestCenter;	// center point projected onto the closest surface
 	float texCoordScale;
 	//float			dot;
 	int numPoints = 4;              // Ridah, we were only ever passing in 4, so I made this local and used the parameter for the orientation
@@ -512,25 +512,25 @@ int R_MarkFragments( int orientation, const vec3_t *points, const vec3_t project
 		oldMapping = qtrue;
 	}
 
-	VectorClear( center );
+	center.Zero();
 	for ( i = 0 ; i < numPoints ; i++ ) {
-		VectorAdd( points[i], center, center );
+		center = points[i] + center;
 	}
-	VectorScale( center, 1.0 / numPoints, center );
+	center = center * 1.0 / numPoints;
 	//
-	radius = VectorNormalize2( projection, projectionDir ) / 2.0;
+	radius = ( projectionDir = projection, projectionDir.Normalize() ) / 2.0;
 	bestdist = 0;
 	VectorNegate( projectionDir, bestnormal );
 	// find all the brushes that are to be considered
 	ClearBounds( mins, maxs );
 	for ( i = 0 ; i < numPoints ; i++ ) {
-		vec3_t temp;
+		idVec3 temp;
 
 		AddPointToBounds( points[i], mins, maxs );
-		VectorMA( points[i], 1 * ( 1 + oldMapping * radius * 4 ), projection, temp );
+		temp = points[i] + projection * 1 * ( 1 + oldMapping * radius * 4 );
 		AddPointToBounds( temp, mins, maxs );
 		// make sure we get all the leafs (also the one(s) in front of the hit surface)
-		VectorMA( points[i], -20 * ( 1.0 + (float)oldMapping * ( radius / 20.0 ) * 4 ), projectionDir, temp );
+		temp = points[i] + projectionDir * -20 * ( 1.0 + (float)oldMapping * ( radius / 20.0 ) * 4 );
 		AddPointToBounds( temp, mins, maxs );
 	}
 
@@ -539,19 +539,19 @@ int R_MarkFragments( int orientation, const vec3_t *points, const vec3_t project
 	}
 	// create the bounding planes for the to be projected polygon
 	for ( i = 0 ; i < numPoints ; i++ ) {
-		VectorSubtract( points[( i + 1 ) % numPoints], points[i], v1 );
-		VectorAdd( points[i], projection, v2 );
-		VectorSubtract( points[i], v2, v2 );
-		CrossProduct( v1, v2, normals[i] );
-		VectorNormalize( normals[i] );
-		dists[i] = DotProduct( normals[i], points[i] );
+		v1 = points[( i + 1 ) % numPoints] - points[i];
+		v2 = points[i] + projection;
+		v2 = points[i] - v2;
+		normals[i].Cross( v1, v2 );
+		normals[i].Normalize();
+		dists[i] = ( normals[i] ) * ( points[i] );
 	}
 	// add near and far clipping planes for projection
-	VectorCopy( projectionDir, normals[numPoints] );
-	dists[numPoints] = DotProduct( normals[numPoints], points[0] ) - radius * ( 1 + oldMapping * 10 );
-	VectorCopy( projectionDir, normals[numPoints + 1] );
-	VectorInverse( normals[numPoints + 1] );
-	dists[numPoints + 1] = DotProduct( normals[numPoints + 1], points[0] ) - radius * ( 1 + oldMapping * 10 );
+	normals[numPoints] = projectionDir;
+	dists[numPoints] = ( normals[numPoints] ) * ( points[0] ) - radius * ( 1 + oldMapping * 10 );
+	normals[numPoints + 1] = projectionDir;
+	normals[numPoints + 1].Negate();
+	dists[numPoints + 1] = ( normals[numPoints + 1] ) * ( points[0] ) - radius * ( 1 + oldMapping * 10 );
 	numPlanes = numPoints + 2;
 
 	numsurfaces = 0;
@@ -571,24 +571,24 @@ int R_MarkFragments( int orientation, const vec3_t *points, const vec3_t project
 			if (*surfaces[i] == SF_FACE) {
 				surf = ( srfSurfaceFace_t * ) surfaces[i];
 				// Ridah, check if this is the closest surface
-				dot = DotProduct( center, surf->plane.normal );
+				dot = ( center ) * ( surf->plane.normal );
 				dot -= surf->plane.dist;
 				if (!bestdist) {
 					if (dot < 0)
 						bestdist = fabs(dot) + 1000;	// avoid this surface, since the point is behind it
 					else
 						bestdist = dot;
-					VectorCopy( surf->plane.normal, bestnormal );
-					VectorMA( center, -dot, surf->plane.normal, bestCenter );
+					bestnormal = surf->plane.normal;
+					bestCenter = center + surf->plane.normal * -dot;
 				} else if (dot >= 0 && dot < bestdist) {
 					bestdist = dot;
-					VectorCopy( surf->plane.normal, bestnormal );
-					VectorMA( center, -dot, surf->plane.normal, bestCenter );
+					bestnormal = surf->plane.normal;
+					bestCenter = center + surf->plane.normal * -dot;
 				}
 			}
 		}
 		// bestCenter is now the real center
-		VectorCopy( bestCenter, center );
+		center = bestCenter;
 Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bestnormal[2] );
 */
 		VectorNegate( bestnormal, bestnormal );
@@ -626,18 +626,18 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 
 					dv = cv->verts + m * cv->width + n;
 
-					VectorCopy( dv[0].xyz, clipPoints[0][0] );
-					VectorMA( clipPoints[0][0], MARKER_OFFSET, dv[0].normal, clipPoints[0][0] );
-					VectorCopy( dv[cv->width].xyz, clipPoints[0][1] );
-					VectorMA( clipPoints[0][1], MARKER_OFFSET, dv[cv->width].normal, clipPoints[0][1] );
-					VectorCopy( dv[1].xyz, clipPoints[0][2] );
-					VectorMA( clipPoints[0][2], MARKER_OFFSET, dv[1].normal, clipPoints[0][2] );
+					clipPoints[0][0] = dv[0].xyz;
+					clipPoints[0][0] = clipPoints[0][0] + dv[0].normal * MARKER_OFFSET;
+					clipPoints[0][1] = dv[cv->width].xyz;
+					clipPoints[0][1] = clipPoints[0][1] + dv[cv->width].normal * MARKER_OFFSET;
+					clipPoints[0][2] = dv[1].xyz;
+					clipPoints[0][2] = clipPoints[0][2] + dv[1].normal * MARKER_OFFSET;
 					// check the normal of this triangle
-					VectorSubtract( clipPoints[0][0], clipPoints[0][1], v1 );
-					VectorSubtract( clipPoints[0][2], clipPoints[0][1], v2 );
-					CrossProduct( v1, v2, normal );
-					VectorNormalize( normal );
-					if ( DotProduct( normal, projectionDir ) < -0.1 ) {
+					v1 = clipPoints[0][0] - clipPoints[0][1];
+					v2 = clipPoints[0][2] - clipPoints[0][1];
+					normal.Cross( v1, v2 );
+					normal.Normalize();
+					if ( ( normal ) * ( projectionDir ) < -0.1 ) {
 						// add the fragments of this triangle
 						R_AddMarkFragments( numClipPoints, clipPoints,
 											numPlanes, normals, dists,
@@ -650,18 +650,18 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 						}
 					}
 
-					VectorCopy( dv[1].xyz, clipPoints[0][0] );
-					VectorMA( clipPoints[0][0], MARKER_OFFSET, dv[1].normal, clipPoints[0][0] );
-					VectorCopy( dv[cv->width].xyz, clipPoints[0][1] );
-					VectorMA( clipPoints[0][1], MARKER_OFFSET, dv[cv->width].normal, clipPoints[0][1] );
-					VectorCopy( dv[cv->width + 1].xyz, clipPoints[0][2] );
-					VectorMA( clipPoints[0][2], MARKER_OFFSET, dv[cv->width + 1].normal, clipPoints[0][2] );
+					clipPoints[0][0] = dv[1].xyz;
+					clipPoints[0][0] = clipPoints[0][0] + dv[1].normal * MARKER_OFFSET;
+					clipPoints[0][1] = dv[cv->width].xyz;
+					clipPoints[0][1] = clipPoints[0][1] + dv[cv->width].normal * MARKER_OFFSET;
+					clipPoints[0][2] = dv[cv->width + 1].xyz;
+					clipPoints[0][2] = clipPoints[0][2] + dv[cv->width + 1].normal * MARKER_OFFSET;
 					// check the normal of this triangle
-					VectorSubtract( clipPoints[0][0], clipPoints[0][1], v1 );
-					VectorSubtract( clipPoints[0][2], clipPoints[0][1], v2 );
-					CrossProduct( v1, v2, normal );
-					VectorNormalize( normal );
-					if ( DotProduct( normal, projectionDir ) < -0.05 ) {
+					v1 = clipPoints[0][0] - clipPoints[0][1];
+					v2 = clipPoints[0][2] - clipPoints[0][1];
+					normal.Cross( v1, v2 );
+					normal.Normalize();
+					if ( ( normal ) * ( projectionDir ) < -0.05 ) {
 						// add the fragments of this triangle
 						R_AddMarkFragments( numClipPoints, clipPoints,
 											numPlanes, normals, dists,
@@ -676,17 +676,17 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				}
 			}
 		} else if ( *surfaces[i] == SF_FACE )     {
-			extern float VectorDistance( vec3_t v1, vec3_t v2 );
-			vec3_t axis[3];
+			extern float Vector( (idVec3 v1) - (idVec3 v2) ).Length();
+			idVec3 axis[3];
 			float texScale, dot;
-			vec3_t originalPoints[4];
-			vec3_t newCenter, delta;
+			idVec3 originalPoints[4];
+			idVec3 newCenter, delta;
 			int oldNumPoints;
 			float epsilon = 0.5;
 			// duplicated so we don't mess with the original clips for the curved surfaces
-			vec3_t lnormals[MAX_VERTS_ON_POLY + 2];
+			idVec3 lnormals[MAX_VERTS_ON_POLY + 2];
 			float ldists[MAX_VERTS_ON_POLY + 2];
-			vec3_t lmins, lmaxs;
+			idVec3 lmins, lmaxs;
 
 			surf = ( srfSurfaceFace_t * ) surfaces[i];
 
@@ -698,29 +698,29 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				// onto the current surface
 
 				// find the center of the new decal
-				dot = DotProduct( center, surf->plane.normal );
+				dot = ( center ) * ( surf->plane.normal );
 				dot -= surf->plane.dist;
 				// check the normal of this face
-				if ( dot < -epsilon && DotProduct( surf->plane.normal, projectionDir ) >= 0.01 ) {
+				if ( dot < -epsilon && ( surf->plane.normal ) * ( projectionDir ) >= 0.01 ) {
 					continue;
 				} else if ( fabs( dot ) > radius ) {
 					continue;
 				}
 				// if the impact point is behind the surface, subtract the projection, otherwise add it
-				VectorMA( center, -dot, bestnormal, newCenter );
+				newCenter = center + bestnormal * -dot;
 
 				// recalc dot from the offset position
-				dot = DotProduct( newCenter, surf->plane.normal );
+				dot = ( newCenter ) * ( surf->plane.normal );
 				dot -= surf->plane.dist;
-				VectorMA( newCenter, -dot, surf->plane.normal, newCenter );
+				newCenter = newCenter + surf->plane.normal * -dot;
 
-				VectorMA( newCenter, MARKER_OFFSET, surf->plane.normal, newCenter );
+				newCenter = newCenter + surf->plane.normal * MARKER_OFFSET;
 
 				// create the texture axis
-				VectorNormalize2( surf->plane.normal, axis[0] );
-				PerpendicularVector( axis[1], axis[0] );
-				RotatePointAroundVector( axis[2], axis[0], axis[1], (float)orientation );
-				CrossProduct( axis[0], axis[2], axis[1] );
+				( axis[0] = surf->plane.normal, axis[0].Normalize() );
+				axis[1].PerpendicularVector( axis[0] );
+				axis[2].RotatePointAroundVector( axis[0], axis[1], (float)orientation );
+				axis[1].Cross( axis[0], axis[2] );
 
 				texScale = 0.5 * 1.0 / radius;
 
@@ -738,12 +738,12 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				for ( j = 0 ; j < 4 ; j++ ) {
 					AddPointToBounds( originalPoints[j], lmins, lmaxs );
 
-					VectorSubtract( originalPoints[( j + 1 ) % numPoints], originalPoints[j], v1 );
-					VectorSubtract( originalPoints[j], surf->plane.normal, v2 );
-					VectorSubtract( originalPoints[j], v2, v2 );
-					CrossProduct( v1, v2, lnormals[j] );
-					VectorNormalize( lnormals[j] );
-					ldists[j] = DotProduct( lnormals[j], originalPoints[j] );
+					v1 = originalPoints[( j + 1 ) % numPoints] - originalPoints[j];
+					v2 = originalPoints[j] - surf->plane.normal;
+					v2 = originalPoints[j] - v2;
+					lnormals[j].Cross( v1, v2 );
+					lnormals[j].Normalize();
+					ldists[j] = ( lnormals[j] ) * ( originalPoints[j] );
 				}
 				numPlanes = numPoints;
 
@@ -753,7 +753,7 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				for ( k = 0 ; k < surf->numIndices ; k += 3 ) {
 					for ( j = 0 ; j < 3 ; j++ ) {
 						v = surf->points[0] + VERTEXSIZE * indexes[k + j];
-						VectorMA( v, MARKER_OFFSET, surf->plane.normal, clipPoints[0][j] );
+						clipPoints[0][j] = v + surf->plane.normal * MARKER_OFFSET;
 					}
 
 					oldNumPoints = returnedPoints;
@@ -771,9 +771,9 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 
 						// Ridah, calculate ST's
 						for ( j = 0 ; j < ( returnedPoints - oldNumPoints ) ; j++ ) {
-							VectorSubtract( (float *)pointBuffer + 5 * ( oldNumPoints + j ), newCenter, delta );
-							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 3 ) = 0.5 + DotProduct( delta, axis[1] ) * texScale;
-							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 4 ) = 0.5 + DotProduct( delta, axis[2] ) * texScale;
+							delta = (float *)pointBuffer + 5 * ( oldNumPoints + j ) - newCenter;
+							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 3 ) = 0.5 + ( delta ) * ( axis[1] ) * texScale;
+							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 4 ) = 0.5 + ( delta ) * ( axis[2] ) * texScale;
 						}
 					}
 
@@ -785,7 +785,7 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 			} else {    // old mapping
 
 				// check the normal of this face
-				//if (DotProduct(surf->plane.normal, projectionDir) > 0.0) {
+				//if (( surf->plane.normal ) * ( projectionDir ) > 0.0) {
 				//	continue;
 				//}
 
@@ -793,7 +793,7 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				for ( k = 0 ; k < surf->numIndices ; k += 3 ) {
 					for ( j = 0 ; j < 3 ; j++ ) {
 						v = surf->points[0] + VERTEXSIZE * indexes[k + j];;
-						VectorMA( v, MARKER_OFFSET, surf->plane.normal, clipPoints[0][j] );
+						clipPoints[0][j] = v + surf->plane.normal * MARKER_OFFSET;
 					}
 					// add the fragments of this face
 					R_AddMarkFragments( 3, clipPoints,
