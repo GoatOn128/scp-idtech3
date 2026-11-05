@@ -30,4 +30,7 @@ void SNDDMA_Activate( void );
 // sdl_net.cpp
 qboolean Sys_GetPacket( netadr_t *net_from, msg_t *net_message );
 
+// sdl_glimp.cpp
+void GLimp_UpdateWindowSize( void );
+
 #endif

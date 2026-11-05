@@ -998,6 +998,13 @@ sysEvent_t Sys_GetEvent( void ) {
 			key = Sys_KeyFromScancode( e.key.scancode );
 			if ( key ) {
 				Sys_QueEvent( 0, SE_KEY, key, qtrue, 0, NULL );
+
+				// the console and chat fields edit their text through char
+				// events and the old win32 code delivered backspace as
+				// char 8, so queue one as well
+				if ( key == K_BACKSPACE ) {
+					Sys_QueEvent( 0, SE_CHAR, 8, 0, 0, NULL );
+				}
 			}
 			break;
 
@@ -1060,11 +1067,14 @@ sysEvent_t Sys_GetEvent( void ) {
 			s_minimized = qfalse;
 			break;
 
-		case SDL_EVENT_WINDOW_MOVED:
-			// remember the window position when windowed
-			if ( !Cvar_VariableIntegerValue( "r_fullscreen" ) ) {
-				Cvar_SetValue( "vid_xpos", e.window.data1 );
-				Cvar_SetValue( "vid_ypos", e.window.data2 );
+		case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+			// keep the client's copy of the video size in sync with the
+			// live window size, then let the renderer pick it up as well
+			if ( e.window.data1 > 0 && e.window.data2 > 0 ) {
+				cls.glconfig.vidWidth = e.window.data1;
+				cls.glconfig.vidHeight = e.window.data2;
+				cls.glconfig.windowAspect = (float)e.window.data1 / (float)e.window.data2;
+				GLimp_UpdateWindowSize();
 			}
 			break;
 

@@ -7,6 +7,7 @@
 // GLimp_LogComment
 // GLimp_Shutdown
 // GLimp_SetGamma
+// GLimp_UpdateWindowSize
 
 #include <assert.h>
 #include <stdio.h>
@@ -66,6 +67,30 @@ void GLimp_SetGamma( unsigned char red[256], unsigned char green[256], unsigned 
 }
 
 /*
+** GLimp_UpdateWindowSize
+**
+** Keep glConfig in sync with the real window size so the renderer
+** follows a live resize of the game window.
+*/
+void GLimp_UpdateWindowSize( void ) {
+	int w, h;
+
+	if ( sdl_window == NULL ) {
+		return;
+	}
+	if ( !SDL_GetWindowSizeInPixels( sdl_window, &w, &h ) ) {
+		return;
+	}
+	if ( w <= 0 || h <= 0 ) {
+		return;
+	}
+
+	glConfig.vidWidth = w;
+	glConfig.vidHeight = h;
+	glConfig.windowAspect = (float)w / (float)h;
+}
+
+/*
 ** GLW_SetMode
 */
 static rserr_t GLW_SetMode( int mode, int colorbits, qboolean cdsFullscreen ) {
@@ -92,6 +117,9 @@ static rserr_t GLW_SetMode( int mode, int colorbits, qboolean cdsFullscreen ) {
 
 		if ( cdsFullscreen ) {
 			flags |= SDL_WINDOW_FULLSCREEN;
+		} else {
+			// let the user resize the windowed game window
+			flags |= SDL_WINDOW_RESIZABLE;
 		}
 
 		sdl_window = SDL_CreateWindow( "WolfSP", glConfig.vidWidth, glConfig.vidHeight, flags );
@@ -100,13 +128,10 @@ static rserr_t GLW_SetMode( int mode, int colorbits, qboolean cdsFullscreen ) {
 			return RSERR_INVALID_MODE;
 		}
 
-		// SDL3 dropped the window position from SDL_CreateWindow: place the
-		// windowed game window where the vid_xpos/vid_ypos cvars say
+		// SDL3 dropped the window position from SDL_CreateWindow: the
+		// windowed game window is always centered on the display
 		if ( !cdsFullscreen ) {
-			cvar_t *vid_xpos = ri.Cvar_Get( "vid_xpos", "3", CVAR_ARCHIVE );
-			cvar_t *vid_ypos = ri.Cvar_Get( "vid_ypos", "22", CVAR_ARCHIVE );
-
-			SDL_SetWindowPosition( sdl_window, vid_xpos->integer, vid_ypos->integer );
+			SDL_SetWindowPosition( sdl_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED );
 		}
 
 		// we want text input events for the console
@@ -114,6 +139,11 @@ static rserr_t GLW_SetMode( int mode, int colorbits, qboolean cdsFullscreen ) {
 	} else {
 		SDL_SetWindowFullscreen( sdl_window, cdsFullscreen ? true : false );
 		SDL_SetWindowSize( sdl_window, glConfig.vidWidth, glConfig.vidHeight );
+
+		// keep the windowed game window centered when the mode changes
+		if ( !cdsFullscreen ) {
+			SDL_SetWindowPosition( sdl_window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED );
+		}
 	}
 
 	// pick the framebuffer layout
