@@ -1,6 +1,6 @@
 # Build digest
 
-commit: fccbb7b79f46
+commit: 4850ce07abe7
 
 - linux-x86-64-Debug: success
 - linux-x86-64-Release: success
@@ -82,7 +82,7 @@ warnings: 49 in 8 kinds
 status: success
 
 errors: 0
-warnings: 134 in 16 kinds
+warnings: 133 in 16 kinds
 
 ### errors
 
@@ -105,35 +105,35 @@ warnings: 134 in 16 kinds
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/util_str.cpp:314:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/util_str.cpp:326:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_vector.cpp:148:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/g_team.cpp:956:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_draw.cpp:2678:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_draw.cpp:2680:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_draw.cpp:2685:3: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/g_team.cpp:956:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:707:3: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2441:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/be_ai_chat.cpp:923:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/be_ai_chat.cpp:931:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_struct.cpp:366:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:707:3: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2441:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2467:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2547:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2577:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_struct.cpp:366:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/renderer/tr_model.cpp:197:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/renderer/tr_init.cpp:567:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/external/stb/stb_image_write.h:780:13: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/server/sv_client.cpp:202:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/server/sv_client.cpp:214:3: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_scrn.cpp:344:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1814:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1844:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1876:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/server/sv_client.cpp:202:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/server/sv_client.cpp:214:3: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Applications/Xcode_15.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:218:48: note: /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1876:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:3119:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:3125:14: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:3129:14: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:3527:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-- [21x] -inconsistent-missing-override
+- [22x] -inconsistent-missing-override
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:251:15: warning: 'Die' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:252:15: warning: 'Update' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
-  - warning: 'Die' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
+  - :15: warning: 'Die' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
 - [18x] -invalid-source-encoding
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:197:5: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:450:7: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
@@ -154,14 +154,14 @@ warnings: 134 in 16 kinds
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:667:12: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:680:4: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
 - [12x] -pointer-bool-conversion
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_ents.cpp:397:14: warning: address of array 'cent->dl_stylestring' will always evaluate to 'true' [-Wpointer-bool-conversion]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_drawtools.cpp:148:8: warning: address of array 'backgroundcolor' will always evaluate to 'true' [-Wpointer-bool-conversion]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_main.cpp:1449:7: warning: address of array 'levelname' will always evaluate to 'true' [-Wpointer-bool-conversion]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_main.cpp:1507:8: warning: address of array 'backgroundcolor' will always evaluate to 'true' [-Wpointer-bool-conversion]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/ai/ai_script_actions_combat.cpp:533:45: warning: address of array 'g_entities[cs->entityNum].client->ps.weapons' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_servercmds.cpp:948:8: warning: address of array 'text' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_servercmds.cpp:960:8: warning: address of array 'text' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_servercmds.cpp:972:8: warning: address of array 'text' will always evaluate to 'true' [-Wpointer-bool-conversion]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_main.cpp:1449:7: warning: address of array 'levelname' will always evaluate to 'true' [-Wpointer-bool-conversion]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_main.cpp:1507:8: warning: address of array 'backgroundcolor' will always evaluate to 'true' [-Wpointer-bool-conversion]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_ents.cpp:397:14: warning: address of array 'cent->dl_stylestring' will always evaluate to 'true' [-Wpointer-bool-conversion]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_drawtools.cpp:148:8: warning: address of array 'backgroundcolor' will always evaluate to 'true' [-Wpointer-bool-conversion]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/ai/ai_script_actions_combat.cpp:533:45: warning: address of array 'g_entities[cs->entityNum].client->ps.weapons' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_weapons.cpp:1005:10: warning: address of array 'comppath' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/sound/snd_dma.cpp:1857:19: warning: address of array 'ss->loop' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/sound/snd_dma.cpp:2171:11: warning: address of array 'ss->loop' will always evaluate to 'true' [-Wpointer-bool-conversion]
@@ -169,38 +169,38 @@ warnings: 134 in 16 kinds
 - [11x] -sizeof-pointer-memaccess
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_matrix.h:94:28: warning: 'memcpy' call operates on objects of type 'float[3]' while the size is based on a different type 'float (*)[3]' [-Wsizeof-pointer-memaccess]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/bg_animation.cpp:807:29: warning: 'memset' call operates on objects of type 'int' while the size is based on a different type 'int *' [-Wsizeof-pointer-memaccess]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/bg_animation.cpp:999:32: warning: 'memset' call operates on objects of type 'animScriptCommand_t' while the size is based on a different type 'animScriptCommand_t *' [-Wsizeof-pointer-memaccess]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/bg_animation.cpp:999:32: warning: 'memset' call operates on objects of type 'animScriptCommand_t' while the size is based on a different type 'animScriptCommand_t *' [-Wsizeof-pointer-memaccess]/Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_players.cpp:1615:21: warning: result of comparison of constant -1 with expression of type 'we
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/ai/ai_system.cpp:458:33: warning: 'memset' call operates on objects of type 'cast_state_t' (aka 'cast_state_s') while the size is based on a different type 'cast_state_t *' (aka 'cast_state_s *') [-Wsizeof-pointer-memaccess]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/bg_animation.cpp:999:32: warning: 'memset' call operates on objects of type 'animScriptCommand_t' while the size is based on a different type 'animScriptCommand_t *' [-Wsizeof-pointer-memaccess]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/cvar.cpp:764:28: warning: 'memset' call operates on objects of type 'cvar_t' (aka 'cvar_s') while the size is based on a different type 'cvar_t *' (aka 'cvar_s *') [-Wsizeof-pointer-memaccess]
 - [11x] -deprecated-register
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_shared.cpp:4702:6: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
-  - :4702:6: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:694:6: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:3057:3: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:3058:3: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:3059:3: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:3062:3: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:3066:3: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:694:6: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
-- [7x] -sizeof-array-argument
+- [6x] -sizeof-array-argument
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_matrix.h:94:26: warning: sizeof on array function parameter will return size of 'float (*)[3]' instead of 'float[3][3]' [-Wsizeof-array-argument]
+  - :94:26: warning: sizeof on array function parameter will return size of 'float (*)[3]' instead of 'float[3][3]' [-Wsizeof-array-argument]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/bg_animation.cpp:807:27: warning: sizeof on array function parameter will return size of 'int *' instead of 'int[2]' [-Wsizeof-array-argument]
-- [3x] -tautological-constant-out-of-range-compare
+- [2x] -tautological-constant-out-of-range-compare
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_players.cpp:773:25: warning: result of comparison of constant -1 with expression of type 'weapon_t' is always true [-Wtautological-constant-out-of-range-compare]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_players.cpp:1615:21: warning: result of comparison of constant -1 with expression of type 'weapon_t' is always true [-Wtautological-constant-out-of-range-compare]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_players.cpp:1628:20: warning: result of comparison of constant -1 with expression of type 'weapon_t' is always false [-Wtautological-constant-out-of-range-compare]
 - [2x] -format
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2441:31: warning: format specifies type 'int' but the argument has type 'long' [-Wformat]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2547:31: warning: format specifies type 'int' but the argument has type 'long' [-Wformat]
-- [2x] -array-bounds
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/renderer/tr_shade_calc.cpp:679:2: warning: array index 3 is past the end of the array (which contains 3 elements) [-Warray-bounds]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/renderer/tr_image.cpp:2966:59: warning: array index 3 is past the end of the array (which contains 3 elements) [-Warray-bounds]
 - [2x] -enum-compare
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/renderer/tr_shader.cpp:986:23: warning: comparison of different enumeration types ('alphaGen_t' and 'colorGen_t') [-Wenum-compare]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/renderer/tr_shader.cpp:1898:26: warning: comparison of different enumeration types ('alphaGen_t' and 'colorGen_t') [-Wenum-compare]
+- [2x] -array-bounds
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/renderer/tr_shade_calc.cpp:679:2: warning: array index 3 is past the end of the array (which contains 3 elements) [-Warray-bounds]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/renderer/tr_image.cpp:2966:59: warning: array index 3 is past the end of the array (which contains 3 elements) [-Warray-bounds]
 - [1x] -macro-redefined
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_vector.cpp:40:9: warning: 'M_PI' macro redefined [-Wmacro-redefined]
-- [1x] In file included from /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_fx_marks.cpp:30:
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:251:15: warning: In file included from /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_fx_marks.cpp:30:
+- [1x] note: expanded from macro '__deprecated_msg'
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_matrix.h:94:26: warning: note: expanded from macro '__deprecated_msg'
 - [1x] -parentheses-equality
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:2005:43: warning: equality comparison with extraneous parentheses [-Wparentheses-equality]
 - [1x] -null-dereference
@@ -213,7 +213,7 @@ warnings: 134 in 16 kinds
 status: success
 
 errors: 0
-warnings: 135 in 18 kinds
+warnings: 135 in 16 kinds
 
 ### errors
 
@@ -235,11 +235,11 @@ warnings: 135 in 18 kinds
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/util_str.cpp:302:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/util_str.cpp:314:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/util_str.cpp:326:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/g_team.cpp:956:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_vector.cpp:148:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_draw.cpp:2678:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_draw.cpp:2680:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_draw.cpp:2685:3: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_vector.cpp:148:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/g_team.cpp:956:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/be_ai_chat.cpp:923:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/be_ai_chat.cpp:931:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_struct.cpp:366:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
@@ -253,24 +253,24 @@ warnings: 135 in 18 kinds
   - /Users/runner/work/scp-idtech3/scp-idtech3/external/stb/stb_image_write.h:780:13: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_scrn.cpp:344:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/server/sv_client.cpp:202:4: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/server/sv_client.cpp:214:3: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1814:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1844:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/server/sv_client.cpp:214:3: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-  - /Applications/Xcode_15.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/stdio.h:180:1: /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1876:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use sn
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1876:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:3119:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:3125:14: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:3129:14: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:3527:2: warning: 'sprintf' is deprecated: This function is provided for compatibility reasons only.  Due to security concerns inherent in the design of sprintf(3), it is highly recommended that you use snprintf(3) instead. [-Wdeprecated-declarations]
-- [20x] -inconsistent-missing-override
+- [22x] -inconsistent-missing-override
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:251:15: warning: 'Die' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:252:15: warning: 'Update' overrides a member function but is not marked 'override' [-Winconsistent-missing-override]
 - [18x] -invalid-source-encoding
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:197:5: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
+  - :197:5: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:450:7: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:452:12: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:469:8: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:470:8: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:474:7: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
+  - /Applications/Xcode_15.4.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/cdefs.h:8: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
+  - :/Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:470:8: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
+  - 474:7: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:475:7: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:476:7: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:477:7: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
@@ -284,22 +284,22 @@ warnings: 135 in 18 kinds
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:667:12: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_keys.cpp:680:4: warning: illegal character encoding in string literal [-Winvalid-source-encoding]
 - [12x] -pointer-bool-conversion
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_ents.cpp:397:14: warning: address of array 'cent->dl_stylestring' will always evaluate to 'true' [-Wpointer-bool-conversion]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/ai/ai_script_actions_combat.cpp:533:45: warning: address of array 'g_entities[cs->entityNum].client->ps.weapons' will always evaluate to 'true' [-Wpointer-bool-conversion]
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_drawtools.cpp:148:8: warning: address of array 'backgroundcolor' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_main.cpp:1449:7: warning: address of array 'levelname' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_main.cpp:1507:8: warning: address of array 'backgroundcolor' will always evaluate to 'true' [-Wpointer-bool-conversion]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_drawtools.cpp:148:8: warning: address of array 'backgroundcolor' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_weapons.cpp:1005:10: warning: address of array 'comppath' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_servercmds.cpp:948:8: warning: address of array 'text' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_servercmds.cpp:960:8: warning: address of array 'text' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_servercmds.cpp:972:8: warning: address of array 'text' will always evaluate to 'true' [-Wpointer-bool-conversion]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_ents.cpp:397:14: warning: address of array 'cent->dl_stylestring' will always evaluate to 'true' [-Wpointer-bool-conversion]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/ai/ai_script_actions_combat.cpp:533:45: warning: address of array 'g_entities[cs->entityNum].client->ps.weapons' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/sound/snd_dma.cpp:1857:19: warning: address of array 'ss->loop' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/sound/snd_dma.cpp:2171:11: warning: address of array 'ss->loop' will always evaluate to 'true' [-Wpointer-bool-conversion]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/sound/snd_dma.cpp:2487:15: warning: address of array 'ss->loop' will always evaluate to 'true' [-Wpointer-bool-conversion]
 - [11x] -sizeof-pointer-memaccess
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_matrix.h:94:28: warning: 'memcpy' call operates on objects of type 'float[3]' while the size is based on a different type 'float (*)[3]' [-Wsizeof-pointer-memaccess]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/bg_animation.cpp:807:29: warning: 'memset' call operates on objects of type 'int' while the size is based on a different type 'int *' [-Wsizeof-pointer-memaccess]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/bg_animation.cpp:999:32: warning: 'memset' call operates on objects of type 'animScriptCommand_t' while the size is based on a different type 'animScriptCommand_t *' [-Wsizeof-pointer-memaccess]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_matrix.h:94:28: warning: 'memcpy' call operates on objects of type 'float[3]' while the size is based on a different type 'float (*)[3]' [-Wsizeof-pointer-memaccess]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/ai/ai_system.cpp:458:33: warning: 'memset' call operates on objects of type 'cast_state_t' (aka 'cast_state_s') while the size is based on a different type 'cast_state_t *' (aka 'cast_state_s *') [-Wsizeof-pointer-memaccess]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/cvar.cpp:764:28: warning: 'memset' call operates on objects of type 'cvar_t' (aka 'cvar_s') while the size is based on a different type 'cvar_t *' (aka 'cvar_s *') [-Wsizeof-pointer-memaccess]
 - [11x] -deprecated-register
@@ -311,8 +311,8 @@ warnings: 135 in 18 kinds
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:3062:3: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:3066:3: warning: 'register' storage class specifier is deprecated and incompatible with C++17 [-Wdeprecated-register]
 - [7x] -sizeof-array-argument
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_matrix.h:94:26: warning: sizeof on array function parameter will return size of 'float (*)[3]' instead of 'float[3][3]' [-Wsizeof-array-argument]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/game/bg_animation.cpp:807:27: warning: sizeof on array function parameter will return size of 'int *' instead of 'int[2]' [-Wsizeof-array-argument]
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_matrix.h:94:26: warning: sizeof on array function parameter will return size of 'float (*)[3]' instead of 'float[3][3]' [-Wsizeof-array-argument]
 - [3x] -tautological-constant-out-of-range-compare
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_players.cpp:773:25: warning: result of comparison of constant -1 with expression of type 'weapon_t' is always true [-Wtautological-constant-out-of-range-compare]
   - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/ui/ui_players.cpp:1615:21: warning: result of comparison of constant -1 with expression of type 'weapon_t' is always true [-Wtautological-constant-out-of-range-compare]
@@ -330,16 +330,12 @@ warnings: 135 in 18 kinds
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/math_vector.cpp:40:9: warning: 'M_PI' macro redefined [-Wmacro-redefined]
 - [1x] -unused-value
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/splines/splines.cpp:580:17: warning: expression result unused [-Wunused-value]
-- [1x] In file included from /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_fx_entities.cpp:31
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:251:15: warning: In file included from /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/cg_fx_entities.cpp:31:
-- [1x] /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:117:15: note: overridden vir
-  - /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:251:15: warning: /Users/runner/work/scp-idtech3/scp-idtech3/gamedll/cgame/FxPrimitives.h:117:15: note: overridden virtual function is here
 - [1x] -null-dereference
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/common.cpp:1799:2: warning: indirection of non-volatile null pointer will be deleted, not trap [-Wnull-dereference]
-- [1x] -parentheses-equality
-  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:2005:43: warning: equality comparison with extraneous parentheses [-Wparentheses-equality]
 - [1x] -strncat-size
   - /Users/runner/work/scp-idtech3/scp-idtech3/engine/client/cl_main.cpp:2838:25: warning: the value of the size argument in 'strncat' is too large, might lead to a buffer overflow [-Wstrncat-size]
+- [1x] -parentheses-equality
+  - /Users/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:2005:43: warning: equality comparison with extraneous parentheses [-Wparentheses-equality]
 
 ## windows-x86-Debug
 
