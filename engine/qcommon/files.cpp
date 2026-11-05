@@ -1318,7 +1318,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 				 && idStr::Icmp( filename + l - 5, ".game" )  // menu files
 				 && idStr::Icmp( filename + l - strlen( demoExt ), demoExt ) // menu files
 				 && idStr::Icmp( filename + l - 4, ".dat" ) ) { // for journal files
-				fs_fakeChkSum = random();
+				{ static idRandom fakeChkRnd; fs_fakeChkSum = fakeChkRnd.RandomInt( 2147483647 ); }
 			}
 
 			idStr::Copynz( fsh[*file].name, filename, sizeof( fsh[*file].name ) );
