@@ -2452,8 +2452,9 @@ void Com_Shutdown( void ) {
 
 }
 
-#if !( defined __linux__ || defined __FreeBSD__ )  // r010123 - include FreeBSD
-#if ( ( !id386 ) && ( !defined __i386__ ) ) // rcg010212 - for PPC
+#if !defined( _MSC_VER ) || ( !id386 )
+// plain C everywhere except MSVC on x86, which uses the assembly path below
+// (gcc and clang cannot build the MSVC inline asm)
 
 void Com_Memcpy( void* dest, const void* src, const size_t count ) {
 	memcpy( dest, src, count );
@@ -2758,8 +2759,7 @@ skip:
 	}
 }
 
-#endif
-#endif // bk001208 - memset/memcpy assembly, Q_acos needed (RC4)
+#endif // bk001208 - memset/memcpy assembly
 //------------------------------------------------------------------------
 
 
