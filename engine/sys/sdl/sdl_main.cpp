@@ -1226,7 +1226,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 	Q_strncpyz( sys_cmdline, lpCmdLine, sizeof( sys_cmdline ) );
 
-	if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD ) ) {
+	if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_GAMEPAD ) ) {
 		return Sys_MainBody();
 	}
 
@@ -1245,7 +1245,7 @@ int main( int argc, char **argv ) {
 		Q_strcat( sys_cmdline, sizeof( sys_cmdline ), " " );
 	}
 
-	if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD ) ) {
+	if ( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_GAMEPAD ) ) {
 		return Sys_MainBody();
 	}
 

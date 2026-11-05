@@ -24,7 +24,7 @@ void IN_Frame( void );
 void IN_JoystickCommands( void );
 void IN_ClearStates( void );
 
-// sdl_snd.cpp
+// snd_openal.cpp (sys/openal)
 void SNDDMA_Activate( void );
 
 // sdl_net.cpp

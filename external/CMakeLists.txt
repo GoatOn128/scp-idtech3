@@ -52,3 +52,18 @@ if ( WIN32 )
 else()
     find_package(SDL3 REQUIRED GLOBAL)
 endif()
+
+# OpenAL Soft: vendored Windows SDK binaries on Windows, system package
+# elsewhere. The DLL is shipped next to the exe renamed to OpenAL32.dll
+# because that is the name the import library talks to. GLOBAL is
+# required: engine links OpenAL::OpenAL from a sibling directory.
+if ( WIN32 )
+    add_library(OpenAL_vendored SHARED IMPORTED GLOBAL)
+    set_target_properties(OpenAL_vendored PROPERTIES
+        IMPORTED_IMPLIB "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft/libs/Win32/OpenAL32.lib"
+        IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft/bin/Win32/soft_oal.dll"
+        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/openal-soft/include")
+    add_library(OpenAL::OpenAL ALIAS OpenAL_vendored)
+else()
+    find_package(OpenAL REQUIRED GLOBAL)
+endif()
