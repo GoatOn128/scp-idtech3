@@ -682,7 +682,7 @@ void ReadClient( fileHandle_t f, gclient_t *client, int size ) {
 		for (trav=NULL; trav = G_Find(trav, FOFS(classname), "info_player_checkpoint"); ) {
 			if (trav->missionObjectives == ent->missionObjectives && Distance(trav->s.origin, ent->r.currentOrigin) < 800) {
 				G_SetOrigin( ent, trav->s.origin );
-				VectorCopy( trav->s.origin, ent->client->ps.origin );
+				ent->client->ps.origin = trav->s.origin;
 
 				trap_GetUsercmd( ent->client - level.clients, &ent->client->pers.cmd );
 				SetClientViewAngle( ent, trav->s.angles );
@@ -984,8 +984,8 @@ void ReadCastState( fileHandle_t f, cast_state_t *cs, int size ) {
 	if ( cs->clientState && !cs->deathTime ) {
 		// clear out the delta_angles
 		memset( g_entities[cs->entityNum].client->ps.delta_angles, 0, sizeof( g_entities[cs->entityNum].client->ps.delta_angles ) );
-		VectorCopy( cs->ideal_viewangles, cs->viewangles );
-		VectorCopy( cs->ideal_viewangles, g_entities[cs->entityNum].client->ps.viewangles );
+		cs->viewangles = cs->ideal_viewangles;
+		g_entities[cs->entityNum].client->ps.viewangles = cs->ideal_viewangles;
 		// copy the ps
 		memcpy( &cs->clientState->cur_ps, &g_entities[cs->entityNum].client->ps, sizeof( playerState_t ) );
 		// make sure they think right away
@@ -1199,7 +1199,7 @@ qboolean G_SaveGame( char *username ) {
 	}
 	// create and write the info string
 	// (SA) I made another cvar so there's no confusion
-	Q_strncpyz( mapstr, mapname.string, sizeof( mapstr ) );
+	idStr::Copynz( mapstr, mapname.string, sizeof( mapstr ) );
 	for ( i = 0; i < strlen( mapstr ); i++ ) mapstr[i] = toupper( mapstr[i] );
 	memset( infoString, 0, sizeof( infoString ) );
 
@@ -1263,7 +1263,7 @@ qboolean G_SaveGame( char *username ) {
 	}
 	// if there's fog info to save
 	if ( !i ) {
-		Q_strncpyz( &infoString[0], "none", sizeof( infoString ) );
+		idStr::Copynz( &infoString[0], "none", sizeof( infoString ) );
 	}
 
 	if ( !G_SaveWrite( infoString, strlen( infoString ), f ) ) {
@@ -1470,7 +1470,7 @@ void G_LoadGame( char *filename ) {
 
 			if ( strlen( musicString ) ) {
 				trap_Cvar_Register( &musicCvar, "s_currentMusic", "", CVAR_ROM ); // get current music
-				if ( Q_stricmp( musicString, musicCvar.string ) ) {      // it's different than what's playing, so fade out and queue up
+				if ( idStr::Icmp( musicString, musicCvar.string ) ) {      // it's different than what's playing, so fade out and queue up
 //					trap_SendServerCommand(-1, "mu_fade 0 1000\n");
 //					trap_SetConfigstring( CS_MUSIC_QUEUE, musicString);
 					trap_SendServerCommand( -1, va( "mu_start %s 1000\n", musicString ) );       // (SA) trying this instead
@@ -1492,7 +1492,7 @@ void G_LoadGame( char *filename ) {
 
 			// set the configstring so the 'savegame current' has good fog
 
-			if ( !Q_stricmp( infoString, "0" ) ) { // no fog
+			if ( !idStr::Icmp( infoString, "0" ) ) { // no fog
 				trap_Cvar_Set( "r_savegameFogColor", "none" );
 			} else {
 
@@ -1627,7 +1627,7 @@ void G_LoadGame( char *filename ) {
 
 			if ( strlen( musicString ) ) {
 				trap_Cvar_Register( &musicCvar, "s_currentMusic", "", CVAR_ROM ); // get current music
-				if ( Q_stricmp( musicString, musicCvar.string ) ) {      // it's different than what's playing, so fade out and queue up
+				if ( idStr::Icmp( musicString, musicCvar.string ) ) {      // it's different than what's playing, so fade out and queue up
 					trap_SendServerCommand( -1, "mu_fade 0 1000\n" );
 					trap_SetConfigstring( CS_MUSIC_QUEUE, musicString );
 				}
@@ -1877,7 +1877,7 @@ void G_LoadPersistant( void ) {
 	// read the mapname, if it's not the same, then ignore the file
 	trap_FS_Read( mapstr, MAX_QPATH, f );
 	trap_Cvar_Register( &cvar_mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM );
-	if ( Q_strcasecmp( cvar_mapname.string, mapstr ) ) {
+	if ( idStr::Icmp( cvar_mapname.string, mapstr ) ) {
 		trap_FS_FCloseFile( f );
 		return;
 	}
