@@ -72,7 +72,7 @@ model_t *R_AllocModel( void ) {
 		return NULL;
 	}
 
-	mod = (model_t *) ri.Hunk_Alloc( sizeof( *tr.models[tr.numModels] ), h_low );
+	mod = (model_t *) Mem_ClearedAlloc( sizeof( *tr.models[tr.numModels] ), TAG_IDLIB );
 	mod->index = tr.numModels;
 	tr.models[tr.numModels] = mod;
 	tr.numModels++;
@@ -122,7 +122,7 @@ qhandle_t RE_RegisterModel( const char *name ) {
 	//
 	for ( hModel = 1 ; hModel < tr.numModels; hModel++ ) {
 		mod = tr.models[hModel];
-		if ( !Q_stricmp( mod->name, name ) ) {
+		if ( !idStr::Icmp( mod->name, name ) ) {
 			if ( mod->type == MOD_BAD ) {
 				return 0;
 			}
@@ -138,7 +138,7 @@ qhandle_t RE_RegisterModel( const char *name ) {
 	}
 
 	// only set the name after the model has been successfully loaded
-	Q_strncpyz( mod->name, name, sizeof( mod->name ) );
+	idStr::Copynz( mod->name, name, sizeof( mod->name ) );
 
 // GR - by default models are not tessellated
 	mod->ATI_tess = qfalse;
@@ -302,8 +302,8 @@ float r_anormals[NUMMDCVERTEXNORMALS][3] = {
 R_MDC_GetVec
 =============
 */
-void R_MDC_GetVec( unsigned char anorm, vec3_t dir ) {
-	VectorCopy( r_anormals[anorm], dir );
+void R_MDC_GetVec( unsigned char anorm, idVec3 &dir ) {
+	dir = idVec3( r_anormals[anorm][0], r_anormals[anorm][1], r_anormals[anorm][2] );
 }
 
 /*
@@ -311,7 +311,7 @@ void R_MDC_GetVec( unsigned char anorm, vec3_t dir ) {
 R_MDC_GetAnorm
 =============
 */
-unsigned char R_MDC_GetAnorm( const vec3_t dir ) {
+unsigned char R_MDC_GetAnorm( const idVec3 &dir ) {
 	int i, best_start_i[3], next_start, next_end, best = 0;     // TTimo: init
 	float best_diff, group_val, this_val, diff;
 	float   *this_norm;
@@ -373,7 +373,7 @@ unsigned char R_MDC_GetAnorm( const vec3_t dir ) {
 			||	(this_norm[1] > 0 && dir[1] < 0))
 			continue;
 */
-		diff = DotProduct( dir, this_norm );
+		diff = dir[0] * this_norm[0] + dir[1] * this_norm[1] + dir[2] * this_norm[2];
 
 		if ( diff > best_diff ) {
 			best_diff = diff;
@@ -389,7 +389,7 @@ unsigned char R_MDC_GetAnorm( const vec3_t dir ) {
 R_MDC_EncodeOfsVec
 =================
 */
-qboolean R_MDC_EncodeXyzCompressed( const vec3_t vec, const vec3_t normal, mdcXyzCompressed_t *out ) {
+qboolean R_MDC_EncodeXyzCompressed( const idVec3 &vec, const idVec3 &normal, mdcXyzCompressed_t *out ) {
 	mdcXyzCompressed_t retval;
 	int i;
 	unsigned char anorm;
@@ -416,7 +416,7 @@ R_MDC_DecodeXyzCompressed
 =================
 */
 #if 0   // unoptimized version, used for finding right settings
-void R_MDC_DecodeXyzCompressed( mdcXyzCompressed_t *xyzComp, vec3_t out, vec3_t normal ) {
+void R_MDC_DecodeXyzCompressed( mdcXyzCompressed_t *xyzComp, idVec3 out, idVec3 normal ) {
 	int i;
 
 	for ( i = 0; i < 3; i++ ) {
@@ -431,16 +431,16 @@ void R_MDC_DecodeXyzCompressed( mdcXyzCompressed_t *xyzComp, vec3_t out, vec3_t 
 R_MDC_GetXyzCompressed
 =================
 */
-static qboolean R_MDC_GetXyzCompressed( md3Header_t *md3, md3XyzNormal_t *newXyz, vec3_t oldPos, mdcXyzCompressed_t *out, qboolean verify ) {
-	vec3_t newPos, vec;
+static qboolean R_MDC_GetXyzCompressed( md3Header_t *md3, md3XyzNormal_t *newXyz, const idVec3 &oldPos, mdcXyzCompressed_t *out, qboolean verify ) {
+	idVec3 newPos, vec;
 	int i;
-	vec3_t pos, dir, norm, outnorm;
+	idVec3 pos, dir, norm, outnorm;
 
 	for ( i = 0; i < 3; i++ ) {
 		newPos[i] = (float)newXyz->xyz[i] * MD3_XYZ_SCALE;
 	}
 
-	VectorSubtract( newPos, oldPos, vec );
+	vec = newPos - oldPos;
 	R_LatLongToNormal( norm, newXyz->normal );
 	if ( !R_MDC_EncodeXyzCompressed( vec, norm, out ) ) {
 		return qfalse;
@@ -448,10 +448,10 @@ static qboolean R_MDC_GetXyzCompressed( md3Header_t *md3, md3XyzNormal_t *newXyz
 
 	// calculate the uncompressed position
 	R_MDC_DecodeXyzCompressed( out->ofsVec, dir, outnorm );
-	VectorAdd( oldPos, dir, pos );
+	pos = oldPos + dir;
 
 	if ( verify ) {
-		if ( Distance( newPos, pos ) > MDC_MAX_ERROR ) {
+		if ( ( (newPos) - (pos) ).Length() > MDC_MAX_ERROR ) {
 			return qfalse;
 		}
 	}
@@ -468,7 +468,7 @@ R_MDC_CompressSurfaceFrame
 static qboolean R_MDC_CompressSurfaceFrame( md3Header_t *md3, md3Surface_t *surf, int frame, int lastBaseFrame, mdcXyzCompressed_t *out ) {
 	int i, j;
 	md3XyzNormal_t  *xyz, *baseXyz;
-	vec3_t oldPos;
+	idVec3 oldPos;
 
 	xyz = ( md3XyzNormal_t * )( (byte *)surf + surf->ofsXyzNormals );
 	baseXyz = xyz + ( lastBaseFrame * surf->numVerts );
@@ -495,7 +495,7 @@ static qboolean R_MDC_CanCompressSurfaceFrame( md3Header_t *md3, md3Surface_t *s
 	int i, j;
 	md3XyzNormal_t  *xyz, *baseXyz;
 	mdcXyzCompressed_t xyzComp;
-	vec3_t oldPos;
+	idVec3 oldPos;
 
 	xyz = ( md3XyzNormal_t * )( (byte *)surf + surf->ofsXyzNormals );
 	baseXyz = xyz + ( lastBaseFrame * surf->numVerts );
@@ -536,12 +536,12 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 	mdcTag_t            *mdcTag;
 	md3Tag_t            *md3Tag;
 
-	vec3_t axis[3], angles;
+	idVec3 axis[3], angles;
 	float ftemp;
 
 	md3 = mod->md3[lod];
 
-	baseFrames = (int *) ri.Hunk_AllocateTempMemory( sizeof( *baseFrames ) * md3->numFrames );
+	baseFrames = (int *) Mem_ClearedAlloc( sizeof( *baseFrames ) * md3->numFrames, TAG_IDLIB );
 
 	// the first frame is always a base frame
 	numBaseFrames = 0;
@@ -574,7 +574,7 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 	// success, so fill in the necessary data to the model_t
 	mdcHeader.ident = MDC_IDENT;
 	mdcHeader.version = MDC_VERSION;
-	Q_strncpyz( mdcHeader.name, md3->name, sizeof( mdcHeader.name ) );
+	idStr::Copynz( mdcHeader.name, md3->name, sizeof( mdcHeader.name ) );
 	mdcHeader.flags = md3->flags;
 	mdcHeader.numFrames = md3->numFrames;
 	mdcHeader.numTags = md3->numTags;
@@ -603,7 +603,7 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 	// report the memory differences
 	Com_Printf( "Compressed %s. Old = %i, New = %i\n", mod_name, md3->ofsEnd, mdcHeader.ofsEnd );
 
-	mdc = (mdcHeader_t *) ri.Hunk_Alloc( mdcHeader.ofsEnd, h_low );
+	mdc = (mdcHeader_t *) Mem_ClearedAlloc( mdcHeader.ofsEnd, TAG_IDLIB );
 	mod->mdc[lod] = mdc;
 
 	// we have the memory allocated, so lets fill it in
@@ -626,7 +626,7 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 				ftemp = md3Tag->origin[k] / MD3_XYZ_SCALE;
 				mdcTag->xyz[k] = (short)ftemp;
 				// axis
-				VectorCopy( md3Tag->axis[k], axis[k] );
+				axis[k] = idVec3( md3Tag->axis[k][0], md3Tag->axis[k][1], md3Tag->axis[k][2] );
 			}
 			// convert the axis to angles
 			AxisToAngles( axis, angles );
@@ -642,7 +642,7 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 	for ( j = 0 ; j < md3->numSurfaces ; j++ ) {
 
 		cSurf->ident = SF_MDC;
-		Q_strncpyz( cSurf->name, surf->name, sizeof( cSurf->name ) );
+		idStr::Copynz( cSurf->name, surf->name, sizeof( cSurf->name ) );
 		cSurf->flags = surf->flags;
 		cSurf->numCompFrames = ( mdc->numFrames - numBaseFrames );
 		cSurf->numBaseFrames = numBaseFrames;
@@ -695,10 +695,10 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 	mod->type = MOD_MDC;
 
 	// free allocated memory
-	ri.Hunk_FreeTempMemory( baseFrames );
+	Mem_Free( baseFrames );
 
 	// kill the md3 memory
-	ri.Hunk_FreeTempMemory( md3 );
+	Mem_Free( md3 );
 	mod->md3[lod] = NULL;
 
 	return qtrue;
@@ -736,7 +736,7 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 	mod->type = MOD_MDC;
 	size = LittleLong( pinmodel->ofsEnd );
 	mod->dataSize += size;
-	mod->mdc[lod] = (mdcHeader_t *) ri.Hunk_Alloc( size, h_low );
+	mod->mdc[lod] = (mdcHeader_t *) Mem_ClearedAlloc( size, TAG_IDLIB );
 
 	memcpy( mod->mdc[lod], buffer, LittleLong( pinmodel->ofsEnd ) );
 
@@ -824,7 +824,7 @@ static qboolean R_LoadMDC( model_t *mod, int lod, void *buffer, const char *mod_
 		surf->ident = SF_MDC;
 
 		// lowercase the surface name so skin compares are faster
-		Q_strlwr( surf->name );
+		idStr::ToLower( surf->name );
 
 		// strip off a trailing _1 or _2
 		// this is a crutch for q3data being a mess
@@ -941,9 +941,9 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 	mod->dataSize += size;
 	// Ridah, convert to compressed format
 	if ( !r_compressModels->integer ) {
-		mod->md3[lod] = (md3Header_t *) ri.Hunk_Alloc( size, h_low );
+		mod->md3[lod] = (md3Header_t *) Mem_ClearedAlloc( size, TAG_IDLIB );
 	} else {
-		mod->md3[lod] = (md3Header_t *) ri.Hunk_AllocateTempMemory( size );
+		mod->md3[lod] = (md3Header_t *) Mem_ClearedAlloc( size, TAG_IDLIB );
 	}
 	// done.
 
@@ -1038,7 +1038,7 @@ static qboolean R_LoadMD3( model_t *mod, int lod, void *buffer, const char *mod_
 		surf->ident = SF_MD3;
 
 		// lowercase the surface name so skin compares are faster
-		Q_strlwr( surf->name );
+		idStr::ToLower( surf->name );
 
 		// strip off a trailing _1 or _2
 		// this is a crutch for q3data being a mess
@@ -1139,7 +1139,7 @@ static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *mod_name ) {
 	mod->type = MOD_MDS;
 	size = LittleLong( pinmodel->ofsEnd );
 	mod->dataSize += size;
-	mds = mod->mds = (mdsHeader_t *) ri.Hunk_Alloc( size, h_low );
+	mds = mod->mds = (mdsHeader_t *) Mem_ClearedAlloc( size, TAG_IDLIB );
 
 	memcpy( mds, buffer, LittleLong( pinmodel->ofsEnd ) );
 
@@ -1298,7 +1298,6 @@ static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *mod_name ) {
 ** RE_BeginRegistration
 */
 void RE_BeginRegistration( glconfig_t *glconfigOut ) {
-	ri.Hunk_Clear();    // (SA) MEM NOTE: not in missionpack
 
 	R_Init();
 	*glconfigOut = glConfig;
@@ -1506,7 +1505,7 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 	int i;
 	float frontLerp, backLerp;
 	model_t     *model;
-	vec3_t sangles, eangles;
+	idVec3 sangles, eangles;
 	char tagName[MAX_QPATH];       //, *ch;
 	int retval;
 	qhandle_t handle;
@@ -1518,7 +1517,7 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 	endFrame = refent->frame;
 	frac = 1.0 - refent->backlerp;
 
-	Q_strncpyz( tagName, tagNameIn, MAX_QPATH );
+	idStr::Copynz( tagName, tagNameIn, MAX_QPATH );
 /*
 	// if the tagName has a space in it, then it is passing through the starting tag number
 	if (ch = strrchr(tagName, ' ')) {
@@ -1530,7 +1529,7 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 	model = R_GetModelByHandle( handle );
 	if ( !model->md3[0] && !model->mdc[0] && !model->mds ) {
 		AxisClear( tag->axis );
-		VectorClear( tag->origin );
+		tag->origin.Zero();
 		return -1;
 	}
 
@@ -1569,8 +1568,19 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 				eangles[i] = (float)cend->angles[i] * MDC_TAG_ANGLE_SCALE;
 			}
 
-			AnglesToAxis( sangles, ustart.axis );
-			AnglesToAxis( eangles, uend.axis );
+			idVec3 tmpaxis[3];
+			AnglesToAxis( sangles, tmpaxis );
+			for ( i = 0; i < 3; i++ ) {
+				ustart.axis[i][0] = tmpaxis[i][0];
+				ustart.axis[i][1] = tmpaxis[i][1];
+				ustart.axis[i][2] = tmpaxis[i][2];
+			}
+			AnglesToAxis( eangles, tmpaxis );
+			for ( i = 0; i < 3; i++ ) {
+				uend.axis[i][0] = tmpaxis[i][0];
+				uend.axis[i][1] = tmpaxis[i][1];
+				uend.axis[i][2] = tmpaxis[i][2];
+			}
 
 			start = &ustart;
 			end = &uend;
@@ -1583,7 +1593,7 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 
 	if ( !start || !end ) {
 		AxisClear( tag->axis );
-		VectorClear( tag->origin );
+		tag->origin.Zero();
 		return -1;
 	}
 
@@ -1594,9 +1604,9 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 		tag->axis[2][i] = start->axis[2][i] * backLerp +  end->axis[2][i] * frontLerp;
 	}
 
-	VectorNormalize( tag->axis[0] );
-	VectorNormalize( tag->axis[1] );
-	VectorNormalize( tag->axis[2] );
+	tag->axis[0].Normalize();
+	tag->axis[1].Normalize();
+	tag->axis[2].Normalize();
 
 	return retval;
 }
@@ -1648,7 +1658,7 @@ void R_TagInfo_f( void ) {
 R_ModelBounds
 ====================
 */
-void R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs ) {
+void R_ModelBounds( qhandle_t handle, idVec3 &mins, idVec3 &maxs ) {
 	model_t     *model;
 	md3Header_t *header;
 	md3Frame_t  *frame;
@@ -1656,8 +1666,8 @@ void R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs ) {
 	model = R_GetModelByHandle( handle );
 
 	if ( model->bmodel ) {
-		VectorCopy( model->bmodel->bounds[0], mins );
-		VectorCopy( model->bmodel->bounds[1], maxs );
+		mins = model->bmodel->bounds[0];
+		maxs = model->bmodel->bounds[1];
 		return;
 	}
 
@@ -1667,19 +1677,19 @@ void R_ModelBounds( qhandle_t handle, vec3_t mins, vec3_t maxs ) {
 
 		frame = ( md3Frame_t * )( (byte *)header + header->ofsFrames );
 
-		VectorCopy( frame->bounds[0], mins );
-		VectorCopy( frame->bounds[1], maxs );
+		mins = idVec3( frame->bounds[0][0], frame->bounds[0][1], frame->bounds[0][2] );
+		maxs = idVec3( frame->bounds[1][0], frame->bounds[1][1], frame->bounds[1][2] );
 		return;
 	} else if ( model->mdc[0] ) {
 		frame = ( md3Frame_t * )( (byte *)model->mdc[0] + model->mdc[0]->ofsFrames );
 
-		VectorCopy( frame->bounds[0], mins );
-		VectorCopy( frame->bounds[1], maxs );
+		mins = idVec3( frame->bounds[0][0], frame->bounds[0][1], frame->bounds[0][2] );
+		maxs = idVec3( frame->bounds[1][0], frame->bounds[1][1], frame->bounds[1][2] );
 		return;
 	}
 
-	VectorClear( mins );
-	VectorClear( maxs );
+	mins.Zero();
+	maxs.Zero();
 	// done.
 }
 
@@ -1831,7 +1841,7 @@ void R_Hunk_Reset( void ) {
 //=============================================================================
 // Ridah, model caching
 
-// TODO: convert the Hunk_Alloc's in the model loading to malloc's, so we don't have
+// TODO: convert the model loading allocations to malloc's, so we don't have
 // to move so much memory around during transitions
 
 static model_t backupModels[MAX_MOD_KNOWN];
@@ -1852,7 +1862,7 @@ void *R_CacheModelAlloc( int size ) {
 	} else {
 		// if r_cache 0, this function is not supposed to get called
 		Com_Printf( "FIXME: unexpected R_CacheModelAlloc call with r_cache 0\n" );
-		return ri.Hunk_Alloc( size, h_low );
+		return Mem_ClearedAlloc( size, TAG_IDLIB );
 	}
 }
 
@@ -2043,7 +2053,7 @@ qboolean R_FindCachedModel( const char *name, model_t *newmod ) {
 
 	mod = backupModels;
 	for ( i = 0; i < numBackupModels; i++, mod++ ) {
-		if ( !Q_strncmp( mod->name, name, sizeof( mod->name ) ) ) {
+		if ( !idStr::Cmpn( mod->name, name, sizeof( mod->name ) ) ) {
 			// copy it to a new slot
 			index = newmod->index;
 			memcpy( newmod, mod, sizeof( model_t ) );
@@ -2055,7 +2065,7 @@ qboolean R_FindCachedModel( const char *name, model_t *newmod ) {
 				for ( j = MD3_MAX_LODS - 1; j >= 0; j-- ) {
 					if ( j < mod->numLods && mod->md3[j] ) {
 						if ( ( j == MD3_MAX_LODS - 1 ) || ( mod->md3[j] != mod->md3[j + 1] ) ) {
-							newmod->md3[j] = (md3Header_t *) ri.Hunk_Alloc( mod->md3[j]->ofsEnd, h_low );
+							newmod->md3[j] = (md3Header_t *) Mem_ClearedAlloc( mod->md3[j]->ofsEnd, TAG_IDLIB );
 							memcpy( newmod->md3[j], mod->md3[j], mod->md3[j]->ofsEnd );
 							R_RegisterMD3Shaders( newmod, j );
 							R_CacheModelFree( mod->md3[j] );
@@ -2069,7 +2079,7 @@ qboolean R_FindCachedModel( const char *name, model_t *newmod ) {
 				for ( j = MD3_MAX_LODS - 1; j >= 0; j-- ) {
 					if ( j < mod->numLods && mod->mdc[j] ) {
 						if ( ( j == MD3_MAX_LODS - 1 ) || ( mod->mdc[j] != mod->mdc[j + 1] ) ) {
-							newmod->mdc[j] = (mdcHeader_t *) ri.Hunk_Alloc( mod->mdc[j]->ofsEnd, h_low );
+							newmod->mdc[j] = (mdcHeader_t *) Mem_ClearedAlloc( mod->mdc[j]->ofsEnd, TAG_IDLIB );
 							memcpy( newmod->mdc[j], mod->mdc[j], mod->mdc[j]->ofsEnd );
 							R_RegisterMDCShaders( newmod, j );
 							R_CacheModelFree( mod->mdc[j] );
@@ -2100,7 +2110,6 @@ R_LoadCacheModels
 void R_LoadCacheModels( void ) {
 	int len;
 	byte *buf;
-	char    *token, *pString;
 	char name[MAX_QPATH];
 
 	//Com_Printf("R_LoadCachedModels\n");
@@ -2120,16 +2129,19 @@ void R_LoadCacheModels( void ) {
 		return;
 	}
 
-	buf = (byte *)ri.Hunk_AllocateTempMemory( len );
+	buf = (byte *)Mem_ClearedAlloc( len, TAG_IDLIB );
 	ri.FS_ReadFile( "model.cache", (void **)&buf );
-	pString = (char*)buf;       //DAJ added (char*)
 
-	while ( ( token = COM_ParseExt( &pString, qtrue ) ) && token[0] ) {
-		Q_strncpyz( name, token, sizeof( name ) );
+	idLexer cacheLexer;
+	idToken token;
+
+	cacheLexer.LoadMemory( (const char *)buf, len, "model.cache" );
+	while ( cacheLexer.ReadToken( &token ) && token[0] ) {
+		idStr::Copynz( name, token.c_str(), sizeof( name ) );
 		RE_RegisterModel( name );
 	}
 
-	ri.Hunk_FreeTempMemory( buf );
+	Mem_Free( buf );
 }
 // done.
 //========================================================================

@@ -1808,7 +1808,7 @@ void R_MDC_DecodeXyzCompressed( mdcXyzCompressed_t *xyzComp, idVec3 out, idVec3 
 	( out )[0] = ( (float)( ( ofsVec ) & 255 ) - MDC_MAX_OFS ) * MDC_DIST_SCALE; \
 	( out )[1] = ( (float)( ( ofsVec >> 8 ) & 255 ) - MDC_MAX_OFS ) * MDC_DIST_SCALE; \
 	( out )[2] = ( (float)( ( ofsVec >> 16 ) & 255 ) - MDC_MAX_OFS ) * MDC_DIST_SCALE; \
-	normal = ( r_anormals )[( ofsVec >> 24 )];
+	normal = idVec3( r_anormals[( ofsVec >> 24 )][0], r_anormals[( ofsVec >> 24 )][1], r_anormals[( ofsVec >> 24 )][2] );
 #endif
 
 void R_AddMDCSurfaces( trRefEntity_t *ent );

@@ -1846,4 +1846,28 @@ ID_INLINE void AxisCopy( const idVec3 *in, idVec3 *out ) {
 	out[2] = in[2];
 }
 
+/*
+================
+AxisClear
+
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void AxisClear( idVec3 axis[3] ) {
+	axis[0].Set( 1.0f, 0.0f, 0.0f );
+	axis[1].Set( 0.0f, 1.0f, 0.0f );
+	axis[2].Set( 0.0f, 0.0f, 1.0f );
+}
+
+/*
+================
+AnglesToAxis
+
+ported from the old q3 mathlib
+================
+*/
+ID_INLINE void AnglesToAxis( const idVec3 &angles, idVec3 axis[3] ) {
+	idAngles( angles ).ToVectors( &axis[0], &axis[1], &axis[2] );
+}
+
 #endif /* !__MATH_VECTOR_H__ */
