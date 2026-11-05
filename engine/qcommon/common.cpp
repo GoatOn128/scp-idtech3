@@ -145,7 +145,7 @@ void QDECL Com_Printf( const char *fmt, ... ) {
 	static qboolean opening_qconsole = qfalse;
 
 	va_start( argptr,fmt );
-	vsprintf( msg,fmt,argptr );
+	vsnprintf( msg, sizeof( msg ), fmt, argptr );
 	va_end( argptr );
 
 	if ( rd_buffer ) {
@@ -222,7 +222,7 @@ void QDECL Com_DPrintf( const char *fmt, ... ) {
 	}
 
 	va_start( argptr,fmt );
-	vsprintf( msg,fmt,argptr );
+	vsnprintf( msg, sizeof( msg ), fmt, argptr );
 	va_end( argptr );
 
 	Com_Printf( "%s", msg );
@@ -282,7 +282,7 @@ void QDECL Com_Error( int code, const char *fmt, ... ) {
 	com_errorEntered = qtrue;
 
 	va_start( argptr,fmt );
-	vsprintf( com_errorMessage,fmt,argptr );
+	vsnprintf( com_errorMessage, sizeof( com_errorMessage ), fmt, argptr );
 	va_end( argptr );
 
 	if ( code != ERR_DISCONNECT && code != ERR_NEED_CD && code != ERR_ENDGAME ) {

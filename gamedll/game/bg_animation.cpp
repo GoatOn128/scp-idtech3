@@ -314,7 +314,7 @@ void QDECL BG_AnimParseError( const char *msg, ... ) {
 	char text[1024];
 
 	va_start( argptr, msg );
-	vsprintf( text, msg, argptr );
+	vsnprintf( text, sizeof( text ), msg, argptr );
 	va_end( argptr );
 
 	if ( globalFilename ) {

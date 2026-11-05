@@ -312,7 +312,7 @@ void QDECL Sys_Error( const char *error, ... ) {
 	char text[4096];
 
 	va_start( argptr, error );
-	vsprintf( text, error, argptr );
+	vsnprintf( text, sizeof( text ), error, argptr );
 	va_end( argptr );
 
 	Sys_Print( text );
