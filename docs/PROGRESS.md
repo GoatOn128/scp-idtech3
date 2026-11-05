@@ -6,6 +6,6 @@ One file per milestone. Each milestone note carries the finish stamp in 12-hour 
 - m1 SDL3 sys layer, glad GL loading, stb image and truetype - Finished: Wednesday, November 4, 7:22 PM
 - m2 OpenAL Soft audio - Finished: Wednesday, November 4, 8:06 PM
 - m3 glad + stb renderer cleanup - folded into m1
-- m4 botlib as a separate DLL
+- m4 botlib as a separate DLL - Finished: Wednesday, November 4, 8:31 PM
 
 build-digest.md at the repo root is the source of truth for build health.
