@@ -46,7 +46,7 @@ G_BounceMissile
 ================
 */
 qboolean G_BounceMissile( gentity_t *ent, trace_t *trace ) {
-	vec3_t velocity;
+	idVec3 velocity;
 	float dot;
 	int hitTime;
 	int contents;       //----(SA)	added
@@ -66,28 +66,28 @@ qboolean G_BounceMissile( gentity_t *ent, trace_t *trace ) {
 	// reflect the velocity on the trace plane
 	hitTime = level.previousTime + ( level.time - level.previousTime ) * trace->fraction;
 	BG_EvaluateTrajectoryDelta( &ent->s.pos, hitTime, velocity );
-	dot = DotProduct( velocity, trace->plane.normal );
-	VectorMA( velocity, -2 * dot, trace->plane.normal, ent->s.pos.trDelta );
+	dot = ( velocity * trace->plane.normal );
+	ent->s.pos.trDelta = velocity + trace->plane.normal * -2 * dot;
 
 	// RF, record this for mover pushing
-	if ( trace->plane.normal[2] > 0.2 /*&& VectorLength( ent->s.pos.trDelta ) < 40*/ ) {
+	if ( trace->plane.normal[2] > 0.2 /*&& ent->s.pos.trDelta.Length() < 40*/ ) {
 		ent->s.groundEntityNum = trace->entityNum;
 	}
 
 	if ( ent->s.eFlags & EF_BOUNCE_HALF ) {
 		if ( contents & MASK_WATER ) {
 			// barely bounce underwater
-			VectorScale( ent->s.pos.trDelta, 0.04f, ent->s.pos.trDelta );
+			ent->s.pos.trDelta = ent->s.pos.trDelta * 0.04f;
 		} else {
 			if ( ent->s.eFlags & EF_BOUNCE ) {     // both flags marked, do a third type of bounce
-				VectorScale( ent->s.pos.trDelta, 0.25, ent->s.pos.trDelta );
+				ent->s.pos.trDelta = ent->s.pos.trDelta * 0.25;
 			} else {
-				VectorScale( ent->s.pos.trDelta, 0.65, ent->s.pos.trDelta );
+				ent->s.pos.trDelta = ent->s.pos.trDelta * 0.65;
 			}
 		}
 
 		// check for stop
-		if ( trace->plane.normal[2] > 0.2 && VectorLength( ent->s.pos.trDelta ) < 40 ) {
+		if ( trace->plane.normal[2] > 0.2 && ent->s.pos.trDelta.Length() < 40 ) {
 //----(SA)	make the world the owner of the dynamite, so the player can shoot it after it stops moving
 			if ( ent->s.weapon == WP_DYNAMITE ) {
 				ent->r.ownerNum = ENTITYNUM_WORLD;
@@ -98,10 +98,10 @@ qboolean G_BounceMissile( gentity_t *ent, trace_t *trace ) {
 					ent->takedamage         = qtrue;
 
 					// small target cube
-					VectorSet( ent->r.mins, -4, -4, 0 );
-					VectorCopy( ent->r.mins, ent->r.absmin );
-					VectorSet( ent->r.maxs, 4, 4, 8 );
-					VectorCopy( ent->r.maxs, ent->r.absmax );
+					ent->r.mins.Set( -4, -4, 0 );
+					ent->r.absmin = ent->r.mins;
+					ent->r.maxs.Set( 4, 4, 8 );
+					ent->r.absmax = ent->r.maxs;
 				}
 
 			}
@@ -111,8 +111,8 @@ qboolean G_BounceMissile( gentity_t *ent, trace_t *trace ) {
 		}
 	}
 
-	VectorAdd( ent->r.currentOrigin, trace->plane.normal, ent->r.currentOrigin );
-	VectorCopy( ent->r.currentOrigin, ent->s.pos.trBase );
+	ent->r.currentOrigin = ent->r.currentOrigin + trace->plane.normal;
+	ent->s.pos.trBase = ent->r.currentOrigin;
 	ent->s.pos.trTime = level.time;
 
 	if ( contents & MASK_WATER ) {
@@ -128,10 +128,10 @@ G_MissileImpact
 	impactDamage is how much damage the impact will do to func_explosives
 ================
 */
-void G_MissileImpact( gentity_t *ent, trace_t *trace, int impactDamage, vec3_t dir ) {  //----(SA)	added 'dir'
+void G_MissileImpact( gentity_t *ent, trace_t *trace, int impactDamage, idVec3 &dir ) {  //----(SA)	added 'dir'
 	gentity_t       *other;
 	qboolean hitClient = qfalse;
-	vec3_t velocity;
+	idVec3 velocity;
 	int etype;
 
 	other = &g_entities[trace->entityNum];
@@ -142,7 +142,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace, int impactDamage, vec3_t d
 	}
 
 	// handle func_explosives
-	if ( other->classname && Q_stricmp( other->classname, "func_explosive" ) == 0 ) {
+	if ( other->classname && idStr::Icmp( other->classname, "func_explosive" ) == 0 ) {
 		// the damage is sufficient to "break" the ent (health == 0 is non-breakable)
 		if ( other->health && impactDamage >= other->health ) {
 			// check for other->takedamage needs to be inside the health check since it is
@@ -169,7 +169,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace, int impactDamage, vec3_t d
 		 ( ent->s.eFlags & ( EF_BOUNCE | EF_BOUNCE_HALF ) ) ) {
 		if ( G_BounceMissile( ent, trace ) && !trace->startsolid ) {  // no bounce, no bounce sound
 			int flags = 0;
-			if ( !Q_stricmp( ent->classname, "flamebarrel" ) ) {
+			if ( !idStr::Icmp( ent->classname, "flamebarrel" ) ) {
 				G_AddEvent( ent, EV_FLAMEBARREL_BOUNCE, 0 );
 			} else {
 				flags = trace->surfaceFlags;
@@ -198,7 +198,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace, int impactDamage, vec3_t d
 				hitClient = qtrue;
 			}
 			BG_EvaluateTrajectoryDelta( &ent->s.pos, level.time, velocity );
-			if ( VectorLength( velocity ) == 0 ) {
+			if ( velocity.Length() == 0 ) {
 				velocity[2] = 1;    // stepped on a grenade
 			}
 			G_Damage( other, ent, &g_entities[ent->r.ownerNum], velocity,
@@ -222,7 +222,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace, int impactDamage, vec3_t d
 	} else {
 		// Ridah, try projecting it in the direction it came from, for better decals
 //		G_AddEvent( ent, EV_MISSILE_MISS, DirToByte( trace->plane.normal ) );
-//		vec3_t dir;
+//		idVec3 dir;
 //		BG_EvaluateTrajectoryDelta( &ent->s.pos, level.time, dir );
 		BG_GetMarkDir( dir, trace->plane.normal, dir );
 		G_AddEvent( ent, EV_MISSILE_MISS, DirToByte( dir ) );
@@ -266,7 +266,7 @@ void G_MissileImpact( gentity_t *ent, trace_t *trace, int impactDamage, vec3_t d
 		gentity_t *Msmoke;
 
 		Msmoke = G_Spawn();
-		VectorCopy( ent->r.currentOrigin, Msmoke->s.origin );
+		Msmoke->s.origin = ent->r.currentOrigin;
 		Msmoke->think = M_think;
 		Msmoke->nextthink = level.time + FRAMETIME;
 		Msmoke->health = 5;
@@ -280,10 +280,10 @@ Concussive_think
 */
 void Concussive_think( gentity_t *ent ) {
 	gentity_t *player;
-	vec3_t dir;
-	vec3_t kvel;
+	idVec3 dir;
+	idVec3 kvel;
 	float grav = 24;
-	vec3_t vec;
+	idVec3 vec;
 	float len;
 
 	if ( level.time > ent->delay ) {
@@ -298,8 +298,8 @@ void Concussive_think( gentity_t *ent ) {
 		return;
 	}
 
-	VectorSubtract( player->r.currentOrigin, ent->s.origin, vec );
-	len = VectorLength( vec );
+	vec = player->r.currentOrigin - ent->s.origin;
+	len = vec.Length();
 
 //	G_Printf ("len = %5.3f\n", len);
 
@@ -307,9 +307,9 @@ void Concussive_think( gentity_t *ent ) {
 		return;
 	}
 
-	VectorSet( dir, 0, 0, 1 );
-	VectorScale( dir, grav, kvel );
-	VectorAdd( player->client->ps.velocity, kvel, player->client->ps.velocity );
+	dir.Set( 0, 0, 1 );
+	kvel = dir * grav;
+	player->client->ps.velocity = player->client->ps.velocity + kvel;
 
 	if ( !player->client->ps.pm_time ) {
 		int t;
@@ -335,7 +335,7 @@ Concussive_fx
 ==============
 */
 //void Concussive_fx (gentity_t *ent)
-void Concussive_fx( vec3_t origin ) {
+void Concussive_fx( idVec3 &origin ) {
 //	gentity_t *tent;
 //	gentity_t *player;
 
@@ -348,7 +348,7 @@ void Concussive_fx( vec3_t origin ) {
 
 	concussive = G_Spawn();
 //	VectorCopy (ent->s.origin, concussive->s.origin);
-	VectorCopy( origin, concussive->s.origin );
+	concussive->s.origin = origin;
 	concussive->think = Concussive_think;
 	concussive->nextthink = level.time + FRAMETIME;
 	concussive->delay = level.time + 500;
@@ -392,7 +392,7 @@ void M_think( gentity_t *ent ) {
 	}
 
 	tent = G_TempEntity( ent->s.origin, EV_SMOKE );
-	VectorCopy( ent->s.origin, tent->s.origin );
+	tent->s.origin = ent->s.origin;
 	if ( ent->s.density == 1 ) {
 		tent->s.origin[2] += 16;
 	} else {
@@ -425,8 +425,8 @@ Explode a missile without an impact
 ================
 */
 void G_ExplodeMissile( gentity_t *ent ) {
-	vec3_t dir;
-	vec3_t origin;
+	idVec3 dir;
+	idVec3 origin;
 	qboolean small = qfalse;
 	qboolean zombiespit = qfalse;
 	int etype;
@@ -443,23 +443,23 @@ void G_ExplodeMissile( gentity_t *ent ) {
 
 	ent->s.eType = ET_GENERAL;
 
-	if ( !Q_stricmp( ent->classname, "props_explosion" ) ) {
+	if ( !idStr::Icmp( ent->classname, "props_explosion" ) ) {
 		G_AddEvent( ent, EV_MISSILE_MISS_SMALL, DirToByte( dir ) );
 		small = qtrue;
 	}
 // JPW NERVE
-	else if ( !Q_stricmp( ent->classname, "air strike" ) ) {
+	else if ( !idStr::Icmp( ent->classname, "air strike" ) ) {
 		G_AddEvent( ent, EV_MISSILE_MISS_LARGE, DirToByte( dir ) );
 		small = qfalse;
 	}
 // jpw
-	else if ( !Q_stricmp( ent->classname, "props_explosion_large" ) ) {
+	else if ( !idStr::Icmp( ent->classname, "props_explosion_large" ) ) {
 		G_AddEvent( ent, EV_MISSILE_MISS_LARGE, DirToByte( dir ) );
 		small = qfalse;
-	} else if ( !Q_stricmp( ent->classname, "zombiespit" ) )      {
+	} else if ( !idStr::Icmp( ent->classname, "zombiespit" ) )      {
 		G_AddEvent( ent, EV_SPIT_MISS, DirToByte( dir ) );
 		zombiespit = qtrue;
-	} else if ( !Q_stricmp( ent->classname, "flamebarrel" ) )      {
+	} else if ( !idStr::Icmp( ent->classname, "flamebarrel" ) )      {
 		ent->freeAfterEvent = qtrue;
 		trap_LinkEntity( ent );
 		return;
@@ -484,14 +484,14 @@ void G_ExplodeMissile( gentity_t *ent ) {
 		gentity_t *Msmoke;
 
 		Msmoke = G_Spawn();
-		VectorCopy( ent->r.currentOrigin, Msmoke->s.origin );
+		Msmoke->s.origin = ent->r.currentOrigin;
 		if ( small ) {
 			Msmoke->s.density = 1;
 		}
 		Msmoke->think = M_think;
 		Msmoke->nextthink = level.time + FRAMETIME;
 
-		if ( ent->parent && !Q_stricmp( ent->parent->classname, "props_flamebarrel" ) ) {
+		if ( ent->parent && !idStr::Icmp( ent->parent->classname, "props_flamebarrel" ) ) {
 			Msmoke->health = 10;
 		} else {
 			Msmoke->health = 5;
@@ -523,8 +523,8 @@ Explode a missile without an impact
 ================
 */
 void G_ExplodeMissilePoisonGas( gentity_t *ent ) {
-	vec3_t dir;
-	vec3_t origin;
+	idVec3 dir;
+	idVec3 origin;
 
 	BG_EvaluateTrajectory( &ent->s.pos, level.time, origin );
 	SnapVector( origin );
@@ -560,7 +560,7 @@ G_RunMissile
 ================
 */
 void G_RunMissile( gentity_t *ent ) {
-	vec3_t origin, dir;         // 'dir' is 'deltaMove'
+	idVec3 origin, dir;         // 'dir' is 'deltaMove'
 	trace_t tr;
 	int impactDamage;
 
@@ -574,8 +574,8 @@ void G_RunMissile( gentity_t *ent ) {
 	BG_EvaluateTrajectory( &ent->s.pos, level.time, origin );
 
 //----(SA)	added direction to pass for mark determination
-	VectorSubtract( origin, ent->r.currentOrigin, dir );
-	VectorNormalize( dir );
+	dir = origin - ent->r.currentOrigin;
+	dir.Normalize();
 //----(SA)	end
 
 	// trace a line from the previous position to the current position,
@@ -583,7 +583,7 @@ void G_RunMissile( gentity_t *ent ) {
 	trap_Trace( &tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, origin,
 				ent->r.ownerNum, ent->clipmask );
 
-	VectorCopy( tr.endpos, ent->r.currentOrigin );
+	ent->r.currentOrigin = tr.endpos;
 
 	if ( tr.startsolid ) {
 		tr.fraction = 0;
@@ -613,7 +613,7 @@ void G_RunMissile( gentity_t *ent ) {
 		if ( ent->s.eType != ET_MISSILE ) {
 			return;     // exploded
 		}
-	} else if ( VectorLength( ent->s.pos.trDelta ) ) {  // free fall/no intersection
+	} else if ( ent->s.pos.trDelta.Length() ) {  // free fall/no intersection
 		ent->s.groundEntityNum = ENTITYNUM_NONE;
 	}
 
@@ -628,7 +628,7 @@ G_PredictBounceMissile
 ================
 */
 void G_PredictBounceMissile( gentity_t *ent, trajectory_t *pos, trace_t *trace, int time ) {
-	vec3_t velocity, origin;
+	idVec3 velocity, origin;
 	float dot;
 	int hitTime;
 
@@ -637,24 +637,24 @@ void G_PredictBounceMissile( gentity_t *ent, trajectory_t *pos, trace_t *trace, 
 	// reflect the velocity on the trace plane
 	hitTime = time;
 	BG_EvaluateTrajectoryDelta( pos, hitTime, velocity );
-	dot = DotProduct( velocity, trace->plane.normal );
-	VectorMA( velocity, -2 * dot, trace->plane.normal, pos->trDelta );
+	dot = ( velocity * trace->plane.normal );
+	pos->trDelta = velocity + trace->plane.normal * -2 * dot;
 
 	if ( ent->s.eFlags & EF_BOUNCE_HALF ) {
 		if ( ent->s.eFlags & EF_BOUNCE ) {     // both flags marked, do a third type of bounce
-			VectorScale( pos->trDelta, 0.25, pos->trDelta );
+			pos->trDelta = pos->trDelta * 0.25;
 		} else {
-			VectorScale( pos->trDelta, 0.65, pos->trDelta );
+			pos->trDelta = pos->trDelta * 0.65;
 		}
 
 		// check for stop
-		if ( trace->plane.normal[2] > 0.2 && VectorLength( pos->trDelta ) < 40 ) {
-			VectorCopy( trace->endpos, pos->trBase );
+		if ( trace->plane.normal[2] > 0.2 && pos->trDelta.Length() < 40 ) {
+			pos->trBase = trace->endpos;
 			return;
 		}
 	}
 
-	VectorAdd( origin, trace->plane.normal, pos->trBase );
+	pos->trBase = origin + trace->plane.normal;
 	pos->trTime = time;
 }
 
@@ -667,12 +667,12 @@ G_PredictMissile
   returns qfalse if the missile won't explode, otherwise it'll return the time is it expected to explode
 ================
 */
-int G_PredictMissile( gentity_t *ent, int duration, vec3_t endPos, qboolean allowBounce ) {
-	vec3_t origin;
+int G_PredictMissile( gentity_t *ent, int duration, idVec3 &endPos, qboolean allowBounce ) {
+	idVec3 origin;
 	trace_t tr;
 	int time;
 	trajectory_t pos;
-	vec3_t org;
+	idVec3 org;
 	gentity_t backupEnt;
 
 	pos = ent->s.pos;
@@ -690,7 +690,7 @@ int G_PredictMissile( gentity_t *ent, int duration, vec3_t endPos, qboolean allo
 		trap_Trace( &tr, org, ent->r.mins, ent->r.maxs, origin,
 					ent->r.ownerNum, ent->clipmask );
 
-		VectorCopy( tr.endpos, org );
+		org = tr.endpos;
 
 		if ( tr.startsolid ) {
 			*ent = backupEnt;
@@ -725,7 +725,7 @@ int G_PredictMissile( gentity_t *ent, int duration, vec3_t endPos, qboolean allo
 */
 
 	// get current position
-	VectorCopy( org, endPos );
+	endPos = org;
 	// set the entity data back
 	*ent = backupEnt;
 	//
@@ -745,23 +745,23 @@ G_RunSpit
 
 
 void G_RunSpit( gentity_t *ent ) {
-	vec3_t origin;
+	idVec3 origin;
 	trace_t tr;
-	vec3_t end;
+	idVec3 end;
 	gentity_t   *smoke;
 
 	// effect when it drips to floor
 	if ( rand() % 100 > 60 ) {
-		VectorCopy( ent->r.currentOrigin, end );
+		end = ent->r.currentOrigin;
 		end[0] += crandom() * 8;
 		end[1] += crandom() * 8;
 		end[2] -= 8192;
 
-		trap_Trace( &tr, ent->r.currentOrigin, NULL, NULL, end,
+		trap_Trace( &tr, ent->r.currentOrigin, vec3_origin, vec3_origin, end,
 					ent->r.ownerNum, MASK_SHOT );
 
 		smoke = G_Spawn();
-		VectorCopy( tr.endpos, smoke->s.origin );
+		smoke->s.origin = tr.endpos;
 		smoke->start_size = 4;
 		smoke->end_size = 8;
 		smoke->spawnflags |= 4;
@@ -780,7 +780,7 @@ void G_RunSpit( gentity_t *ent ) {
 	trap_Trace( &tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, origin,
 				ent->r.ownerNum, ent->clipmask );
 
-	VectorCopy( tr.endpos, ent->r.currentOrigin );
+	ent->r.currentOrigin = tr.endpos;
 
 	if ( tr.startsolid ) {
 		tr.fraction = 0;
@@ -831,7 +831,7 @@ void G_RunSpit( gentity_t *ent ) {
 
 
 void G_RunCrowbar( gentity_t *ent ) {
-	vec3_t origin;
+	idVec3 origin;
 	trace_t tr;
 
 	// get current position
@@ -842,7 +842,7 @@ void G_RunCrowbar( gentity_t *ent ) {
 	trap_Trace( &tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, origin,
 				ent->r.ownerNum, ent->clipmask );
 
-	VectorCopy( tr.endpos, ent->r.currentOrigin );
+	ent->r.currentOrigin = tr.endpos;
 
 	if ( tr.startsolid ) {
 		tr.fraction = 0;
@@ -887,11 +887,11 @@ fire_grenade
 
 =================
 */
-gentity_t *fire_grenade( gentity_t *self, vec3_t start, vec3_t dir, int grenadeWPID ) {
+gentity_t *fire_grenade( gentity_t *self, idVec3 &start, idVec3 &dir, int grenadeWPID ) {
 	gentity_t   *bolt, *hit; // JPW NERVE
 	qboolean noExplode = qfalse;
-	vec3_t mins, maxs;      // JPW NERVE
-	static vec3_t range = { 40, 40, 52 };   // JPW NERVE
+	idVec3 mins, maxs;      // JPW NERVE
+	static idVec3 range( 40, 40, 52 );   // JPW NERVE
 	int i,num,touch[MAX_GENTITIES];         // JPW NERVE
 
 	bolt = G_Spawn();
@@ -982,11 +982,11 @@ gentity_t *fire_grenade( gentity_t *self, vec3_t start, vec3_t dir, int grenadeW
 // JPW NERVE
 		if ( g_gametype.integer != GT_SINGLE_PLAYER ) {
 // check if player is in trigger objective field -- swiped from G_TouchTriggers()
-			VectorSubtract( self->client->ps.origin, range, mins );
-			VectorAdd( self->client->ps.origin, range, maxs );
+			mins = self->client->ps.origin - range;
+			maxs = self->client->ps.origin + range;
 			num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
-			VectorAdd( self->client->ps.origin, self->r.mins, mins );
-			VectorAdd( self->client->ps.origin, self->r.maxs, maxs );
+			mins = self->client->ps.origin + self->r.mins;
+			maxs = self->client->ps.origin + self->r.maxs;
 
 			for ( i = 0 ; i < num ; i++ ) {
 				hit = &g_entities[touch[i]];
@@ -1052,11 +1052,11 @@ gentity_t *fire_grenade( gentity_t *self, vec3_t start, vec3_t dir, int grenadeW
 
 	bolt->s.pos.trType = TR_GRAVITY;
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
-	VectorCopy( start, bolt->s.pos.trBase );
-	VectorCopy( dir, bolt->s.pos.trDelta );
+	bolt->s.pos.trBase = start;
+	bolt->s.pos.trDelta = dir;
 	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
 
-	VectorCopy( start, bolt->r.currentOrigin );
+	bolt->r.currentOrigin = start;
 
 	return bolt;
 }
@@ -1070,10 +1070,10 @@ gentity_t *fire_grenade( gentity_t *self, vec3_t start, vec3_t dir, int grenadeW
 fire_rocket
 =================
 */
-gentity_t *fire_rocket( gentity_t *self, vec3_t start, vec3_t dir ) {
+gentity_t *fire_rocket( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	gentity_t   *bolt;
 
-	VectorNormalize( dir );
+	dir.Normalize();
 
 	bolt = G_Spawn();
 	bolt->classname = "rocket";
@@ -1119,26 +1119,26 @@ gentity_t *fire_rocket( gentity_t *self, vec3_t start, vec3_t dir ) {
 
 	bolt->s.pos.trType = TR_LINEAR;
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
-	VectorCopy( start, bolt->s.pos.trBase );
+	bolt->s.pos.trBase = start;
 //	VectorScale( dir, 900, bolt->s.pos.trDelta );	// old speed was 900
 
 // JPW NERVE
 
 	if ( g_gametype.integer != GT_SINGLE_PLAYER ) {
-		VectorScale( dir,2500,bolt->s.pos.trDelta );
+		bolt->s.pos.trDelta = dir * 2500;
 	} else {
 		// ai gets dynamics they're used to
 		if ( self->aiCharacter ) {
-			VectorScale( dir, 1000, bolt->s.pos.trDelta );
+			bolt->s.pos.trDelta = dir * 1000;
 		} else {
 			// (SA) trying a bit more speed in SP for player rockets
-			VectorScale( dir, 1300, bolt->s.pos.trDelta );
+			bolt->s.pos.trDelta = dir * 1300;
 		}
 	}
 // jpw
 
 	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
-	VectorCopy( start, bolt->r.currentOrigin );
+	bolt->r.currentOrigin = start;
 
 	return bolt;
 }
@@ -1149,10 +1149,10 @@ gentity_t *fire_rocket( gentity_t *self, vec3_t start, vec3_t dir ) {
 fire_zombiespit
 =====================
 */
-gentity_t *fire_zombiespit( gentity_t *self, vec3_t start, vec3_t dir ) {
+gentity_t *fire_zombiespit( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	gentity_t   *bolt;
 
-	VectorNormalize( dir );
+	dir.Normalize();
 
 	bolt = G_Spawn();
 	bolt->classname = "zombiespit";
@@ -1182,10 +1182,10 @@ gentity_t *fire_zombiespit( gentity_t *self, vec3_t start, vec3_t dir ) {
 	// bolt->s.pos.trType = TR_LINEAR;
 	bolt->s.pos.trType = TR_GRAVITY_LOW;
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
-	VectorCopy( start, bolt->s.pos.trBase );
-	VectorScale( dir, 600, bolt->s.pos.trDelta );
+	bolt->s.pos.trBase = start;
+	bolt->s.pos.trDelta = dir * 600;
 	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
-	VectorCopy( start, bolt->r.currentOrigin );
+	bolt->r.currentOrigin = start;
 
 	return bolt;
 }
@@ -1195,9 +1195,9 @@ gentity_t *fire_zombiespit( gentity_t *self, vec3_t start, vec3_t dir ) {
 fire_zombiespirit
 =====================
 */
-gentity_t *fire_zombiespirit( gentity_t *self, gentity_t *bolt, vec3_t start, vec3_t dir ) {
+gentity_t *fire_zombiespirit( gentity_t *self, gentity_t *bolt, idVec3 &start, idVec3 &dir ) {
 
-	VectorNormalize( dir );
+	dir.Normalize();
 
 	bolt->classname = "zombiespirit";
 	bolt->nextthink = level.time + 10000;
@@ -1224,19 +1224,19 @@ gentity_t *fire_zombiespirit( gentity_t *self, gentity_t *bolt, vec3_t start, ve
 
 	bolt->s.pos.trType = TR_INTERPOLATE;        // we'll move it manually, since it needs to track it's enemy
 	bolt->s.pos.trTime = level.time;            // move a bit on the very first frame
-	VectorCopy( start, bolt->s.pos.trBase );
-	VectorScale( dir, 800, bolt->s.pos.trDelta );
+	bolt->s.pos.trBase = start;
+	bolt->s.pos.trDelta = dir * 800;
 	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
-	VectorCopy( start, bolt->r.currentOrigin );
+	bolt->r.currentOrigin = start;
 
 	return bolt;
 }
 
 // the crowbar for the mechanic
-gentity_t *fire_crowbar( gentity_t *self, vec3_t start, vec3_t dir ) {
+gentity_t *fire_crowbar( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	gentity_t   *bolt;
 
-	VectorNormalize( dir );
+	dir.Normalize();
 
 	bolt = G_Spawn();
 	bolt->classname = "crowbar";
@@ -1261,10 +1261,10 @@ gentity_t *fire_crowbar( gentity_t *self, vec3_t start, vec3_t dir ) {
 
 	bolt->s.pos.trType = TR_GRAVITY;
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
-	VectorCopy( start, bolt->s.pos.trBase );
-	VectorScale( dir, 800, bolt->s.pos.trDelta );
+	bolt->s.pos.trBase = start;
+	bolt->s.pos.trDelta = dir * 800;
 	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
-	VectorCopy( start, bolt->r.currentOrigin );
+	bolt->r.currentOrigin = start;
 
 	return bolt;
 }
@@ -1276,10 +1276,10 @@ fire_flamebarrel
 ======================
 */
 
-gentity_t *fire_flamebarrel( gentity_t *self, vec3_t start, vec3_t dir ) {
+gentity_t *fire_flamebarrel( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	gentity_t   *bolt;
 
-	VectorNormalize( dir );
+	dir.Normalize();
 
 	bolt = G_Spawn();
 	bolt->classname = "flamebarrel";
@@ -1302,10 +1302,10 @@ gentity_t *fire_flamebarrel( gentity_t *self, vec3_t start, vec3_t dir ) {
 
 	bolt->s.pos.trType = TR_GRAVITY;
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
-	VectorCopy( start, bolt->s.pos.trBase );
-	VectorScale( dir, 900 + ( crandom() * 100 ), bolt->s.pos.trDelta );
+	bolt->s.pos.trBase = start;
+	bolt->s.pos.trDelta = dir * 900 + ( crandom() * 100 );
 	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
-	VectorCopy( start, bolt->r.currentOrigin );
+	bolt->r.currentOrigin = start;
 
 	return bolt;
 }
@@ -1318,14 +1318,14 @@ fire_lead
 =================
 */
 
-void fire_lead( gentity_t *self, vec3_t start, vec3_t dir, int damage ) {
+void fire_lead( gentity_t *self, idVec3 &start, idVec3 &dir, int damage ) {
 
 	trace_t tr;
-	vec3_t end;
+	idVec3 end;
 	gentity_t       *tent;
 	gentity_t       *traceEnt;
-	vec3_t forward, right, up;
-	vec3_t angles;
+	idVec3 forward, right, up;
+	idVec3 angles;
 	float r, u;
 	qboolean anti_tank_enable = qfalse;
 
@@ -1333,13 +1333,13 @@ void fire_lead( gentity_t *self, vec3_t start, vec3_t dir, int damage ) {
 	u = crandom() * self->random;
 
 	vectoangles( dir, angles );
-	AngleVectors( angles, forward, right, up );
+	idAngles( angles ).ToVectors( &forward, &right, &up );
 
-	VectorMA( start, 8192, forward, end );
-	VectorMA( end, r, right, end );
-	VectorMA( end, u, up, end );
+	end = start + forward * 8192;
+	end = end + right * r;
+	end = end + up * u;
 
-	trap_Trace( &tr, start, NULL, NULL, end, self->s.number, MASK_SHOT );
+	trap_Trace( &tr, start, vec3_origin, vec3_origin, end, self->s.number, MASK_SHOT );
 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
 		return;
 	}
@@ -1355,14 +1355,14 @@ void fire_lead( gentity_t *self, vec3_t start, vec3_t dir, int damage ) {
 		tent->s.eventParm = traceEnt->s.number;
 	} else {
 		// Ridah, bullet impact should reflect off surface
-		vec3_t reflect;
+		idVec3 reflect;
 		float dot;
 
 		tent = G_TempEntity( tr.endpos, EV_BULLET_HIT_WALL );
 
-		dot = DotProduct( forward, tr.plane.normal );
-		VectorMA( forward, -2 * dot, tr.plane.normal, reflect );
-		VectorNormalize( reflect );
+		dot = ( forward * tr.plane.normal );
+		reflect = forward + tr.plane.normal * -2 * dot;
+		reflect.Normalize();
 
 		tent->s.eventParm = DirToByte( reflect );
 		// done.
@@ -1402,12 +1402,12 @@ visible
 ==============
 */
 qboolean visible( gentity_t *self, gentity_t *other ) {
-//	vec3_t		spot1;
-//	vec3_t		spot2;
+//	idVec3		spot1;
+//	idVec3		spot2;
 	trace_t tr;
 	gentity_t   *traceEnt;
 
-	trap_Trace( &tr, self->r.currentOrigin, NULL, NULL, other->r.currentOrigin, self->s.number, MASK_SHOT );
+	trap_Trace( &tr, self->r.currentOrigin, vec3_origin, vec3_origin, other->r.currentOrigin, self->s.number, MASK_SHOT );
 
 	traceEnt = &g_entities[ tr.entityNum ];
 
@@ -1427,7 +1427,7 @@ fire_mortar
 	dir is a non-normalized direction/power vector
 ==============
 */
-gentity_t *fire_mortar( gentity_t *self, vec3_t start, vec3_t dir ) {
+gentity_t *fire_mortar( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	gentity_t   *bolt;
 
 //	VectorNormalize (dir);
@@ -1436,8 +1436,8 @@ gentity_t *fire_mortar( gentity_t *self, vec3_t start, vec3_t dir ) {
 		gentity_t   *tent;
 		tent = G_TempEntity( self->s.pos.trBase, EV_MORTAREFX );
 		tent->s.density = self->spawnflags; // send smoke and muzzle flash flags
-		VectorCopy( self->s.pos.trBase, tent->s.origin );
-		VectorCopy( self->s.apos.trBase, tent->s.angles );
+		tent->s.origin = self->s.pos.trBase;
+		tent->s.angles = self->s.apos.trBase;
 	}
 
 	bolt = G_Spawn();
@@ -1461,11 +1461,11 @@ gentity_t *fire_mortar( gentity_t *self, vec3_t start, vec3_t dir ) {
 
 	bolt->s.pos.trType = TR_GRAVITY;
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
-	VectorCopy( start, bolt->s.pos.trBase );
+	bolt->s.pos.trBase = start;
 //	VectorScale( dir, 900, bolt->s.pos.trDelta );
-	VectorCopy( dir, bolt->s.pos.trDelta );
+	bolt->s.pos.trDelta = dir;
 	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
-	VectorCopy( start, bolt->r.currentOrigin );
+	bolt->r.currentOrigin = start;
 
 	return bolt;
 }
