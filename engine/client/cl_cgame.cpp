@@ -36,7 +36,7 @@ extern botlib_export_t *botlib_export;
 
 qboolean loadCamera( int camNum, const char *name );
 void startCamera( int camNum, int time );
-qboolean getCameraInfo( int camNum, int time, float *origin, float *angles, float *fov );
+qboolean getCameraInfo( int camNum, int time, idVec3 *origin, idVec3 *angles, float *fov );
 
 // RF, this is only used when running a local server
 extern void SV_SendMoveSpeedsToGame( int entnum, char *text );
@@ -510,43 +510,43 @@ static cgameImport_t CL_CreateCGameImports() {
 	imports.CM_InlineModel = []( int index ) -> clipHandle_t {
 		return CM_InlineModel( index );
 	};
-	imports.CM_TempBoxModel = []( const vec3_t mins, const vec3_t maxs ) -> clipHandle_t {
+	imports.CM_TempBoxModel = []( const idVec3 &mins, const idVec3 &maxs ) -> clipHandle_t {
 		return CM_TempBoxModel( mins, maxs, qfalse );
 	};
-	imports.CM_TempCapsuleModel = []( const vec3_t mins, const vec3_t maxs ) -> clipHandle_t {
+	imports.CM_TempCapsuleModel = []( const idVec3 &mins, const idVec3 &maxs ) -> clipHandle_t {
 		return CM_TempBoxModel( mins, maxs, qtrue );
 	};
-	imports.CM_PointContents = []( const vec3_t p, clipHandle_t model ) -> int {
+	imports.CM_PointContents = []( const idVec3 &p, clipHandle_t model ) -> int {
 		return CM_PointContents( p, model );
 	};
-	imports.CM_TransformedPointContents = []( const vec3_t p, clipHandle_t model, const vec3_t origin, const vec3_t angles ) -> int {
+	imports.CM_TransformedPointContents = []( const idVec3 &p, clipHandle_t model, const idVec3 &origin, const idVec3 &angles ) -> int {
 		return CM_TransformedPointContents( p, model, origin, angles );
 	};
-	imports.CM_BoxTrace = []( trace_t *results, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, clipHandle_t model, int brushmask ) -> void {
+	imports.CM_BoxTrace = []( trace_t *results, const idVec3 &start, const idVec3 &end, const idVec3 &mins, const idVec3 &maxs, clipHandle_t model, int brushmask ) -> void {
 		CM_BoxTrace( results, start, end, mins, maxs, model, brushmask, /*int capsule*/ qfalse );
 		return;
 	};
-	imports.CM_TransformedBoxTrace = []( trace_t *results, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, clipHandle_t model, int brushmask, const vec3_t origin, const vec3_t angles ) -> void {
+	imports.CM_TransformedBoxTrace = []( trace_t *results, const idVec3 &start, const idVec3 &end, const idVec3 &mins, const idVec3 &maxs, clipHandle_t model, int brushmask, const idVec3 &origin, const idVec3 &angles ) -> void {
 		CM_TransformedBoxTrace( results, start, end, mins, maxs, model, brushmask, origin, angles, /*int capsule*/ qfalse );
 		return;
 	};
-	imports.CM_CapsuleTrace = []( trace_t *results, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, clipHandle_t model, int brushmask ) -> void {
+	imports.CM_CapsuleTrace = []( trace_t *results, const idVec3 &start, const idVec3 &end, const idVec3 &mins, const idVec3 &maxs, clipHandle_t model, int brushmask ) -> void {
 		CM_BoxTrace( results, start, end, mins, maxs, model, brushmask, /*int capsule*/ qtrue );
 		return;
 	};
-	imports.CM_TransformedCapsuleTrace = []( trace_t *results, const vec3_t start, const vec3_t end, const vec3_t mins, const vec3_t maxs, clipHandle_t model, int brushmask, const vec3_t origin, const vec3_t angles ) -> void {
+	imports.CM_TransformedCapsuleTrace = []( trace_t *results, const idVec3 &start, const idVec3 &end, const idVec3 &mins, const idVec3 &maxs, clipHandle_t model, int brushmask, const idVec3 &origin, const idVec3 &angles ) -> void {
 		CM_TransformedBoxTrace( results, start, end, mins, maxs, model, brushmask, origin, angles, /*int capsule*/ qtrue );
 		return;
 	};
-	imports.RE_MarkFragments = []( int numPoints, const vec3_t *points, const vec3_t projection, int maxPoints, vec3_t pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) -> int {
+	imports.RE_MarkFragments = []( int numPoints, const idVec3 *points, const idVec3 &projection, int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) -> int {
 		return re.MarkFragments( numPoints, points, projection, maxPoints, pointBuffer, maxFragments, fragmentBuffer );
 	};
-	imports.S_StartSound = []( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfx ) -> void {
+	imports.S_StartSound = []( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfx ) -> void {
 		S_StartSound( origin, entityNum, entchannel, sfx );
 		return;
 		//----(SA)	added
 	};
-	imports.S_StartSoundEx = []( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfx, int flags ) -> void {
+	imports.S_StartSoundEx = []( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfx, int flags ) -> void {
 		S_StartSoundEx( origin, entityNum, entchannel, sfx, flags );
 		return;
 		//----(SA)	end
@@ -565,9 +565,9 @@ static cgameImport_t CL_CreateCGameImports() {
 		}
 		return;
 	};
-	imports.S_AddLoopingSound = []( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int volume ) -> void { S_AddLoopingSound( entityNum, origin, velocity, 0, sfx, volume ); };
-	imports.S_AddRangedLoopingSound = []( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int range ) -> void { S_AddLoopingSound( entityNum, origin, velocity, range, sfx, 255 ); };
-	imports.S_AddRealLoopingSound = []( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx ) -> void { S_AddLoopingSound( entityNum, origin, velocity, 0, sfx, 255 ); };
+	imports.S_AddLoopingSound = []( int entityNum, const idVec3 &origin, const idVec3 &velocity, sfxHandle_t sfx, int volume ) -> void { S_AddLoopingSound( entityNum, origin, velocity, 0, sfx, volume ); };
+	imports.S_AddRangedLoopingSound = []( int entityNum, const idVec3 &origin, const idVec3 &velocity, sfxHandle_t sfx, int range ) -> void { S_AddLoopingSound( entityNum, origin, velocity, range, sfx, 255 ); };
+	imports.S_AddRealLoopingSound = []( int entityNum, const idVec3 &origin, const idVec3 &velocity, sfxHandle_t sfx ) -> void { S_AddLoopingSound( entityNum, origin, velocity, 0, sfx, 255 ); };
 	imports.S_StopLoopingSound = []( int entityNum ) -> void {
 		// RF, not functional anymore, since we reverted to old looping code
 		//S_StopLoopingSound( entityNum );
@@ -578,7 +578,7 @@ static cgameImport_t CL_CreateCGameImports() {
 		return;
 		//----(SA)	end
 	};
-	imports.S_UpdateEntityPosition = []( int entityNum, const vec3_t origin ) -> void {
+	imports.S_UpdateEntityPosition = []( int entityNum, const idVec3 &origin ) -> void {
 		S_UpdateEntityPosition( entityNum, origin );
 		return;
 		// Ridah, talking animations
@@ -587,7 +587,7 @@ static cgameImport_t CL_CreateCGameImports() {
 		return S_GetVoiceAmplitude( entityNum );
 		// done.
 	};
-	imports.S_Respatialize = []( int entityNum, const vec3_t origin, vec3_t axis[3], int inwater ) -> void {
+	imports.S_Respatialize = []( int entityNum, const idVec3 &origin, const idVec3 *axis, int inwater ) -> void {
 		S_Respatialize( entityNum, origin, axis, inwater );
 		return;
 	};
@@ -659,15 +659,15 @@ static cgameImport_t CL_CreateCGameImports() {
 		re.AddPolysToScene( hShader, numVerts, verts, numPolys );
 		return;
 	};
-	imports.RE_ZombieFXAddNewHit = []( int entityNum, const vec3_t hitPos, const vec3_t hitDir ) -> void { re.ZombieFXAddNewHit( entityNum, hitPos, hitDir ); };
-	imports.RE_AddLightToScene = []( const vec3_t org, float intensity, float r, float g, float b, int overdraw ) -> void {
+	imports.RE_ZombieFXAddNewHit = []( int entityNum, const idVec3 &hitPos, const idVec3 &hitDir ) -> void { re.ZombieFXAddNewHit( entityNum, hitPos, hitDir ); };
+	imports.RE_AddLightToScene = []( const idVec3 &org, float intensity, float r, float g, float b, int overdraw ) -> void {
 		re.AddLightToScene( org, intensity, r, g, b, overdraw );
 		return;
 		//	case CG_R_ADDADDITIVELIGHTTOSCENE:
 		//		re.AddAdditiveLightToScene( org, intensity, r, g, b );
 		//		return 0;
 	};
-	imports.RE_AddCoronaToScene = []( const vec3_t org, float r, float g, float b, float scale, int id, int flags ) -> void {
+	imports.RE_AddCoronaToScene = []( const idVec3 &org, float r, float g, float b, float scale, int id, int flags ) -> void {
 		re.AddCoronaToScene( org, r, g, b, scale, id, flags );
 		return;
 	};
@@ -691,7 +691,7 @@ static cgameImport_t CL_CreateCGameImports() {
 		re.DrawStretchPicGradient( x, y, w, h, s1, t1, s2, t2, hShader, gradientColor, gradientType );
 		return;
 	};
-	imports.RE_ModelBounds = []( clipHandle_t model, vec3_t mins, vec3_t maxs ) -> void {
+	imports.RE_ModelBounds = []( clipHandle_t model, idVec3 &mins, idVec3 &maxs ) -> void {
 		re.ModelBounds( model, mins, maxs );
 		return;
 	};
@@ -731,7 +731,8 @@ static cgameImport_t CL_CreateCGameImports() {
 		return;
 	};
 	imports.Hunk_MemoryRemaining = []( void ) -> int {
-		return Hunk_MemoryRemaining();
+		// the hunk is gone, the idlib heap tracks its own usage
+		return 0;
 	};
 	imports.loadCamera = []( int camNum, const char *name ) -> qboolean {
 		return loadCamera( camNum, name );
@@ -752,8 +753,8 @@ static cgameImport_t CL_CreateCGameImports() {
 		return;
 		//----(SA)	end
 	};
-	imports.getCameraInfo = []( int camNum, int time, vec3_t *origin, vec3_t *angles, float *fov ) -> qboolean {
-		return getCameraInfo( camNum, time, (float *)origin, (float *)angles, fov );
+	imports.getCameraInfo = []( int camNum, int time, idVec3 *origin, idVec3 *angles, float *fov ) -> qboolean {
+		return getCameraInfo( camNum, time, origin, angles, fov );
 	};
 	imports.Key_IsDown = []( int keynum ) -> qboolean {
 		return Key_IsDown( keynum );
@@ -827,30 +828,30 @@ static cgameImport_t CL_CreateCGameImports() {
 		return;
 	};
 	imports.CL_InGamePopup = []( const char *arg0 ) -> void {
-		if ( arg0 && !Q_stricmp( arg0, "briefing" ) ) {  //----(SA) added
+		if ( arg0 && !idStr::Icmp( arg0, "briefing" ) ) {  //----(SA) added
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_BRIEFING );
 		return;
 		}
 
 		if ( cls.state == CA_ACTIVE && !clc.demoplaying ) {
 		// NERVE - SMF
-		if ( arg0 && !Q_stricmp( arg0, "UIMENU_WM_PICKTEAM" ) ) {
+		if ( arg0 && !idStr::Icmp( arg0, "UIMENU_WM_PICKTEAM" ) ) {
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_WM_PICKTEAM );
-		} else if ( arg0 && !Q_stricmp( arg0, "UIMENU_WM_PICKPLAYER" ) )    {
+		} else if ( arg0 && !idStr::Icmp( arg0, "UIMENU_WM_PICKPLAYER" ) )    {
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_WM_PICKPLAYER );
-		} else if ( arg0 && !Q_stricmp( arg0, "UIMENU_WM_QUICKMESSAGE" ) )    {
+		} else if ( arg0 && !idStr::Icmp( arg0, "UIMENU_WM_QUICKMESSAGE" ) )    {
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_WM_QUICKMESSAGE );
-		} else if ( arg0 && !Q_stricmp( arg0, "UIMENU_WM_LIMBO" ) )    {
+		} else if ( arg0 && !idStr::Icmp( arg0, "UIMENU_WM_LIMBO" ) )    {
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_WM_LIMBO );
 		}
 		// -NERVE - SMF
-		else if ( arg0 && !Q_stricmp( arg0, "hbook1" ) ) {   //----(SA)
+		else if ( arg0 && !idStr::Icmp( arg0, "hbook1" ) ) {   //----(SA)
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_BOOK1 );
-		} else if ( arg0 && !Q_stricmp( arg0, "hbook2" ) )    { //----(SA)
+		} else if ( arg0 && !idStr::Icmp( arg0, "hbook2" ) )    { //----(SA)
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_BOOK2 );
-		} else if ( arg0 && !Q_stricmp( arg0, "hbook3" ) )    { //----(SA)
+		} else if ( arg0 && !idStr::Icmp( arg0, "hbook3" ) )    { //----(SA)
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_BOOK3 );
-		} else if ( arg0 && !Q_stricmp( arg0, "pregame" ) )    { //----(SA) added
+		} else if ( arg0 && !idStr::Icmp( arg0, "pregame" ) )    { //----(SA) added
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_PREGAME );
 		} else {
 		uivm->UI_SET_ACTIVE_MENU(UIMENU_CLIPBOARD );
@@ -895,8 +896,7 @@ void CL_UpdateLevelHunkUsage( void ) {
 	int handle;
 	char *memlistfile = "hunkusage.dat";
 	char *buf, *outbuf;
-	char *buftrav, *outbuftrav;
-	char *token;
+	char *outbuftrav;
 	char outstr[256];
 	int len, memusage;
 
@@ -905,36 +905,38 @@ void CL_UpdateLevelHunkUsage( void ) {
 	len = FS_FOpenFileByMode( memlistfile, &handle, FS_READ );
 	if ( len >= 0 ) { // the file exists, so read it in, strip out the current entry for this map, and save it out, so we can append the new value
 
-		buf = (char *)Z_Malloc( len + 1 );
+		buf = (char *)Mem_ClearedAlloc( len + 1, TAG_IDLIB );
 		memset( buf, 0, len + 1 );
-		outbuf = (char *)Z_Malloc( len + 1 );
+		outbuf = (char *)Mem_ClearedAlloc( len + 1, TAG_IDLIB );
 		memset( outbuf, 0, len + 1 );
 
 		FS_Read( (void *)buf, len, handle );
 		FS_FCloseFile( handle );
 
 		// now parse the file, filtering out the current map
-		buftrav = buf;
 		outbuftrav = outbuf;
 		outbuftrav[0] = '\0';
-		while ( ( token = COM_Parse( &buftrav ) ) && token[0] ) {
-			if ( !Q_strcasecmp( token, cl.mapname ) ) {
+		idLexer usageLexer;
+		idToken token;
+		usageLexer.LoadMemory( buf, len, "hunkusage.dat" );
+		while ( usageLexer.ReadToken( &token ) && token[0] ) {
+			if ( !idStr::Icmp( token.c_str(), cl.mapname ) ) {
 				// found a match
-				token = COM_Parse( &buftrav );  // read the size
-				if ( token && token[0] ) {
-					if ( atoi( token ) == memusage ) {  // if it is the same, abort this process
-						Z_Free( buf );
-						Z_Free( outbuf );
+				idToken sizeToken;  // read the size
+				if ( usageLexer.ReadToken( &sizeToken ) && sizeToken[0] ) {
+					if ( atoi( sizeToken.c_str() ) == memusage ) {  // if it is the same, abort this process
+						Mem_Free( buf );
+						Mem_Free( outbuf );
 						return;
 					}
 				}
 			} else {    // send it to the outbuf
-				Q_strcat( outbuftrav, len + 1, token );
-				Q_strcat( outbuftrav, len + 1, " " );
-				token = COM_Parse( &buftrav );  // read the size
-				if ( token && token[0] ) {
-					Q_strcat( outbuftrav, len + 1, token );
-					Q_strcat( outbuftrav, len + 1, "\n" );
+				idStr::Append( outbuftrav, len + 1, token.c_str() );
+				idStr::Append( outbuftrav, len + 1, " " );
+				idToken sizeToken;  // read the size
+				if ( usageLexer.ReadToken( &sizeToken ) && sizeToken[0] ) {
+					idStr::Append( outbuftrav, len + 1, sizeToken.c_str() );
+					idStr::Append( outbuftrav, len + 1, "\n" );
 				} else {
 					Com_Error( ERR_DROP, "hunkusage.dat file is corrupt\n" );
 				}
@@ -959,8 +961,8 @@ void CL_UpdateLevelHunkUsage( void ) {
 		}
 		FS_FCloseFile( handle );
 
-		Z_Free( buf );
-		Z_Free( outbuf );
+		Mem_Free( buf );
+		Mem_Free( outbuf );
 	}
 	// now append the current map to the current file
 	FS_FOpenFileByMode( memlistfile, &handle, FS_APPEND );
@@ -1224,7 +1226,7 @@ void CL_SetCGameTime( void ) {
 
 	if ( cl.snap.serverTime < cl.oldFrameServerTime ) {
 		// Ridah, if this is a localhost, then we are probably loading a savegame
-		if ( !Q_stricmp( cls.servername, "localhost" ) ) {
+		if ( !idStr::Icmp( cls.servername, "localhost" ) ) {
 			// do nothing?
 			CL_FirstSnapshot();
 		} else {

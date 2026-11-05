@@ -1265,7 +1265,7 @@ redump:
 			cinTable[currentHandle].buf =   cin.linbuf;
 		}
 		if ( cinTable[currentHandle].numQuads == 0 ) {          // first frame
-			Com_Memcpy( cin.linbuf + cinTable[currentHandle].screenDelta, cin.linbuf, cinTable[currentHandle].samplesPerLine * cinTable[currentHandle].ysize );
+			memcpy( cin.linbuf + cinTable[currentHandle].screenDelta, cin.linbuf, cinTable[currentHandle].samplesPerLine * cinTable[currentHandle].ysize );
 		}
 		cinTable[currentHandle].numQuads++;
 		cinTable[currentHandle].dirty = qtrue;
@@ -1591,7 +1591,7 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 
 	if ( !( systemBits & CIN_system ) ) {
 		for ( i = 0 ; i < MAX_VIDEO_HANDLES ; i++ ) {
-			if ( !Q_stricmp( cinTable[i].fileName, name ) ) {
+			if ( !idStr::Icmp( cinTable[i].fileName, name ) ) {
 				return i;
 			}
 		}
@@ -1599,7 +1599,7 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 
 	Com_DPrintf( "SCR_PlayCinematic( %s )\n", arg );
 
-	Com_Memset( &cin, 0, sizeof( cinematics_t ) );
+	memset( &cin, 0, sizeof( cinematics_t ) );
 	currentHandle = CIN_HandleForVideo();
 
 	cin.currentHandle = currentHandle;
@@ -1738,7 +1738,7 @@ void CIN_DrawCinematic( int handle ) {
 		}
 
 		buf3 = (int*)buf;
-		buf2 = (int *) Hunk_AllocateTempMemory( 256 * 256 * 4 );
+		buf2 = (int *) Mem_ClearedAlloc( 256 * 256 * 4, TAG_IDLIB );
 		if ( xm == 2 && ym == 2 ) {
 			byte *bc2, *bc3;
 			int ic, iiy;
@@ -1778,7 +1778,7 @@ void CIN_DrawCinematic( int handle ) {
 		}
 		re.DrawStretchRaw( x, y, w, h, 256, 256, (byte *)buf2, handle, qtrue );
 		cinTable[handle].dirty = qfalse;
-		Hunk_FreeTempMemory( buf2 );
+		Mem_Free( buf2 );
 		return;
 	}
 
@@ -1805,7 +1805,7 @@ void CL_PlayCinematic_f( void ) {
 	s = Cmd_Argv( 2 );
 
 	holdatend = qfalse;
-	if ( ( s && s[0] == '1' ) || Q_stricmp( arg,"demoend.roq" ) == 0 || Q_stricmp( arg,"end.roq" ) == 0 ) {
+	if ( ( s && s[0] == '1' ) || idStr::Icmp( arg, "demoend.roq" ) == 0 || idStr::Icmp( arg, "end.roq" ) == 0 ) {
 		bits |= CIN_hold;
 	}
 	if ( s && s[0] == '2' ) {
