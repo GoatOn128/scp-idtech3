@@ -72,28 +72,6 @@ If you have questions concerning this license or the applicable additional terms
 #define idppc 1
 #endif
 
-/**********************************************************************
-  VM Considerations
-
-  The VM can not use the standard system headers because we aren't really
-  using the compiler they were meant for.  We use bg_lib.h which contains
-  prototypes for the functions we define for our own use in bg_lib.c.
-
-  When writing mods, please add needed headers HERE, do not start including
-  stuff like <stdio.h> in the various .c files that make up each of the VMs
-  since you will be including system headers files can will have issues.
-
-  Remember, if you use a C library function that is not defined in bg_lib.c,
-  you will have to add your own version for support in the VM.
-
- **********************************************************************/
-
-#ifdef Q3_VM
-
-#include "bg_lib.h"
-
-#else
-
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -105,17 +83,8 @@ If you have questions concerning this license or the applicable additional terms
 #include <limits.h>
 #include <stdint.h>
 
-#endif
-
 // idlib provides the shared math, container, string and parser library
 #include "idlib/precompiled.h"
-
-#ifdef _WIN32
-
-//#pragma intrinsic( memset, memcpy )
-
-#endif
-
 
 // this is the define for determining if we have an asm version of a C function
 #if ( defined _M_IX86 || defined __i386__ ) && !defined __sun__  && !defined __LCC__
@@ -123,12 +92,6 @@ If you have questions concerning this license or the applicable additional terms
 #else
 #define id386   0
 #endif
-
-// MAC_STATIC, QDECL, CPUSTRING, PATH_SEP and the *_HARD_LINKED macros
-// are no longer defined here: the CMake build provides them
-
-//=============================================================
-
 
 typedef unsigned char byte;
 
@@ -143,14 +106,6 @@ typedef int qhandle_t;
 typedef int sfxHandle_t;
 typedef int fileHandle_t;
 typedef int clipHandle_t;
-
-#ifndef ID_INLINE
-#ifdef _WIN32
-#define ID_INLINE __inline
-#else
-#define ID_INLINE inline
-#endif
-#endif
 
 //#define	SND_NORMAL			0x000	// (default) Allow sound to be cut off only by the same sound on this channel
 #define     SND_OKTOCUT         0x001   // Allow sound to be cut off by any following sounds on this channel
@@ -326,45 +281,6 @@ typedef int fixed16_t;
 #define GIANTCHAR_WIDTH     32
 #define GIANTCHAR_HEIGHT    48
 
-extern idVec4 colorBlack;
-extern idVec4 colorRed;
-extern idVec4 colorGreen;
-extern idVec4 colorBlue;
-extern idVec4 colorYellow;
-extern idVec4 colorMagenta;
-extern idVec4 colorCyan;
-extern idVec4 colorWhite;
-extern idVec4 colorLtGrey;
-extern idVec4 colorMdGrey;
-extern idVec4 colorDkGrey;
-
-#define Q_COLOR_ESCAPE  '^'
-#define Q_IsColorString( p )  ( p && *( p ) == Q_COLOR_ESCAPE && *( ( p ) + 1 ) && *( ( p ) + 1 ) != Q_COLOR_ESCAPE )
-
-#define COLOR_BLACK     '0'
-#define COLOR_RED       '1'
-#define COLOR_GREEN     '2'
-#define COLOR_YELLOW    '3'
-#define COLOR_BLUE      '4'
-#define COLOR_CYAN      '5'
-#define COLOR_MAGENTA   '6'
-#define COLOR_WHITE     '7'
-#define ColorIndex( c )   ( ( ( c ) - '0' ) & 7 )
-
-#define S_COLOR_BLACK   "^0"
-#define S_COLOR_RED     "^1"
-#define S_COLOR_GREEN   "^2"
-#define S_COLOR_YELLOW  "^3"
-#define S_COLOR_BLUE    "^4"
-#define S_COLOR_CYAN    "^5"
-#define S_COLOR_MAGENTA "^6"
-#define S_COLOR_WHITE   "^7"
-
-extern idVec4 g_color_table[8];
-
-#define MAKERGB( v, r, g, b ) v[0] = r; v[1] = g; v[2] = b
-#define MAKERGBA( v, r, g, b, a ) v[0] = r; v[1] = g; v[2] = b; v[3] = a
-
 #define nanmask ( 255 << 23 )
 #define IS_NAN( x ) ( ( ( *(int *)&x ) & nanmask ) == nanmask )
 
@@ -380,9 +296,6 @@ extern idVec4 g_color_table[8];
 
 
 // engine-specific helpers that have no idlib equivalent, implemented in q_shared.cpp
-unsigned ColorBytes3( float r, float g, float b );
-unsigned ColorBytes4( float r, float g, float b, float a );
-float NormalizeColor( const idVec3 &in, idVec3 &out );
 void SetPlaneSignbits( struct cplane_s *out );
 int BoxOnPlaneSide( const idVec3 &emins, const idVec3 &emaxs, struct cplane_s *plane );
 
@@ -438,32 +351,8 @@ int Q_PrintStrlen( const char *string );
 char *Q_CleanStr( char *string );
 //=============================================
 
-// 64-bit integers for global rankings interface
-// implemented as a struct for qvm compatibility
-typedef struct
-{
-	byte b0;
-	byte b1;
-	byte b2;
-	byte b3;
-	byte b4;
-	byte b5;
-	byte b6;
-	byte b7;
-} qint64;
-
 //=============================================
 
-short   BigShort( short l );
-short   LittleShort( short l );
-int     BigLong( int l );
-int     LittleLong( int l );
-qint64  BigLong64( qint64 l );
-qint64  LittleLong64( qint64 l );
-float   BigFloat( float l );
-float   LittleFloat( float l );
-
-void    Swap_Init( void );
 char    * QDECL va( char *format, ... );
 
 //=============================================

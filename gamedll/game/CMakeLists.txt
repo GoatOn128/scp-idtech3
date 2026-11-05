@@ -69,7 +69,6 @@ set(GAME_SOURCES
     g_trigger.cpp
     g_utils.cpp
     g_weapon.cpp
-    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
     ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp)
 
 if ( WIN32 )
@@ -94,12 +93,7 @@ if ( WIN32 )
 endif()
 target_include_directories(game PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
 if ( APPLE )
-    # the game module imports engine symbols (Com_Printf, Com_Error) from
-    # the host executable at load time, the same way it does on windows, so
-    # tell the mac linker those imports are resolved at load time
     target_link_options(game PRIVATE -Wl,-undefined,dynamic_lookup)
 endif()
 
-# the engine loads the game modules from the game directory next to
-# the exe, matching the retail WolfSP.exe + Main layout
 configure_target(game main)

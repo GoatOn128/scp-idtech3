@@ -114,6 +114,8 @@ const int C_COLOR_BLACK				= '9';
 #define S_COLOR_GRAY				"^8"
 #define S_COLOR_BLACK				"^9"
 
+extern idVec4 g_color_table[8];
+
 // make idStr a multiple of 16 bytes long
 // don't make too large to keep memory requirements to a minimum
 const int STR_ALLOC_BASE			= 20;
@@ -1211,5 +1213,20 @@ ID_INLINE void idStr::CopyRange( const char * text, int start, int end ) {
 	data[ l ] = '\0';
 	len = l;
 }
+
+
+/*
+========================
+	
+	Legacy
+
+========================
+*/
+#define Q_IsColorString( p )  ( p && *( p ) == C_COLOR_ESCAPE && *( ( p ) + 1 ) && *( ( p ) + 1 ) != C_COLOR_ESCAPE )
+
+#define ColorIndex( c )   ( ( ( c ) - '0' ) & 7 )
+
+#define MAKERGB( v, r, g, b ) v[0] = r; v[1] = g; v[2] = b
+#define MAKERGBA( v, r, g, b, a ) v[0] = r; v[1] = g; v[2] = b; v[3] = a
 
 #endif /* !__STR_H__ */
