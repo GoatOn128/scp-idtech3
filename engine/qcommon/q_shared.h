@@ -107,6 +107,9 @@ If you have questions concerning this license or the applicable additional terms
 
 #endif
 
+// idlib provides the shared math, container, string and parser library
+#include "idlib/precompiled.h"
+
 #ifdef _WIN32
 
 //#pragma intrinsic( memset, memcpy )
@@ -281,26 +284,6 @@ typedef enum {
 
 #define UI_SMALLFONT75  0x00100000
 
-#if defined( _DEBUG ) && !defined( BSPC )
-	#define HUNK_DEBUG
-#endif
-
-typedef enum {
-	h_high,
-	h_low,
-	h_dontcare
-} ha_pref;
-
-#ifdef HUNK_DEBUG
-#define Hunk_Alloc( size, preference )              Hunk_AllocDebug( size, preference, # size, __FILE__, __LINE__ )
-void *Hunk_AllocDebug( int size, ha_pref preference, char *label, char *file, int line );
-#else
-void *Hunk_Alloc( int size, ha_pref preference );
-#endif
-
-void Com_Memset( void* dest, const int val, const size_t count );
-void Com_Memcpy( void* dest, const void* src, const size_t count );
-
 #define CIN_system      0x01
 #define CIN_loop        0x02
 #define CIN_hold        0x04
@@ -318,12 +301,6 @@ MATHLIB
 */
 
 
-typedef float vec_t;
-typedef vec_t vec2_t[2];
-typedef vec_t vec3_t[3];
-typedef vec_t vec4_t[4];
-typedef vec_t vec5_t[5];
-
 typedef int fixed4_t;
 typedef int fixed8_t;
 typedef int fixed16_t;
@@ -331,9 +308,6 @@ typedef int fixed16_t;
 #ifndef M_PI
 #define M_PI        3.14159265358979323846f // matches value in gcc v2 math.h
 #endif
-
-#define NUMVERTEXNORMALS    162
-extern vec3_t bytedirs[NUMVERTEXNORMALS];
 
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution
@@ -352,17 +326,17 @@ extern vec3_t bytedirs[NUMVERTEXNORMALS];
 #define GIANTCHAR_WIDTH     32
 #define GIANTCHAR_HEIGHT    48
 
-extern vec4_t colorBlack;
-extern vec4_t colorRed;
-extern vec4_t colorGreen;
-extern vec4_t colorBlue;
-extern vec4_t colorYellow;
-extern vec4_t colorMagenta;
-extern vec4_t colorCyan;
-extern vec4_t colorWhite;
-extern vec4_t colorLtGrey;
-extern vec4_t colorMdGrey;
-extern vec4_t colorDkGrey;
+extern idVec4 colorBlack;
+extern idVec4 colorRed;
+extern idVec4 colorGreen;
+extern idVec4 colorBlue;
+extern idVec4 colorYellow;
+extern idVec4 colorMagenta;
+extern idVec4 colorCyan;
+extern idVec4 colorWhite;
+extern idVec4 colorLtGrey;
+extern idVec4 colorMdGrey;
+extern idVec4 colorDkGrey;
 
 #define Q_COLOR_ESCAPE  '^'
 #define Q_IsColorString( p )  ( p && *( p ) == Q_COLOR_ESCAPE && *( ( p ) + 1 ) && *( ( p ) + 1 ) != Q_COLOR_ESCAPE )
@@ -386,18 +360,10 @@ extern vec4_t colorDkGrey;
 #define S_COLOR_MAGENTA "^6"
 #define S_COLOR_WHITE   "^7"
 
-extern vec4_t g_color_table[8];
+extern idVec4 g_color_table[8];
 
 #define MAKERGB( v, r, g, b ) v[0] = r; v[1] = g; v[2] = b
 #define MAKERGBA( v, r, g, b, a ) v[0] = r; v[1] = g; v[2] = b; v[3] = a
-
-#define DEG2RAD( a ) ( ( ( a ) * M_PI ) / 180.0F )
-#define RAD2DEG( a ) ( ( ( a ) * 180.0f ) / M_PI )
-
-struct cplane_s;
-
-extern vec3_t vec3_origin;
-extern vec3_t axisDefault[3];
 
 #define nanmask ( 255 << 23 )
 #define IS_NAN( x ) ( ( ( *(int *)&x ) & nanmask ) == nanmask )
@@ -412,198 +378,13 @@ extern vec3_t axisDefault[3];
 #define CHECK_NAN_VEC
 #endif
 
-float Q_fabs( float f );
-float Q_rsqrt( float f );       // reciprocal square root
 
-#define SQRTFAST( x ) ( 1.0f / Q_rsqrt( x ) )
-
-signed char ClampChar( int i );
-signed short ClampShort( int i );
-
-// this isn't a real cheap function to call!
-int DirToByte( vec3_t dir );
-void ByteToDir( int b, vec3_t dir );
-
-#if 1
-
-#define DotProduct( x,y )         ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] )
-#define VectorSubtract( a,b,c )   ( ( c )[0] = ( a )[0] - ( b )[0],( c )[1] = ( a )[1] - ( b )[1],( c )[2] = ( a )[2] - ( b )[2] )
-#define VectorAdd( a,b,c )        ( ( c )[0] = ( a )[0] + ( b )[0],( c )[1] = ( a )[1] + ( b )[1],( c )[2] = ( a )[2] + ( b )[2] )
-#define VectorCopy( a,b )         ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2] )
-#define VectorCopy4( a,b )        ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2],( b )[3] = ( a )[3] )
-#define VectorScale( v, s, o )    ( ( o )[0] = ( v )[0] * ( s ),( o )[1] = ( v )[1] * ( s ),( o )[2] = ( v )[2] * ( s ) )
-#define VectorMA( v, s, b, o )    ( ( o )[0] = ( v )[0] + ( b )[0] * ( s ),( o )[1] = ( v )[1] + ( b )[1] * ( s ),( o )[2] = ( v )[2] + ( b )[2] * ( s ) )
-
-#else
-
-#define DotProduct( x,y )         _DotProduct( x,y )
-#define VectorSubtract( a,b,c )   _VectorSubtract( a,b,c )
-#define VectorAdd( a,b,c )        _VectorAdd( a,b,c )
-#define VectorCopy( a,b )         _VectorCopy( a,b )
-#define VectorScale( v, s, o )    _VectorScale( v,s,o )
-#define VectorMA( v, s, b, o )    _VectorMA( v,s,b,o )
-
-#endif
-
-#ifdef __LCC__
-#ifdef VectorCopy
-#undef VectorCopy
-// this is a little hack to get more efficient copies in our interpreter
-typedef struct {
-	float v[3];
-} vec3struct_t;
-#define VectorCopy( a,b ) * (vec3struct_t *)b = *(vec3struct_t *)a;
-#endif
-#endif
-
-#define VectorClear( a )              ( ( a )[0] = ( a )[1] = ( a )[2] = 0 )
-#define VectorNegate( a,b )           ( ( b )[0] = -( a )[0],( b )[1] = -( a )[1],( b )[2] = -( a )[2] )
-#define VectorSet( v, x, y, z )       ( ( v )[0] = ( x ), ( v )[1] = ( y ), ( v )[2] = ( z ) )
-
-#define Vector4Set( v, x, y, z, n )   ( ( v )[0] = ( x ),( v )[1] = ( y ),( v )[2] = ( z ),( v )[3] = ( n ) )
-#define Vector4Copy( a,b )            ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2],( b )[3] = ( a )[3] )
-#define Vector4MA( v, s, b, o )       ( ( o )[0] = ( v )[0] + ( b )[0] * ( s ),( o )[1] = ( v )[1] + ( b )[1] * ( s ),( o )[2] = ( v )[2] + ( b )[2] * ( s ),( o )[3] = ( v )[3] + ( b )[3] * ( s ) )
-#define Vector4Average( v, b, s, o )  ( ( o )[0] = ( ( v )[0] * ( 1 - ( s ) ) ) + ( ( b )[0] * ( s ) ),( o )[1] = ( ( v )[1] * ( 1 - ( s ) ) ) + ( ( b )[1] * ( s ) ),( o )[2] = ( ( v )[2] * ( 1 - ( s ) ) ) + ( ( b )[2] * ( s ) ),( o )[3] = ( ( v )[3] * ( 1 - ( s ) ) ) + ( ( b )[3] * ( s ) ) )
-
-#define SnapVector( v ) {v[0] = ( (int)( v[0] ) ); v[1] = ( (int)( v[1] ) ); v[2] = ( (int)( v[2] ) );}
-
-// just in case you do't want to use the macros
-vec_t _DotProduct( const vec3_t v1, const vec3_t v2 );
-void _VectorSubtract( const vec3_t veca, const vec3_t vecb, vec3_t out );
-void _VectorAdd( const vec3_t veca, const vec3_t vecb, vec3_t out );
-void _VectorCopy( const vec3_t in, vec3_t out );
-void _VectorScale( const vec3_t in, float scale, vec3_t out );
-void _VectorMA( const vec3_t veca, float scale, const vec3_t vecb, vec3_t vecc );
-
+// engine-specific helpers that have no idlib equivalent, implemented in q_shared.cpp
 unsigned ColorBytes3( float r, float g, float b );
 unsigned ColorBytes4( float r, float g, float b, float a );
-
-float NormalizeColor( const vec3_t in, vec3_t out );
-
-float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
-void ClearBounds( vec3_t mins, vec3_t maxs );
-void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
-int VectorCompare( const vec3_t v1, const vec3_t v2 );
-vec_t VectorLength( const vec3_t v );
-vec_t VectorLengthSquared( const vec3_t v );
-vec_t Distance( const vec3_t p1, const vec3_t p2 );
-vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 );
-void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
-vec_t VectorNormalize( vec3_t v );       // returns vector length
-void VectorNormalizeFast( vec3_t v );     // does NOT return vector length, uses rsqrt approximation
-vec_t VectorNormalize2( const vec3_t v, vec3_t out );
-void VectorInverse( vec3_t v );
-void Vector4Scale( const vec4_t in, vec_t scale, vec4_t out );
-void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out );
-int Q_log2( int val );
-
-float Q_acos( float c );
-
-int     Q_rand( int *seed );
-float   Q_random( int *seed );
-float   Q_crandom( int *seed );
-
-#define random()    ( ( rand() & 0x7fff ) / ( (float)0x7fff ) )
-#define crandom()   ( 2.0 * ( random() - 0.5 ) )
-
-void vectoangles( const vec3_t value1, vec3_t angles );
-float vectoyaw( const vec3_t vec );
-void AnglesToAxis( const vec3_t angles, vec3_t axis[3] );
-// TTimo: const vec_t ** would require explicit casts for ANSI C conformance
-// see unix/const-arg.c
-void AxisToAngles( /*const*/ vec3_t axis[3], vec3_t angles );
-float VectorDistance( vec3_t v1, vec3_t v2 );
-
-void AxisClear( vec3_t axis[3] );
-void AxisCopy( vec3_t in[3], vec3_t out[3] );
-
+float NormalizeColor( const idVec3 &in, idVec3 &out );
 void SetPlaneSignbits( struct cplane_s *out );
-int BoxOnPlaneSide( vec3_t emins, vec3_t emaxs, struct cplane_s *plane );
-
-float   AngleMod( float a );
-float   LerpAngle( float from, float to, float frac );
-float   AngleSubtract( float a1, float a2 );
-void    AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
-
-float AngleNormalize360( float angle );
-float AngleNormalize180( float angle );
-float AngleDelta( float angle1, float angle2 );
-
-qboolean PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
-void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
-void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
-void RotateAroundDirection( vec3_t axis[3], float yaw );
-void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up );
-// perpendicular vector could be replaced by this
-
-int PlaneTypeForNormal( vec3_t normal );
-
-void MatrixMultiply( float in1[3][3], float in2[3][3], float out[3][3] );
-void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
-void PerpendicularVector( vec3_t dst, const vec3_t src );
-
-// Ridah
-void GetPerpendicularViewVector( const vec3_t point, const vec3_t p1, const vec3_t p2, vec3_t up );
-void ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vEnd, vec3_t vProj );
-// done.
-
-//=============================================
-
-float Com_Clamp( float min, float max, float value );
-
-char    *COM_SkipPath( char *pathname );
-void    COM_StripExtension( const char *in, char *out );
-void    COM_StripFilename( char *in, char *out );
-void    COM_DefaultExtension( char *path, int maxSize, const char *extension );
-
-void    COM_BeginParseSession( const char *name );
-void    COM_RestoreParseSession( char **data_p );
-void    COM_SetCurrentParseLine( int line );
-int     COM_GetCurrentParseLine( void );
-char    *COM_Parse( char **data_p );
-char    *COM_ParseExt( char **data_p, qboolean allowLineBreak );
-int     COM_Compress( char *data_p );
-void    COM_ParseError( char *format, ... );
-void    COM_ParseWarning( char *format, ... );
-
-// TTimo
-qboolean COM_BitCheck( const int array[], int bitNum );
-void COM_BitSet( int array[], int bitNum );
-void COM_BitClear( int array[], int bitNum );
-
-#define MAX_TOKENLENGTH     1024
-
-#ifndef TT_STRING
-//token types
-#define TT_STRING                   1           // string
-#define TT_LITERAL                  2           // literal
-#define TT_NUMBER                   3           // number
-#define TT_NAME                     4           // name
-#define TT_PUNCTUATION              5           // punctuation
-#endif
-
-typedef struct pc_token_s
-{
-	int type;
-	int subtype;
-	int intvalue;
-	float floatvalue;
-	char string[MAX_TOKENLENGTH];
-} pc_token_t;
-
-// data is an in/out parm, returns a parsed out token
-
-void    COM_MatchToken( char**buf_p, char *match );
-
-void SkipBracedSection( char **program );
-void SkipRestOfLine( char **data );
-
-void Parse1DMatrix( char **buf_p, int x, float *m );
-void Parse2DMatrix( char **buf_p, int y, int x, float *m );
-void Parse3DMatrix( char **buf_p, int z, int y, int x, float *m );
-
-void QDECL Com_sprintf( char *dest, int size, const char *fmt, ... );
-
+int BoxOnPlaneSide( const idVec3 &emins, const idVec3 &emaxs, struct cplane_s *plane );
 
 // mode parm for FS_FOpenFile
 typedef enum {
@@ -630,13 +411,6 @@ int Q_isalphanumeric( int c );  //----(SA)	added
 int Q_isforfilename( int c );       //----(SA)	added
 
 // portable case insensitive compare
-int     Q_stricmp( const char *s1, const char *s2 );
-int     Q_strncmp( const char *s1, const char *s2, int n );
-int     Q_stricmpn( const char *s1, const char *s2, int n );
-char    *Q_strlwr( char *s1 );
-char    *Q_strupr( char *s1 );
-char    *Q_strrchr( const char* string, int c );
-
 #ifdef _WIN32
 #define Q_putenv _putenv
 #else
@@ -654,18 +428,10 @@ char    *Q_strrchr( const char* string, int c );
 #define _strnicmp strncasecmp
 #endif
 
-// buffer size safe library replacements
-void    Q_strncpyz( char *dest, const char *src, int destsize );
-void    Q_strcat( char *dest, int size, const char *src );
-
 // strlen that discounts Quake color sequences
 int Q_PrintStrlen( const char *string );
 // removes color sequences from string
 char *Q_CleanStr( char *string );
-// Ridah
-int Q_strncasecmp( char *s1, char *s2, int n );
-int Q_strcasecmp( char *s1, char *s2 );
-// done.
 //=============================================
 
 // 64-bit integers for global rankings interface
@@ -695,7 +461,6 @@ float   LittleFloat( float l );
 
 void    Swap_Init( void );
 char    * QDECL va( char *format, ... );
-float   *tv( float x, float y, float z );
 
 //=============================================
 
@@ -840,7 +605,7 @@ PlaneTypeForNormal
 // plane_t structure
 // !!! if this is changed, it must be changed in asm code too !!!
 typedef struct cplane_s {
-	vec3_t normal;
+	idVec3 normal;
 	float dist;
 	byte type;              // for fast side tests: 0,1,2 = axial, 3 = nonaxial
 	byte signbits;          // signx + (signy<<1) + (signz<<2), used as lookup during collision
@@ -853,7 +618,7 @@ typedef struct {
 	qboolean allsolid;      // if true, plane is not valid
 	qboolean startsolid;    // if true, the initial point was in a solid area
 	float fraction;         // time completed, 1.0 = didn't hit anything
-	vec3_t endpos;          // final position
+	idVec3 endpos;          // final position
 	cplane_t plane;         // surface normal at impact, transformed to world space
 	int surfaceFlags;           // surface hit
 	int contents;           // contents on other side of surface hit
@@ -873,8 +638,8 @@ typedef struct {
 
 
 typedef struct {
-	vec3_t origin;
-	vec3_t axis[3];
+	idVec3 origin;
+	idVec3 axis[3];
 } orientation_t;
 
 //=====================================================================
@@ -1040,8 +805,8 @@ typedef struct playerState_s {
 	int pm_flags;               // ducked, jump_held, etc
 	int pm_time;
 
-	vec3_t origin;
-	vec3_t velocity;
+	idVec3 origin;
+	idVec3 velocity;
 	int weaponTime;
 	int weaponDelay;            // for weapons that don't fire immediately when 'fire' is hit (grenades, venom, ...)
 	int grenadeTimeLeft;            // for delayed grenade throwing.  this is set to a #define for grenade
@@ -1092,7 +857,7 @@ typedef struct playerState_s {
 	// item info
 	int item;
 
-	vec3_t viewangles;          // for fixed views
+	idVec3 viewangles;          // for fixed views
 	int viewheight;
 
 	// damage feedback
@@ -1111,7 +876,7 @@ typedef struct playerState_s {
 	int weapons[MAX_WEAPONS / ( sizeof( int ) * 8 )];   // 64 bits for weapons held
 
 	// Ridah, allow for individual bounding boxes
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 	float crouchMaxZ;
 	float crouchViewHeight, standViewHeight, deadViewHeight;
 	// variable movement speed
@@ -1279,8 +1044,8 @@ typedef struct {
 	int trTime;
 	int trDuration;             // if non 0, trTime + trDuration = stop time
 //----(SA)	removed
-	vec3_t trBase;
-	vec3_t trDelta;             // velocity, etc
+	idVec3 trBase;
+	idVec3 trDelta;             // velocity, etc
 //----(SA)	removed
 } trajectory_t;
 
@@ -1308,11 +1073,11 @@ typedef struct entityState_s {
 	int time;
 	int time2;
 
-	vec3_t origin;
-	vec3_t origin2;
+	idVec3 origin;
+	idVec3 origin2;
 
-	vec3_t angles;
-	vec3_t angles2;
+	idVec3 angles;
+	idVec3 angles2;
 
 	int otherEntityNum;     // shotgun sources, etc
 	int otherEntityNum2;
