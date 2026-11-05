@@ -52,7 +52,7 @@ static void APIENTRY R_ArrayElementDiscrete( GLint index ) {
 	} else {
 		qglTexCoord2fv( tess.svars.texcoords[ 0 ][ index ] );
 	}
-	qglVertex3fv( tess.xyz[ index ] );
+	qglVertex3fv( tess.xyz[ index ].ToFloatPtr() );
 }
 
 /*
@@ -237,7 +237,7 @@ static void R_BindAnimatedImage( textureBundle_t *bundle ) {
 
 	// it is necessary to do this messy calc to make sure animations line up
 	// exactly with waveforms of the same frequency
-	index = myftol( tess.shaderTime * bundle->imageAnimationSpeed * FUNCTABLE_SIZE );
+	index = idMath::Ftoi( tess.shaderTime * bundle->imageAnimationSpeed * FUNCTABLE_SIZE );
 	index >>= FUNCTABLE_SIZE2;
 
 	if ( index < 0 ) {
@@ -298,7 +298,7 @@ Draws vertex normals for debugging
 */
 static void DrawNormals( shaderCommands_t *input ) {
 	int i;
-	vec3_t temp;
+	idVec3 temp;
 
 	GL_Bind( tr.whiteImage );
 	qglColor3f( 1,1,1 );
@@ -310,9 +310,9 @@ static void DrawNormals( shaderCommands_t *input ) {
 
 	qglBegin( GL_LINES );
 	for ( i = 0 ; i < input->numVertexes ; i++ ) {
-		qglVertex3fv( input->xyz[i] );
-		VectorMA( input->xyz[i], 2, input->normal[i], temp );
-		qglVertex3fv( temp );
+		qglVertex3fv( input->xyz[i].ToFloatPtr() );
+		temp = input->xyz[i].ToVec3() + input->normal[i].ToVec3() * 2;
+		qglVertex3fv( temp.ToFloatPtr() );
 	}
 	qglEnd();
 	qglDepthRange( 0, 1 );
@@ -427,7 +427,7 @@ Perform dynamic lighting with another rendering pass
 */
 static void ProjectDlightTexture( void ) {
 	int i, l;
-	vec3_t origin;
+	idVec3 origin;
 	float   *texCoords;
 	byte    *colors;
 	byte clipBits[SHADER_MAX_VERTEXES];
@@ -437,7 +437,7 @@ static void ProjectDlightTexture( void ) {
 	int numIndexes;
 	float scale;
 	float radius;
-	vec3_t floatColor;
+	idVec3 floatColor;
 
 	if ( !backEnd.refdef.num_dlights ) {
 		return;
@@ -459,7 +459,7 @@ static void ProjectDlightTexture( void ) {
 		colors = colorArray[0];
 
 		dl = &backEnd.refdef.dlights[l];
-		VectorCopy( dl->transformed, origin );
+		origin = dl->transformed;
 		radius = dl->radius;
 		scale = 1.0f / radius;
 		floatColor[0] = dl->color[0] * 255.0f;
@@ -467,7 +467,7 @@ static void ProjectDlightTexture( void ) {
 		floatColor[2] = dl->color[2] * 255.0f;
 
 		for ( i = 0 ; i < tess.numVertexes ; i++, texCoords += 2, colors += 4 ) {
-			vec3_t dist;
+			idVec3 dist;
 			int clip;
 			float modulate;
 
@@ -476,12 +476,12 @@ static void ProjectDlightTexture( void ) {
 				continue;
 			}
 
-			VectorSubtract( origin, tess.xyz[i], dist );
+			dist = origin - tess.xyz[i].ToVec3();
 
 //			if(!r_dlightBacks->integer) {
-//				vec3_t	dir;
-//				VectorNormalize2(dist, dir);
-//				if( DotProduct( tess.normal[i], dir) < 0) {
+//				idVec3 dir;
+//				dir = dist; dir.Normalize();
+//				if( tess.normal[i].ToVec3() * dir < 0) {
 //					clipBits[i] = 255;	// not lighted (backface)
 //					continue;
 //				}
@@ -511,7 +511,7 @@ static void ProjectDlightTexture( void ) {
 				clip |= 32;
 				modulate = 0.0f;
 			} else {
-				dist[2] = Q_fabs( dist[2] );
+				dist[2] = idMath::Fabs( dist[2] );
 				if ( dist[2] < radius * 0.5f ) {
 					modulate = 1.0f;
 				} else {
@@ -520,9 +520,9 @@ static void ProjectDlightTexture( void ) {
 			}
 			clipBits[i] = clip;
 
-			colors[0] = myftol( floatColor[0] * modulate );
-			colors[1] = myftol( floatColor[1] * modulate );
-			colors[2] = myftol( floatColor[2] * modulate );
+			colors[0] = idMath::Ftoi( floatColor[0] * modulate );
+			colors[1] = idMath::Ftoi( floatColor[1] * modulate );
+			colors[2] = idMath::Ftoi( floatColor[2] * modulate );
 			colors[3] = 255;
 		}
 
@@ -539,10 +539,10 @@ static void ProjectDlightTexture( void ) {
 			}
 
 //			if(!r_dlightBacks->integer) {
-//				vec3_t	dir;
-//				VectorSubtract( origin, tess.xyz[a], dir );
-//				VectorNormalize(dir);
-//				if( DotProduct( tess.normal[i], dir) < 0) {
+//				idVec3 dir;
+//				dir = origin - tess.xyz[a].ToVec3();
+//				dir.Normalize();
+//				if( tess.normal[i].ToVec3() * dir < 0) {
 //					continue;	// not lighted (backface)
 //				}
 //			}
@@ -856,17 +856,19 @@ static void ComputeColors( shaderStage_t *pStage ) {
 	case AGEN_NORMALZFADE:
 	{
 		float alpha, range, lowest, highest, dot;
-		vec3_t worldUp;
+		idVec3 worldUp;
 		qboolean zombieEffect = qfalse;
 
-		if ( VectorCompare( backEnd.currentEntity->e.fireRiseDir, vec3_origin ) ) {
-			VectorSet( backEnd.currentEntity->e.fireRiseDir, 0, 0, 1 );
+		if ( backEnd.currentEntity->e.fireRiseDir == idVec3( 0, 0, 0 ) ) {
+			backEnd.currentEntity->e.fireRiseDir.Set( 0, 0, 1 );
 		}
 
 		if ( backEnd.currentEntity->e.hModel ) {    // world surfaces dont have an axis
-			VectorRotate( backEnd.currentEntity->e.fireRiseDir, backEnd.currentEntity->e.axis, worldUp );
+			worldUp[0] = backEnd.currentEntity->e.axis[0] * backEnd.currentEntity->e.fireRiseDir;
+			worldUp[1] = backEnd.currentEntity->e.axis[1] * backEnd.currentEntity->e.fireRiseDir;
+			worldUp[2] = backEnd.currentEntity->e.axis[2] * backEnd.currentEntity->e.fireRiseDir;
 		} else {
-			VectorCopy( backEnd.currentEntity->e.fireRiseDir, worldUp );
+			worldUp = backEnd.currentEntity->e.fireRiseDir;
 		}
 
 		lowest = pStage->zFadeBounds[0];
@@ -881,7 +883,7 @@ static void ComputeColors( shaderStage_t *pStage ) {
 		}
 		range = highest - lowest;
 		for ( i = 0; i < tess.numVertexes; i++ ) {
-			dot = DotProduct( tess.normal[i], worldUp );
+			dot = tess.normal[i].ToVec3() * worldUp;
 
 			// special handling for Zombie fade effect
 			if ( zombieEffect ) {
@@ -945,10 +947,10 @@ static void ComputeColors( shaderStage_t *pStage ) {
 		for ( i = 0; i < tess.numVertexes; i++ )
 		{
 			float len;
-			vec3_t v;
+			idVec3 v;
 
-			VectorSubtract( tess.xyz[i], backEnd.viewParms.orent.origin, v );
-			len = VectorLength( v );
+			v = tess.xyz[i].ToVec3() - backEnd.viewParms.orent.origin;
+			len = v.Length();
 
 			len /= tess.shader->portalRange;
 
@@ -1022,8 +1024,8 @@ static void ComputeTexCoords( shaderStage_t *pStage ) {
 			break;
 		case TCGEN_VECTOR:
 			for ( i = 0 ; i < tess.numVertexes ; i++ ) {
-				tess.svars.texcoords[b][i][0] = DotProduct( tess.xyz[i], pStage->bundle[b].tcGenVectors[0] );
-				tess.svars.texcoords[b][i][1] = DotProduct( tess.xyz[i], pStage->bundle[b].tcGenVectors[1] );
+				tess.svars.texcoords[b][i][0] = tess.xyz[i].ToVec3() * pStage->bundle[b].tcGenVectors[0];
+				tess.svars.texcoords[b][i][1] = tess.xyz[i].ToVec3() * pStage->bundle[b].tcGenVectors[1];
 			}
 			break;
 		case TCGEN_FOG:
