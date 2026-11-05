@@ -379,6 +379,10 @@ public:
 	const char *	ToString( int precision = 2 ) const;
 
 	void			NormalVectors( idVec3 &left, idVec3 &down ) const;	// vector should be normalized
+	void			MakeNormalVectors( idVec3 &right, idVec3 &up ) const;	// this vector should be normalized
+	void			PerpendicularVector( const idVec3 &src );		// assumes src is normalized
+	void			ProjectPointOnPlane( const idVec3 &p, const idVec3 &normal );
+	void			RotatePointAroundVector( const idVec3 &dir, const idVec3 &point, float degrees );
 	void			OrthogonalBasis( idVec3 &left, idVec3 &up ) const;
 
 	void			ProjectOntoPlane( const idVec3 &normal, const float overBounce = 1.0f );
@@ -1489,6 +1493,149 @@ ID_INLINE idVec3 idPolar3::ToVec3() const {
  	return idVec3( cp * radius * ct, cp * radius * st, radius * sp );
 }
 
+
+
+//===============================================================
+//
+//	engine vector helpers, ported from the old q3 mathlib
+//
+//===============================================================
+
+/*
+================
+idVec3::MakeNormalVectors
+
+Given a normalized forward vector, create two other perpendicular vectors
+================
+*/
+ID_INLINE void idVec3::MakeNormalVectors( idVec3 &right, idVec3 &up ) const {
+	float d;
+
+	// this rotate and negate guarantees a vector
+	// not colinear with the original
+	right[1] = -x;
+	right[2] = y;
+	right[0] = z;
+
+	d = right * (*this);
+	right += (*this) * -d;
+	right.Normalize();
+	up.Cross( right, *this );
+}
+
+/*
+================
+idVec3::PerpendicularVector
+
+assumes "src" is normalized
+================
+*/
+ID_INLINE void idVec3::PerpendicularVector( const idVec3 &src ) {
+	int pos, i;
+	float minelem = 1.0f;
+	idVec3 tempvec;
+
+	// find the smallest magnitude axially aligned vector
+	for ( pos = 0, i = 0; i < 3; i++ ) {
+		if ( idMath::Fabs( src[i] ) < minelem ) {
+			pos = i;
+			minelem = idMath::Fabs( src[i] );
+		}
+	}
+	tempvec.Zero();
+	tempvec[pos] = 1.0f;
+
+	// project the point onto the plane defined by src
+	ProjectPointOnPlane( tempvec, src );
+
+	// normalize the result
+	Normalize();
+}
+
+/*
+===============
+idVec3::ProjectPointOnPlane
+===============
+*/
+ID_INLINE void idVec3::ProjectPointOnPlane( const idVec3 &p, const idVec3 &normal ) {
+	float d;
+	idVec3 n;
+	float inv_denom;
+
+	inv_denom = 1.0f / ( normal * normal );
+
+	d = ( normal * p ) * inv_denom;
+
+	n = normal * inv_denom;
+
+	*this = p - n * d;
+}
+
+/*
+===============
+idVec3::RotatePointAroundVector
+===============
+*/
+ID_INLINE void idVec3::RotatePointAroundVector( const idVec3 &dir, const idVec3 &point, float degrees ) {
+	float m[3][3];
+	float im[3][3];
+	float zrot[3][3];
+	float tmpmat[3][3];
+	float rot[3][3];
+	int row, col;
+	idVec3 vr, vup, vf;
+	float rad;
+
+	vf = dir;
+
+	vr.PerpendicularVector( dir );
+	vup.Cross( vr, vf );
+
+	m[0][0] = vr[0];
+	m[1][0] = vr[1];
+	m[2][0] = vr[2];
+
+	m[0][1] = vup[0];
+	m[1][1] = vup[1];
+	m[2][1] = vup[2];
+
+	m[0][2] = vf[0];
+	m[1][2] = vf[1];
+	m[2][2] = vf[2];
+
+	memcpy( im, m, sizeof( im ) );
+
+	im[0][1] = m[1][0];
+	im[0][2] = m[2][0];
+	im[1][0] = m[0][1];
+	im[1][2] = m[2][1];
+	im[2][0] = m[0][2];
+	im[2][1] = m[1][2];
+
+	memset( zrot, 0, sizeof( zrot ) );
+	zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0f;
+
+	rad = DEG2RAD( degrees );
+	zrot[0][0] = idMath::Cos( rad );
+	zrot[0][1] = idMath::Sin( rad );
+	zrot[1][0] = -idMath::Sin( rad );
+	zrot[1][1] = idMath::Cos( rad );
+
+	for ( row = 0; row < 3; row++ ) {
+		for ( col = 0; col < 3; col++ ) {
+			tmpmat[row][col] = m[row][0] * zrot[0][col] + m[row][1] * zrot[1][col] + m[row][2] * zrot[2][col];
+		}
+	}
+	for ( row = 0; row < 3; row++ ) {
+		for ( col = 0; col < 3; col++ ) {
+			rot[row][col] = tmpmat[row][0] * im[0][col] + tmpmat[row][1] * im[1][col] + tmpmat[row][2] * im[2][col];
+		}
+	}
+
+	for ( row = 0; row < 3; row++ ) {
+		(*this)[row] = rot[row][0] * point[0] + rot[row][1] * point[1] + rot[row][2] * point[2];
+	}
+}
 
 /*
 ===============================================================================
