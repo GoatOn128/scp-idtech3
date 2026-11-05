@@ -550,10 +550,10 @@ void RB_BeginDrawingView( void ) {
 		plane[2] = backEnd.viewParms.portalPlane.normal[2];
 		plane[3] = backEnd.viewParms.portalPlane.dist;
 
-		plane2[0] = DotProduct( backEnd.viewParms.orent.axis[0], plane );
-		plane2[1] = DotProduct( backEnd.viewParms.orent.axis[1], plane );
-		plane2[2] = DotProduct( backEnd.viewParms.orent.axis[2], plane );
-		plane2[3] = DotProduct( plane, backEnd.viewParms.orent.origin ) - plane[3];
+		plane2[0] = ( backEnd.viewParms.orent.axis[0] ) * ( plane );
+		plane2[1] = ( backEnd.viewParms.orent.axis[1] ) * ( plane );
+		plane2[2] = ( backEnd.viewParms.orent.axis[2] ) * ( plane );
+		plane2[3] = ( plane ) * ( backEnd.viewParms.orent.origin ) - plane[3];
 
 		qglLoadMatrixf( s_flipMatrix );
 		qglClipPlane( GL_CLIP_PLANE0, plane2 );
@@ -571,8 +571,7 @@ RB_ZombieFX
 ============
 */
 
-extern void GlobalVectorToLocal( const vec3_t in, vec3_t out );
-extern vec_t VectorLengthSquared( const vec3_t v );
+extern void GlobalVectorToLocal( const idVec3 &in, idVec3 &out );
 
 #define ZOMBIEFX_MAX_VERTS              2048
 #define ZOMBIEFX_FADEOUT_TIME_SEC       ( 0.001 * ZOMBIEFX_FADEOUT_TIME )
@@ -591,8 +590,8 @@ typedef struct {
 	unsigned short numHits;
 	unsigned short vertHits[ZOMBIEFX_MAX_HITS]; // bit flags to represent those verts that have been hit
 	int numNewHits;
-	vec3_t newHitPos[ZOMBIEFX_MAX_NEWHITS];
-	vec3_t newHitDir[ZOMBIEFX_MAX_NEWHITS];
+	idVec3 newHitPos[ZOMBIEFX_MAX_NEWHITS];
+	idVec3 newHitDir[ZOMBIEFX_MAX_NEWHITS];
 } trZombieFleshHitverts_t;
 //
 trZombieFleshHitverts_t zombieFleshHitVerts[MAX_SP_CLIENTS][2]; // one for upper, one for lower
@@ -601,7 +600,7 @@ void RB_ZombieFXInit( void ) {
 	memset( zombieFleshHitVerts, 0, sizeof( zombieFleshHitVerts ) );
 }
 
-void RB_ZombieFXAddNewHit( int entityNum, const vec3_t hitPos, const vec3_t hitDir ) {
+void RB_ZombieFXAddNewHit( int entityNum, const idVec3 &hitPos, const idVec3 &hitDir ) {
 	int part = 0;
 
 // disabled for E3, are we still going to use this?
@@ -631,14 +630,14 @@ void RB_ZombieFXAddNewHit( int entityNum, const vec3_t hitPos, const vec3_t hitD
 		return;
 	}
 	// add it to the list
-	VectorCopy( hitPos, zombieFleshHitVerts[entityNum][part].newHitPos[zombieFleshHitVerts[entityNum][part].numNewHits] );
-	VectorCopy( hitDir, zombieFleshHitVerts[entityNum][part].newHitDir[zombieFleshHitVerts[entityNum][part].numNewHits] );
+	zombieFleshHitVerts[entityNum][part].newHitPos[zombieFleshHitVerts[entityNum][part].numNewHits] = hitPos;
+	zombieFleshHitVerts[entityNum][part].newHitDir[zombieFleshHitVerts[entityNum][part].numNewHits] = hitDir;
 	zombieFleshHitVerts[entityNum][part].numNewHits++;
 }
 
 void RB_ZombieFXProcessNewHits( trZombieFleshHitverts_t *fleshHitVerts, int oldNumVerts, int numSurfVerts ) {
 	float *xyzTrav, *normTrav;
-	vec3_t hitPos, hitDir, v, testDir;
+	idVec3 hitPos, hitDir, v, testDir;
 	float bestHitDist, thisDist;
 	qboolean foundHit;
 	int i, j, bestHit;
@@ -657,11 +656,11 @@ void RB_ZombieFXProcessNewHits( trZombieFleshHitverts_t *fleshHitVerts, int oldN
 	// for each new hit
 	for ( i = 0; i < fleshHitVerts->numNewHits; i++ ) {
 		// calc the local hitPos
-		VectorCopy( fleshHitVerts->newHitPos[i], v );
-		VectorSubtract( v, backEnd.currentEntity->e.origin, v );
+		v = fleshHitVerts->newHitPos[i];
+		v = v - backEnd.currentEntity->e.origin;
 		GlobalVectorToLocal( v, hitPos );
 		// calc the local hitDir
-		VectorCopy( fleshHitVerts->newHitDir[i], v );
+		v = fleshHitVerts->newHitDir[i];
 		GlobalVectorToLocal( v, hitDir );
 
 		// look for close matches
@@ -677,21 +676,21 @@ void RB_ZombieFXProcessNewHits( trZombieFleshHitverts_t *fleshHitVerts, int oldN
 				continue;
 			}
 			// if this normal faces the wrong way, reject it
-			if ( DotProduct( normTrav, hitDir ) > 0 ) {
+			if ( ( normTrav ) * ( hitDir ) > 0 ) {
 				continue;
 			}
 			// get the diff vector
-			VectorSubtract( xyzTrav, hitPos, testDir );
+			testDir = xyzTrav - hitPos;
 			// check for distance within range
-			thisDist = VectorLengthSquared( testDir );
+			thisDist = testDir.LengthSqr();
 			if ( thisDist < ZOMBIEFX_HIT_OKRANGE_SQR ) {
 				goto hitCheckDone;
 			}
 			thisDist = sqrt( thisDist );
 			// check for the projection being inside range
-			VectorMA( hitPos, thisDist, hitDir, v );
-			VectorSubtract( xyzTrav, v, testDir );
-			thisDist = VectorLengthSquared( testDir );
+			v = hitPos + hitDir * thisDist;
+			testDir = xyzTrav - v;
+			thisDist = testDir.LengthSqr();
 			if ( thisDist < ZOMBIEFX_HIT_OKRANGE_SQR ) {
 				goto hitCheckDone;
 			}
@@ -785,7 +784,7 @@ void RB_ZombieFXDecompose( int oldNumVerts, int numSurfVerts, float deltaTimeSca
 		}
 
 		// skin shrinks with age
-		VectorMA( xyz, -2.0 * deltaTimeScale, norm, xyz );
+		xyz = xyz + norm * -2.0 * deltaTimeScale;
 	}
 }
 
@@ -821,15 +820,15 @@ void RB_ZombieFX( int part, drawSurf_t *drawSurf, int oldNumVerts, int oldNumInd
 	}
 
 	// ignore all surfaces starting with u_sk (skeleton)
-	if ( !Q_strncmp( surfName, "u_sk", 4 ) ) {
+	if ( !idStr::Cmpn( surfName, "u_sk", 4 ) ) {
 		return;
 	}
 	// legs
-	if ( !Q_strncmp( surfName, "l_sk", 4 ) ) {
+	if ( !idStr::Cmpn( surfName, "l_sk", 4 ) ) {
 		return;
 	}
 	// head
-	if ( !Q_strncmp( surfName, "h_sk", 4 ) ) {
+	if ( !idStr::Cmpn( surfName, "h_sk", 4 ) ) {
 		return;
 	}
 
@@ -854,7 +853,7 @@ void RB_ZombieFX( int part, drawSurf_t *drawSurf, int oldNumVerts, int oldNumInd
 	RB_ZombieFXFullAlpha( oldNumVerts, numSurfVerts );
 
 	// if this is the chest surface, do flesh hits
-	if ( !Q_stricmp( surfName, zombieFxFleshHitSurfaceNames[part] ) ) {
+	if ( !idStr::Icmp( surfName, zombieFxFleshHitSurfaceNames[part] ) ) {
 
 		// check for any new bullet impacts that need to be scanned for triangle collisions
 		if ( fleshHitVerts->numNewHits ) {
@@ -1560,7 +1559,7 @@ const void  *RB_SwapBuffers( const void *data ) {
 		long sum = 0;
 		unsigned char *stencilReadback;
 
-		stencilReadback = (unsigned char *) ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight );
+		stencilReadback = (unsigned char *) Mem_ClearedAlloc( glConfig.vidWidth * glConfig.vidHeight, TAG_IDLIB );
 		qglReadPixels( 0, 0, glConfig.vidWidth, glConfig.vidHeight, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, stencilReadback );
 
 		for ( i = 0; i < glConfig.vidWidth * glConfig.vidHeight; i++ ) {
@@ -1568,7 +1567,7 @@ const void  *RB_SwapBuffers( const void *data ) {
 		}
 
 		backEnd.pc.c_overDraw += sum;
-		ri.Hunk_FreeTempMemory( stencilReadback );
+		Mem_Free( stencilReadback );
 	}
 
 

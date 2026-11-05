@@ -77,8 +77,8 @@ RB_AddQuadStampFadingCornersExt
   Creates a sprite with the center at colors[3] alpha, and the corners all 0 alpha
 ==============
 */
-void RB_AddQuadStampFadingCornersExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, float s1, float t1, float s2, float t2 ) {
-	vec3_t normal;
+void RB_AddQuadStampFadingCornersExt( idVec3 origin, idVec3 left, idVec3 up, byte *color, float s1, float t1, float s2, float t2 ) {
+	idVec3 normal;
 	int ndx;
 	byte lColor[4];
 
@@ -125,7 +125,7 @@ void RB_AddQuadStampFadingCornersExt( vec3_t origin, vec3_t left, vec3_t up, byt
 
 
 	// constant normal all the way around
-	VectorSubtract( vec3_origin, backEnd.viewParms.orent.axis[0], normal );
+	normal = vec3_origin - backEnd.viewParms.orent.axis[0];
 
 	tess.normal[ndx][0] = tess.normal[ndx + 1][0] = tess.normal[ndx + 2][0] = tess.normal[ndx + 3][0] = tess.normal[ndx + 4][0] = normal[0];
 	tess.normal[ndx][1] = tess.normal[ndx + 1][1] = tess.normal[ndx + 2][1] = tess.normal[ndx + 3][1] = tess.normal[ndx + 4][1] = normal[1];
@@ -170,8 +170,8 @@ void RB_AddQuadStampFadingCornersExt( vec3_t origin, vec3_t left, vec3_t up, byt
 RB_AddQuadStampExt
 ==============
 */
-void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, float s1, float t1, float s2, float t2 ) {
-	vec3_t normal;
+void RB_AddQuadStampExt( idVec3 origin, idVec3 left, idVec3 up, byte *color, float s1, float t1, float s2, float t2 ) {
+	idVec3 normal;
 	int ndx;
 
 	RB_CHECKOVERFLOW( 4, 6 );
@@ -205,7 +205,7 @@ void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, flo
 
 
 	// constant normal all the way around
-	VectorSubtract( vec3_origin, backEnd.viewParms.orent.axis[0], normal );
+	normal = vec3_origin - backEnd.viewParms.orent.axis[0];
 
 	tess.normal[ndx][0] = tess.normal[ndx + 1][0] = tess.normal[ndx + 2][0] = tess.normal[ndx + 3][0] = normal[0];
 	tess.normal[ndx][1] = tess.normal[ndx + 1][1] = tess.normal[ndx + 2][1] = tess.normal[ndx + 3][1] = normal[1];
@@ -242,7 +242,7 @@ void RB_AddQuadStampExt( vec3_t origin, vec3_t left, vec3_t up, byte *color, flo
 RB_AddQuadStamp
 ==============
 */
-void RB_AddQuadStamp( vec3_t origin, vec3_t left, vec3_t up, byte *color ) {
+void RB_AddQuadStamp( idVec3 origin, idVec3 left, idVec3 up, byte *color ) {
 	RB_AddQuadStampExt( origin, left, up, color, 0, 0, 1, 1 );
 }
 
@@ -252,16 +252,16 @@ RB_SurfaceSplash
 ==============
 */
 static void RB_SurfaceSplash( void ) {
-	vec3_t left, up;
+	idVec3 left, up;
 	float radius;
 
 	// calculate the xyz locations for the four corners
 	radius = backEnd.currentEntity->e.radius;
 
-	VectorSet( left, -radius, 0, 0 );
-	VectorSet( up, 0, radius, 0 );
+	left.Set( left, -radius, 0, 0 );
+	up.Set( up, 0, radius, 0 );
 	if ( backEnd.viewParms.isMirror ) {
-		VectorSubtract( vec3_origin, left, left );
+		left = vec3_origin - left;
 	}
 
 	RB_AddQuadStamp( backEnd.currentEntity->e.origin, left, up, backEnd.currentEntity->e.shaderRGBA );
@@ -273,14 +273,14 @@ RB_SurfaceSprite
 ==============
 */
 static void RB_SurfaceSprite( void ) {
-	vec3_t left, up;
+	idVec3 left, up;
 	float radius;
 
 	// calculate the xyz locations for the four corners
 	radius = backEnd.currentEntity->e.radius;
 	if ( backEnd.currentEntity->e.rotation == 0 ) {
-		VectorScale( backEnd.viewParms.orent.axis[1], radius, left );
-		VectorScale( backEnd.viewParms.orent.axis[2], radius, up );
+		left = backEnd.viewParms.orent.axis[1] * radius;
+		up = backEnd.viewParms.orent.axis[2] * radius;
 	} else {
 		float s, c;
 		float ang;
@@ -289,14 +289,14 @@ static void RB_SurfaceSprite( void ) {
 		s = sin( ang );
 		c = cos( ang );
 
-		VectorScale( backEnd.viewParms.orent.axis[1], c * radius, left );
-		VectorMA( left, -s * radius, backEnd.viewParms.orent.axis[2], left );
+		left = backEnd.viewParms.orent.axis[1] * c * radius;
+		left = left + backEnd.viewParms.orent.axis[2] * -s * radius;
 
-		VectorScale( backEnd.viewParms.orent.axis[2], c * radius, up );
-		VectorMA( up, s * radius, backEnd.viewParms.orent.axis[1], up );
+		up = backEnd.viewParms.orent.axis[2] * c * radius;
+		up = up + backEnd.viewParms.orent.axis[1] * s * radius;
 	}
 	if ( backEnd.viewParms.isMirror ) {
-		VectorSubtract( vec3_origin, left, left );
+		left = vec3_origin - left;
 	}
 
 	RB_AddQuadStamp( backEnd.currentEntity->e.origin, left, up, backEnd.currentEntity->e.shaderRGBA );
@@ -317,7 +317,7 @@ void RB_SurfacePolychain( srfPoly_t *p ) {
 	// fan triangles into the tess array
 	numv = tess.numVertexes;
 	for ( i = 0; i < p->numVerts; i++ ) {
-		VectorCopy( p->verts[i].xyz, tess.xyz[numv] );
+		tess.xyz[numv] = p->verts[i].xyz;
 		tess.texCoords[numv][0][0] = p->verts[i].st[0];
 		tess.texCoords[numv][0][1] = p->verts[i].st[1];
 		*(int *)&tess.vertexColors[numv] = *(int *)p->verts[ i ].modulate;
@@ -407,10 +407,10 @@ void RB_SurfaceBeam( void ) {
 #define NUM_BEAM_SEGS 6
 	refEntity_t *e;
 	int i;
-	vec3_t perpvec;
-	vec3_t direction, normalized_direction;
-	vec3_t start_points[NUM_BEAM_SEGS], end_points[NUM_BEAM_SEGS];
-	vec3_t oldorigin, origin;
+	idVec3 perpvec;
+	idVec3 direction, normalized_direction;
+	idVec3 start_points[NUM_BEAM_SEGS], end_points[NUM_BEAM_SEGS];
+	idVec3 oldorigin, origin;
 
 	e = &backEnd.currentEntity->e;
 
@@ -426,19 +426,19 @@ void RB_SurfaceBeam( void ) {
 	normalized_direction[1] = direction[1] = oldorigin[1] - origin[1];
 	normalized_direction[2] = direction[2] = oldorigin[2] - origin[2];
 
-	if ( VectorNormalize( normalized_direction ) == 0 ) {
+	if ( normalized_direction.Normalize() == 0 ) {
 		return;
 	}
 
-	PerpendicularVector( perpvec, normalized_direction );
+	perpvec.PerpendicularVector( normalized_direction );
 
-	VectorScale( perpvec, 4, perpvec );
+	perpvec = perpvec * 4;
 
 	for ( i = 0; i < NUM_BEAM_SEGS ; i++ )
 	{
-		RotatePointAroundVector( start_points[i], normalized_direction, perpvec, ( 360.0 / NUM_BEAM_SEGS ) * i );
-//		VectorAdd( start_points[i], origin, start_points[i] );
-		VectorAdd( start_points[i], direction, end_points[i] );
+		start_points[i].RotatePointAroundVector( normalized_direction, perpvec, ( 360.0 / NUM_BEAM_SEGS ) * i );
+//		start_points[i] = start_points[i] + origin;
+		end_points[i] = start_points[i] + direction;
 	}
 
 	GL_Bind( tr.whiteImage );
@@ -457,7 +457,7 @@ void RB_SurfaceBeam( void ) {
 
 //================================================================================
 
-static void DoRailCore( const vec3_t start, const vec3_t end, const vec3_t up, float len, float spanWidth ) {
+static void DoRailCore( const idVec3 start, const idVec3 end, const idVec3 up, float len, float spanWidth ) {
 	float spanWidth2;
 	int vbase;
 	float t = len / 256.0f;
@@ -467,7 +467,7 @@ static void DoRailCore( const vec3_t start, const vec3_t end, const vec3_t up, f
 	spanWidth2 = -spanWidth;
 
 	// FIXME: use quad stamp?
-	VectorMA( start, spanWidth, up, tess.xyz[tess.numVertexes] );
+	tess.xyz[tess.numVertexes] = start + up * spanWidth;
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
 	tess.vertexColors[tess.numVertexes][0] = backEnd.currentEntity->e.shaderRGBA[0] * 0.25;
@@ -475,7 +475,7 @@ static void DoRailCore( const vec3_t start, const vec3_t end, const vec3_t up, f
 	tess.vertexColors[tess.numVertexes][2] = backEnd.currentEntity->e.shaderRGBA[2] * 0.25;
 	tess.numVertexes++;
 
-	VectorMA( start, spanWidth2, up, tess.xyz[tess.numVertexes] );
+	tess.xyz[tess.numVertexes] = start + up * spanWidth2;
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 1;
 	tess.vertexColors[tess.numVertexes][0] = backEnd.currentEntity->e.shaderRGBA[0];
@@ -483,7 +483,7 @@ static void DoRailCore( const vec3_t start, const vec3_t end, const vec3_t up, f
 	tess.vertexColors[tess.numVertexes][2] = backEnd.currentEntity->e.shaderRGBA[2];
 	tess.numVertexes++;
 
-	VectorMA( end, spanWidth, up, tess.xyz[tess.numVertexes] );
+	tess.xyz[tess.numVertexes] = end + up * spanWidth;
 
 	tess.texCoords[tess.numVertexes][0][0] = t;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
@@ -492,7 +492,7 @@ static void DoRailCore( const vec3_t start, const vec3_t end, const vec3_t up, f
 	tess.vertexColors[tess.numVertexes][2] = backEnd.currentEntity->e.shaderRGBA[2];
 	tess.numVertexes++;
 
-	VectorMA( end, spanWidth2, up, tess.xyz[tess.numVertexes] );
+	tess.xyz[tess.numVertexes] = end + up * spanWidth2;
 	tess.texCoords[tess.numVertexes][0][0] = t;
 	tess.texCoords[tess.numVertexes][0][1] = 1;
 	tess.vertexColors[tess.numVertexes][0] = backEnd.currentEntity->e.shaderRGBA[0];
@@ -509,10 +509,10 @@ static void DoRailCore( const vec3_t start, const vec3_t end, const vec3_t up, f
 	tess.indexes[tess.numIndexes++] = vbase + 3;
 }
 
-static void DoRailDiscs( int numSegs, const vec3_t start, const vec3_t dir, const vec3_t right, const vec3_t up ) {
+static void DoRailDiscs( int numSegs, const idVec3 start, const idVec3 dir, const idVec3 right, const idVec3 up ) {
 	int i;
-	vec3_t pos[4];
-	vec3_t v;
+	idVec3 pos[4];
+	idVec3 v;
 	int spanWidth = r_railWidth->integer;
 	float c, s;
 	float scale;
@@ -533,11 +533,11 @@ static void DoRailDiscs( int numSegs, const vec3_t start, const vec3_t dir, cons
 		v[0] = ( right[0] * c + up[0] * s ) * scale * spanWidth;
 		v[1] = ( right[1] * c + up[1] * s ) * scale * spanWidth;
 		v[2] = ( right[2] * c + up[2] * s ) * scale * spanWidth;
-		VectorAdd( start, v, pos[i] );
+		pos[i] = start + v;
 
 		if ( numSegs > 1 ) {
 			// offset by 1 segment if we're doing a long distance shot
-			VectorAdd( pos[i], dir, pos[i] );
+			pos[i] = pos[i] + dir;
 		}
 	}
 
@@ -549,7 +549,7 @@ static void DoRailDiscs( int numSegs, const vec3_t start, const vec3_t dir, cons
 
 		for ( j = 0; j < 4; j++ )
 		{
-			VectorCopy( pos[j], tess.xyz[tess.numVertexes] );
+			tess.xyz[tess.numVertexes] = pos[j];
 			tess.texCoords[tess.numVertexes][0][0] = ( j < 2 );
 			tess.texCoords[tess.numVertexes][0][1] = ( j && j != 3 );
 			tess.vertexColors[tess.numVertexes][0] = backEnd.currentEntity->e.shaderRGBA[0];
@@ -557,7 +557,7 @@ static void DoRailDiscs( int numSegs, const vec3_t start, const vec3_t dir, cons
 			tess.vertexColors[tess.numVertexes][2] = backEnd.currentEntity->e.shaderRGBA[2];
 			tess.numVertexes++;
 
-			VectorAdd( pos[j], dir, pos[j] );
+			pos[j] = pos[j] + dir;
 		}
 
 		tess.indexes[tess.numIndexes++] = tess.numVertexes - 4 + 0;
@@ -576,25 +576,25 @@ void RB_SurfaceRailRings( void ) {
 	refEntity_t *e;
 	int numSegs;
 	int len;
-	vec3_t vec;
-	vec3_t right, up;
-	vec3_t start, end;
+	idVec3 vec;
+	idVec3 right, up;
+	idVec3 start, end;
 
 	e = &backEnd.currentEntity->e;
 
-	VectorCopy( e->oldorigin, start );
-	VectorCopy( e->origin, end );
+	start = e->oldorigin;
+	end = e->origin;
 
 	// compute variables
-	VectorSubtract( end, start, vec );
-	len = VectorNormalize( vec );
+	vec = end - start;
+	len = vec.Normalize();
 	MakeNormalVectors( vec, right, up );
 	numSegs = ( len ) / r_railSegmentLength->value;
 	if ( numSegs <= 0 ) {
 		numSegs = 1;
 	}
 
-	VectorScale( vec, r_railSegmentLength->value, vec );
+	vec = vec * r_railSegmentLength->value;
 
 	DoRailDiscs( numSegs, start, vec, right, up );
 }
@@ -605,26 +605,26 @@ void RB_SurfaceRailRings( void ) {
 void RB_SurfaceRailCore( void ) {
 	refEntity_t *e;
 	int len;
-	vec3_t right;
-	vec3_t vec;
-	vec3_t start, end;
-	vec3_t v1, v2;
+	idVec3 right;
+	idVec3 vec;
+	idVec3 start, end;
+	idVec3 v1, v2;
 
 	e = &backEnd.currentEntity->e;
 
-	VectorCopy( e->oldorigin, start );
-	VectorCopy( e->origin, end );
+	start = e->oldorigin;
+	end = e->origin;
 
-	VectorSubtract( end, start, vec );
-	len = VectorNormalize( vec );
+	vec = end - start;
+	len = vec.Normalize();
 
 	// compute side vector
-	VectorSubtract( start, backEnd.viewParms.orent.origin, v1 );
-	VectorNormalize( v1 );
-	VectorSubtract( end, backEnd.viewParms.orent.origin, v2 );
-	VectorNormalize( v2 );
-	CrossProduct( v1, v2, right );
-	VectorNormalize( right );
+	v1 = start - backEnd.viewParms.orent.origin;
+	v1.Normalize();
+	v2 = end - backEnd.viewParms.orent.origin;
+	v2.Normalize();
+	right.Cross( v1, v2 );
+	right.Normalize();
 
 	DoRailCore( start, end, right, len, r_railCoreWidth->integer );
 }
@@ -635,35 +635,35 @@ void RB_SurfaceRailCore( void ) {
 void RB_SurfaceLightningBolt( void ) {
 	refEntity_t *e;
 	int len;
-	vec3_t right;
-	vec3_t vec;
-	vec3_t start, end;
-	vec3_t v1, v2;
+	idVec3 right;
+	idVec3 vec;
+	idVec3 start, end;
+	idVec3 v1, v2;
 	int i;
 
 	e = &backEnd.currentEntity->e;
 
-	VectorCopy( e->oldorigin, end );
-	VectorCopy( e->origin, start );
+	end = e->oldorigin;
+	start = e->origin;
 
 	// compute variables
-	VectorSubtract( end, start, vec );
-	len = VectorNormalize( vec );
+	vec = end - start;
+	len = vec.Normalize();
 
 	// compute side vector
-	VectorSubtract( start, backEnd.viewParms.orent.origin, v1 );
-	VectorNormalize( v1 );
-	VectorSubtract( end, backEnd.viewParms.orent.origin, v2 );
-	VectorNormalize( v2 );
-	CrossProduct( v1, v2, right );
-	VectorNormalize( right );
+	v1 = start - backEnd.viewParms.orent.origin;
+	v1.Normalize();
+	v2 = end - backEnd.viewParms.orent.origin;
+	v2.Normalize();
+	right.Cross( v1, v2 );
+	right.Normalize();
 
 	for ( i = 0 ; i < 4 ; i++ ) {
-		vec3_t temp;
+		idVec3 temp;
 
 		DoRailCore( start, end, right, len, 8 );
-		RotatePointAroundVector( temp, vec, right, 45 );
-		VectorCopy( temp, right );
+		temp.RotatePointAroundVector( vec, right, 45 );
+		right = temp;
 	}
 }
 
@@ -673,53 +673,19 @@ void RB_SurfaceLightningBolt( void ) {
 * The inputs to this routing seem to always be close to length = 1.0 (about 0.6 to 2.0)
 * This means that we don't have to worry about zero length or enormously long vectors.
 */
-static void VectorArrayNormalize( vec4_t *normals, unsigned int count ) {
-//    assert(count);
-
-#if idppc
-	{
-		register float half = 0.5;
-		register float one  = 1.0;
-		float *components = (float *)normals;
-
-		// Vanilla PPC code, but since PPC has a reciprocal square root estimate instruction,
-		// runs *much* faster than calling sqrt().  We'll use a single Newton-Raphson
-		// refinement step to get a little more precision.  This seems to yeild results
-		// that are correct to 3 decimal places and usually correct to at least 4 (sometimes 5).
-		// (That is, for the given input range of about 0.6 to 2.0).
-		do {
-			float x, y, z;
-			float B, y0, y1;
-
-			x = components[0];
-			y = components[1];
-			z = components[2];
-			components += 4;
-			B = x * x + y * y + z * z;
-
-#ifdef __GNUC__
-			asm ( "frsqrte %0,%1" : "=f" ( y0 ) : "f" ( B ) );
-#else
-			y0 = __frsqrte( B );
-#endif
-			y1 = y0 + half * y0 * ( one - B * y0 * y0 );
-
-			x = x * y1;
-			y = y * y1;
-			components[-4] = x;
-			z = z * y1;
-			components[-3] = y;
-			components[-2] = z;
-		} while ( count-- );
+static void VectorArrayNormalize( idVec4 *normals, unsigned int count ) {
+	// the inputs are always close to length 1.0 (about 0.6 to 2.0)
+	// so we don't have to worry about zero length or enormously long vectors
+	for ( unsigned int i = 0; i < count; i++ ) {
+		idVec3 n;
+		n[0] = normals[i][0];
+		n[1] = normals[i][1];
+		n[2] = normals[i][2];
+		n.Normalize();
+		normals[i][0] = n[0];
+		normals[i][1] = n[1];
+		normals[i][2] = n[2];
 	}
-#else // No assembly version for this architecture, or C_ONLY defined
-	  // given the input, it's safe to call VectorNormalizeFast
-	while ( count-- ) {
-		VectorNormalizeFast( normals[0] );
-		normals++;
-	}
-#endif
-
 }
 
 
@@ -789,7 +755,7 @@ static void LerpMeshVertexes( md3Surface_t *surf, float backlerp ) {
 			  oldXyz += 4, newXyz += 4, oldNormals += 4, newNormals += 4,
 			  outXyz += 4, outNormal += 4 )
 		{
-			vec3_t uncompressedOldNormal, uncompressedNewNormal;
+			idVec3 uncompressedOldNormal, uncompressedNewNormal;
 
 			// interpolate the xyz
 			outXyz[0] = oldXyz[0] * oldXyzScale + newXyz[0] * newXyzScale;
@@ -818,9 +784,9 @@ static void LerpMeshVertexes( md3Surface_t *surf, float backlerp ) {
 			outNormal[1] = uncompressedOldNormal[1] * oldNormalScale + uncompressedNewNormal[1] * newNormalScale;
 			outNormal[2] = uncompressedOldNormal[2] * oldNormalScale + uncompressedNewNormal[2] * newNormalScale;
 
-//			VectorNormalize (outNormal);
+//			outNormal.Normalize();
 		}
-		VectorArrayNormalize( (vec4_t *)tess.normal[tess.numVertexes], numVerts );
+		VectorArrayNormalize( (idVec4 *)tess.normal[tess.numVertexes], numVerts );
 	}
 }
 
@@ -880,7 +846,7 @@ void RB_SurfaceMesh( md3Surface_t *surface ) {
 /*
 ** R_LatLongToNormal
 */
-void R_LatLongToNormal( vec3_t outNormal, short latLong ) {
+void R_LatLongToNormal( idVec3 outNormal, short latLong ) {
 	unsigned lat, lng;
 
 	lat = ( latLong >> 8 ) & 0xff;
@@ -913,7 +879,7 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 	int oldBase, newBase;
 	short   *oldComp = NULL, *newComp = NULL; // TTimo: init
 	mdcXyzCompressed_t *oldXyzComp = NULL, *newXyzComp = NULL; // TTimo: init
-	vec3_t oldOfsVec, newOfsVec;
+	idVec3 oldOfsVec, newOfsVec;
 
 	qboolean hasComp;
 
@@ -956,7 +922,7 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 			if ( hasComp && *newComp >= 0 ) {
 				R_MDC_DecodeXyzCompressed( newXyzComp->ofsVec, newOfsVec, outNormal );
 				newXyzComp++;
-				VectorAdd( outXyz, newOfsVec, outXyz );
+				outXyz = outXyz + newOfsVec;
 			} else {
 				lat = ( newNormals[0] >> 8 ) & 0xff;
 				lng = ( newNormals[0] & 0xff );
@@ -992,7 +958,7 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 			  oldXyz += 4, newXyz += 4, oldNormals += 4, newNormals += 4,
 			  outXyz += 4, outNormal += 4 )
 		{
-			vec3_t uncompressedOldNormal, uncompressedNewNormal;
+			idVec3 uncompressedOldNormal, uncompressedNewNormal;
 
 			// interpolate the xyz
 			outXyz[0] = oldXyz[0] * oldXyzScale + newXyz[0] * newXyzScale;
@@ -1003,7 +969,7 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 			if ( hasComp && *newComp >= 0 ) {
 				R_MDC_DecodeXyzCompressed( newXyzComp->ofsVec, newOfsVec, uncompressedNewNormal );
 				newXyzComp++;
-				VectorMA( outXyz, 1.0 - backlerp, newOfsVec, outXyz );
+				outXyz = outXyz + newOfsVec * 1.0 - backlerp;
 			} else {
 				lat = ( newNormals[0] >> 8 ) & 0xff;
 				lng = ( newNormals[0] & 0xff );
@@ -1018,7 +984,7 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 			if ( hasComp && *oldComp >= 0 ) {
 				R_MDC_DecodeXyzCompressed( oldXyzComp->ofsVec, oldOfsVec, uncompressedOldNormal );
 				oldXyzComp++;
-				VectorMA( outXyz, backlerp, oldOfsVec, outXyz );
+				outXyz = outXyz + oldOfsVec * backlerp;
 			} else {
 				lat = ( oldNormals[0] >> 8 ) & 0xff;
 				lng = ( oldNormals[0] & 0xff );
@@ -1034,7 +1000,7 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 			outNormal[1] = uncompressedOldNormal[1] * oldNormalScale + uncompressedNewNormal[1] * newNormalScale;
 			outNormal[2] = uncompressedOldNormal[2] * oldNormalScale + uncompressedNewNormal[2] * newNormalScale;
 
-			VectorNormalize( outNormal );
+			outNormal.Normalize();
 		}
 	}
 }
@@ -1131,12 +1097,12 @@ void RB_SurfaceFace( srfSurfaceFace_t *surf ) {
 	if ( tess.shader->needsNormal ) {
 		normal = surf->plane.normal;
 		for ( i = 0, ndx = tess.numVertexes; i < numPoints; i++, ndx++ ) {
-			VectorCopy( normal, tess.normal[ndx] );
+			tess.normal[ndx] = normal;
 		}
 	}
 
 	for ( i = 0, v = surf->points[0], ndx = tess.numVertexes; i < numPoints; i++, v += VERTEXSIZE, ndx++ ) {
-		VectorCopy( v, tess.xyz[ndx] );
+		tess.xyz[ndx] = v;
 		tess.texCoords[ndx][0][0] = v[3];
 		tess.texCoords[ndx][0][1] = v[4];
 		tess.texCoords[ndx][1][0] = v[5];
@@ -1150,8 +1116,8 @@ void RB_SurfaceFace( srfSurfaceFace_t *surf ) {
 }
 
 
-static float    LodErrorForVolume( vec3_t local, float radius ) {
-	vec3_t world;
+static float    LodErrorForVolume( idVec3 local, float radius ) {
+	idVec3 world;
 	float d;
 
 	// never let it go negative
@@ -1166,8 +1132,8 @@ static float    LodErrorForVolume( vec3_t local, float radius ) {
 	world[2] = local[0] * backEnd.orent.axis[0][2] + local[1] * backEnd.orent.axis[1][2] +
 			   local[2] * backEnd.orent.axis[2][2] + backEnd.orent.origin[2];
 
-	VectorSubtract( world, backEnd.viewParms.orent.origin, world );
-	d = DotProduct( world, backEnd.viewParms.orent.axis[0] );
+	world = world - backEnd.viewParms.orent.origin;
+	d = ( world ) * ( backEnd.viewParms.orent.axis[0] );
 
 	if ( d < 0 ) {
 		d = -d;
@@ -1414,29 +1380,29 @@ void RB_SurfaceBad( surfaceType_t *surfType ) {
 #if 0
 
 void RB_SurfaceFlare( srfFlare_t *surf ) {
-	vec3_t left, up;
+	idVec3 left, up;
 	float radius;
 	byte color[4];
-	vec3_t dir;
-	vec3_t origin;
+	idVec3 dir;
+	idVec3 origin;
 	float d;
 
 	// calculate the xyz locations for the four corners
 	radius = 30;
-	VectorScale( backEnd.viewParms.orent.axis[1], radius, left );
-	VectorScale( backEnd.viewParms.orent.axis[2], radius, up );
+	left = backEnd.viewParms.orent.axis[1] * radius;
+	up = backEnd.viewParms.orent.axis[2] * radius;
 	if ( backEnd.viewParms.isMirror ) {
-		VectorSubtract( vec3_origin, left, left );
+		left = vec3_origin - left;
 	}
 
 	color[0] = color[1] = color[2] = color[3] = 255;
 
-	VectorMA( surf->origin, 3, surf->normal, origin );
-	VectorSubtract( origin, backEnd.viewParms.orent.origin, dir );
-	VectorNormalize( dir );
-	VectorMA( origin, r_ignore->value, dir, origin );
+	origin = surf->origin + surf->normal * 3;
+	dir = origin - backEnd.viewParms.orent.origin;
+	dir.Normalize();
+	origin = origin + dir * r_ignore->value;
 
-	d = -DotProduct( dir, surf->normal );
+	d = -( dir ) * ( surf->normal );
 	if ( d < 0 ) {
 		return;
 	}
@@ -1453,7 +1419,7 @@ void RB_SurfaceFlare( srfFlare_t *surf ) {
 
 void RB_SurfaceFlare( srfFlare_t *surf ) {
 #if 0
-	vec3_t left, up;
+	idVec3 left, up;
 	byte color[4];
 
 	color[0] = surf->color[0] * 255;
@@ -1461,8 +1427,8 @@ void RB_SurfaceFlare( srfFlare_t *surf ) {
 	color[2] = surf->color[2] * 255;
 	color[3] = 255;
 
-	VectorClear( left );
-	VectorClear( up );
+	left.Zero();
+	up.Zero();
 
 	left[0] = r_ignore->value;
 
