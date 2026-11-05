@@ -30,6 +30,11 @@ source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${BOTLIB_SOURCES})
 # carrying the code statically
 add_library(botlib SHARED ${BOTLIB_SOURCES})
 set_target_properties(botlib PROPERTIES FOLDER "dlls")
+# carry the cpu suffix like the game modules do
+set_target_properties(botlib PROPERTIES OUTPUT_NAME botlibx86)
+if ( NOT WIN32 )
+	set_target_properties(botlib PROPERTIES PREFIX "")
+endif()
 target_compile_definitions(botlib PRIVATE _LIB BOTLIB)
 target_compile_features(botlib PRIVATE cxx_std_17)
 target_link_libraries(botlib PUBLIC detour)
