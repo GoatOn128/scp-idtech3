@@ -69,6 +69,35 @@ int botlibsetup = qfalse;
 
 //===========================================================================
 //
+// the qcommon code compiled into this library expects these, route them
+// through the bot import table like the game module does with its copies
+//
+//===========================================================================
+
+void QDECL Com_Error( int errLevel, const char *error, ... ) {
+	va_list argptr;
+	char text[1024];
+
+	va_start( argptr, error );
+	vsprintf( text, error, argptr );
+	va_end( argptr );
+
+	botimport.Print( PRT_FATAL, "%s\n", text );
+}
+
+void QDECL Com_Printf( const char *msg, ... ) {
+	va_list argptr;
+	char text[1024];
+
+	va_start( argptr, msg );
+	vsprintf( text, msg, argptr );
+	va_end( argptr );
+
+	botimport.Print( PRT_MESSAGE, "%s", text );
+}
+
+//===========================================================================
+//
 // several functions used by the exported functions
 //
 //===========================================================================

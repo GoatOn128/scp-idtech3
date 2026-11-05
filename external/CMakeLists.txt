@@ -35,6 +35,10 @@ configure_target(detour)
 # DetourNavMesh.cpp trips C4127 in its table-driven code; silence it like any other third-party library.
 target_compile_options(detour PRIVATE /wd4127)
 
+# botlib is a shared library now and links detour into it, so the detour
+# objects must be position independent code on Linux
+set_target_properties(detour PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 add_library(glad STATIC ${GLAD_SOURCES})
 target_include_directories(glad PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/glad/include")
 configure_target(glad)
