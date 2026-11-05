@@ -151,12 +151,12 @@ ID_INLINE idBounds &idBounds::operator+=( const idVec3 &t ) {
 
 ID_INLINE idBounds idBounds::operator*( const idMat3 &r ) const {
 	idBounds bounds;
-	bounds.FromTransformedBounds( *this, vec3_origin, r );
+	bounds.FromTransformedBounds( *this, vec3_zero, r );
 	return bounds;
 }
 
 ID_INLINE idBounds &idBounds::operator*=( const idMat3 &r ) {
-	this->FromTransformedBounds( *this, vec3_origin, r );
+	this->FromTransformedBounds( *this, vec3_zero, r );
 	return *this;
 }
 
@@ -348,12 +348,12 @@ ID_INLINE idBounds &idBounds::TranslateSelf( const idVec3 &translation ) {
 
 ID_INLINE idBounds idBounds::Rotate( const idMat3 &rotation ) const {
 	idBounds bounds;
-	bounds.FromTransformedBounds( *this, vec3_origin, rotation );
+	bounds.FromTransformedBounds( *this, vec3_zero, rotation );
 	return bounds;
 }
 
 ID_INLINE idBounds &idBounds::RotateSelf( const idMat3 &rotation ) {
-	FromTransformedBounds( *this, vec3_origin, rotation );
+	FromTransformedBounds( *this, vec3_zero, rotation );
 	return *this;
 }
 

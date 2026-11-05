@@ -46,6 +46,12 @@ If you have questions concerning this license or the applicable additional terms
 #include <stddef.h>
 #include <stdint.h>
 
+// MSVC pulls in its deprecated CodeAnalysis annotations header along the
+// standard library chain idlib uses; silence the deprecation warning
+#if defined( _MSC_VER )
+#pragma warning( disable : 4467 )
+#endif
+
 #include "sys/sys_assert.h"
 #include "sys/sys_defines.h"
 #include "sys/sys_types.h"
@@ -71,6 +77,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "math/Rotation.h"
 #include "math/Plane.h"
 #include "containers/HashIndex.h"
+#include "bv/Sphere.h"
 #include "bv/Bounds.h"
 
 #endif /* !__PRECOMPILED_H__ */

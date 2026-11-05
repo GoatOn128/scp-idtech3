@@ -256,7 +256,22 @@ idBounds::FromPoints
 ============
 */
 void idBounds::FromPoints( const idVec3 *points, const int numPoints ) {
-	SIMDProcessor->MinMax( b[0], b[1], points, numPoints );
+	// no SIMD processor in this build, take the min/max directly
+	if ( numPoints <= 0 ) {
+		return;
+	}
+	b[0] = points[0];
+	b[1] = points[0];
+	for ( int i = 1; i < numPoints; i++ ) {
+		for ( int j = 0; j < 3; j++ ) {
+			if ( points[i][j] < b[0][j] ) {
+				b[0][j] = points[i][j];
+			}
+			if ( points[i][j] > b[1][j] ) {
+				b[1][j] = points[i][j];
+			}
+		}
+	}
 }
 
 /*

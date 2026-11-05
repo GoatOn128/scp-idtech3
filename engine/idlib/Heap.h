@@ -58,18 +58,9 @@ ID_INLINE void		Mem_Free( void *ptr ) { Mem_Free16( ptr ); }
 void *		Mem_ClearedAlloc( const int size, const memTag_t tag );
 char *		Mem_CopyString( const char *in );
 
-ID_INLINE void *operator new( size_t s ) {
-	return Mem_Alloc( s, TAG_NEW );
-}
-ID_INLINE void operator delete( void *p ) {
-	Mem_Free( p );
-}
-ID_INLINE void *operator new[]( size_t s ) {
-	return Mem_Alloc( s, TAG_NEW );
-}
-ID_INLINE void operator delete[]( void *p ) {
-	Mem_Free( p );
-}
+// the plain global new/delete overrides are dropped: the standard forbids
+// declaring them inline (MSVC C4595) and requires matching noexcept on the
+// delete forms
 ID_INLINE void *operator new( size_t s, memTag_t tag ) {
 	return Mem_Alloc( s, tag );
 }
