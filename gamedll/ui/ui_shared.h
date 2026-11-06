@@ -147,10 +147,10 @@ typedef struct {
 	Rectangle rectEffects2;         // for various effects
 	int offsetTime;                 // time based value for various effects
 	int nextTime;                   // time next effect should cycle
-	vec4_t foreColor;               // text color
-	vec4_t backColor;               // border color
-	vec4_t borderColor;             // border color
-	vec4_t outlineColor;            // border color
+	idVec4 foreColor;               // text color
+	idVec4 backColor;               // border color
+	idVec4 borderColor;             // border color
+	idVec4 outlineColor;            // border color
 	qhandle_t background;           // background asset
 } windowDef_t;
 
@@ -158,7 +158,7 @@ typedef windowDef_t Window;
 
 
 typedef struct {
-	vec4_t color;
+	idVec4 color;
 	int type;
 	float low;
 	float high;
@@ -218,7 +218,7 @@ typedef struct multiDef_s {
 
 typedef struct modelDef_s {
 	int angle;
-	vec3_t origin;
+	idVec3 origin;
 	float fov_x;
 	float fov_y;
 	int rotationSpeed;
@@ -297,8 +297,8 @@ struct menuDef_s {
 	const char *soundName;          // background loop sound for menu
 	const char *onROQDone;          //----(SA)	added.  callback for roqs played from menus
 
-	vec4_t focusColor;              // focus color for items
-	vec4_t disableColor;            // focus color for items
+	idVec4 focusColor;              // focus color for items
+	idVec4 disableColor;            // focus color for items
 	itemDef_t *items[MAX_MENUITEMS]; // items this menu contains
 };
 
@@ -332,7 +332,7 @@ typedef struct {
 	float fadeAmount;
 	float shadowX;
 	float shadowY;
-	vec4_t shadowColor;
+	idVec4 shadowColor;
 	float shadowFadeClamp;
 	qboolean fontRegistered;
 
@@ -452,13 +452,13 @@ void Menu_HandleKey( menuDef_t *menu, int key, qboolean down );
 void Menu_HandleMouseMove( menuDef_t *menu, float x, float y );
 void Menu_ScrollFeeder( menuDef_t *menu, int feeder, qboolean down );
 qboolean Float_Parse( char **p, float *f );
-qboolean Color_Parse( char **p, vec4_t *c );
+qboolean Color_Parse( char **p, idVec4 *c );
 qboolean Int_Parse( char **p, int *i );
 qboolean Rect_Parse( char **p, rectDef_t *r );
 qboolean String_Parse( char **p, const char **out );
 qboolean Script_Parse( char **p, const char **out );
 qboolean PC_Float_Parse( int handle, float *f );
-qboolean PC_Color_Parse( int handle, vec4_t *c );
+qboolean PC_Color_Parse( int handle, idVec4 *c );
 qboolean PC_Int_Parse( int handle, int *i );
 qboolean PC_Rect_Parse( int handle, rectDef_t *r );
 qboolean PC_String_Parse( int handle, const char **out );
@@ -482,7 +482,7 @@ menuDef_t   *Menus_FindByName( const char *p );
 void        Menus_ShowByName( const char *p );
 void        Menus_CloseByName( const char *p );
 void        Display_HandleKey( int key, qboolean down, int x, int y );
-void        LerpColor( vec4_t a, vec4_t b, vec4_t c, float t );
+void        LerpColor( const idVec4 &a, const idVec4 &b, const idVec4 &c, float t );
 void        Menus_CloseAll();
 void        Menu_Paint( menuDef_t *menu, qboolean forcePaint );
 void        Menu_SetFeederSelection( menuDef_t *menu, int feeder, int index, const char *name );

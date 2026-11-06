@@ -70,12 +70,12 @@ typedef struct {
 	void ( QDECL *RE_ClearScene )( void );
 	void ( QDECL *RE_AddRefEntityToScene )( const refEntity_t *re );
 	void ( QDECL *RE_AddPolyToScene )( qhandle_t hShader, int numVerts, const polyVert_t *verts );
-	void ( QDECL *RE_AddLightToScene )( const vec3_t org, float intensity, float r, float g, float b, int overdraw );
-	void ( QDECL *RE_AddCoronaToScene )( const vec3_t org, float r, float g, float b, float scale, int id, int flags );
+	void ( QDECL *RE_AddLightToScene )( const idVec3 &org, float intensity, float r, float g, float b, int overdraw );
+	void ( QDECL *RE_AddCoronaToScene )( const idVec3 &org, float r, float g, float b, float scale, int id, int flags );
 	void ( QDECL *RE_RenderScene )( const refdef_t *fd );
 	void ( QDECL *RE_SetColor )( const float *rgba );
 	void ( QDECL *RE_DrawStretchPic )( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader );
-	void ( QDECL *RE_ModelBounds )( clipHandle_t model, vec3_t mins, vec3_t maxs );
+	void ( QDECL *RE_ModelBounds )( clipHandle_t model, idVec3 &mins, idVec3 &maxs );
 	void ( QDECL *SCR_UpdateScreen )( void );
 	int ( QDECL *RE_LerpTag )( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex );
 	void ( QDECL *S_StartLocalSound )( sfxHandle_t sfx, int channelNum );

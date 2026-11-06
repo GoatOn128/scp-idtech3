@@ -155,11 +155,11 @@ void trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *v
 	uiImports->RE_AddPolyToScene( hShader, numVerts, verts );
 }
 
-void trap_R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b, int overdraw ) {
+void trap_R_AddLightToScene( const idVec3 &org, float intensity, float r, float g, float b, int overdraw ) {
 	uiImports->RE_AddLightToScene( org, intensity, r, g, b, overdraw );
 }
 
-void trap_R_AddCoronaToScene( const vec3_t org, float r, float g, float b, float scale, int id, int flags ) {
+void trap_R_AddCoronaToScene( const idVec3 &org, float r, float g, float b, float scale, int id, int flags ) {
 	uiImports->RE_AddCoronaToScene( org, r, g, b, scale, id, flags );
 }
 
@@ -175,7 +175,7 @@ void trap_R_DrawStretchPic( float x, float y, float w, float h, float s1, float 
 	uiImports->RE_DrawStretchPic( x, y, w, h, s1, t1, s2, t2, hShader );
 }
 
-void trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs ) {
+void trap_R_ModelBounds( clipHandle_t model, idVec3 &mins, idVec3 &maxs ) {
 	uiImports->RE_ModelBounds( model, mins, maxs );
 }
 
