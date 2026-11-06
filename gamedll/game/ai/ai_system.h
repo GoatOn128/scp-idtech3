@@ -53,7 +53,7 @@ void AICast_DelayedSpawnCast( gentity_t *ent, int castType );
 void AICast_CastScriptThink( void );
 void AICast_EnableRenderingThink( gentity_t *ent );
 void AICast_CheckLoadGame( void );
-qboolean AICast_SolidsInBBox( vec3_t pos, vec3_t mins, vec3_t maxs, int entnum, int mask );
+qboolean AICast_SolidsInBBox( const idVec3 &pos, const idVec3 &mins, const idVec3 &maxs, int entnum, int mask );
 void AICast_Activate( int activatorNum, int entNum );
 qboolean AICast_NoFlameDamage( int entNum );
 void AICast_SetFlameDamage( int entNum, qboolean status );

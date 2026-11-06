@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 const ai_ability_definition_t *AI_FindAbility( const cast_state_t *cs, int weapon ) {

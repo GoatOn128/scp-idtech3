@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -165,7 +167,7 @@ AICast_EventMatch_StringEqual
 ===============
 */
 qboolean AICast_EventMatch_StringEqual( cast_script_event_t *event, char *eventParm ) {
-	if ( !event->params || !event->params[0] || ( eventParm && !Q_strcasecmp( event->params, eventParm ) ) ) {
+	if ( !event->params || !event->params[0] || ( eventParm && !idStr::Icmp( event->params, eventParm ) ) ) {
 		return qtrue;
 	} else {
 		return qfalse;
@@ -178,15 +180,16 @@ AICast_EventMatch_IntInRange
 ===============
 */
 qboolean AICast_EventMatch_IntInRange( cast_script_event_t *event, char *eventParm ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int int1, int2, eInt;
 
 	// get the cast name
-	pString = eventParm;
-	token = COM_ParseExt( &pString, qfalse );
-	int1 = atoi( token );
-	token = COM_ParseExt( &pString, qfalse );
-	int2 = atoi( token );
+	lexer.LoadMemory( eventParm ? eventParm : "", eventParm ? strlen( eventParm ) : 0, "AICast_EventMatch_IntInRange" );
+	lexer.ReadTokenOnLine( &token );
+	int1 = atoi( token.c_str() );
+	lexer.ReadTokenOnLine( &token );
+	int2 = atoi( token.c_str() );
 
 	eInt = atoi( event->params );
 
@@ -202,11 +205,11 @@ qboolean AICast_EventMatch_IntInRange( cast_script_event_t *event, char *eventPa
 AICast_EventForString
 ===============
 */
-int AICast_EventForString( char *string ) {
+int AICast_EventForString( const char *string ) {
 	int i;
 
 	for ( i = 0; scriptEvents[i].eventStr; i++ ) {
-		if ( !Q_strcasecmp( string, scriptEvents[i].eventStr ) ) {
+		if ( !idStr::Icmp( string, scriptEvents[i].eventStr ) ) {
 			return i;
 		}
 	}
@@ -221,12 +224,12 @@ int AICast_EventForString( char *string ) {
 AICast_ActionForString
 ===============
 */
-cast_script_stack_action_t *AICast_ActionForString( cast_state_t *cs, char *string ) {
+cast_script_stack_action_t *AICast_ActionForString( cast_state_t *cs, const char *string ) {
 	int i;
 
 	for ( i = 0; scriptActions[i].actionString; i++ ) {
-		if ( !Q_strcasecmp( string, scriptActions[i].actionString ) ) {
-			if ( !Q_strcasecmp( string, "foundsecret" ) ) {
+		if ( !idStr::Icmp( string, scriptActions[i].actionString ) ) {
+			if ( !idStr::Icmp( string, "foundsecret" ) ) {
 				level.numSecrets++;
 				G_SendMissionStats();
 			}
@@ -258,9 +261,9 @@ void AICast_ScriptLoad( void ) {
 	} else {
 		trap_Cvar_Register( &mapname, "mapname", "", CVAR_SERVERINFO | CVAR_ROM );
 	}
-	Q_strncpyz( filename, "maps/", sizeof( filename ) );
-	Q_strcat( filename, sizeof( filename ), mapname.string );
-	Q_strcat( filename, sizeof( filename ), ".ai" );
+	idStr::Copynz( filename, "maps/", sizeof( filename ) );
+	idStr::Append( filename, sizeof( filename ), mapname.string );
+	idStr::Append( filename, sizeof( filename ), ".ai" );
 
 	len = trap_FS_FOpenFile( filename, &f, FS_READ );
 
@@ -271,8 +274,9 @@ void AICast_ScriptLoad( void ) {
 		return;
 	}
 
-	level.scriptAI = (char *)G_Alloc( len );
+	level.scriptAI = (char *)G_Alloc( len + 1 );
 	trap_FS_Read( level.scriptAI, len, f );
+	level.scriptAI[len] = '\0';
 
 	trap_FS_FCloseFile( f );
 
@@ -290,8 +294,8 @@ AICast_ScriptParse
 void AICast_ScriptParse( cast_state_t *cs ) {
 #define MAX_SCRIPT_EVENTS 64
 	gentity_t *ent;
-	char *pScript;
-	char *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	qboolean wantName;
 	qboolean inScript;
 	int eventNum;
@@ -316,22 +320,19 @@ void AICast_ScriptParse( cast_state_t *cs ) {
 	buildScript = trap_Cvar_VariableIntegerValue( "com_buildScript" );
 	buildScript = qtrue;
 
-	pScript = level.scriptAI;
+	lexer.LoadMemory( level.scriptAI, strlen( level.scriptAI ), "AICast_ScriptParse" );
 	wantName = qtrue;
 	inScript = qfalse;
-	COM_BeginParseSession( "AICast_ScriptParse" );
 	bracketLevel = 0;
 	numEventItems = 0;
 
 	memset( events, 0, sizeof( events ) );
 
 	while ( 1 ) {
-		token = COM_Parse( &pScript );
-
-		if ( !token[0] ) {
+		if ( !lexer.ReadToken( &token ) ) { // end of script
 			if ( !wantName ) {
 				G_Error( "AICast_ScriptParse(), Error (line %d): '}' expected, end of script found.\n",
-						 COM_GetCurrentParseLine() );
+						lexer.GetLineNum() );
 			}
 			break;
 		}
@@ -343,38 +344,42 @@ void AICast_ScriptParse( cast_state_t *cs ) {
 			}
 			if ( wantName ) {
 				G_Error( "AICast_ScriptParse(), Error (line %d): '}' found, but not expected.\n",
-						 COM_GetCurrentParseLine() );
+						lexer.GetLineNum() );
 			}
 			wantName = qtrue;
 		} else if ( token[0] == '{' ) {
 			if ( wantName ) {
 				G_Error( "AICast_ScriptParse(), Error (line %d): '{' found, NAME expected.\n",
-						 COM_GetCurrentParseLine() );
+						lexer.GetLineNum() );
 			}
 		} else if ( wantName ) {
-			if ( !Q_strcasecmp( ent->aiName, token ) ) {
+			if ( !idStr::Icmp( ent->aiName, token.c_str() ) ) {
 				inScript = qtrue;
 				numEventItems = 0;
 			}
 			wantName = qfalse;
 		} else if ( inScript ) {
-			if ( !Q_strcasecmp( token, "attributes" ) ) {
+			if ( !idStr::Icmp( token.c_str(), "attributes" ) ) {
 				// read in all the attributes
-				AICast_CheckLevelAttributes( cs, ent, &pScript );
+				char *pAttributes = level.scriptAI + lexer.GetFileOffset();
+				AICast_CheckLevelAttributes( cs, ent, &pAttributes );
+				// skip the attributes block
+				while ( lexer.ReadToken( &token ) && token != "}" ) {
+				}
 				continue;
 			}
-			eventNum = AICast_EventForString( token );
+			eventNum = AICast_EventForString( token.c_str() );
 			if ( eventNum < 0 ) {
-				G_Error( "AICast_ScriptParse(), Error (line %d): unknown event: %s.\n", COM_GetCurrentParseLine(),
-						 token );
+				G_Error( "AICast_ScriptParse(), Error (line %d): unknown event: %s.\n", lexer.GetLineNum(),
+						token.c_str() );
 			}
 			if ( numEventItems >= MAX_SCRIPT_EVENTS ) {
 				G_Error( "AICast_ScriptParse(), Error (line %d): MAX_SCRIPT_EVENTS reached (%d)\n",
-						 COM_GetCurrentParseLine(), MAX_SCRIPT_EVENTS );
+						lexer.GetLineNum(), MAX_SCRIPT_EVENTS );
 			}
 
 			// if this is a "friendlysightcorpse" event, then disable corpse vis sharing
-			if ( !Q_stricmp( token, "friendlysightcorpse" ) ) {
+			if ( !idStr::Icmp( token.c_str(), "friendlysightcorpse" ) ) {
 				cs->aiFlags &= ~AIFL_CORPSESIGHTING;
 			}
 
@@ -383,117 +388,102 @@ void AICast_ScriptParse( cast_state_t *cs ) {
 			memset( params, 0, sizeof( params ) );
 
 			// parse any event params before the start of this event's actions
-			while ( ( token = COM_Parse( &pScript ) ) && ( token[0] != '{' ) ) {
-				if ( !token[0] ) {
-					G_Error( "AICast_ScriptParse(), Error (line %d): '}' expected, end of script found.\n",
-							 COM_GetCurrentParseLine() );
-				}
-
+			while ( lexer.ReadToken( &token ) && ( token[0] != '{' ) ) {
 				if ( eventNum == 13 ) { // statechange event, check params
-					if ( strlen( token ) > 1 ) {
-						if ( BG_IndexForString( token, animStateStr, qtrue ) < 0 ) {
+					if ( token.Length() > 1 ) {
+						if ( BG_IndexForString( ( char * ) token.c_str(), animStateStr, qtrue ) < 0 ) {
 							G_Error( "AICast_ScriptParse(), Error (line %d): unknown state type '%s'.\n",
-									 COM_GetCurrentParseLine(), token );
+								lexer.GetLineNum(), token.c_str() );
 						}
 					}
 				}
 
 				if ( strlen( params ) ) { // add a space between each param
-					Q_strcat( params, sizeof( params ), " " );
+					idStr::Append( params, sizeof( params ), " " );
 				}
-				Q_strcat( params, sizeof( params ), token );
+				idStr::Append( params, sizeof( params ), token.c_str() );
 			}
 
 			if ( strlen( params ) ) { // copy the params into the event
 				curEvent->params = (char *)G_Alloc( strlen( params ) + 1 );
-				Q_strncpyz( curEvent->params, params, strlen( params ) + 1 );
+				idStr::Copynz( curEvent->params, params, strlen( params ) + 1 );
 			}
 
 			// parse the actions for this event
-			while ( ( token = COM_Parse( &pScript ) ) && ( token[0] != '}' ) ) {
-				if ( !token[0] ) {
-					G_Error( "AICast_ScriptParse(), Error (line %d): '}' expected, end of script found.\n",
-							 COM_GetCurrentParseLine() );
-				}
-
-				action = AICast_ActionForString( cs, token );
+			while ( lexer.ReadToken( &token ) && ( token[0] != '}' ) ) {
+				action = AICast_ActionForString( cs, token.c_str() );
 				if ( !action ) {
-					G_Error( "AICast_ScriptParse(), Error (line %d): unknown action: %s.\n", COM_GetCurrentParseLine(),
-							 token );
+					G_Error( "AICast_ScriptParse(), Error (line %d): unknown action: %s.\n", lexer.GetLineNum(),
+						token.c_str() );
 				}
 
 				curEvent->stack.items[curEvent->stack.numItems].action = action;
 
 				memset( params, 0, sizeof( params ) );
-				token = COM_ParseExt( &pScript, qfalse );
+				lexer.ReadTokenOnLine( &token );
 				for ( i = 0; token[0]; i++ ) {
 					if ( strlen( params ) ) { // add a space between each param
-						Q_strcat( params, sizeof( params ), " " );
+						idStr::Append( params, sizeof( params ), " " );
 					}
 
 					if ( i == 0 ) {
-						// Special case: playsound's need to be cached on startup to prevent in-game pauses
-						if ( !Q_stricmp( action->actionString, "playsound" ) ) {
-							G_SoundIndex( token );
+						// Special case: playsound needs to be cached on startup to prevent in-game pauses
+						if ( !idStr::Icmp( action->actionString, "playsound" ) ) {
+							G_SoundIndex( ( char * ) token.c_str() );
 						}
 
 						//----(SA)	added a bit more
-						if ( buildScript && ( !Q_stricmp( action->actionString, "mu_start" ) ||
-											  !Q_stricmp( action->actionString, "mu_play" ) ||
-											  !Q_stricmp( action->actionString, "mu_queue" ) ||
-											  !Q_stricmp( action->actionString, "startcam" ) ||
-											  !Q_stricmp( action->actionString, "startcamblack" ) ) ) {
-							if ( strlen( token ) ) { // we know there's a [0], but don't know if it's '0'
-								trap_SendServerCommand( cs->entityNum, va( "addToBuild %s\n", token ) );
+						if ( buildScript && ( !idStr::Icmp( action->actionString, "mu_start" ) ||
+								!idStr::Icmp( action->actionString, "mu_play" ) ||
+								!idStr::Icmp( action->actionString, "mu_queue" ) ||
+								!idStr::Icmp( action->actionString, "startcam" ) ||
+								!idStr::Icmp( action->actionString, "startcamblack" ) ) ) {
+							if ( token.Length() ) { // we know there is a [0], but do not know if it is '0'
+								trap_SendServerCommand( cs->entityNum, idStr::FormatString( "addToBuild %s\n", token.c_str() ) );
 							}
 						}
 
-						if ( !Q_stricmp( action->actionString,
-										 "giveweapon" ) ) { // register weapon for client pre-loading
+						if ( !idStr::Icmp( action->actionString, "giveweapon" ) ) { // register weapon for client pre-loading
 							gitem_t *weap = BG_FindItem2(
-								token ); // (SA) FIXME: rats, need to fix this for weapon names with spaces: 'mauser rifle'
-							//							if(weap)
+								token.c_str() ); // (SA) FIXME: rats, need to fix this for weapon names with spaces: 'mauser rifle'
+							//						if(weap)
 							RegisterItem(
-								weap ); // don't be nice, just do it.  if it can't find it, you'll bomb out to the error menu
+								weap ); // do not be nice, just do it.  if it cannot find it, you will bomb out to the error menu
 						}
 						//----(SA)	end
 					}
 
-					if ( strrchr( token, ' ' ) ) { // need to wrap this param in quotes since it has more than one word
-						Q_strcat( params, sizeof( params ), "\"" );
+					if ( strrchr( token.c_str(), ' ' ) ) { // need to wrap this param in quotes since it has more than one word
+						idStr::Append( params, sizeof( params ), "\"" );
 					}
 
-					Q_strcat( params, sizeof( params ), token );
+					idStr::Append( params, sizeof( params ), token.c_str() );
 
-					if ( strrchr( token, ' ' ) ) { // need to wrap this param in quotes since it has more than one word
-						Q_strcat( params, sizeof( params ), "\"" );
+					if ( strrchr( token.c_str(), ' ' ) ) { // need to wrap this param in quotes since it has more than one word
+						idStr::Append( params, sizeof( params ), "\"" );
 					}
 
-					token = COM_ParseExt( &pScript, qfalse );
+					lexer.ReadTokenOnLine( &token );
 				}
 
 				if ( strlen( params ) ) { // copy the params into the event
 					curEvent->stack.items[curEvent->stack.numItems].params = (char *)G_Alloc( strlen( params ) + 1 );
-					Q_strncpyz( curEvent->stack.items[curEvent->stack.numItems].params, params, strlen( params ) + 1 );
+					idStr::Copynz( curEvent->stack.items[curEvent->stack.numItems].params, params, strlen( params ) + 1 );
 				}
 
 				curEvent->stack.numItems++;
 
 				if ( curEvent->stack.numItems >= AICAST_MAX_SCRIPT_STACK_ITEMS ) {
 					G_Error( "AICast_ScriptParse(): script exceeded MAX_SCRIPT_ITEMS (%d), line %d\n",
-							 AICAST_MAX_SCRIPT_STACK_ITEMS, COM_GetCurrentParseLine() );
+						AICAST_MAX_SCRIPT_STACK_ITEMS, lexer.GetLineNum() );
 				}
 			}
 
 			numEventItems++;
-		} else // skip this character completely
-		{
+		} else { // skip this character completely
 			// TTimo: gcc: suggest () around assignment used as truth value
-			while ( ( token = COM_Parse( &pScript ) ) ) {
-				if ( !token[0] ) {
-					G_Error( "AICast_ScriptParse(), Error (line %d): '}' expected, end of script found.\n",
-							 COM_GetCurrentParseLine() );
-				} else if ( token[0] == '{' ) {
+			while ( lexer.ReadToken( &token ) ) {
+				if ( token[0] == '{' ) {
 					bracketLevel++;
 				} else if ( token[0] == '}' ) {
 					if ( !--bracketLevel ) {
@@ -561,7 +551,7 @@ void AICast_ScriptEvent( struct cast_state_s *cs, char *eventStr, char *params )
 
 	// find out which event this is
 	for ( i = 0; scriptEvents[i].eventStr; i++ ) {
-		if ( !Q_strcasecmp( eventStr, scriptEvents[i].eventStr ) ) { // match found
+		if ( !idStr::Icmp( eventStr, scriptEvents[i].eventStr ) ) { // match found
 			eventNum = i;
 			break;
 		}
@@ -661,8 +651,7 @@ qboolean AICast_ScriptRun( cast_state_t *cs, qboolean force ) {
 
 	// only allow the PLAYER'S spawn function through if we're NOT still waiting on everything to finish loading in
 	if ( !cs->entityNum && saveGamePending &&
-		 Q_stricmp( "spawn",
-					scriptEvents[cs->script.castScriptEvents[cs->script.castScriptStatus.castScriptEventIndex].eventNum]
+		 idStr::Icmp( "spawn", scriptEvents[cs->script.castScriptEvents[cs->script.castScriptStatus.castScriptEventIndex].eventNum]
 						.eventStr ) ) {
 		//char loading[4];
 		//trap_Cvar_VariableStringBuffer( "savegame_loading", loading, sizeof(loading) );

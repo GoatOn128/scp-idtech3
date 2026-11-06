@@ -26,9 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "server.h"
-
 
 /*
 =============================================================================
@@ -59,7 +60,7 @@ SV_EmitPacketEntities
 Writes a delta update of an entityState_t list to the message.
 =============
 */
-static void SV_EmitPacketEntities( clientSnapshot_t *from, clientSnapshot_t *to, msg_t *msg ) {
+static void SV_EmitPacketEntities( clientSnapshot_t *from, clientSnapshot_t *to, idBitMsg *msg ) {
 	entityState_t   *oldent, *newent;
 	int oldindex, newindex;
 	int oldnum, newnum;
@@ -95,7 +96,7 @@ static void SV_EmitPacketEntities( clientSnapshot_t *from, clientSnapshot_t *to,
 			// delta update from old position
 			// because the force parm is qfalse, this will not result
 			// in any bytes being emited if the entity has not changed at all
-			MSG_WriteDeltaEntity( msg, oldent, newent, qfalse );
+			NetMsg_WriteDeltaEntity( msg, oldent, newent, qfalse );
 			oldindex++;
 			newindex++;
 			continue;
@@ -103,20 +104,20 @@ static void SV_EmitPacketEntities( clientSnapshot_t *from, clientSnapshot_t *to,
 
 		if ( newnum < oldnum ) {
 			// this is a new entity, send it from the baseline
-			MSG_WriteDeltaEntity( msg, &sv.svEntities[newnum].baseline, newent, qtrue );
+			NetMsg_WriteDeltaEntity( msg, &sv.svEntities[newnum].baseline, newent, qtrue );
 			newindex++;
 			continue;
 		}
 
 		if ( newnum > oldnum ) {
 			// the old entity isn't present in the new message
-			MSG_WriteDeltaEntity( msg, oldent, NULL, qtrue );
+			NetMsg_WriteDeltaEntity( msg, oldent, NULL, qtrue );
 			oldindex++;
 			continue;
 		}
 	}
 
-	MSG_WriteBits( msg, ( MAX_GENTITIES - 1 ), GENTITYNUM_BITS );   // end of packetentities
+	msg->WriteBits( ( MAX_GENTITIES - 1 ), GENTITYNUM_BITS );   // end of packetentities
 }
 
 
@@ -126,7 +127,7 @@ static void SV_EmitPacketEntities( clientSnapshot_t *from, clientSnapshot_t *to,
 SV_WriteSnapshotToClient
 ==================
 */
-static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg ) {
+static void SV_WriteSnapshotToClient( client_t *client, idBitMsg *msg ) {
 	clientSnapshot_t    *frame, *oldframe;
 	int lastframe;
 	int i;
@@ -159,18 +160,18 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg ) {
 		}
 	}
 
-	MSG_WriteByte( msg, svc_snapshot );
+	msg->WriteByte( svc_snapshot );
 
 	// NOTE, MRE: now sent at the start of every message from server to client
 	// let the client know which reliable clientCommands we have received
-	//MSG_WriteLong( msg, client->lastClientCommand );
+	//msg->WriteLong( client->lastClientCommand );
 
 	// send over the current server time so the client can drift
 	// its view of time to try to match
-	MSG_WriteLong( msg, svs.time );
+	msg->WriteLong( svs.time );
 
 	// what we are delta'ing from
-	MSG_WriteByte( msg, lastframe );
+	msg->WriteByte( lastframe );
 
 	snapFlags = svs.snapFlagServerBit;
 	if ( client->rateDelayed ) {
@@ -180,17 +181,17 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg ) {
 		snapFlags |= SNAPFLAG_NOT_ACTIVE;
 	}
 
-	MSG_WriteByte( msg, snapFlags );
+	msg->WriteByte( snapFlags );
 
 	// send over the areabits
-	MSG_WriteByte( msg, frame->areabytes );
-	MSG_WriteData( msg, frame->areabits, frame->areabytes );
+	msg->WriteByte( frame->areabytes );
+	msg->WriteData( frame->areabits, frame->areabytes );
 
 	// delta encode the playerstate
 	if ( oldframe ) {
-		MSG_WriteDeltaPlayerstate( msg, &oldframe->ps, &frame->ps );
+		NetMsg_WriteDeltaPlayerstate( msg, &oldframe->ps, &frame->ps );
 	} else {
-		MSG_WriteDeltaPlayerstate( msg, NULL, &frame->ps );
+		NetMsg_WriteDeltaPlayerstate( msg, NULL, &frame->ps );
 	}
 
 	// delta encode the entities
@@ -199,7 +200,7 @@ static void SV_WriteSnapshotToClient( client_t *client, msg_t *msg ) {
 	// padding for rate debugging
 	if ( sv_padPackets->integer ) {
 		for ( i = 0 ; i < sv_padPackets->integer ; i++ ) {
-			MSG_WriteByte( msg, svc_nop );
+			msg->WriteByte( svc_nop );
 		}
 	}
 }
@@ -212,15 +213,15 @@ SV_UpdateServerCommandsToClient
 (re)send all server commands the client hasn't acknowledged yet
 ==================
 */
-void SV_UpdateServerCommandsToClient( client_t *client, msg_t *msg ) {
+void SV_UpdateServerCommandsToClient( client_t *client, idBitMsg *msg ) {
 	int i;
 
 	// write any unacknowledged serverCommands
 	for ( i = client->reliableAcknowledge + 1 ; i <= client->reliableSequence ; i++ ) {
-		MSG_WriteByte( msg, svc_serverCommand );
-		MSG_WriteLong( msg, i );
-		//MSG_WriteString( msg, client->reliableCommands[ i & (MAX_RELIABLE_COMMANDS-1) ] );
-		MSG_WriteString( msg, SV_GetReliableCommand( client, i & ( MAX_RELIABLE_COMMANDS - 1 ) ) );
+		msg->WriteByte( svc_serverCommand );
+		msg->WriteLong( i );
+		//msg->WriteString( client->reliableCommands[ i & (MAX_RELIABLE_COMMANDS-1) ] );
+		msg->WriteString( SV_GetReliableCommand( client, i & ( MAX_RELIABLE_COMMANDS - 1 ) ) );
 	}
 	client->reliableSent = client->reliableSequence;
 }
@@ -290,7 +291,7 @@ static void SV_AddEntToSnapshot( svEntity_t *svEnt, sharedEntity_t *gEnt, snapsh
 SV_AddEntitiesVisibleFromPoint
 ===============
 */
-static void SV_AddEntitiesVisibleFromPoint( vec3_t origin, clientSnapshot_t *frame,
+static void SV_AddEntitiesVisibleFromPoint( const idVec3 &origin, clientSnapshot_t *frame,
 //									snapshotEntityNumbers_t *eNums, qboolean portal, clientSnapshot_t *oldframe, qboolean localClient ) {
 //									snapshotEntityNumbers_t *eNums, qboolean portal ) {
 											snapshotEntityNumbers_t *eNums, qboolean portal, qboolean localClient  ) {
@@ -531,7 +532,7 @@ For viewing through other player's eyes, clent can be something other than clien
 =============
 */
 static void SV_BuildClientSnapshot( client_t *client ) {
-	vec3_t org;
+	idVec3 org;
 //	clientSnapshot_t			*frame, *oldframe;
 	clientSnapshot_t            *frame;
 	snapshotEntityNumbers_t entityNumbers;
@@ -593,17 +594,17 @@ static void SV_BuildClientSnapshot( client_t *client ) {
 	svEnt->snapshotCounter = sv.snapshotCounter;
 
 	// find the client's viewpoint
-	VectorCopy( ps->origin, org );
+	org = ps->origin;
 	org[2] += ps->viewheight;
 
 //----(SA)	added for 'lean'
 	// need to account for lean, so areaportal doors draw properly
 	if ( frame->ps.leanf != 0 ) {
-		vec3_t right, v3ViewAngles;
-		VectorCopy( ps->viewangles, v3ViewAngles );
+		idVec3 right, v3ViewAngles;
+		v3ViewAngles = ps->viewangles;
 		v3ViewAngles[2] += frame->ps.leanf / 2.0f;
-		AngleVectors( v3ViewAngles, NULL, right, NULL );
-		VectorMA( org, frame->ps.leanf, right, org );
+		idAngles( v3ViewAngles ).ToVectors( NULL, &right, NULL );
+		org = org + right * frame->ps.leanf;
 	}
 //----(SA)	end
 
@@ -680,16 +681,16 @@ SV_SendMessageToClient
 Called by SV_SendClientSnapshot and SV_SendClientGameState
 =======================
 */
-void SV_SendMessageToClient( msg_t *msg, client_t *client ) {
+void SV_SendMessageToClient( idBitMsg *msg, client_t *client ) {
 	int rateMsec;
 
 	// record information about the message
-	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageSize = msg->cursize;
+	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageSize = msg->GetSize();
 	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageSent = svs.time;
 	client->frames[client->netchan.outgoingSequence & PACKET_MASK].messageAcked = -1;
 
 	// send the datagram
-	SV_Netchan_Transmit( client, msg ); //msg->cursize, msg->data );
+	SV_Netchan_Transmit( client, msg ); //msg->GetSize(), msg->data );
 
 	// set nextSnapshotTime based on rate and requested number of updates
 
@@ -700,7 +701,7 @@ void SV_SendMessageToClient( msg_t *msg, client_t *client ) {
 	}
 
 	// normal rate / snapshotMsec calculation
-	rateMsec = SV_RateMsec( client, msg->cursize );
+	rateMsec = SV_RateMsec( client, msg->GetSize() );
 
 	if ( rateMsec < client->snapshotMsec ) {
 		// never send more packets than this, no matter what the rate is at
@@ -734,7 +735,7 @@ Also called by SV_FinalMessage
 */
 void SV_SendClientSnapshot( client_t *client ) {
 	byte msg_buf[MAX_MSGLEN];
-	msg_t msg;
+	idBitMsg msg;
 
 	//RF, AI don't need snapshots built
 	if ( client->gentity && client->gentity->r.svFlags & SVF_CASTAI ) {
@@ -750,12 +751,12 @@ void SV_SendClientSnapshot( client_t *client ) {
 		return;
 	}
 
-	MSG_Init( &msg, msg_buf, sizeof( msg_buf ) );
+	msg.InitWrite( msg_buf, sizeof( msg_buf  ) );
 	msg.allowoverflow = qtrue;
 
 	// NOTE, MRE: all server->client messages now acknowledge
 	// let the client know which reliable clientCommands we have received
-	MSG_WriteLong( &msg, client->lastClientCommand );
+	msg.WriteLong( client->lastClientCommand );
 
 	// (re)send any reliable server commands
 	SV_UpdateServerCommandsToClient( client, &msg );
@@ -770,7 +771,7 @@ void SV_SendClientSnapshot( client_t *client ) {
 	// check for overflow
 	if ( msg.overflowed ) {
 		Com_Printf( "WARNING: msg overflowed for %s\n", client->name );
-		MSG_Clear( &msg );
+		msg.BeginWriting();
 	}
 
 	SV_SendMessageToClient( &msg, client );

@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "tr_renderprog.h"
 #include <cmath>
@@ -39,16 +41,16 @@ Project the volume corners to bound fragment work. A volume crossing the near
 plane uses the viewport; the shader still clips every pixel to the volume.
 ====================
 */
-static qboolean RB_ScreenDecalBounds( const refEntity_t *entity, const vec3_t right,
-		const vec3_t up, const vec3_t normal, float aspect, float depth, float *bounds ) {
+static qboolean RB_ScreenDecalBounds( const refEntity_t *entity, const idVec3 right,
+		const idVec3 up, const idVec3 normal, float aspect, float depth, float *bounds ) {
 	bounds[0] = bounds[1] = 1;
 	bounds[2] = bounds[3] = -1;
 	for ( int corner = 0; corner < 8; corner++ ) {
-		vec3_t point;
-		vec4_t eye, clip;
-		VectorMA( entity->origin, ( corner & 1 ? 1 : -1 ) * entity->radius, right, point );
-		VectorMA( point, ( corner & 2 ? 1 : -1 ) * entity->radius * aspect, up, point );
-		VectorMA( point, ( corner & 4 ? 1 : -1 ) * depth, normal, point );
+		idVec3 point;
+		idVec4 eye, clip;
+		point = entity->origin + right * ( corner & 1 ? 1 : -1 ) * entity->radius;
+		point = point + up * ( corner & 2 ? 1 : -1 ) * entity->radius * aspect;
+		point = point + normal * ( corner & 4 ? 1 : -1 ) * depth;
 		R_TransformModelToClip( point, backEnd.viewParms.world.modelMatrix, backEnd.viewParms.projectionMatrix, eye, clip );
 		if ( clip[3] <= 0 || clip[2] <= -clip[3] ) {
 			bounds[0] = bounds[1] = -1;
@@ -83,24 +85,24 @@ void RB_DrawScreenDecals( void ) {
 		const refEntity_t *entity = &backEnd.refdef.entities[i].e;
 		if ( entity->reType != RT_SCREEN_DECAL || !RB_ScreenEntityVisible( entity ) ) { continue; }
 		float depth = entity->shaderTexCoord[1], aspect = entity->scale[0];
-		if ( !std::isfinite( depth ) || depth <= 0 || !std::isfinite( aspect ) || aspect <= 0 || !std::isfinite( entity->rotation ) ) { continue; }
-		vec3_t normal, right, up, rotated;
-		VectorCopy( entity->axis[0], normal );
-		float length = VectorNormalize( normal );
-		if ( !std::isfinite( length ) || length <= 0 ) { continue; }
-		PerpendicularVector( right, normal );
-		RotatePointAroundVector( rotated, normal, right, entity->rotation );
-		VectorCopy( rotated, right );
-		CrossProduct( normal, right, up );
+		if ( !idMath::IsFinite( depth ) || depth <= 0 || !idMath::IsFinite( aspect ) || aspect <= 0 || !idMath::IsFinite( entity->rotation ) ) { continue; }
+		idVec3 normal, right, up, rotated;
+		normal = entity->axis[0];
+		float length = normal.Normalize();
+		if ( !idMath::IsFinite( length ) || length <= 0 ) { continue; }
+		right.PerpendicularVector( normal );
+		rotated.RotatePointAroundVector( normal, right, entity->rotation );
+		right = rotated;
+		up.Cross( normal, right );
 		float bounds[4];
 		if ( !RB_ScreenDecalBounds( entity, right, up, normal, aspect, depth, bounds ) ) { continue; }
 		if ( !started ) {
 			if ( !RB_BeginScreenPass( SCREEN_DECAL_PROGRAM ) ) { return; }
 			started = qtrue;
 		}
-		VectorScale( right, 1.0f / entity->radius, right );
-		VectorScale( up, 1.0f / entity->radius * aspect, up );
-		VectorScale( normal, 1.0f / depth, normal );
+		right = right * 1.0f / entity->radius;
+		up = up * 1.0f / entity->radius * aspect;
+		normal = normal * 1.0f / depth;
 		RB_ScreenDecalProjection( entity->origin, right, up, normal );
 		RB_BindScreenMaterial( entity );
 		qglBegin( GL_QUADS );

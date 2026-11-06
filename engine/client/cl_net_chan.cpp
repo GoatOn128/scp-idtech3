@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "../qcommon/q_shared.h"
 #include "../qcommon/qcommon.h"
 #include "client.h"
@@ -43,36 +45,36 @@ CL_Netchan_Encode
 
 ==============
 */
-static void CL_Netchan_Encode( msg_t *msg ) {
+static void CL_Netchan_Encode( idBitMsg *msg ) {
 	int serverId, messageAcknowledge, reliableAcknowledge;
 	int i, index, srdc, sbit, soob;
 	byte key, *string;
 
-	if ( msg->cursize <= CL_ENCODE_START ) {
+	if ( msg->GetSize() <= CL_ENCODE_START ) {
 		return;
 	}
 
-	srdc = msg->readcount;
+	srdc = msg->GetReadCount();
 	sbit = msg->bit;
 	soob = msg->oob;
 
 	msg->bit = 0;
-	msg->readcount = 0;
+	msg->GetReadCount() = 0;
 	msg->oob = 0;
 
-	serverId = MSG_ReadLong( msg );
-	messageAcknowledge = MSG_ReadLong( msg );
-	reliableAcknowledge = MSG_ReadLong( msg );
+	serverId = msg->ReadLong( );
+	messageAcknowledge = msg->ReadLong( );
+	reliableAcknowledge = msg->ReadLong( );
 
 	msg->oob = soob;
 	msg->bit = sbit;
-	msg->readcount = srdc;
+	msg->GetReadCount() = srdc;
 
 	string = (byte *)clc.serverCommands[ reliableAcknowledge & ( MAX_RELIABLE_COMMANDS - 1 ) ];
 	index = 0;
 	//
 	key = clc.challenge ^ serverId ^ messageAcknowledge;
-	for ( i = CL_ENCODE_START; i < msg->cursize; i++ ) {
+	for ( i = CL_ENCODE_START; i < msg->GetSize(); i++ ) {
 		// modify the key with the last received now acknowledged server command
 		if ( !string[index] ) {
 			index = 0;
@@ -84,7 +86,7 @@ static void CL_Netchan_Encode( msg_t *msg ) {
 		}
 		index++;
 		// encode the data with this key
-		*( msg->data + i ) = ( *( msg->data + i ) ) ^ key;
+		*( msg->GetData() + i ) = ( *( msg->GetData() + i ) ) ^ key;
 	}
 }
 
@@ -97,28 +99,28 @@ CL_Netchan_Decode
 
 ==============
 */
-static void CL_Netchan_Decode( msg_t *msg ) {
+static void CL_Netchan_Decode( idBitMsg *msg ) {
 	long reliableAcknowledge, i, index;
 	byte key, *string;
 	int srdc, sbit, soob;
 
-	srdc = msg->readcount;
+	srdc = msg->GetReadCount();
 	sbit = msg->bit;
 	soob = msg->oob;
 
 	msg->oob = 0;
 
-	reliableAcknowledge = MSG_ReadLong( msg );
+	reliableAcknowledge = msg->ReadLong( );
 
 	msg->oob = soob;
 	msg->bit = sbit;
-	msg->readcount = srdc;
+	msg->GetReadCount() = srdc;
 
 	string = clc.reliableCommands[ reliableAcknowledge & ( MAX_RELIABLE_COMMANDS - 1 ) ];
 	index = 0;
 	// xor the client challenge with the netchan sequence number (need something that changes every message)
-	key = clc.challenge ^ LittleLong( *(unsigned *)msg->data );
-	for ( i = msg->readcount + CL_DECODE_START; i < msg->cursize; i++ ) {
+	key = clc.challenge ^ LittleLong( *(unsigned *)msg->GetData() );
+	for ( i = msg->GetReadCount() + CL_DECODE_START; i < msg->GetSize(); i++ ) {
 		// modify the key with the last sent and with this message acknowledged client command
 		if ( !string[index] ) {
 			index = 0;
@@ -130,7 +132,7 @@ static void CL_Netchan_Decode( msg_t *msg ) {
 		}
 		index++;
 		// decode the data with this key
-		*( msg->data + i ) = *( msg->data + i ) ^ key;
+		*( msg->GetData() + i ) = *( msg->GetData() + i ) ^ key;
 	}
 }
 #endif
@@ -151,18 +153,17 @@ void CL_Netchan_TransmitNextFragment( netchan_t *chan ) {
 CL_Netchan_Transmit
 ================
 */
-void CL_Netchan_Transmit( netchan_t *chan, msg_t* msg ) {
+void CL_Netchan_Transmit( netchan_t *chan, idBitMsg* msg ) {
 //	int i;
-	MSG_WriteByte( msg, clc_EOF );
-//	for(i=CL_ENCODE_START;i<msg->cursize;i++) {
-//		chksum[i-CL_ENCODE_START] = msg->data[i];
+	msg->WriteByte( clc_EOF );
+//	for(i=CL_ENCODE_START;i<msg->GetSize();i++) {
+//		chksum[i-CL_ENCODE_START] = msg->GetData()[i];
 //	}
 
-//	Huff_Compress( msg, CL_ENCODE_START );
 #if DO_NET_ENCODE
 	CL_Netchan_Encode( msg );
 #endif
-	Netchan_Transmit( chan, msg->cursize, msg->data );
+	Netchan_Transmit( chan, msg->GetSize(), msg->GetData() );
 }
 
 extern int oldsize;
@@ -173,7 +174,7 @@ int newsize = 0;
 CL_Netchan_Process
 =================
 */
-qboolean CL_Netchan_Process( netchan_t *chan, msg_t *msg ) {
+qboolean CL_Netchan_Process( netchan_t *chan, idBitMsg *msg ) {
 	int ret;
 //	int i;
 //	static		int newsize = 0;
@@ -185,13 +186,12 @@ qboolean CL_Netchan_Process( netchan_t *chan, msg_t *msg ) {
 #if DO_NET_ENCODE
 	CL_Netchan_Decode( msg );
 #endif
-//	Huff_Decompress( msg, CL_DECODE_START );
-//	for(i=CL_DECODE_START+msg->readcount;i<msg->cursize;i++) {
-//		if (msg->data[i] != chksum[i-(CL_DECODE_START+msg->readcount)]) {
-//			Com_Error(ERR_DROP,"bad %d v %d\n", msg->data[i], chksum[i-(CL_DECODE_START+msg->readcount)]);
+//	for(i=CL_DECODE_START+msg->GetReadCount();i<msg->GetSize();i++) {
+//		if (msg->GetData()[i] != chksum[i-(CL_DECODE_START+msg->GetReadCount())]) {
+//			Com_Error(ERR_DROP,"bad %d v %d\n", msg->GetData()[i], chksum[i-(CL_DECODE_START+msg->GetReadCount())]);
 //		}
 //	}
-	newsize += msg->cursize;
+	newsize += msg->GetSize();
 //	Com_Printf("saved %d to %d (%d%%)\n", (oldsize>>3), newsize, 100-(newsize*100/(oldsize>>3)));
 	return qtrue;
 }

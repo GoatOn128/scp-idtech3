@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 // stb_image and stb_image_write replace the old jpeg-6 library and the hand written
@@ -57,6 +59,9 @@ static unsigned char s_gammatable[256];
 int gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int gl_filter_max = GL_LINEAR;
 
+#ifdef FILE_HASH_SIZE
+#undef FILE_HASH_SIZE
+#endif
 #define FILE_HASH_SIZE      4096
 static image_t*        hashTable[FILE_HASH_SIZE];
 
@@ -166,7 +171,7 @@ void GL_TextureMode( const char *string ) {
 	image_t *glt;
 
 	for ( i = 0 ; i < 6 ; i++ ) {
-		if ( !Q_stricmp( modes[i].name, string ) ) {
+		if ( !idStr::Icmp( modes[i].name, string ) ) {
 			break;
 		}
 	}
@@ -417,7 +422,7 @@ static void R_MipMap2( unsigned *in, int inWidth, int inHeight ) {
 
 	outWidth = inWidth >> 1;
 	outHeight = inHeight >> 1;
-	temp = (unsigned int *) ri.Hunk_AllocateTempMemory( outWidth * outHeight * 4 );
+	temp = (unsigned int *) Mem_ClearedAlloc( outWidth * outHeight * 4, TAG_IDLIB );
 
 	inWidthMask = inWidth - 1;
 	inHeightMask = inHeight - 1;
@@ -452,7 +457,7 @@ static void R_MipMap2( unsigned *in, int inWidth, int inHeight ) {
 	}
 
 	memcpy( in, temp, outWidth * outHeight * 4 );
-	ri.Hunk_FreeTempMemory( temp );
+	Mem_Free( temp );
 }
 
 /*
@@ -658,7 +663,7 @@ static void Upload32(   unsigned *data,
 	}
 
 	if ( scaled_width != width || scaled_height != height ) {
-		//resampledBuffer = ri.Hunk_AllocateTempMemory( scaled_width * scaled_height * 4 );
+		//resampledBuffer = Mem_ClearedAlloc( scaled_width * scaled_height * 4, TAG_IDLIB );
 		resampledBuffer = (unsigned int *) R_GetImageBuffer( scaled_width * scaled_height * 4, BUFFER_RESAMPLED );
 		ResampleTexture( data, width, height, resampledBuffer, scaled_width, scaled_height );
 		data = resampledBuffer;
@@ -725,7 +730,7 @@ static void Upload32(   unsigned *data,
 		scaled_height = 1;
 	}
 
-	//scaledBuffer = ri.Hunk_AllocateTempMemory( sizeof( unsigned ) * scaled_width * scaled_height );
+	//scaledBuffer = Mem_ClearedAlloc( sizeof( unsigned ) * scaled_width * scaled_height, TAG_IDLIB );
 	scaledBuffer = (unsigned int *) R_GetImageBuffer( sizeof( unsigned ) * scaled_width * scaled_height, BUFFER_SCALED );
 
 	//
@@ -858,9 +863,9 @@ done:
 	GL_CheckErrors();
 
 	//if ( scaledBuffer != 0 )
-	//	ri.Hunk_FreeTempMemory( scaledBuffer );
+	//	Mem_Free( scaledBuffer );
 	//if ( resampledBuffer != 0 )
-	//	ri.Hunk_FreeTempMemory( resampledBuffer );
+	//	Mem_Free( resampledBuffer );
 }
 
 
@@ -1194,8 +1199,8 @@ void SaveJPG( char *filename, int quality, int image_width, int image_height, un
 	int row_stride = image_width * 4;
 	int y;
 
-	flipped = (byte *) ri.Hunk_AllocateTempMemory( image_width * image_height * 4 );
-	out = (byte *) ri.Hunk_AllocateTempMemory( image_width * image_height * 4 );
+	flipped = (byte *) Mem_ClearedAlloc( image_width * image_height * 4, TAG_IDLIB );
+	out = (byte *) Mem_ClearedAlloc( image_width * image_height * 4, TAG_IDLIB );
 	for ( y = 0; y < image_height; y++ ) {
 		memcpy( flipped + y * row_stride, image_buffer + ( image_height - 1 - y ) * row_stride, row_stride );
 	}
@@ -1208,8 +1213,8 @@ void SaveJPG( char *filename, int quality, int image_width, int image_height, un
 		ri.Printf( PRINT_ALL, "SaveJPG: failed to encode %s\n", filename );
 	}
 
-	ri.Hunk_FreeTempMemory( flipped );
-	ri.Hunk_FreeTempMemory( out );
+	Mem_Free( flipped );
+	Mem_Free( out );
 }
 
 //===================================================================
@@ -1234,7 +1239,7 @@ void R_LoadImage( const char *name, byte **pic, int *width, int *height ) {
 		return;
 	}
 
-	if ( !Q_stricmp( name + len - 4, ".tga" ) ) {
+	if ( !idStr::Icmp( name + len - 4, ".tga" ) ) {
 		LoadTGA( name, pic, width, height );          // try tga first
 		if ( !*pic ) {                              //
 			char altname[MAX_QPATH];                    // try jpg in place of tga
@@ -1245,11 +1250,11 @@ void R_LoadImage( const char *name, byte **pic, int *width, int *height ) {
 			altname[len - 1] = 'g';
 			LoadJPG( altname, pic, width, height );
 		}
-	} else if ( !Q_stricmp( name + len - 4, ".pcx" ) ) {
+	} else if ( !idStr::Icmp( name + len - 4, ".pcx" ) ) {
 		LoadPCX32( name, pic, width, height );
-	} else if ( !Q_stricmp( name + len - 4, ".bmp" ) ) {
+	} else if ( !idStr::Icmp( name + len - 4, ".bmp" ) ) {
 		LoadBMP( name, pic, width, height );
-	} else if ( !Q_stricmp( name + len - 4, ".jpg" ) ) {
+	} else if ( !idStr::Icmp( name + len - 4, ".jpg" ) ) {
 		LoadJPG( name, pic, width, height );
 	}
 }
@@ -1280,14 +1285,14 @@ image_t *R_FindImageFileExt( const char *name, qboolean mipmap, qboolean allowPi
 
 	// Ridah, caching
 	if ( r_cacheGathering->integer ) {
-		ri.Cmd_ExecuteText( EXEC_NOW, va( "cache_usedfile image %s %i %i %i %i\n", name, mipmap, allowPicmip, characterMIP, glWrapClampMode ) );
+		ri.Cmd_ExecuteText( EXEC_NOW, idStr::FormatString( "cache_usedfile image %s %i %i %i %i\n", name, mipmap, allowPicmip, characterMIP, glWrapClampMode ) );
 	}
 
 	//
 	// see if the image is already loaded
 	//
 	for ( image = hashTable[hash]; image; image = image->next ) {
-		if ( !Q_stricmp( name, image->imgName ) ) {
+		if ( !idStr::Icmp( name, image->imgName ) ) {
 			// the white image can be used with any set of parms, but other mismatches are errors
 			if ( strcmp( name, "*white" ) ) {
 				if ( image->mipmap != mipmap ) {
@@ -1458,7 +1463,7 @@ static void R_CreateFogImage( void ) {
 	float d;
 	float borderColor[4];
 
-	data = (byte *) ri.Hunk_AllocateTempMemory( FOG_S * FOG_T * 4 );
+	data = (byte *) Mem_ClearedAlloc( FOG_S * FOG_T * 4, TAG_IDLIB );
 
 	g = 2.0;
 
@@ -1477,7 +1482,7 @@ static void R_CreateFogImage( void ) {
 	// the border color at the edges.  OpenGL 1.2 has clamp-to-edge, which does
 	// what we want.
 	tr.fogImage = R_CreateImage( "*fog", (byte *)data, FOG_S, FOG_T, qfalse, qfalse, GL_CLAMP );
-	ri.Hunk_FreeTempMemory( data );
+	Mem_Free( data );
 
 	borderColor[0] = 1.0;
 	borderColor[1] = 1.0;
@@ -1816,15 +1821,15 @@ qboolean RE_GetSkinModel( qhandle_t skinid, const char *type, char *name ) {
 
 	bar = tr.skins[skinid];
 
-	if ( !Q_stricmp( type, "playerscale" ) ) {    // client is requesting scale from the skin rather than a model
+	if ( !idStr::Icmp( type, "playerscale" ) ) {    // client is requesting scale from the skin rather than a model
 		Com_sprintf( name, MAX_QPATH, "%.2f %.2f %.2f", bar->scale[0], bar->scale[1], bar->scale[2] );
 		return qtrue;
 	}
 
 	for ( i = 0; i < bar->numModels; i++ )
 	{
-		if ( !Q_stricmp( bar->models[i]->type, type ) ) { // (SA) whoops, should've been this way
-			Q_strncpyz( name, bar->models[i]->model, sizeof( bar->models[i]->model ) );
+		if ( !idStr::Icmp( bar->models[i]->type, type ) ) { // (SA) whoops, should've been this way
+			idStr::Copynz( name, bar->models[i]->model, sizeof( bar->models[i]->model ) );
 			return qtrue;
 		}
 	}
@@ -1919,7 +1924,7 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 	// see if the skin is already loaded
 	for ( hSkin = 1; hSkin < tr.numSkins ; hSkin++ ) {
 		skin = tr.skins[hSkin];
-		if ( !Q_stricmp( skin->name, name ) ) {
+		if ( !idStr::Icmp( skin->name, name ) ) {
 			if ( skin->numSurfaces == 0 ) {
 				return 0;       // default skin
 			}
@@ -1944,13 +1949,13 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 	// If not a .skin file, load as a single shader
 	if ( strcmp( name + strlen( name ) - 5, ".skin" ) ) {
 		tr.numSkins++;
-		skin = (skin_t *) ri.Hunk_Alloc( sizeof( skin_t ), h_low );
+		skin = (skin_t *) Mem_ClearedAlloc( sizeof( skin_t ), TAG_IDLIB );
 		tr.skins[hSkin] = skin;
-		Q_strncpyz( skin->name, name, sizeof( skin->name ) );
+		idStr::Copynz( skin->name, name, sizeof( skin->name ) );
 		skin->numSurfaces   = 0;
 		skin->numModels     = 0;    //----(SA) added
 		skin->numSurfaces = 1;
-		skin->surfaces[0] = (skinSurface_t *) ri.Hunk_Alloc( sizeof( skin->surfaces[0] ), h_low );
+		skin->surfaces[0] = (skinSurface_t *) Mem_ClearedAlloc( sizeof( skin->surfaces[0] ), TAG_IDLIB );
 		skin->surfaces[0]->shader = R_FindShader( name, LIGHTMAP_NONE, qtrue );
 		return hSkin;
 	}
@@ -1962,9 +1967,9 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 	}
 
 	tr.numSkins++;
-	skin = (skin_t *) ri.Hunk_Alloc( sizeof( skin_t ), h_low );
+	skin = (skin_t *) Mem_ClearedAlloc( sizeof( skin_t ), TAG_IDLIB );
 	tr.skins[hSkin] = skin;
-	Q_strncpyz( skin->name, name, sizeof( skin->name ) );
+	idStr::Copynz( skin->name, name, sizeof( skin->name ) );
 	skin->numSurfaces   = 0;
 	skin->numModels     = 0;    //----(SA) added
 
@@ -1974,13 +1979,13 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 	while ( text_p && *text_p ) {
 		// get surface name
 		token = CommaParse( &text_p );
-		Q_strncpyz( surfName, token, sizeof( surfName ) );
+		idStr::Copynz( surfName, token, sizeof( surfName ) );
 
 		if ( !token[0] ) {
 			break;
 		}
 		// lowercase the surface name so skin compares are faster
-		Q_strlwr( surfName );
+		idStr::ToLower( surfName );
 
 		if ( *text_p == ',' ) {
 			text_p++;
@@ -1991,13 +1996,13 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 		}
 
 		if ( strstr( token, "md3_" ) ) {  // this is specifying a model
-			model = skin->models[ skin->numModels ] = (skinModel_t *) ri.Hunk_Alloc( sizeof( *skin->models[0] ), h_low );
-			Q_strncpyz( model->type, token, sizeof( model->type ) );
+			model = skin->models[ skin->numModels ] = (skinModel_t *) Mem_ClearedAlloc( sizeof( *skin->models[0] ), TAG_IDLIB );
+			idStr::Copynz( model->type, token, sizeof( model->type ) );
 
 			// get the model name
 			token = CommaParse( &text_p );
 
-			Q_strncpyz( model->model, token, sizeof( model->model ) );
+			idStr::Copynz( model->model, token, sizeof( model->model ) );
 
 			skin->numModels++;
 			continue;
@@ -2016,8 +2021,8 @@ qhandle_t RE_RegisterSkin( const char *name ) {
 		// parse the shader name
 		token = CommaParse( &text_p );
 
-		surf = skin->surfaces[ skin->numSurfaces ] = (skinSurface_t *) ri.Hunk_Alloc( sizeof( *skin->surfaces[0] ), h_low );
-		Q_strncpyz( surf->name, surfName, sizeof( surf->name ) );
+		surf = skin->surfaces[ skin->numSurfaces ] = (skinSurface_t *) Mem_ClearedAlloc( sizeof( *skin->surfaces[0] ), TAG_IDLIB );
+		idStr::Copynz( surf->name, surfName, sizeof( surf->name ) );
 		surf->shader = R_FindShader( token, LIGHTMAP_NONE, qtrue );
 		skin->numSurfaces++;
 	}
@@ -2050,10 +2055,10 @@ void    R_InitSkins( void ) {
 	tr.numSkins = 1;
 
 	// make the default skin have all default shaders
-	skin = tr.skins[0] = (skin_t *) ri.Hunk_Alloc( sizeof( skin_t ), h_low );
-	Q_strncpyz( skin->name, "<default skin>", sizeof( skin->name )  );
+	skin = tr.skins[0] = (skin_t *) Mem_ClearedAlloc( sizeof( skin_t ), TAG_IDLIB );
+	idStr::Copynz( skin->name, "<default skin>", sizeof( skin->name ) );
 	skin->numSurfaces = 1;
-	skin->surfaces[0] = (skinSurface_t *) ri.Hunk_Alloc( sizeof( *skin->surfaces ), h_low );
+	skin->surfaces[0] = (skinSurface_t *) Mem_ClearedAlloc( sizeof( *skin->surfaces ), TAG_IDLIB );
 	skin->surfaces[0]->shader = tr.defaultShader;
 }
 
@@ -2104,7 +2109,7 @@ void SaveTGA( char *name, byte **pic, int width, int height ) {
 	byte    *inpixel, *outpixel;
 	byte    *outbuf, *b;
 
-	outbuf = (byte *) ri.Hunk_AllocateTempMemory( width * height * 4 + 18 );
+	outbuf = (byte *) Mem_ClearedAlloc( width * height * 4 + 18, TAG_IDLIB );
 	b = outbuf;
 
 	memset( b, 0, 18 );
@@ -2142,7 +2147,7 @@ void SaveTGA( char *name, byte **pic, int width, int height ) {
 
 	ri.FS_WriteFile( name, outbuf, (int)( outpixel - outbuf ) );
 
-	ri.Hunk_FreeTempMemory( outbuf );
+	Mem_Free( outbuf );
 
 }
 
@@ -2157,7 +2162,7 @@ void SaveTGAAlpha( char *name, byte **pic, int width, int height ) {
 	byte    *inpixel, *outpixel;
 	byte    *outbuf, *b;
 
-	outbuf = (byte *) ri.Hunk_AllocateTempMemory( width * height * 4 + 18 );
+	outbuf = (byte *) Mem_ClearedAlloc( width * height * 4 + 18, TAG_IDLIB );
 	b = outbuf;
 
 	memset( b, 0, 18 );
@@ -2195,7 +2200,7 @@ void SaveTGAAlpha( char *name, byte **pic, int width, int height ) {
 
 	ri.FS_WriteFile( name, outbuf, (int)( outpixel - outbuf ) );
 
-	ri.Hunk_FreeTempMemory( outbuf );
+	Mem_Free( outbuf );
 
 }
 
@@ -2214,15 +2219,21 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 #ifdef CROPIMAGES_ENABLED
 	int row, col;
 	int rows, cols;
-	byte    *inpixel, *temppic, *outpixel;
+	byte    *inpixel;
+#ifndef RESIZE
+	byte    *temppic, *outpixel;
+#endif
 	int mins[2], maxs[2];
+#ifndef RESIZE
 	int diff[2];
+#endif
 	//int	newWidth;
 	int /*a, max,*/ i;
 	int alpha;
 	//int	*center;
 	qboolean /*invalid,*/ skip;
-	vec3_t fCol, fScale;
+	idVec3 fCol, fScale;
+	static idRandom cropImageRandom;
 	qboolean filterColors = qfalse;
 	int fCount;
 	float f,c;
@@ -2240,7 +2251,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 	// find the filter color (use first few pixels)
 	filterColors = qtrue;
 	inpixel = ( *pic );
-	VectorClear( fCol );
+	fCol.Zero();
 	for ( fCount = 0; fCount < 8; fCount++, inpixel += 4 ) {
 		for ( i = 0; i < 3; i++ ) {
 			if ( *( inpixel + i ) > 70 ) {
@@ -2251,7 +2262,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 			}
 		}
 	}
-	//VectorScale( fCol, 1.0/fCount, fCol );
+	//fCol = fCol * 1.0/fCount;
 	for ( i = 0; i < 3; i++ ) {
 		fCol[i] += 4;
 		fScale[i] = 255.0 / ( 255.0 - fCol[i] );
@@ -2294,7 +2305,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 						if ( f <= 0 ) {
 							*( (int *)inpixel ) = 0;
 						} else {
-							f += 0.2 * crandom();
+							f += 0.2 * cropImageRandom.CRandomFloat();
 							if ( f < 1.0 ) {
 								if ( f <= 0 ) {
 									*( (int *)inpixel ) = 0;
@@ -2383,7 +2394,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 
 #ifdef RESIZE
 	return qtrue;
-#endif
+#else
 
 	// convert it so that the center is the center of the image
 	// this is used for some explosions
@@ -2514,6 +2525,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 	*height = diff[1];
 
 	return qtrue;
+#endif
 #else
 	return qtrue;   // shutup the compiler
 #endif
@@ -2550,7 +2562,7 @@ void    R_CropAndNumberImagesInDirectory( char *dir, char *ext, int maxWidth, in
 	for ( j = 0; j < numFiles; j++ ) {
 		char filename[MAX_QPATH], outfilename[MAX_QPATH];
 
-		if ( !Q_strncmp( fileList[j], "spr", 3 ) ) {
+		if ( !idStr::Cmpn( fileList[j], "spr", 3 ) ) {
 			continue;
 		}
 
@@ -2577,7 +2589,7 @@ void    R_CropAndNumberImagesInDirectory( char *dir, char *ext, int maxWidth, in
 					newWidth = maxWidth;
 				}
 				newHeight = newWidth;
-				temppic = ri.Z_Malloc( sizeof( unsigned int ) * newWidth * newHeight );
+				temppic = Mem_ClearedAlloc( sizeof( unsigned int ) * newWidth * newHeight, TAG_IDLIB );
 				ResampleTexture( (unsigned int *)pic, width, height, (unsigned int *)temppic, newWidth, newHeight );
 				memcpy( pic, temppic, sizeof( unsigned int ) * newWidth * newHeight );
 				ri.Free( temppic );
@@ -2589,7 +2601,7 @@ void    R_CropAndNumberImagesInDirectory( char *dir, char *ext, int maxWidth, in
 			// we need to force the scale downwards
 			newWidth = maxWidth;
 			newHeight = maxWidth;
-			temppic = ri.Z_Malloc( sizeof( unsigned int ) * newWidth * newHeight );
+			temppic = Mem_ClearedAlloc( sizeof( unsigned int ) * newWidth * newHeight, TAG_IDLIB );
 			ResampleTexture( (unsigned int *)pic, width, height, (unsigned int *)temppic, newWidth, newHeight );
 			memcpy( pic, temppic, sizeof( unsigned int ) * newWidth * newHeight );
 			ri.Free( temppic );
@@ -2668,9 +2680,9 @@ R_CacheImageAlloc
 void *R_CacheImageAlloc( int size ) {
 	if ( r_cache->integer && r_cacheShaders->integer ) {
 		return malloc( size );
-		//return ri.Z_Malloc( size );
+		//return Mem_ClearedAlloc( size, TAG_IDLIB );
 	} else {
-		return ri.Hunk_Alloc( size, h_low );
+		return Mem_ClearedAlloc( size, TAG_IDLIB );
 	}
 }
 
@@ -2868,7 +2880,7 @@ image_t *R_FindCachedImage( const char *name, int hash ) {
 	bImagePrev = NULL;
 	while ( bImage ) {
 
-		if ( !Q_stricmp( name, bImage->imgName ) ) {
+		if ( !idStr::Icmp( name, bImage->imgName ) ) {
 			// add it to the current images
 			if ( tr.numImages == MAX_DRAWIMAGES ) {
 				ri.Error( ERR_DROP, "R_CreateImage: MAX_DRAWIMAGES hit\n" );
@@ -2939,7 +2951,6 @@ R_LoadCacheImages
 void R_LoadCacheImages( void ) {
 	int len;
 	byte *buf;
-	char    *token, *pString;
 	char name[MAX_QPATH];
 	int parms[3], i;
 
@@ -2953,20 +2964,24 @@ void R_LoadCacheImages( void ) {
 		return;
 	}
 
-	buf = (byte *)ri.Hunk_AllocateTempMemory( len );
+	buf = (byte *)Mem_ClearedAlloc( len, TAG_IDLIB );
 	ri.FS_ReadFile( "image.cache", (void **)&buf );
-	pString = (char*)buf;   //DAJ added (char*)
 
-	while ( ( token = COM_ParseExt( &pString, qtrue ) ) && token[0] ) {
-		Q_strncpyz( name, token, sizeof( name ) );
+	idLexer cacheLexer;
+	idToken token;
+	cacheLexer.LoadMemory( (const char *)buf, len, "image.cache" );
+	while ( cacheLexer.ReadToken( &token ) && token[0] ) {
+		idStr::Copynz( name, token.c_str(), sizeof( name ) );
 		for ( i = 0; i < 4; i++ ) {
-			token = COM_ParseExt( &pString, qfalse );
-			parms[i] = atoi( token );
+			if ( !cacheLexer.ReadToken( &token ) || !token[0] ) {
+				break;
+			}
+			parms[i] = atoi( token.c_str() );
 		}
 		R_FindImageFileExt( name, parms[0], parms[1], parms[2], parms[3] );
 	}
 
-	ri.Hunk_FreeTempMemory( buf );
+	Mem_Free( buf );
 }
 // done.
 //==========================================================================================

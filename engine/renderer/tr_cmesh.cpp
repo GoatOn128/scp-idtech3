@@ -30,17 +30,19 @@ If you have questions concerning this license or the applicable additional terms
 //
 // This is ripped from tr_mesh.c, and converted to use the compressed mesh format
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
-static float ProjectRadius( float r, vec3_t location ) {
+static float ProjectRadius( float r, idVec3 location ) {
 	float pr;
 	float dist;
 	float c;
-	vec3_t p;
+	idVec3 p;
 	float projected[4];
 
-	c = DotProduct( tr.viewParms.orent.axis[0], tr.viewParms.orent.origin );
-	dist = DotProduct( tr.viewParms.orent.axis[0], location ) - c;
+	c = ( tr.viewParms.orent.axis[0] ) * ( tr.viewParms.orent.origin );
+	dist = ( tr.viewParms.orent.axis[0] ) * ( location ) - c;
 
 	if ( dist <= 0 ) {
 		return 0;
@@ -86,7 +88,7 @@ R_CullModel
 =============
 */
 static int R_CullModel( mdcHeader_t *header, trRefEntity_t *ent ) {
-	vec3_t bounds[2];
+	idVec3 bounds[2];
 	md3Frame_t  *oldFrame, *newFrame;
 	int i;
 	qboolean cullSphere;    //----(SA)	added
@@ -209,7 +211,7 @@ static int R_ComputeLOD( trRefEntity_t *ent ) {
 
 		frame += ent->e.frame;
 
-		radius = RadiusFromBounds( frame->bounds[0], frame->bounds[1] );
+		radius = idBounds( frame->bounds[0], frame->bounds[1] ).GetRadius();
 
 		//----(SA)	testing
 		if ( ent->e.reFlags & REFLAG_ORIENT_LOD ) {
@@ -233,7 +235,7 @@ static int R_ComputeLOD( trRefEntity_t *ent ) {
 		}
 
 		flod *= tr.currentModel->numLods;
-		lod = myftol( flod );
+		lod = idMath::Ftoi( flod );
 
 		if ( lod < 0 ) {
 			lod = 0;
@@ -264,7 +266,7 @@ static int R_ComputeFogNum( mdcHeader_t *header, trRefEntity_t *ent ) {
 	int i, j;
 	fog_t           *fog;
 	md3Frame_t      *md3Frame;
-	vec3_t localOrigin;
+	idVec3 localOrigin;
 
 	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL ) {
 		return 0;
@@ -272,7 +274,7 @@ static int R_ComputeFogNum( mdcHeader_t *header, trRefEntity_t *ent ) {
 
 	// FIXME: non-normalized axis issues
 	md3Frame = ( md3Frame_t * )( ( byte * ) header + header->ofsFrames ) + ent->e.frame;
-	VectorAdd( ent->e.origin, md3Frame->localOrigin, localOrigin );
+	localOrigin = ent->e.origin + md3Frame->localOrigin;
 	for ( i = 1 ; i < tr.world->numfogs ; i++ ) {
 		fog = &tr.world->fogs[i];
 		for ( j = 0 ; j < 3 ; j++ ) {
@@ -372,7 +374,7 @@ void R_AddMDCSurfaces( trRefEntity_t *ent ) {
 //		think of it like batman's mask.  the polygons that have eye texture are duplicated
 //		and the 'lids' rendered with polygonoffset over the top of the open eyes.  this gives
 //		minimal overdraw/alpha blending/texture use without breaking the model and causing seams
-		if ( !Q_stricmp( surface->name, "h_blink" ) ) {
+		if ( !idStr::Icmp( surface->name, "h_blink" ) ) {
 			if ( !( ent->e.renderfx & RF_BLINK ) ) {
 				surface = ( mdcSurface_t * )( (byte *)surface + surface->ofsEnd );
 				continue;

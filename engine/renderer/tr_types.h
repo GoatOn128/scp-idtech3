@@ -68,7 +68,7 @@ If you have questions concerning this license or the applicable additional terms
 
 
 typedef struct {
-	vec3_t xyz;
+	idVec3 xyz;
 	float st[2];
 	byte modulate[4];
 } polyVert_t;
@@ -117,20 +117,20 @@ typedef struct {
 	qhandle_t hModel;               // opaque type outside refresh
 
 	// most recent data
-	vec3_t lightingOrigin;          // so multi-part models can be lit identically (RF_LIGHTING_ORIGIN)
+	idVec3 lightingOrigin;          // so multi-part models can be lit identically (RF_LIGHTING_ORIGIN)
 	float shadowPlane;              // projection shadows go here, stencils go slightly lower
 
-	vec3_t axis[3];                 // rotation vectors
-	vec3_t torsoAxis[3];            // rotation vectors for torso section of skeletal animation
+	idVec3 axis[3];                 // rotation vectors
+	idVec3 torsoAxis[3];            // rotation vectors for torso section of skeletal animation
 	qboolean nonNormalizedAxes;     // axis are not normalized, i.e. they have scale
-	float origin[3];                // also used as MODEL_BEAM's "from"
+	idVec3 origin;                  // also used as MODEL_BEAM's "from"
 	int frame;                      // also used as MODEL_BEAM's diameter
 	int torsoFrame;                 // skeletal torso can have frame independant of legs frame
 
-	vec3_t scale;       //----(SA)	added
+	idVec3 scale;       //----(SA)	added
 
 	// previous data for frame interpolation
-	float oldorigin[3];             // also used as MODEL_BEAM's "to"
+	idVec3 oldorigin;               // also used as MODEL_BEAM's "to"
 	int oldframe;
 	int oldTorsoFrame;
 	float backlerp;                 // 0.0 = current, 1.0 = old
@@ -151,7 +151,7 @@ typedef struct {
 	float rotation;
 
 	// Ridah
-	vec3_t fireRiseDir;
+	idVec3 fireRiseDir;
 
 	// Ridah, entity fading (gibs, debris, etc)
 	int fadeStartTime, fadeEndTime;
@@ -218,8 +218,8 @@ typedef struct {
 typedef struct {
 	int x, y, width, height;
 	float fov_x, fov_y;
-	vec3_t vieworg;
-	vec3_t viewaxis[3];             // transformation matrix
+	idVec3 vieworg;
+	idVec3 viewaxis[3];             // transformation matrix
 
 	int time;           // time in milliseconds for shader effects and other time dependent rendering issues
 	int rdflags;                    // RDF_NOWORLDMODEL, etc

@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 //=================================================================================
@@ -89,10 +91,10 @@ void AICast_Heinrich_Taunt( cast_state_t *cs ) {
 char *AIFunc_Heinrich_SwordLunge( cast_state_t *cs ) {
 	gentity_t *ent = &g_entities[cs->entityNum];
 	trace_t *tr;
-	vec3_t left;
+	idVec3 left;
 	float enemyDist;
 	aicast_predictmove_t move;
-	vec3_t vec;
+	idVec3 vec;
 	cast_state_t *ecs;
 
 	cs->aiFlags |= AIFL_SPECIAL_FUNC;
@@ -144,9 +146,9 @@ char *AIFunc_Heinrich_SwordLunge( cast_state_t *cs ) {
 
 	// if they are outside range, move forward
 	AICast_PredictMovement( ecs, 2, 0.3, &move, &g_entities[cs->enemyNum].client->pers.cmd, -1 );
-	VectorSubtract( move.endpos, cs->clientState->origin, vec );
+	vec = move.endpos - cs->clientState->origin;
 	vec[2] = 0;
-	enemyDist = VectorLength( vec );
+	enemyDist = vec.Length();
 	enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 	enemyDist -= ent->r.maxs[0];
 	if ( enemyDist > 30 ) { // we can get closer
@@ -187,7 +189,7 @@ char *AIFunc_Heinrich_SwordLungeStart( cast_state_t *cs ) {
 char *AIFunc_Heinrich_SwordKnockback( cast_state_t *cs ) {
 	gentity_t *ent = &g_entities[cs->entityNum];
 	trace_t *tr;
-	vec3_t right, left;
+	idVec3 right, left;
 	//	float	enemyDist;
 	//	aicast_predictmove_t move;
 	//	vec3_t	vec;
@@ -232,8 +234,8 @@ char *AIFunc_Heinrich_SwordKnockback( cast_state_t *cs ) {
 			cs->aiFlags |= AIFL_MISCFLAG1;
 			// do melee damage
 			if ( tr && ( tr->entityNum == cs->enemyNum ) ) {
-				AngleVectors( cs->viewangles, NULL, right, NULL );
-				VectorNegate( right, left );
+				idAngles( cs->viewangles ).ToVectors( NULL, &right, NULL );
+				left = -right;
 				G_Damage( &g_entities[tr->entityNum], ent, ent, left, tr->endpos, HEINRICH_KNOCKBACK_DAMAGE, 0,
 						  MOD_GAUNTLET );
 				// sound
@@ -243,13 +245,11 @@ char *AIFunc_Heinrich_SwordKnockback( cast_state_t *cs ) {
 					 BG_AnimationIndexForString( "attack2", cs->entityNum ) ) {
 					// right
 					right[2] = 0.5;
-					VectorMA( g_entities[cs->enemyNum].client->ps.velocity, 400, right,
-							  g_entities[cs->enemyNum].client->ps.velocity );
+					g_entities[cs->enemyNum].client->ps.velocity = g_entities[cs->enemyNum].client->ps.velocity + right * 400;
 				} else {
 					// left
 					left[2] = 0.5;
-					VectorMA( g_entities[cs->enemyNum].client->ps.velocity, 400, left,
-							  g_entities[cs->enemyNum].client->ps.velocity );
+					g_entities[cs->enemyNum].client->ps.velocity = g_entities[cs->enemyNum].client->ps.velocity + left * 400;
 				}
 			}
 		}
@@ -306,10 +306,10 @@ char *AIFunc_Heinrich_SwordKnockbackStart( cast_state_t *cs ) {
 char *AIFunc_Heinrich_SwordSideSlash( cast_state_t *cs ) {
 	gentity_t *ent = &g_entities[cs->entityNum];
 	trace_t *tr;
-	vec3_t right, left;
+	idVec3 right, left;
 	float enemyDist;
 	aicast_predictmove_t move;
-	vec3_t vec;
+	idVec3 vec;
 	cast_state_t *ecs;
 
 	cs->aiFlags |= AIFL_SPECIAL_FUNC;
@@ -345,25 +345,24 @@ char *AIFunc_Heinrich_SwordSideSlash( cast_state_t *cs ) {
 			cs->aiFlags |= AIFL_MISCFLAG1;
 			// do melee damage
 			if ( tr && ( tr->entityNum == cs->enemyNum ) ) {
-				AngleVectors( cs->viewangles, NULL, right, NULL );
-				VectorNegate( right, left );
+				idAngles( cs->viewangles ).ToVectors( NULL, &right, NULL );
+				left = -right;
 				G_Damage( &g_entities[tr->entityNum], ent, ent, left, tr->endpos, HEINRICH_SLASH_DAMAGE, 0,
 						  MOD_GAUNTLET );
 				// sound
 				G_AddEvent( ent, EV_GENERAL_SOUND, heinrichSoundIndex[HEINRICH_SWORDIMPACT] );
 				// throw them in direction of impact
 				left[2] = 0.5;
-				VectorMA( g_entities[cs->enemyNum].client->ps.velocity, 400, left,
-						  g_entities[cs->enemyNum].client->ps.velocity );
+				g_entities[cs->enemyNum].client->ps.velocity = g_entities[cs->enemyNum].client->ps.velocity + left * 400;
 			}
 		}
 	}
 
 	// if they are outside range, move forward
 	AICast_PredictMovement( ecs, 2, 0.3, &move, &g_entities[cs->enemyNum].client->pers.cmd, -1 );
-	VectorSubtract( move.endpos, cs->clientState->origin, vec );
+	vec = move.endpos - cs->clientState->origin;
 	vec[2] = 0;
-	enemyDist = VectorLength( vec );
+	enemyDist = vec.Length();
 	enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 	enemyDist -= ent->r.maxs[0];
 	if ( enemyDist > 30 ) { // we can get closer
@@ -407,7 +406,7 @@ char *AIFunc_Heinrich_Earthquake( cast_state_t *cs ) {
 	gentity_t *ent = &g_entities[cs->entityNum];
 	gentity_t *enemy;
 	cast_state_t *ecs;
-	vec3_t enemyVec;
+	idVec3 enemyVec;
 	float enemyDist, scale;
 	trace_t *tr;
 
@@ -423,18 +422,18 @@ char *AIFunc_Heinrich_Earthquake( cast_state_t *cs ) {
 	enemy = &g_entities[cs->enemyNum];
 	ecs = AICast_GetCastState( cs->enemyNum );
 
-	VectorMA( enemy->r.currentOrigin, HEINRICH_STOMP_DELAY, enemy->client->ps.velocity, enemyVec );
-	enemyDist = VectorDistance( ent->r.currentOrigin, enemyVec );
+	enemyVec = enemy->r.currentOrigin + enemy->client->ps.velocity * HEINRICH_STOMP_DELAY;
+	enemyDist = ( ent->r.currentOrigin - enemyVec ).Length();
 
 	if ( ent->client->ps.torsoTimer < 500 ) {
 		int rnd;
 		aicast_predictmove_t move;
-		vec3_t vec;
+		idVec3 vec;
 
 		AICast_PredictMovement( ecs, 2, 0.5, &move, &g_entities[cs->enemyNum].client->pers.cmd, -1 );
-		VectorSubtract( move.endpos, cs->clientState->origin, vec );
+		vec = move.endpos - cs->clientState->origin;
 		vec[2] = 0;
-		enemyDist = VectorLength( vec );
+		enemyDist = vec.Length();
 		enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 		enemyDist -= ent->r.maxs[0];
 		//
@@ -480,7 +479,7 @@ char *AIFunc_Heinrich_Earthquake( cast_state_t *cs ) {
 		}
 	}
 
-	enemyDist = Distance( enemy->s.pos.trBase, ent->s.pos.trBase );
+	enemyDist = ( enemy->s.pos.trBase - ent->s.pos.trBase ).Length();
 
 	// do the earthquake effects
 	if ( cs->thinkFuncChangeTime < level.time - HEINRICH_STOMP_DELAY ) {
@@ -490,14 +489,12 @@ char *AIFunc_Heinrich_Earthquake( cast_state_t *cs ) {
 			if ( scale > 1.0 ) {
 				scale = 1.0;
 			}
-			VectorSubtract( ent->s.pos.trBase, enemy->s.pos.trBase, enemyVec );
-			VectorScale( enemyVec,
-						 2.0 * ( 0.6 + 0.5 * random() ) * scale *
-							 ( 0.6 + 0.6 * ( 1.0 - ( enemyDist / HEINRICH_STOMP_RANGE ) ) ),
-						 enemyVec );
+			enemyVec = ent->s.pos.trBase - enemy->s.pos.trBase;
+			enemyVec = enemyVec * ( 2.0 * ( 0.6 + 0.5 * gameRandom.RandomFloat() ) * scale *
+							 ( 0.6 + 0.6 * ( 1.0 - ( enemyDist / HEINRICH_STOMP_RANGE ) ) ) );
 			enemyVec[2] = scale * HEINRICH_STOMP_VELOCITY_Z * ( 1.0 - 0.5 * ( enemyDist / HEINRICH_STOMP_RANGE ) );
 			// bounce the player using this velocity
-			VectorAdd( enemy->client->ps.velocity, enemyVec, enemy->client->ps.velocity );
+			enemy->client->ps.velocity = enemy->client->ps.velocity + enemyVec;
 		}
 	}
 
@@ -521,9 +518,9 @@ char *AIFunc_Heinrich_MeleeStart( cast_state_t *cs ) {
 	// clear flags
 	cs->aiFlags &= ~( AIFL_MISCFLAG1 | AIFL_MISCFLAG2 );
 	// decide which attack to use
-	if ( VectorDistance( ent->r.currentOrigin, enemy->r.currentOrigin ) < 60 ) {
+	if ( ( ent->r.currentOrigin - enemy->r.currentOrigin ).Length() < 60 ) {
 		rnd = 0; // sword slash up close
-	} else if ( VectorDistance( ent->r.currentOrigin, enemy->r.currentOrigin ) >= HEINRICH_SLASH_RANGE ) {
+	} else if ( ( ent->r.currentOrigin - enemy->r.currentOrigin ).Length() >= HEINRICH_SLASH_RANGE ) {
 		rnd = 1; // too far away, stomp
 	} else {
 		// pick at random
@@ -601,7 +598,7 @@ char *AIFunc_Heinrich_RaiseDead( cast_state_t *cs ) {
 			if ( trav->aiCharacter != AICHAR_WARZOMBIE ) {
 				continue;
 			}
-			dist = VectorDistance( trav->s.pos.trBase, enemy->r.currentOrigin );
+			dist = ( trav->s.pos.trBase - enemy->r.currentOrigin ).Length();
 			if ( !closest || dist < closestDist ) {
 				closest = trav;
 				closestDist = dist;
@@ -677,7 +674,7 @@ char *AIFunc_Heinrich_RaiseDeadStart( cast_state_t *cs ) {
 			circleDist = trav->radius;
 			trav = G_Find( NULL, FOFS( targetname ), trav->target );
 			if ( trav ) {
-				if ( VectorDistance( g_entities[0].s.pos.trBase, trav->s.origin ) > circleDist ) {
+				if ( ( g_entities[0].s.pos.trBase - trav->s.origin ).Length() > circleDist ) {
 					cs->aiFlags &= ~AIFL_MISCFLAG1;
 					ent->count2 = 0;
 					cs->aiFlags |= AIFL_SPECIAL_FUNC;
@@ -719,7 +716,7 @@ char *AIFunc_Heinrich_SpawnSpiritsStart( cast_state_t *cs ) {
 			circleDist = trav->radius;
 			trav = G_Find( NULL, FOFS( targetname ), trav->target );
 			if ( trav ) {
-				if ( VectorDistance( g_entities[0].s.pos.trBase, trav->s.origin ) > circleDist ) {
+				if ( ( g_entities[0].s.pos.trBase - trav->s.origin ).Length() > circleDist ) {
 					cs->aiFlags &= ~AIFL_MISCFLAG1;
 					ent->count2 = 0;
 					cs->aiFlags |= AIFL_SPECIAL_FUNC;
@@ -763,7 +760,7 @@ static qboolean AI_HeinrichAbilityAvailable( cast_state_t *cs, int weaponNum ) {
 	int delay = -1;
 	float dist = -1;
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 	switch ( weaponNum ) {
 	case WP_MONSTER_ATTACK1: {

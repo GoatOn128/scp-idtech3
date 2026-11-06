@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -49,8 +51,11 @@ qboolean AICast_StateChange( cast_state_t *cs, aistateEnum_t newaistate ) {
 
 	// check scripting to see if this event should be ignored (no anim or handling)
 	cs->aiFlags &= ~AIFL_DENYACTION;
-	AICast_ScriptEvent( cs, "statechange",
-						va( "%s %s", animStateStr[oldstate].string, animStateStr[newaistate].string ) );
+	char stateChangeParams[MAX_QPATH];
+	idStr::Copynz( stateChangeParams,
+				   idStr::FormatString( "%s %s", animStateStr[oldstate].string, animStateStr[newaistate].string ).c_str(),
+				   sizeof( stateChangeParams ) );
+	AICast_ScriptEvent( cs, "statechange", stateChangeParams );
 
 	if ( cs->aiFlags & AIFL_DENYACTION ) {
 		return qfalse;

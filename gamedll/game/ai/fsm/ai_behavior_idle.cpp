@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -57,7 +59,7 @@ char *AIFunc_Idle( cast_state_t *cs ) {
 	//
 	// do we need to go to our leader?
 	if ( cs->leaderNum >= 0 &&
-		 Distance( cs->clientState->origin, g_entities[cs->leaderNum].r.currentOrigin ) > MAX_LEADER_DIST ) {
+		 ( cs->clientState->origin - g_entities[cs->leaderNum].r.currentOrigin ).Length() > MAX_LEADER_DIST ) {
 		return AIFunc_ChaseGoalStart( cs, cs->leaderNum, AICAST_LEADERDIST_MAX, qtrue );
 	}
 	//
@@ -86,7 +88,7 @@ char *AIFunc_Idle( cast_state_t *cs ) {
 		// choose an enemy
 		for ( i = 0; i < numEnemies; i++ ) {
 			if (
-				Distance( cs->clientState->origin, cs->perception.vislist[enemies[i]].visible_pos ) >
+				( cs->clientState->origin - cs->perception.vislist[enemies[i]].visible_pos ).Length() >
 				16 ) { // if we are really close to the last place we saw them, no point trying to attack, since we'll just end up back here
 				if ( cs->enemyNum < 0 ) {
 					cs->enemyNum = enemies[i];
@@ -147,17 +149,19 @@ char *AIFunc_Idle( cast_state_t *cs ) {
 	if ( cs->lastEnemy >= 0 ) {
 		// we have been in a battle, so face our enemy in anticipation of their return
 		if ( ent->aiTeam != AITEAM_ALLIES ) {
-			vec3_t dir;
+			idVec3 dir;
 			//
-			//VectorSubtract( cs->perception.vislist[cs->lastEnemy].visible_pos, cs->clientState->origin, dir );
 			// hack, use their real angles, prevent them from looking dumb when the player returns
-			VectorSubtract( g_entities[cs->lastEnemy].s.pos.trBase, cs->clientState->origin, dir );
-			if ( VectorLength( dir ) < 1 ) {
+			dir = g_entities[cs->lastEnemy].s.pos.trBase - cs->clientState->origin;
+			if ( dir.Length() < 1 ) {
 				cs->ideal_viewangles[PITCH] = 0;
 			} else {
-				VectorNormalize( dir );
-				vectoangles( dir, cs->ideal_viewangles );
-				cs->ideal_viewangles[PITCH] = AngleNormalize180( cs->ideal_viewangles[PITCH] ) * 0.5;
+				dir.Normalize();
+				{
+					const idAngles convertedAngles = dir.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
+				cs->ideal_viewangles[PITCH] = idMath::AngleNormalize180( cs->ideal_viewangles[PITCH] ) * 0.5;
 			}
 		} else if ( cs->attributes[TACTICAL] && cs->nextIdleAngleChange < level.time ) {
 			// wait a second before changing again
@@ -173,22 +177,22 @@ char *AIFunc_Idle( cast_state_t *cs ) {
 
 				cs->idleYaw = AICast_GetRandomViewAngle( cs, 512 );
 
-				if ( fabs( AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] ) ) < 45 ) {
+				if ( fabs( idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] ) ) < 45 ) {
 					cs->nextIdleAngleChange = level.time + 1000 + rand() % 2500;
 				} else { // do really fast
 					cs->nextIdleAngleChange = level.time + 500;
 				}
 
 				// adjust with time
-				cs->idleYawChange = AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
+				cs->idleYawChange = idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
 				/// ((float)(cs->nextIdleAngleChange - level.time) / 1000.0);
 
 				cs->ideal_viewangles[PITCH] = 0;
 			}
 		} else if ( cs->idleYawChange ) {
-			cs->idleYawChange = AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
+			cs->idleYawChange = idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
 			cs->ideal_viewangles[YAW] =
-				AngleMod( cs->ideal_viewangles[YAW] + ( cs->idleYawChange * cs->clientState->thinktime ) );
+				idMath::AngleNormalize360( cs->ideal_viewangles[YAW] + ( cs->idleYawChange * cs->clientState->thinktime ) );
 		}
 	}
 

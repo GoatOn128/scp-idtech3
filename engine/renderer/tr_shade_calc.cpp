@@ -28,10 +28,12 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_shade_calc.c
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 
-#define WAVEVALUE( table, base, amplitude, phase, freq )  ( ( base ) + table[ myftol( ( ( ( phase ) + tess.shaderTime * ( freq ) ) * FUNCTABLE_SIZE ) ) & FUNCTABLE_MASK ] * ( amplitude ) )
+#define WAVEVALUE( table, base, amplitude, phase, freq )  ( ( base ) + table[ idMath::Ftoi( ( ( ( phase ) + tess.shaderTime * ( freq ) ) * FUNCTABLE_SIZE ) ) & FUNCTABLE_MASK ] * ( amplitude ) )
 
 static float *TableForFunc( genFunc_t func ) {
 	switch ( func )
@@ -118,7 +120,7 @@ RB_CalcDeformVertexes
 */
 void RB_CalcDeformVertexes( deformStage_t *ds ) {
 	int i;
-	vec3_t offset;
+	idVec3 offset;
 	float scale;
 	float   *xyz = ( float * ) tess.xyz;
 	float   *normal = ( float * ) tess.normal;
@@ -127,21 +129,23 @@ void RB_CalcDeformVertexes( deformStage_t *ds ) {
 	// Ridah
 	if ( ds->deformationWave.frequency < 0 ) {
 		qboolean inverse = qfalse;
-		vec3_t worldUp;
-		//static vec3_t up = {0,0,1};
+		idVec3 worldUp;
+		//static idVec3 up = {0,0,1};
 
-		if ( VectorCompare( backEnd.currentEntity->e.fireRiseDir, vec3_origin ) ) {
-			VectorSet( backEnd.currentEntity->e.fireRiseDir, 0, 0, 1 );
+		if ( backEnd.currentEntity->e.fireRiseDir == idVec3( 0, 0, 0 ) ) {
+			backEnd.currentEntity->e.fireRiseDir.Set( 0, 0, 1 );
 		}
 
 		// get the world up vector in local coordinates
 		if ( backEnd.currentEntity->e.hModel ) {  // world surfaces dont have an axis
-			VectorRotate( backEnd.currentEntity->e.fireRiseDir, backEnd.currentEntity->e.axis, worldUp );
+			worldUp[0] = backEnd.currentEntity->e.axis[0] * backEnd.currentEntity->e.fireRiseDir;
+			worldUp[1] = backEnd.currentEntity->e.axis[1] * backEnd.currentEntity->e.fireRiseDir;
+			worldUp[2] = backEnd.currentEntity->e.axis[2] * backEnd.currentEntity->e.fireRiseDir;
 		} else {
-			VectorCopy( backEnd.currentEntity->e.fireRiseDir, worldUp );
+			worldUp = backEnd.currentEntity->e.fireRiseDir;
 		}
 		// don't go so far if sideways, since they must be moving
-		VectorScale( worldUp, 0.4 + 0.6 * fabs( backEnd.currentEntity->e.fireRiseDir[2] ), worldUp );
+		worldUp = worldUp * 0.4f + idVec3( 0.6f * fabs( backEnd.currentEntity->e.fireRiseDir[2] ) );
 
 		ds->deformationWave.frequency *= -1;
 		if ( ds->deformationWave.frequency > 999 ) {  // hack for negative Z deformation (ack)
@@ -161,13 +165,15 @@ void RB_CalcDeformVertexes( deformStage_t *ds ) {
 							   ds->deformationWave.phase + off,
 							   ds->deformationWave.frequency );
 
-			dot = DotProduct( worldUp, normal );
+			dot = worldUp[0] * normal[0] + worldUp[1] * normal[1] + worldUp[2] * normal[2];
 
 			if ( dot * scale > 0 ) {
 				if ( inverse ) {
 					scale *= -1;
 				}
-				VectorMA( xyz, dot * scale, worldUp, xyz );
+				xyz[0] += dot * scale * worldUp[0];
+				xyz[1] += dot * scale * worldUp[1];
+				xyz[2] += dot * scale * worldUp[2];
 			}
 		}
 
@@ -182,7 +188,9 @@ void RB_CalcDeformVertexes( deformStage_t *ds ) {
 
 		for ( i = 0; i < tess.numVertexes; i++, xyz += 4, normal += 4 )
 		{
-			VectorScale( normal, scale, offset );
+			offset[0] = normal[0] * scale;
+			offset[1] = normal[1] * scale;
+			offset[2] = normal[2] * scale;
 
 			xyz[0] += offset[0];
 			xyz[1] += offset[1];
@@ -201,7 +209,9 @@ void RB_CalcDeformVertexes( deformStage_t *ds ) {
 							   ds->deformationWave.phase + off,
 							   ds->deformationWave.frequency );
 
-			VectorScale( normal, scale, offset );
+			offset[0] = normal[0] * scale;
+			offset[1] = normal[1] * scale;
+			offset[2] = normal[2] * scale;
 
 			xyz[0] += offset[0];
 			xyz[1] += offset[1];
@@ -239,7 +249,7 @@ void RB_CalcDeformNormals( deformStage_t *ds ) {
 							  tess.shaderTime * ds->deformationWave.frequency );
 		normal[ 2 ] += ds->deformationWave.amplitude * scale;
 
-		VectorNormalizeFast( normal );
+		{ float inv = idMath::InvSqrt( normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2] ); normal[0] *= inv; normal[1] *= inv; normal[2] *= inv; }
 	}
 }
 
@@ -262,7 +272,7 @@ void RB_CalcBulgeVertexes( deformStage_t *ds ) {
 		int off;
 		float scale;
 
-		off = (float)( FUNCTABLE_SIZE / ( M_PI * 2 ) ) * ( st[0] * ds->bulgeWidth + now );
+		off = (float)( FUNCTABLE_SIZE / idMath::TWO_PI ) * ( st[0] * ds->bulgeWidth + now );
 
 		scale = tr.sinTable[ off & FUNCTABLE_MASK ] * ds->bulgeHeight;
 
@@ -285,7 +295,7 @@ void RB_CalcMoveVertexes( deformStage_t *ds ) {
 	float       *xyz;
 	float       *table;
 	float scale;
-	vec3_t offset;
+	idVec3 offset;
 
 	table = TableForFunc( ds->deformationWave.func );
 
@@ -294,11 +304,13 @@ void RB_CalcMoveVertexes( deformStage_t *ds ) {
 					   ds->deformationWave.phase,
 					   ds->deformationWave.frequency );
 
-	VectorScale( ds->moveVector, scale, offset );
+	offset = ds->moveVector * scale;
 
 	xyz = ( float * ) tess.xyz;
 	for ( i = 0; i < tess.numVertexes; i++, xyz += 4 ) {
-		VectorAdd( xyz, offset, xyz );
+		xyz[0] += offset[0];
+		xyz[1] += offset[1];
+		xyz[2] += offset[2];
 	}
 }
 
@@ -312,43 +324,43 @@ Change a polygon into a bunch of text polygons
 */
 void DeformText( const char *text ) {
 	int i;
-	vec3_t origin, width, height;
+	idVec3 origin, width, height;
 	int len;
 	int ch;
 	byte color[4];
 	float bottom, top;
-	vec3_t mid;
+	idVec3 mid;
 
 	height[0] = 0;
 	height[1] = 0;
 	height[2] = -1;
-	CrossProduct( tess.normal[0], height, width );
+	width.Cross( tess.normal[0].ToVec3(), height );
 
 	// find the midpoint of the box
-	VectorClear( mid );
+	mid.Zero();
 	bottom = 999999;
 	top = -999999;
 	for ( i = 0 ; i < 4 ; i++ ) {
-		VectorAdd( tess.xyz[i], mid, mid );
+		mid = tess.xyz[i].ToVec3() + mid;
 		if ( tess.xyz[i][2] < bottom ) {
-			bottom = tess.xyz[i][2];
+			bottom = tess.xyz[i].ToFloatPtr()[2];
 		}
 		if ( tess.xyz[i][2] > top ) {
-			top = tess.xyz[i][2];
+			top = tess.xyz[i].ToFloatPtr()[2];
 		}
 	}
-	VectorScale( mid, 0.25f, origin );
+	origin = mid * 0.25f;
 
 	// determine the individual character size
 	height[0] = 0;
 	height[1] = 0;
 	height[2] = ( top - bottom ) * 0.5f;
 
-	VectorScale( width, height[2] * -0.75f, width );
+	width = width * height[2] * -0.75f;
 
 	// determine the starting position
 	len = strlen( text );
-	VectorMA( origin, ( len - 1 ), width, origin );
+	origin = origin + width * ( len - 1 );
 
 	// clear the shader indexes
 	tess.numIndexes = 0;
@@ -374,7 +386,7 @@ void DeformText( const char *text ) {
 
 			RB_AddQuadStampExt( origin, width, height, color, fcol, frow, fcol + size, frow + size );
 		}
-		VectorMA( origin, -2, width, origin );
+		origin = origin + width * -2;
 	}
 }
 
@@ -383,10 +395,10 @@ void DeformText( const char *text ) {
 GlobalVectorToLocal
 ==================
 */
-void GlobalVectorToLocal( const vec3_t in, vec3_t out ) {
-	out[0] = DotProduct( in, backEnd.orent.axis[0] );
-	out[1] = DotProduct( in, backEnd.orent.axis[1] );
-	out[2] = DotProduct( in, backEnd.orent.axis[2] );
+void GlobalVectorToLocal( const idVec3 &in, idVec3 &out ) {
+	out[0] = in * backEnd.orent.axis[0];
+	out[1] = in * backEnd.orent.axis[1];
+	out[2] = in * backEnd.orent.axis[2];
 }
 
 /*
@@ -401,10 +413,10 @@ static void AutospriteDeform( void ) {
 	int i;
 	int oldVerts;
 	float   *xyz;
-	vec3_t mid, delta;
+	idVec3 mid, delta;
 	float radius;
-	vec3_t left, up;
-	vec3_t leftDir, upDir;
+	idVec3 left, up;
+	idVec3 leftDir, upDir;
 
 	if ( tess.numVertexes & 3 ) {
 		ri.Printf( PRINT_WARNING, "Autosprite shader %s had odd vertex count", tess.shader->name );
@@ -421,39 +433,41 @@ static void AutospriteDeform( void ) {
 		GlobalVectorToLocal( backEnd.viewParms.orent.axis[1], leftDir );
 		GlobalVectorToLocal( backEnd.viewParms.orent.axis[2], upDir );
 	} else {
-		VectorCopy( backEnd.viewParms.orent.axis[1], leftDir );
-		VectorCopy( backEnd.viewParms.orent.axis[2], upDir );
+		leftDir = backEnd.viewParms.orent.axis[1];
+		upDir = backEnd.viewParms.orent.axis[2];
 	}
 
 	for ( i = 0 ; i < oldVerts ; i += 4 ) {
 		// find the midpoint
-		xyz = tess.xyz[i];
+		xyz = tess.xyz[i].ToFloatPtr();
 
 		mid[0] = 0.25f * ( xyz[0] + xyz[4] + xyz[8] + xyz[12] );
 		mid[1] = 0.25f * ( xyz[1] + xyz[5] + xyz[9] + xyz[13] );
 		mid[2] = 0.25f * ( xyz[2] + xyz[6] + xyz[10] + xyz[14] );
 
-		VectorSubtract( xyz, mid, delta );
-		radius = VectorLength( delta ) * 0.707f;        // / sqrt(2)
+		delta[0] = xyz[0] - mid[0];
+		delta[1] = xyz[1] - mid[1];
+		delta[2] = xyz[2] - mid[2];
+		radius = delta.Length() * 0.707f;        // / sqrt(2)
 
-		VectorScale( leftDir, radius, left );
-		VectorScale( upDir, radius, up );
+		left = leftDir * radius;
+		up = upDir * radius;
 
 		if ( backEnd.viewParms.isMirror ) {
-			VectorSubtract( vec3_origin, left, left );
+			left = -left;
 		}
 
 		// compensate for scale in the axes if necessary
 		if ( backEnd.currentEntity->e.nonNormalizedAxes ) {
 			float axisLength;
-			axisLength = VectorLength( backEnd.currentEntity->e.axis[0] );
+			axisLength = backEnd.currentEntity->e.axis[0].Length();
 			if ( !axisLength ) {
 				axisLength = 0;
 			} else {
 				axisLength = 1.0f / axisLength;
 			}
-			VectorScale( left, axisLength, left );
-			VectorScale( up, axisLength, up );
+			left = left * axisLength;
+			up = up * axisLength;
 		}
 
 		RB_AddQuadStamp( mid, left, up, tess.vertexColors[i] );
@@ -480,8 +494,7 @@ int edgeVerts[6][2] = {
 static void Autosprite2Deform( void ) {
 	int i, j, k;
 	int indexes;
-	float   *xyz;
-	vec3_t forward;
+	idVec3 forward;
 
 	if ( tess.numVertexes & 3 ) {
 		ri.Printf( PRINT_WARNING, "Autosprite2 shader %s had odd vertex count", tess.shader->name );
@@ -493,7 +506,7 @@ static void Autosprite2Deform( void ) {
 	if ( backEnd.currentEntity != &tr.worldEntity ) {
 		GlobalVectorToLocal( backEnd.viewParms.orent.axis[0], forward );
 	} else {
-		VectorCopy( backEnd.viewParms.orent.axis[0], forward );
+		forward = backEnd.viewParms.orent.axis[0];
 	}
 
 	// this is a lot of work for two triangles...
@@ -502,12 +515,9 @@ static void Autosprite2Deform( void ) {
 	for ( i = 0, indexes = 0 ; i < tess.numVertexes ; i += 4, indexes += 6 ) {
 		float lengths[2];
 		int nums[2];
-		vec3_t mid[2];
-		vec3_t major, minor;
-		float   *v1, *v2;
-
-		// find the midpoint
-		xyz = tess.xyz[i];
+		idVec3 mid[2];
+		idVec3 major, minor;
+		idVec3 v1, v2;
 
 		// identify the two shortest edges
 		nums[0] = nums[1] = 0;
@@ -515,14 +525,13 @@ static void Autosprite2Deform( void ) {
 
 		for ( j = 0 ; j < 6 ; j++ ) {
 			float l;
-			vec3_t temp;
+			idVec3 temp;
 
-			v1 = xyz + 4 * edgeVerts[j][0];
-			v2 = xyz + 4 * edgeVerts[j][1];
+			v1 = tess.xyz[i + edgeVerts[j][0]].ToVec3();
+			v2 = tess.xyz[i + edgeVerts[j][1]].ToVec3();
+			temp = v1 - v2;
 
-			VectorSubtract( v1, v2, temp );
-
-			l = DotProduct( temp, temp );
+			l = ( temp ) * ( temp );
 			if ( l < lengths[0] ) {
 				nums[1] = nums[0];
 				lengths[1] = lengths[0];
@@ -535,27 +544,21 @@ static void Autosprite2Deform( void ) {
 		}
 
 		for ( j = 0 ; j < 2 ; j++ ) {
-			v1 = xyz + 4 * edgeVerts[nums[j]][0];
-			v2 = xyz + 4 * edgeVerts[nums[j]][1];
-
-			mid[j][0] = 0.5f * ( v1[0] + v2[0] );
-			mid[j][1] = 0.5f * ( v1[1] + v2[1] );
-			mid[j][2] = 0.5f * ( v1[2] + v2[2] );
+			v1 = tess.xyz[i + edgeVerts[nums[j]][0]].ToVec3();
+			v2 = tess.xyz[i + edgeVerts[nums[j]][1]].ToVec3();
+			mid[j] = ( v1 + v2 ) * 0.5f;
 		}
 
 		// find the vector of the major axis
-		VectorSubtract( mid[1], mid[0], major );
+		major = mid[1] - mid[0];
 
 		// cross this with the view direction to get minor axis
-		CrossProduct( major, forward, minor );
-		VectorNormalize( minor );
+		minor.Cross( major, forward );
+		minor.Normalize();
 
 		// re-project the points
 		for ( j = 0 ; j < 2 ; j++ ) {
 			float l;
-
-			v1 = xyz + 4 * edgeVerts[nums[j]][0];
-			v2 = xyz + 4 * edgeVerts[nums[j]][1];
 
 			l = 0.5f * sqrt( lengths[j] );
 
@@ -569,11 +572,11 @@ static void Autosprite2Deform( void ) {
 			}
 
 			if ( k == 5 ) {
-				VectorMA( mid[j], l, minor, v1 );
-				VectorMA( mid[j], -l, minor, v2 );
+				tess.xyz[i + edgeVerts[nums[j]][0]].ToVec3() = mid[j] + minor * l;
+				tess.xyz[i + edgeVerts[nums[j]][1]].ToVec3() = mid[j] + minor * -l;
 			} else {
-				VectorMA( mid[j], -l, minor, v1 );
-				VectorMA( mid[j], l, minor, v2 );
+				tess.xyz[i + edgeVerts[nums[j]][0]].ToVec3() = mid[j] + minor * -l;
+				tess.xyz[i + edgeVerts[nums[j]][1]].ToVec3() = mid[j] + minor * l;
 			}
 		}
 	}
@@ -745,7 +748,7 @@ void RB_CalcWaveColor( const waveForm_t *wf, unsigned char *dstColors ) {
 		glow = 1;
 	}
 
-	v = myftol( 255 * glow );
+	v = idMath::Ftoi( 255 * glow );
 	color[0] = color[1] = color[2] = v;
 	color[3] = 255;
 	v = *(int *)color;
@@ -857,17 +860,17 @@ void RB_CalcFogTexCoords( float *st ) {
 	float eyeT;
 	qboolean eyeOutside;
 	fog_t       *fog;
-	vec3_t local;
-	vec4_t fogDistanceVector, fogDepthVector;
+	idVec3 local;
+	idVec4 fogDistanceVector, fogDepthVector;
 
 	fog = tr.world->fogs + tess.fogNum;
 
 	// all fogging distance is based on world Z units
-	VectorSubtract( backEnd.orent.origin, backEnd.viewParms.orent.origin, local );
+	local = backEnd.orent.origin - backEnd.viewParms.orent.origin;
 	fogDistanceVector[0] = -backEnd.orent.modelMatrix[2];
 	fogDistanceVector[1] = -backEnd.orent.modelMatrix[6];
 	fogDistanceVector[2] = -backEnd.orent.modelMatrix[10];
-	fogDistanceVector[3] = DotProduct( local, backEnd.viewParms.orent.axis[0] );
+	fogDistanceVector[3] = ( local ) * ( backEnd.viewParms.orent.axis[0] );
 
 	// scale the fog vectors based on the fog's thickness
 	fogDistanceVector[0] *= fog->tcScale;
@@ -883,9 +886,9 @@ void RB_CalcFogTexCoords( float *st ) {
 							fog->surface[1] * backEnd.orent.axis[1][1] + fog->surface[2] * backEnd.orent.axis[1][2];
 		fogDepthVector[2] = fog->surface[0] * backEnd.orent.axis[2][0] +
 							fog->surface[1] * backEnd.orent.axis[2][1] + fog->surface[2] * backEnd.orent.axis[2][2];
-		fogDepthVector[3] = -fog->surface[3] + DotProduct( backEnd.orent.origin, fog->surface );
+		fogDepthVector[3] = -fog->surface[3] + backEnd.orent.origin * fog->surface.ToVec3();
 
-		eyeT = DotProduct( backEnd.orent.viewOrigin, fogDepthVector ) + fogDepthVector[3];
+		eyeT = backEnd.orent.viewOrigin[0] * fogDepthVector[0] + backEnd.orent.viewOrigin[1] * fogDepthVector[1] + backEnd.orent.viewOrigin[2] * fogDepthVector[2] + fogDepthVector[3];
 	} else {
 		eyeT = 1;   // non-surface fog always has eye inside
 	}
@@ -902,10 +905,10 @@ void RB_CalcFogTexCoords( float *st ) {
 	fogDistanceVector[3] += 1.0 / 512;
 
 	// calculate density for each point
-	for ( i = 0, v = tess.xyz[0] ; i < tess.numVertexes ; i++, v += 4 ) {
+	for ( i = 0, v = tess.xyz[0].ToFloatPtr() ; i < tess.numVertexes ; i++, v += 4 ) {
 		// calculate the length in fog
-		s = DotProduct( v, fogDistanceVector ) + fogDistanceVector[3];
-		t = DotProduct( v, fogDepthVector ) + fogDepthVector[3];
+		s = v[0] * fogDistanceVector[0] + v[1] * fogDistanceVector[1] + v[2] * fogDistanceVector[2] + fogDistanceVector[3];
+		t = v[0] * fogDepthVector[0] + v[1] * fogDepthVector[1] + v[2] * fogDepthVector[2] + fogDepthVector[3];
 
 		// partially clipped fogs use the T axis
 		if ( eyeOutside ) {
@@ -936,18 +939,20 @@ void RB_CalcFogTexCoords( float *st ) {
 void RB_CalcEnvironmentTexCoords( float *st ) {
 	int i;
 	float       *v, *normal;
-	vec3_t viewer, reflected;
+	idVec3 viewer, reflected;
 	float d;
 
-	v = tess.xyz[0];
-	normal = tess.normal[0];
+	v = tess.xyz[0].ToFloatPtr();
+	normal = tess.normal[0].ToFloatPtr();
 
 	for ( i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 )
 	{
-		VectorSubtract( backEnd.orent.viewOrigin, v, viewer );
-		VectorNormalizeFast( viewer );
+		viewer[0] = backEnd.orent.viewOrigin[0] - v[0];
+		viewer[1] = backEnd.orent.viewOrigin[1] - v[1];
+		viewer[2] = backEnd.orent.viewOrigin[2] - v[2];
+		viewer.NormalizeFast();
 
-		d = DotProduct( normal, viewer );
+		d = normal[0] * viewer[0] + normal[1] * viewer[1] + normal[2] * viewer[2];
 
 		reflected[0] = normal[0] * 2 * d - viewer[0];
 		reflected[1] = normal[1] * 2 * d - viewer[1];
@@ -964,18 +969,18 @@ void RB_CalcEnvironmentTexCoords( float *st ) {
 void RB_CalcFireRiseEnvTexCoords( float *st ) {
 	int i;
 	float       *v, *normal;
-	vec3_t viewer, reflected;
+	idVec3 viewer, reflected;
 	float d;
 
-	v = tess.xyz[0];
-	normal = tess.normal[0];
-	VectorNegate( backEnd.currentEntity->e.fireRiseDir, viewer );
+	v = tess.xyz[0].ToFloatPtr();
+	normal = tess.normal[0].ToFloatPtr();
+	viewer = -backEnd.currentEntity->e.fireRiseDir;
 
 	for ( i = 0 ; i < tess.numVertexes ; i++, v += 4, normal += 4, st += 2 )
 	{
-		VectorNormalizeFast( viewer );
+		viewer.NormalizeFast();
 
-		d = DotProduct( normal, viewer );
+		d = normal[0] * viewer[0] + normal[1] * viewer[1] + normal[2] * viewer[2];
 
 		reflected[0] = normal[0] * 2 * d - viewer[0];
 		reflected[1] = normal[1] * 2 * d - viewer[1];
@@ -1106,35 +1111,25 @@ void RB_CalcRotateTexCoords( float degsPerSecond, float *st ) {
 
 
 
-#if id386 && !( ( defined __linux__ || defined __FreeBSD__ ) && ( defined __i386__ ) ) // rb010123
-
-long myftol( float f ) {
-	static int tmp;
-	__asm fld f
-	__asm fistp tmp
-	__asm mov eax, tmp
-}
-
-#endif
 
 /*
 ** RB_CalcSpecularAlpha
 **
 ** Calculates specular coefficient and places it in the alpha channel
 */
-vec3_t lightOrigin = { -960, 1980, 96 };        // FIXME: track dynamically
+idVec3 lightOrigin( -960, 1980, 96 );        // FIXME: track dynamically
 
 void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 	int i;
 	float       *v, *normal;
-	vec3_t viewer,  reflected;
+	idVec3 viewer,  reflected;
 	float l, d;
 	int b;
-	vec3_t lightDir;
+	idVec3 lightDir;
 	int numVertexes;
 
-	v = tess.xyz[0];
-	normal = tess.normal[0];
+	v = tess.xyz[0].ToFloatPtr();
+	normal = tess.normal[0].ToFloatPtr();
 
 	alphas += 3;
 
@@ -1142,12 +1137,14 @@ void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 	for ( i = 0 ; i < numVertexes ; i++, v += 4, normal += 4, alphas += 4 ) {
 		float ilength;
 
-		VectorSubtract( lightOrigin, v, lightDir );
-//		ilength = Q_rsqrt( DotProduct( lightDir, lightDir ) );
-		VectorNormalizeFast( lightDir );
+		lightDir[0] = lightOrigin[0] - v[0];
+		lightDir[1] = lightOrigin[1] - v[1];
+		lightDir[2] = lightOrigin[2] - v[2];
+//		ilength = idMath::InvSqrt( lightDir * lightDir );
+		lightDir.NormalizeFast();
 
 		// calculate the specular color
-		d = DotProduct( normal, lightDir );
+		d = normal[0] * lightDir[0] + normal[1] * lightDir[1] + normal[2] * lightDir[2];
 //		d *= ilength;
 
 		// we don't optimize for the d < 0 case since this tends to
@@ -1156,9 +1153,11 @@ void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 		reflected[1] = normal[1] * 2 * d - lightDir[1];
 		reflected[2] = normal[2] * 2 * d - lightDir[2];
 
-		VectorSubtract( backEnd.orent.viewOrigin, v, viewer );
-		ilength = Q_rsqrt( DotProduct( viewer, viewer ) );
-		l = DotProduct( reflected, viewer );
+		viewer[0] = backEnd.orent.viewOrigin[0] - v[0];
+		viewer[1] = backEnd.orent.viewOrigin[1] - v[1];
+		viewer[2] = backEnd.orent.viewOrigin[2] - v[2];
+		ilength = idMath::InvSqrt( viewer * viewer );
+		l = ( reflected ) * ( viewer );
 		l *= ilength;
 
 		if ( l < 0 ) {
@@ -1187,40 +1186,40 @@ void RB_CalcDiffuseColor( unsigned char *colors ) {
 	float incoming;
 	trRefEntity_t   *ent;
 	int ambientLightInt;
-	vec3_t ambientLight;
-	vec3_t lightDir;
-	vec3_t directedLight;
+	idVec3 ambientLight;
+	idVec3 lightDir;
+	idVec3 directedLight;
 	int numVertexes;
 
 	ent = backEnd.currentEntity;
 	ambientLightInt = ent->ambientLightInt;
-	VectorCopy( ent->ambientLight, ambientLight );
-	VectorCopy( ent->directedLight, directedLight );
-	VectorCopy( ent->lightDir, lightDir );
+	ambientLight = ent->ambientLight;
+	directedLight = ent->directedLight;
+	lightDir = ent->lightDir;
 
-	v = tess.xyz[0];
-	normal = tess.normal[0];
+	v = tess.xyz[0].ToFloatPtr();
+	normal = tess.normal[0].ToFloatPtr();
 
 	numVertexes = tess.numVertexes;
 	for ( i = 0 ; i < numVertexes ; i++, v += 4, normal += 4 ) {
-		incoming = DotProduct( normal, lightDir );
+		incoming = normal[0] * lightDir[0] + normal[1] * lightDir[1] + normal[2] * lightDir[2];
 		if ( incoming <= 0 ) {
 			*(int *)&colors[i * 4] = ambientLightInt;
 			continue;
 		}
-		j = myftol( ambientLight[0] + incoming * directedLight[0] );
+		j = idMath::Ftoi( ambientLight[0] + incoming * directedLight[0] );
 		if ( j > 255 ) {
 			j = 255;
 		}
 		colors[i * 4 + 0] = j;
 
-		j = myftol( ambientLight[1] + incoming * directedLight[1] );
+		j = idMath::Ftoi( ambientLight[1] + incoming * directedLight[1] );
 		if ( j > 255 ) {
 			j = 255;
 		}
 		colors[i * 4 + 1] = j;
 
-		j = myftol( ambientLight[2] + incoming * directedLight[2] );
+		j = idMath::Ftoi( ambientLight[2] + incoming * directedLight[2] );
 		if ( j > 255 ) {
 			j = 255;
 		}
@@ -1229,4 +1228,3 @@ void RB_CalcDiffuseColor( unsigned char *colors ) {
 		colors[i * 4 + 3] = 255;
 	}
 }
-

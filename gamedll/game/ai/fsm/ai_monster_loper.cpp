@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 //=================================================================================
@@ -135,7 +137,7 @@ bool AI_CanStartLoperLeap( const cast_state_t *cs ) {
 }
 
 char *AI_EnterLoperLeap( cast_state_t *cs ) {
-	VectorClear( cs->ability.loperLeapVel );
+	cs->ability.loperLeapVel.Zero();
 	cs->ability.loperLegAnimation = -1;
 	cs->aiFlags &= ~AIFL_LAND_ANIM_PLAYED;
 	AI_LoperSetPhase( cs, AILoperLeapPhase::FaceTarget );
@@ -152,7 +154,7 @@ void AI_ExitLoperLeap( cast_state_t *cs ) {
 	}
 	ent->client->ps.eFlags &= ~EF_MONSTER_EFFECT;
 	cs->aiFlags &= ~AIFL_LAND_ANIM_PLAYED;
-	VectorClear( cs->ability.loperLeapVel );
+	cs->ability.loperLeapVel.Zero();
 	cs->ability.loperLegAnimation = -1;
 	AI_LoperSetPhase( cs, AILoperLeapPhase::None );
 }
@@ -161,16 +163,16 @@ static char *AI_LoperFinishLeap( cast_state_t *cs, AITransitionReason reason ) {
 	return AI_RequestState( cs, AI_HasLivingTarget( cs ) ? AIStateId::Combat : AIStateId::Idle, reason );
 }
 
-static void AI_LoperLaunch( cast_state_t *cs, const vec3_t direction ) {
+static void AI_LoperLaunch( cast_state_t *cs, const idVec3 &direction ) {
 	gentity_t *ent = &g_entities[cs->entityNum];
 	if ( BG_PlayAnimName( &ent->client->ps, "legs_extra3", ANIM_BP_LEGS, qtrue, qfalse, qtrue ) < 0 ) {
 		return; // A higher priority animation still owns the legs.
 	}
 	cs->ability.loperLegAnimation = ent->client->ps.legsAnim;
 	ent->client->ps.legsTimer = 500;
-	VectorScale( direction, LOPER_LEAP_VELOCITY_START, ent->client->ps.velocity );
+	ent->client->ps.velocity = direction * LOPER_LEAP_VELOCITY_START;
 	ent->client->ps.velocity[2] = LOPER_LEAP_VELOCITY_Z;
-	VectorCopy( ent->client->ps.velocity, cs->ability.loperLeapVel );
+	cs->ability.loperLeapVel = ent->client->ps.velocity;
 	cs->combat.weaponFireTimes[WP_MONSTER_ATTACK2] = level.time;
 	AI_LoperSetPhase( cs, AILoperLeapPhase::Airborne );
 }
@@ -183,7 +185,7 @@ static void AI_LoperLeapDamage( cast_state_t *cs ) {
 	}
 	gentity_t *ent = &g_entities[cs->entityNum];
 	gentity_t *target = &g_entities[cs->enemyNum];
-	if ( VectorDistance( cs->clientState->origin, target->client->ps.origin ) >= LOPER_LEAP_RANGE ) {
+	if ( ( cs->clientState->origin - target->client->ps.origin ).Length() >= LOPER_LEAP_RANGE ) {
 		return;
 	}
 	ent->client->ps.eFlags |= EF_MONSTER_EFFECT;
@@ -202,14 +204,12 @@ static bool AI_LoperPredictLanding( cast_state_t *cs ) {
 }
 
 static void AI_LoperAccelerate( cast_state_t *cs ) {
-	vec3_t direction;
-	VectorCopy( cs->ability.loperLeapVel, direction );
+	idVec3 direction;
+	direction = cs->ability.loperLeapVel;
 	direction[2] = 0;
-	VectorNormalize( direction );
-	const float fraction = Com_Clamp( 0.0f, 1.0f, 0.002f * ( level.time - cs->ability.loperPhaseStartedAt ) );
-	VectorScale( direction,
-				 LOPER_LEAP_VELOCITY_START + fraction * ( LOPER_LEAP_VELOCITY_END - LOPER_LEAP_VELOCITY_START ),
-				 direction );
+	direction.Normalize();
+	const float fraction = idMath::ClampFloat( 0.0f, 1.0f, 0.002f * ( level.time - cs->ability.loperPhaseStartedAt ) );
+	direction = direction * ( LOPER_LEAP_VELOCITY_START + fraction * ( LOPER_LEAP_VELOCITY_END - LOPER_LEAP_VELOCITY_START ) );
 	g_entities[cs->entityNum].s.pos.trDelta[0] = direction[0];
 	g_entities[cs->entityNum].s.pos.trDelta[1] = direction[1];
 }
@@ -223,11 +223,11 @@ char *AIFunc_LoperLeap( cast_state_t *cs ) {
 			return AI_LoperFinishLeap( cs, AITransitionReason::TargetLost );
 		}
 		AICast_AimAtEnemy( cs );
-		vec3_t direction, facing;
-		VectorSubtract( g_entities[cs->enemyNum].client->ps.origin, cs->clientState->origin, direction );
-		VectorNormalize( direction );
-		AngleVectors( cs->viewangles, facing, NULL, NULL );
-		if ( DotProduct( direction, facing ) >= 0.9f ) {
+		idVec3 direction, facing;
+		direction = g_entities[cs->enemyNum].client->ps.origin - cs->clientState->origin;
+		direction.Normalize();
+		idAngles( cs->viewangles ).ToVectors( &facing, NULL, NULL );
+		if ( ( direction * facing ) >= 0.9f ) {
 			AI_LoperLaunch( cs, direction );
 		}
 		return NULL;
@@ -255,9 +255,9 @@ char *AIFunc_LoperLeap( cast_state_t *cs ) {
 			AI_LoperSetPhase( cs, AILoperLeapPhase::Recovery );
 			return NULL;
 		}
-		vec3_t direction;
-		AngleVectors( cs->viewangles, direction, NULL, NULL );
-		const float fraction = Com_Clamp( 0.0f, 1.0f, (float)ent->client->ps.legsTimer / LOPER_LAND_DURATION );
+		idVec3 direction;
+		idAngles( cs->viewangles ).ToVectors( &direction, NULL, NULL );
+		const float fraction = idMath::ClampFloat( 0.0f, 1.0f, (float)ent->client->ps.legsTimer / LOPER_LAND_DURATION );
 		trap_EA_Move( cs->entityNum, direction, fraction * LOPER_LEAP_LAND_MOMENTUM );
 		return NULL;
 	}
@@ -371,18 +371,18 @@ static qboolean AI_LoperAbilityAvailable( cast_state_t *cs, int weaponNum ) {
 	int delay = -1;
 	float dist = -1;
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 	switch ( weaponNum ) {
 	case WP_MONSTER_ATTACK2: {
 		// loper leap attack
-		if ( cs->clientState->areanum && VectorLength( cs->clientState->velocity ) >
+		if ( cs->clientState->areanum && cs->clientState->velocity.Length() >
 											 1 ) { // if we are in a valid area, and are persuing, then leave a delay
 			// if there isn't a direct trace to our enemy, then fail
 			if ( cs->enemyNum >= 0 ) {
 				trace_t trace;
-				vec3_t mins;
-				VectorCopy( cs->clientState->cur_ps.mins, mins );
+				idVec3 mins;
+				mins = cs->clientState->cur_ps.mins;
 				mins[0] = 0;
 				trap_Trace( &trace, g_entities[cs->entityNum].client->ps.origin, mins, cs->clientState->cur_ps.maxs,
 							g_entities[cs->enemyNum].client->ps.origin, cs->entityNum,

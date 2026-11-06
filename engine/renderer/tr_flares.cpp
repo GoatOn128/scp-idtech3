@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_flares.c
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 /*
@@ -85,7 +87,7 @@ typedef struct flare_s {
 	int windowX, windowY;
 	float eyeZ;
 
-	vec3_t color;
+	idVec3 color;
 	float scale;
 
 	int id;
@@ -123,12 +125,12 @@ RB_AddFlare
 This is called at surface tesselation time
 ==================
 */
-void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, float scale, vec3_t normal, int id, int flags ) {  //----(SA)	added scale. added id.  added visible
+void RB_AddFlare( void *surface, int fogNum, idVec3 point, idVec3 color, float scale, const idVec3 *normal, int id, int flags ) {  //----(SA)	added scale. added id.  added visible
 	int i;
 	flare_t         *f, *oldest;
-	vec3_t local;
+	idVec3 local;
 	float d;
-	vec4_t eye, clip, normalized, window;
+	idVec4 eye, clip, normalized, window;
 
 	backEnd.pc.c_flareAdds++;
 
@@ -195,17 +197,17 @@ void RB_AddFlare( void *surface, int fogNum, vec3_t point, vec3_t color, float s
 	f->addedFrame = backEnd.viewParms.frameCount;
 	f->fogNum = fogNum;
 
-	VectorCopy( color, f->color );
+	f->color = color;
 
 	f->scale = scale;   //----(SA)
 
 	// fade the intensity of the flare down as the
 	// light surface turns away from the viewer
 	if ( normal ) {
-		VectorSubtract( backEnd.viewParms.orent.origin, point, local );
-		VectorNormalizeFast( local );
-		d = DotProduct( local, normal );
-		VectorScale( f->color, d, f->color );
+		local = backEnd.viewParms.orent.origin - point;
+		local.NormalizeFast();
+		d = ( local ) * ( *normal );
+		f->color = f->color * d;
 	}
 
 	// save info needed to test
@@ -369,7 +371,7 @@ RB_RenderFlare
 */
 void RB_RenderFlare( flare_t *f ) {
 	float size;
-	vec3_t color;
+	idVec3 color;
 	int iColor[3];
 
 	backEnd.pc.c_flareRenders++;
@@ -381,8 +383,8 @@ void RB_RenderFlare( flare_t *f ) {
 //		be changed back to additive since there's nearly no hit for that
 //		but the alpha blend is noticably slower.
 
-//	VectorScale( f->color, f->drawIntensity*tr.identityLight, color );
-	VectorScale( f->color, tr.identityLight, color );       //----(SA)	mod for alpha blend rather than additive
+//	color = f->color * f->drawIntensity*tr.identityLight;
+	color = f->color * tr.identityLight;       //----(SA)	mod for alpha blend rather than additive
 
 	iColor[0] = color[0] * 255;
 	iColor[1] = color[1] * 255;
@@ -540,4 +542,3 @@ void RB_RenderFlares( void ) {
 	qglMatrixMode( GL_MODELVIEW );
 	qglPopMatrix();
 }
-

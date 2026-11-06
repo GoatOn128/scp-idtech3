@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_init.c -- functions that are not called every frame
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "tr_renderprog.h"
 
@@ -248,16 +250,16 @@ static void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, qboolean sh
 	if ( shouldBeIntegral ) {
 		if ( ( int ) cv->value != cv->integer ) {
 			ri.Printf( PRINT_WARNING, "WARNING: cvar '%s' must be integral (%f)\n", cv->name, cv->value );
-			ri.Cvar_Set( cv->name, va( "%d", cv->integer ) );
+			ri.Cvar_Set( cv->name, idStr::FormatString( "%d", cv->integer ) );
 		}
 	}
 
 	if ( cv->value < minVal ) {
 		ri.Printf( PRINT_WARNING, "WARNING: cvar '%s' out of range (%f < %f)\n", cv->name, cv->value, minVal );
-		ri.Cvar_Set( cv->name, va( "%f", minVal ) );
+		ri.Cvar_Set( cv->name, idStr::FormatString( "%f", minVal ) );
 	} else if ( cv->value > maxVal )   {
 		ri.Printf( PRINT_WARNING, "WARNING: cvar '%s' out of range (%f > %f)\n", cv->name, cv->value, maxVal );
-		ri.Cvar_Set( cv->name, va( "%f", maxVal ) );
+		ri.Cvar_Set( cv->name, idStr::FormatString( "%f", maxVal ) );
 	}
 }
 
@@ -291,7 +293,7 @@ static void InitOpenGL( void ) {
 		R_InitRenderProgramDiagnostics();
 
 		strcpy( renderer_buffer, glConfig.renderer_string );
-		Q_strlwr( renderer_buffer );
+		idStr::ToLower( renderer_buffer );
 
 		// OpenGL driver constants
 		qglGetIntegerv( GL_MAX_TEXTURE_SIZE, &temp );
@@ -443,7 +445,7 @@ void R_TakeScreenshot( int x, int y, int width, int height, char *fileName ) {
 	byte        *buffer;
 	int i, c, temp;
 
-	buffer = (byte *) ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight * 3 + 18 );
+	buffer = (byte *) Mem_ClearedAlloc( glConfig.vidWidth * glConfig.vidHeight * 3 + 18, TAG_IDLIB );
 
 	memset( buffer, 0, 18 );
 	buffer[2] = 2;      // uncompressed type
@@ -470,7 +472,7 @@ void R_TakeScreenshot( int x, int y, int width, int height, char *fileName ) {
 
 	ri.FS_WriteFile( fileName, buffer, c );
 
-	ri.Hunk_FreeTempMemory( buffer );
+	Mem_Free( buffer );
 }
 
 /*
@@ -481,7 +483,7 @@ R_TakeScreenshotJPEG
 void R_TakeScreenshotJPEG( int x, int y, int width, int height, char *fileName ) {
 	byte        *buffer;
 
-	buffer = (byte *) ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight * 4 );
+	buffer = (byte *) Mem_ClearedAlloc( glConfig.vidWidth * glConfig.vidHeight * 4, TAG_IDLIB );
 
 	qglReadPixels( x, y, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer );
 
@@ -493,7 +495,7 @@ void R_TakeScreenshotJPEG( int x, int y, int width, int height, char *fileName )
 	ri.FS_WriteFile( fileName, buffer, 1 );     // create path
 	SaveJPG( fileName, 95, glConfig.vidWidth, glConfig.vidHeight, buffer );
 
-	ri.Hunk_FreeTempMemory( buffer );
+	Mem_Free( buffer );
 }
 
 /*
@@ -566,9 +568,9 @@ void R_LevelShot( void ) {
 
 	sprintf( checkname, "levelshots/%s.tga", tr.world->baseName );
 
-	source = (byte *) ri.Hunk_AllocateTempMemory( glConfig.vidWidth * glConfig.vidHeight * 3 );
+	source = (byte *) Mem_ClearedAlloc( glConfig.vidWidth * glConfig.vidHeight * 3, TAG_IDLIB );
 
-	buffer = (byte *) ri.Hunk_AllocateTempMemory( 128 * 128 * 3 + 18 );
+	buffer = (byte *) Mem_ClearedAlloc( 128 * 128 * 3 + 18, TAG_IDLIB );
 	memset( buffer, 0, 18 );
 	buffer[2] = 2;      // uncompressed type
 	buffer[12] = 128;
@@ -605,8 +607,8 @@ void R_LevelShot( void ) {
 
 	ri.FS_WriteFile( checkname, buffer, 128 * 128 * 3 + 18 );
 
-	ri.Hunk_FreeTempMemory( buffer );
-	ri.Hunk_FreeTempMemory( source );
+	Mem_Free( buffer );
+	Mem_Free( source );
 
 	ri.Printf( PRINT_ALL, "Wrote %s\n", checkname );
 }
@@ -791,7 +793,7 @@ void GL_SetDefaultState( void ) {
 #endif
 		// cap if necessary
 		if ( r_ati_truform_tess->value > maxtess ) {
-			ri.Cvar_Set( "r_ati_truform_tess", va( "%d", maxtess ) );
+			ri.Cvar_Set( "r_ati_truform_tess", idStr::FormatString( "%d", maxtess ) );
 		}
 
 		// set Wolf defaults
@@ -1116,8 +1118,8 @@ void R_Register( void ) {
 	r_shadows = ri.Cvar_Get( "cg_shadows", "1", 0 );
 	r_portalsky = ri.Cvar_Get( "cg_skybox", "1", 0 );
 
-	r_maxpolys = ri.Cvar_Get( "r_maxpolys", va( "%d", MAX_POLYS ), 0 );
-	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va( "%d", MAX_POLYVERTS ), 0 );
+	r_maxpolys = ri.Cvar_Get( "r_maxpolys", idStr::FormatString( "%d", MAX_POLYS ), 0 );
+	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", idStr::FormatString( "%d", MAX_POLYVERTS ), 0 );
 
 	r_highQualityVideo = ri.Cvar_Get( "r_highQualityVideo", "1", CVAR_ARCHIVE );
 	// make sure all the commands added here are also
@@ -1189,8 +1191,7 @@ void R_Init( void ) {
 
 	R_Register();
 
-	// Ridah, init the virtual memory
-	R_Hunk_Begin();
+	R_CacheModelInit();
 
 	max_polys = r_maxpolys->integer;
 	if ( max_polys < MAX_POLYS ) {
@@ -1202,12 +1203,12 @@ void R_Init( void ) {
 		max_polyverts = MAX_POLYVERTS;
 	}
 
-//	backEndData[0] = ri.Hunk_Alloc( sizeof( *backEndData[0] ), h_low );
-	backEndData[0] = (backEndData_t *) ri.Hunk_Alloc( sizeof( *backEndData[0] ) + sizeof( srfPoly_t ) * max_polys + sizeof( polyVert_t ) * max_polyverts, h_low );
+//	backEndData[0] = Mem_ClearedAlloc( sizeof( *backEndData[0] ), TAG_IDLIB );
+	backEndData[0] = (backEndData_t *) Mem_ClearedAlloc( sizeof( *backEndData[0] ) + sizeof( srfPoly_t ) * max_polys + sizeof( polyVert_t ) * max_polyverts, TAG_IDLIB );
 
 	if ( r_smp->integer ) {
-//		backEndData[1] = ri.Hunk_Alloc( sizeof( *backEndData[1] ), h_low );
-		backEndData[1] = (backEndData_t *) ri.Hunk_Alloc( sizeof( *backEndData[1] ) + sizeof( srfPoly_t ) * max_polys + sizeof( polyVert_t ) * max_polyverts, h_low );
+//		backEndData[1] = Mem_ClearedAlloc( sizeof( *backEndData[1] ), TAG_IDLIB );
+		backEndData[1] = (backEndData_t *) Mem_ClearedAlloc( sizeof( *backEndData[1] ) + sizeof( srfPoly_t ) * max_polys + sizeof( polyVert_t ) * max_polyverts, TAG_IDLIB );
 	} else {
 		backEndData[1] = NULL;
 	}
@@ -1297,8 +1298,7 @@ void RE_Shutdown( qboolean destroyWindow ) {
 	if ( destroyWindow ) {
 		GLimp_Shutdown();
 
-		// Ridah, release the virtual memory
-		R_Hunk_End();
+		R_CacheModelShutdown();
 		R_FreeImageBuffer();
 		//ri.Tag_Free();	// wipe all render alloc'd zone memory
 	}
@@ -1396,4 +1396,3 @@ refexport_t *GetRefAPI( int apiVersion, refimport_t *rimp ) {
 
 	return &re;
 }
-

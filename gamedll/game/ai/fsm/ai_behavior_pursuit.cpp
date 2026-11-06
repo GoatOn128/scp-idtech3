@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -33,7 +35,7 @@ char *AIFunc_ChaseGoalIdle( cast_state_t *cs ) {
 	int enemies[MAX_CLIENTS];
 	int numEnemies;
 	gentity_t *followent;
-	vec3_t dir;
+	idVec3 dir;
 
 	if ( cs->navigation.followEntity < 0 ) {
 		AICast_EndChase( cs );
@@ -70,7 +72,7 @@ char *AIFunc_ChaseGoalIdle( cast_state_t *cs ) {
 	}
 
 	// they are ready, are they outside range?
-	if ( Distance( followent->r.currentOrigin, cs->clientState->origin ) > cs->navigation.followDist ) {
+	if ( ( followent->r.currentOrigin - cs->clientState->origin ).Length() > cs->navigation.followDist ) {
 		return AIFunc_ChaseGoalStart( cs, cs->navigation.followEntity, cs->navigation.followDist, qtrue );
 	}
 
@@ -86,23 +88,29 @@ char *AIFunc_ChaseGoalIdle( cast_state_t *cs ) {
 	}
 	// if we had an enemy recently, face them
 	else if ( cs->lastEnemy >= 0 ) {
-		vec3_t faceDir;
+		idVec3 faceDir;
 		//
-		VectorSubtract( cs->perception.vislist[cs->lastEnemy].visible_pos, cs->clientState->origin, faceDir );
-		if ( VectorLength( faceDir ) < 1 ) {
+		faceDir = cs->perception.vislist[cs->lastEnemy].visible_pos - cs->clientState->origin;
+		if ( faceDir.Length() < 1 ) {
 			cs->ideal_viewangles[PITCH] = 0;
 		} else {
-			VectorNormalize( faceDir );
-			vectoangles( faceDir, cs->ideal_viewangles );
+			faceDir.Normalize();
+			{
+				const idAngles convertedAngles = faceDir.ToAngles();
+				cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+			}
 		}
 		// reload?
 		AICast_IdleReload( cs );
 	} else if ( followent->client ) {
 		// face them
-		VectorSubtract( followent->r.currentOrigin, cs->clientState->origin, dir );
+		dir = followent->r.currentOrigin - cs->clientState->origin;
 		dir[2] += followent->client->ps.viewheight - g_entities[cs->clientState->entitynum].client->ps.viewheight;
-		VectorNormalize( dir );
-		vectoangles( dir, cs->ideal_viewangles );
+		dir.Normalize();
+		{
+			const idAngles convertedAngles = dir.ToAngles();
+			cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+		}
 	}
 
 	// look for things we should attack
@@ -174,7 +182,7 @@ char *AIFunc_ChaseGoal( cast_state_t *cs ) {
 	bot_moveresult_t *moveresult;
 	gentity_t *followent, *ent;
 	ai_client_state_t *bs;
-	vec3_t destorg;
+	idVec3 destorg;
 	float dist;
 	qboolean moved = qfalse;
 
@@ -227,13 +235,13 @@ char *AIFunc_ChaseGoal( cast_state_t *cs ) {
 	}
 
 	if ( followent->client ) {
-		VectorCopy( followent->client->ps.origin, destorg );
+		destorg = followent->client->ps.origin;
 	} else {
-		VectorCopy( followent->r.currentOrigin, destorg );
+		destorg = followent->r.currentOrigin;
 	}
 
 	// they are ready, are they inside range? FIXME: make configurable
-	dist = Distance( destorg, cs->clientState->origin );
+	dist = ( destorg - cs->clientState->origin ).Length();
 	if ( cs->navigation.followSlowApproach && dist < cs->navigation.followDist &&
 		 ( ent->waterlevel || ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE ) ) ) {
 		// if this is a scripted GOTO, stop following now
@@ -282,7 +290,7 @@ char *AIFunc_ChaseGoal( cast_state_t *cs ) {
 	if ( !moved &&
 		 ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE || g_entities[cs->entityNum].waterlevel > 1 ) ) {
 		aicast_predictmove_t move;
-		vec3_t dir;
+		idVec3 dir;
 		bot_input_t bi;
 		usercmd_t ucmd;
 		trace_t tr;
@@ -295,8 +303,8 @@ char *AIFunc_ChaseGoal( cast_state_t *cs ) {
 
 		if ( !simTest ) {
 			// trace will eliminate most unsuccessful paths
-			trap_Trace( &tr, cs->clientState->origin, NULL /*g_entities[cs->entityNum].r.mins*/,
-						NULL /*g_entities[cs->entityNum].r.maxs*/, followent->r.currentOrigin, cs->entityNum,
+			trap_Trace( &tr, cs->clientState->origin, vec3_origin,
+						vec3_origin, followent->r.currentOrigin, cs->entityNum,
 						g_entities[cs->entityNum].clipmask );
 			if ( tr.entityNum == cs->navigation.followEntity || tr.fraction == 1 ) {
 				simTest = qtrue;
@@ -305,14 +313,14 @@ char *AIFunc_ChaseGoal( cast_state_t *cs ) {
 
 		if ( simTest ) {
 			// try walking straight to them
-			VectorSubtract( followent->r.currentOrigin, cs->clientState->origin, dir );
+			dir = followent->r.currentOrigin - cs->clientState->origin;
 			if ( !ent->waterlevel ) {
 				dir[2] = 0;
 			}
-			goaldist = VectorNormalize( dir );
+			goaldist = dir.Normalize();
 			//trap_EA_Move(cs->entityNum, dir, 400);
 			trap_EA_GetInput( cs->entityNum, (float)level.time / 1000, &bi );
-			VectorCopy( dir, bi.dir );
+			bi.dir = dir;
 			bi.speed = 400;
 			bi.actionflags = 0;
 			AICast_InputToUserCommand( cs, &bi, &ucmd, bs->cur_ps.delta_angles );
@@ -323,7 +331,10 @@ char *AIFunc_ChaseGoal( cast_state_t *cs ) {
 				if ( ( move.frames * frameTime ) <
 					 ( 1.0 + ( goaldist / ( bs->cur_ps.speed * bs->cur_ps.runSpeedScale ) ) ) ) {
 					trap_EA_Move( cs->entityNum, dir, 400 );
-					vectoangles( dir, cs->ideal_viewangles );
+					{
+						const idAngles convertedAngles = dir.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					cs->ideal_viewangles[2] *= 0.5;
 					moved = qtrue;
 				}
@@ -431,7 +442,7 @@ char *AIFunc_BattleHunt( cast_state_t *cs ) {
 	const float chaseDist = 32;
 	gentity_t *followent, *ent;
 	ai_client_state_t *bs;
-	vec3_t destorg;
+	idVec3 destorg;
 	qboolean moved = qfalse;
 	//	gclient_t *client = &level.clients[cs->entityNum];
 	char *rval;
@@ -563,13 +574,12 @@ char *AIFunc_BattleHunt( cast_state_t *cs ) {
 					 cs, cs->enemyNum, cs->perception.vislist[cs->enemyNum].chase_marker[cs->combat.battleChaseMarker],
 					 cs->combat.takeCoverPos ) ) {
 				// wait in ambush, for them to return
-				VectorCopy( cs->perception.vislist[cs->enemyNum].chase_marker[cs->combat.battleChaseMarker],
-							cs->navigation.combatGoalOrigin );
+				cs->navigation.combatGoalOrigin = cs->perception.vislist[cs->enemyNum].chase_marker[cs->combat.battleChaseMarker];
 				return AIFunc_BattleAmbushStart( cs );
 			}
 			// couldn't find a spot, so just stay here?
-			VectorCopy( cs->clientState->origin, cs->navigation.combatGoalOrigin );
-			VectorCopy( cs->clientState->origin, cs->combat.takeCoverPos );
+			cs->navigation.combatGoalOrigin = cs->clientState->origin;
+			cs->combat.takeCoverPos = cs->clientState->origin;
 			return AIFunc_BattleAmbushStart( cs );
 		} else {
 			// stay here, looking around
@@ -577,14 +587,14 @@ char *AIFunc_BattleHunt( cast_state_t *cs ) {
 				cs->combat.battleHuntViewTime = level.time + 700 + rand() % 1000;
 				// set a random viewangle
 				cs->ideal_viewangles[YAW] =
-					AngleMod( cs->ideal_viewangles[YAW] + ( 45.0 + random() * 45.0 ) * ( 2 * ( rand() % 2 ) - 1 ) );
+					idMath::AngleNormalize360( cs->ideal_viewangles[YAW] + ( 45.0 + gameRandom.RandomFloat() * 45.0 ) * ( 2 * ( rand() % 2 ) - 1 ) );
 				cs->ideal_viewangles[PITCH] = 0;
 			}
 		}
 	} else {
 		// cycle through markers
-		VectorCopy( cs->perception.vislist[cs->enemyNum].chase_marker[cs->combat.battleChaseMarker], destorg );
-		if ( ( dist = Distance( destorg, cs->clientState->origin ) ) < chaseDist ) {
+		destorg = cs->perception.vislist[cs->enemyNum].chase_marker[cs->combat.battleChaseMarker];
+		if ( ( dist = ( destorg - cs->clientState->origin ).Length() ) < chaseDist ) {
 			if ( cs->combat.battleChaseMarker == ( cs->perception.vislist[cs->enemyNum].chase_marker_count - 1 ) ) {
 				cs->combat.battleHuntPauseTime = level.time + 4000;
 				cs->combat.battleHuntViewTime = level.time + 1000;
@@ -651,7 +661,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 	const float chaseDist = 32;
 	gentity_t *followent, *ent;
 	ai_client_state_t *bs;
-	vec3_t destorg;
+	idVec3 destorg;
 	qboolean moved = qfalse;
 	gclient_t *client = &level.clients[cs->entityNum];
 	char *rval;
@@ -744,9 +754,9 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 	// find the chase position
 	if ( followent->client ) {
 		// go to the last visible position
-		VectorCopy( cs->perception.vislist[cs->enemyNum].visible_pos, destorg );
+		destorg = cs->perception.vislist[cs->enemyNum].visible_pos;
 		// if we have reached it, go into hunt mode
-		if ( ( dist = Distance( destorg, cs->clientState->origin ) ) < chaseDist ) {
+		if ( ( dist = ( destorg - cs->clientState->origin ).Length() ) < chaseDist ) {
 			// if we haven't been hunted for a while, do so
 			if ( ocs->combat.lastBattleHunted < level.time - 5000 ) {
 				ocs->combat.lastBattleHunted = level.time;
@@ -755,22 +765,22 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 			// otherwise, go into ambush mode
 			if ( AICast_GetTakeCoverPos( cs, cs->enemyNum, cs->perception.vislist[cs->enemyNum].real_visible_pos,
 										 cs->combat.takeCoverPos ) ) {
-				VectorCopy( cs->perception.vislist[cs->enemyNum].real_visible_pos, cs->navigation.combatGoalOrigin );
+				cs->navigation.combatGoalOrigin = cs->perception.vislist[cs->enemyNum].real_visible_pos;
 				return AIFunc_BattleAmbushStart( cs );
 			}
 			// couldn't find a spot, so just stay here?
-			VectorCopy( cs->clientState->origin, cs->navigation.combatGoalOrigin );
-			VectorCopy( cs->clientState->origin, cs->combat.takeCoverPos );
+			cs->navigation.combatGoalOrigin = cs->clientState->origin;
+			cs->combat.takeCoverPos = cs->clientState->origin;
 			return AIFunc_BattleAmbushStart( cs );
 		}
 	} else // assume we know where other entities are
 	{
-		VectorCopy( followent->s.pos.trBase, destorg );
-		dist = Distance( cs->clientState->origin, destorg );
+		destorg = followent->s.pos.trBase;
+		dist = ( cs->clientState->origin - destorg ).Length();
 	}
 	//
 	// if the enemy is inside a CONTENTS_DONOTENTER brush, and we are close enough, stop chasing them
-	if ( AICast_EntityVisible( cs, cs->enemyNum, qtrue ) && VectorDistance( cs->clientState->origin, destorg ) < 384 ) {
+	if ( AICast_EntityVisible( cs, cs->enemyNum, qtrue ) && ( cs->clientState->origin - destorg ).Length() < 384 ) {
 		if ( trap_PointContents( destorg, cs->enemyNum ) & ( CONTENTS_DONOTENTER | CONTENTS_DONOTENTER_LARGE ) ) {
 			// just stay here, and hope they move out of the brush without finding a spot where they can hit us but we can't hit them
 			return NULL;
@@ -818,13 +828,13 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 	if ( ( ai_encounter.lastGrenadeFlushTime > level.time || ai_encounter.lastGrenadeFlushTime < level.time - 5000 ) &&
 		 ( cs->aiState >= AISTATE_COMBAT ) && ( cs->script.castScriptStatus.castScriptEventIndex < 0 ) &&
 		 ( cs->grenade.startGrenadeFlushTime < level.time - 3000 ) &&
-		 ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_GRENADE_LAUNCHER ) ) &&
+		 ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_GRENADE_LAUNCHER ) ) &&
 		 ( AICast_GotEnoughAmmoForWeapon( cs, WP_GRENADE_LAUNCHER ) ) &&
 		 ( cs->combat.weaponFireTimes[WP_GRENADE_LAUNCHER] < level.time - (int)( 1000 + aicast_skillscale * 1000 ) ) &&
 		 ( ( cs->weaponNum == WP_GRENADE_LAUNCHER ) ||
 		   !( cs->script.castScriptStatus.scriptFlags & SFL_NOCHANGEWEAPON ) ) &&
-		 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].visible_pos ) > 100 ) &&
-		 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].visible_pos ) < 1400 ) ) {
+		 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].visible_pos ).Length() > 100 ) &&
+		 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].visible_pos ).Length() < 1400 ) ) {
 		// try and flush them out with a grenade
 		//G_Printf("pineapple?\n");
 		return AIFunc_GrenadeFlushStart( cs );
@@ -832,14 +842,14 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 				  ai_encounter.lastGrenadeFlushTime < level.time - 5000 ) &&
 				( cs->aiState >= AISTATE_COMBAT ) && ( cs->script.castScriptStatus.castScriptEventIndex < 0 ) &&
 				( cs->grenade.startGrenadeFlushTime < level.time - 3000 ) &&
-				( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_GRENADE_PINEAPPLE ) ) &&
+				( idBitField::Test( cs->clientState->cur_ps.weapons, WP_GRENADE_PINEAPPLE ) ) &&
 				( AICast_GotEnoughAmmoForWeapon( cs, WP_GRENADE_PINEAPPLE ) ) &&
 				( cs->combat.weaponFireTimes[WP_GRENADE_PINEAPPLE] <
 				  level.time - (int)( 1000 + aicast_skillscale * 1000 ) ) &&
 				( ( cs->weaponNum == WP_GRENADE_PINEAPPLE ) ||
 				  !( cs->script.castScriptStatus.scriptFlags & SFL_NOCHANGEWEAPON ) ) &&
-				( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].visible_pos ) > 100 ) &&
-				( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].visible_pos ) < 1400 ) ) {
+				( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].visible_pos ).Length() > 100 ) &&
+				( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].visible_pos ).Length() < 1400 ) ) {
 		// try and flush them out with a grenade
 		//G_Printf("pineapple?\n");
 		return AIFunc_GrenadeFlushStart( cs );
@@ -871,24 +881,24 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 		 ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE || g_entities[cs->entityNum].waterlevel > 1 ) &&
 		 AICast_EntityVisible( cs, cs->enemyNum, qtrue ) ) {
 		aicast_predictmove_t move;
-		vec3_t dir;
+		idVec3 dir;
 		bot_input_t bi;
 		usercmd_t ucmd;
 		trace_t tr;
 
 		// trace will eliminate most unsuccessful paths
-		trap_Trace( &tr, cs->clientState->origin, NULL, NULL, followent->r.currentOrigin, cs->entityNum,
+		trap_Trace( &tr, cs->clientState->origin, vec3_origin, vec3_origin, followent->r.currentOrigin, cs->entityNum,
 					g_entities[cs->entityNum].clipmask );
 		if ( tr.entityNum == followent->s.number ) {
 			// try walking straight to them
-			VectorSubtract( followent->r.currentOrigin, cs->clientState->origin, dir );
-			VectorNormalize( dir );
+			dir = followent->r.currentOrigin - cs->clientState->origin;
+			dir.Normalize();
 			if ( !ent->waterlevel ) {
 				dir[2] = 0;
 			}
 			//trap_EA_Move(cs->entityNum, dir, 400);
 			trap_EA_GetInput( cs->entityNum, (float)level.time / 1000, &bi );
-			VectorCopy( dir, bi.dir );
+			bi.dir = dir;
 			bi.speed = 400;
 			bi.actionflags = 0;
 			AICast_InputToUserCommand( cs, &bi, &ucmd, bs->cur_ps.delta_angles );
@@ -897,7 +907,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 			if ( move.stopevent == PREDICTSTOP_HITENT ) { // success!
 				trap_EA_Move( cs->entityNum, dir, 400 );
 				// RF, if we are really close, we might be stuck on a corner, so randomly move sideways
-				if ( ( VectorLength( followent->client->ps.velocity ) < 50 ) &&
+				if ( ( followent->client->ps.velocity.Length() < 50 ) &&
 					 ( dist <
 					   10 + ( sqrt( cs->clientState->cur_ps.maxs[0] * cs->clientState->cur_ps.maxs[0] * 8.0 ) / 2.0 +
 							  sqrt( followent->client->ps.maxs[0] * followent->client->ps.maxs[0] * 8.0 ) / 2.0 ) ) ) {
@@ -913,7 +923,10 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 						}
 					}
 				}
-				vectoangles( dir, cs->ideal_viewangles );
+				{
+					const idAngles convertedAngles = dir.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 				cs->ideal_viewangles[2] *= 0.5;
 				moved = qtrue;
 			} else { // clear movement
@@ -944,7 +957,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 				}
 			}
 			if ( cs->navigation.combatGoalTime > level.time ) {
-				if ( Distance( cs->navigation.combatGoalOrigin, g_entities[cs->leaderNum].r.currentOrigin ) >
+				if ( ( cs->navigation.combatGoalOrigin - g_entities[cs->leaderNum].r.currentOrigin ).Length() >
 					 MAX_LEADER_DIST ) {
 					// go find a new combatSpot
 					cs->navigation.combatGoalTime = 0;
@@ -955,7 +968,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 						cs->navigation.combatGoalTime = 0;
 					} else {
 						moved = qtrue;
-						if ( Distance( cs->clientState->origin, cs->navigation.combatGoalOrigin ) < 32 ) {
+						if ( ( cs->clientState->origin - cs->navigation.combatGoalOrigin ).Length() < 32 ) {
 							cs->navigation.combatGoalTime = 0;
 						}
 					}
@@ -963,7 +976,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 			} else {
 				// we can't find a way to get to our enemy, so go back to our leader if outside range
 				// do we need to go to our leader?
-				if ( Distance( cs->clientState->origin, g_entities[cs->leaderNum].r.currentOrigin ) >
+				if ( ( cs->clientState->origin - g_entities[cs->leaderNum].r.currentOrigin ).Length() >
 					 MAX_LEADER_DIST ) {
 					return AIFunc_ChaseGoalStart( cs, cs->leaderNum, AICAST_LEADERDIST_MAX, qtrue );
 				}
@@ -985,7 +998,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 					cs->navigation.combatGoalTime = 0;
 				} else {
 					moved = qtrue;
-					if ( Distance( cs->clientState->origin, cs->navigation.combatGoalOrigin ) < 32 ) {
+					if ( ( cs->clientState->origin - cs->navigation.combatGoalOrigin ).Length() < 32 ) {
 						cs->navigation.combatGoalTime = 0;
 						cs->combat.attackSpotTime =
 							level.time +
@@ -1003,7 +1016,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 			if ( AICast_GetTakeCoverPos( cs, cs->enemyNum, cs->perception.vislist[cs->enemyNum].real_visible_pos,
 										 cs->combat.takeCoverPos ) ) {
 				// wait in ambush, for them to return
-				VectorCopy( cs->clientState->origin, cs->navigation.combatGoalOrigin );
+				cs->navigation.combatGoalOrigin = cs->clientState->origin;
 				return AIFunc_BattleAmbushStart( cs );
 			}
 			// HACK, help lopers get out of bad spots
@@ -1012,8 +1025,8 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 			}
 			// couldn't find a spot, so just stay here?
 			if ( cs->clientState->areanum ) { // if our area is valid
-				VectorCopy( cs->clientState->origin, cs->navigation.combatGoalOrigin );
-				VectorCopy( cs->clientState->origin, cs->combat.takeCoverPos );
+				cs->navigation.combatGoalOrigin = cs->clientState->origin;
+				cs->combat.takeCoverPos = cs->clientState->origin;
 				return AIFunc_BattleAmbushStart( cs );
 			}
 		} else {
@@ -1044,15 +1057,15 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 		float simTime = 1.5;
 		aicast_predictmove_t move;
 		float moveDist;
-		vec3_t vec;
+		idVec3 vec;
 		//
 		if ( cs->weaponNum == WP_GAUNTLET ) {
 			simTime = 0.5;
 		}
 		//
 		AICast_PredictMovement( cs, 1, simTime, &move, &cs->lastucmd, cs->enemyNum );
-		VectorSubtract( move.endpos, cs->clientState->origin, vec );
-		moveDist = VectorNormalize( vec );
+		vec = move.endpos - cs->clientState->origin;
+		moveDist = vec.Normalize();
 		//
 		if ( cs->weaponNum == WP_GAUNTLET ) {
 			if ( move.stopevent == PREDICTSTOP_HITENT ) {
@@ -1090,7 +1103,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 		}
 		// slow down? so we don't go too far from behind the obstruction which is protecting us
 		else if ( !( cs->aiFlags & AIFL_WALKFORWARD ) &&
-				  ( VectorDistance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase ) <
+				  ( ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length() <
 					AICast_WeaponRange( cs, cs->weaponNum ) ) &&
 				  ( cs->navigation.obstructingTime < level.time ) && ( cs->attributes[TACTICAL] > 0.1 ) &&
 				  ( AICast_VisibleFromPos( cs->perception.vislist[cs->enemyNum].visible_pos, cs->enemyNum, move.endpos,

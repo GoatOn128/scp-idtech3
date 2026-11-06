@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -32,13 +34,13 @@ AIFunc_AvoidDanger()
 char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 	bot_moveresult_t *moveresult;
 	ai_client_state_t *bs;
-	vec3_t destorg, vec;
+	idVec3 destorg, vec;
 	float dist;
 	int enemies[MAX_CLIENTS], numEnemies, i;
 	qboolean shouldAttack;
 	gentity_t *ent;
 	trace_t tr;
-	vec3_t end;
+	idVec3 end;
 	gentity_t *danger;
 
 	// we need to move towards it
@@ -69,20 +71,20 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 				if ( G_PredictMissile( danger, danger->nextthink - level.time, cs->combat.takeCoverPos, qfalse ) ) {
 					// make sure it's a valid position, and drop it down to the ground
 					cs->combat.takeCoverPos[2] += -ent->r.mins[2] + 12;
-					VectorCopy( cs->combat.takeCoverPos, end );
+					end = cs->combat.takeCoverPos;
 					end[2] -= 90;
 					trap_Trace( &tr, cs->combat.takeCoverPos, ent->r.mins, ent->r.maxs, end, cs->entityNum,
 								MASK_SOLID );
-					VectorCopy( tr.endpos, cs->combat.takeCoverPos );
+					cs->combat.takeCoverPos = tr.endpos;
 					if ( !tr.startsolid && ( tr.fraction < 1.0 ) &&
-						 VectorDistance( cs->clientState->origin, cs->combat.takeCoverPos ) <
+						 ( cs->clientState->origin - cs->combat.takeCoverPos ).Length() <
 							 cs->attributes[RUNNING_SPEED] * 0.0004 * ( danger->nextthink - level.time - 2000 ) ) {
 
 						// check for a clear path to the grenade
 						trap_Trace( &tr, cs->clientState->origin, ent->r.mins, ent->r.maxs, cs->combat.takeCoverPos,
 									cs->entityNum, MASK_SOLID );
 
-						if ( VectorDistance( tr.endpos, cs->combat.takeCoverPos ) < 8 ) {
+						if ( ( tr.endpos - cs->combat.takeCoverPos ).Length() < 8 ) {
 							danger->flags |= FL_AI_GRENADE_KICK;
 							ent->flags |= FL_AI_GRENADE_KICK;
 							level.lastGrenadeKick = level.time;
@@ -93,12 +95,12 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 				}
 			}
 			// if it's really close to us, and we're heading for it, may as well pick it up
-			if ( VectorLength( danger->s.pos.trDelta ) < 10 &&
-				 VectorDistance( danger->r.currentOrigin, cs->clientState->origin ) < 128 &&
+			if ( danger->s.pos.trDelta.Length() < 10 &&
+				 ( danger->r.currentOrigin - cs->clientState->origin ).Length() < 128 &&
 				 ( level.lastGrenadeKick < level.time - 3000 ) && ( cs->aiFlags & AIFL_CATCH_GRENADE ) ) {
-				vec3_t vsub;
-				VectorSubtract( danger->r.currentOrigin, cs->clientState->origin, vsub );
-				if ( DotProduct( vsub, cs->clientState->velocity ) > 0 ) {
+				idVec3 vsub;
+				vsub = danger->r.currentOrigin - cs->clientState->origin;
+				if ( ( vsub * cs->clientState->velocity ) > 0 ) {
 					danger->flags |= FL_AI_GRENADE_KICK;
 					ent->flags |= FL_AI_GRENADE_KICK;
 					level.lastGrenadeKick = level.time;
@@ -111,7 +113,7 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 	//
 	if ( g_entities[cs->dangerEntity].inuse ) {
 		// is our current destination still safe?
-		if ( Distance( cs->dangerEntityPos, cs->combat.takeCoverPos ) < cs->dangerDist &&
+		if ( ( cs->dangerEntityPos - cs->combat.takeCoverPos ).Length() < cs->dangerDist &&
 			 AICast_VisibleFromPos( cs->dangerEntityPos, cs->dangerEntity, cs->combat.takeCoverPos, cs->entityNum,
 									qfalse ) ) {
 			//G_Printf("current coverPos is dangerous, looking for a better place..\n" );
@@ -125,10 +127,10 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 		return AIFunc_DefaultStart( cs );
 	}
 	//
-	VectorCopy( cs->combat.takeCoverPos, destorg );
-	VectorSubtract( destorg, cs->clientState->origin, vec );
+	destorg = cs->combat.takeCoverPos;
+	vec = destorg - cs->clientState->origin;
 	vec[2] *= 0.2;
-	dist = VectorLength( vec );
+	dist = vec.Length();
 	//
 	shouldAttack = qfalse;
 	if ( ent->s.onFireEnd < level.time ) {
@@ -153,7 +155,7 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 	//
 	// if we are now safe from the danger, stop running away
 	if ( cs->dangerEntity >= MAX_CLIENTS &&
-		 Distance( cs->dangerEntityPos, cs->clientState->origin ) > cs->dangerDist * 1.5 ) {
+		 ( cs->dangerEntityPos - cs->clientState->origin ).Length() > cs->dangerDist * 1.5 ) {
 		// don't move, wait for danger to pass
 	} else
 		// are we close enough to the goal?
@@ -168,7 +170,7 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 						// find a better spot?
 						AICast_GetTakeCoverPos( cs, cs->dangerEntity, cs->dangerEntityPos, cs->combat.takeCoverPos );
 					} else {
-						VectorCopy( cs->clientState->origin, cs->combat.takeCoverPos );
+						cs->combat.takeCoverPos = cs->clientState->origin;
 					}
 				}
 			}
@@ -189,7 +191,7 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 
 		} else {
 			// set our origin as the hidepos, that way if we are still in danger, we should find a better spot
-			VectorCopy( cs->clientState->origin, cs->combat.takeCoverPos );
+			cs->combat.takeCoverPos = cs->clientState->origin;
 			// check for a movement we should be making
 			if ( cs->navigation.obstructingTime > level.time ) {
 				AICast_MoveToPos( cs, cs->navigation.obstructingPos, -1 );
@@ -197,7 +199,7 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 
 			// if we are on fire, never stop
 			if ( ent->s.onFireEnd > level.time ) {
-				VectorCopy( cs->clientState->origin, cs->dangerEntityPos );
+				cs->dangerEntityPos = cs->clientState->origin;
 				cs->dangerEntityValidTime = level.time + 10000;
 			}
 		}
@@ -211,11 +213,14 @@ char *AIFunc_AvoidDanger( cast_state_t *cs ) {
 		if ( cs->lastEnemy >= 0 ) {
 			// if we only just recently saw them, face that direction
 			if ( cs->perception.vislist[cs->lastEnemy].visible_timestamp > ( level.time - 20000 ) ) {
-				vec3_t dir;
+				idVec3 dir;
 				//
-				VectorSubtract( cs->perception.vislist[cs->lastEnemy].visible_pos, cs->clientState->origin, dir );
-				VectorNormalize( dir );
-				vectoangles( dir, cs->ideal_viewangles );
+				dir = cs->perception.vislist[cs->lastEnemy].visible_pos - cs->clientState->origin;
+				dir.Normalize();
+				{
+					const idAngles convertedAngles = dir.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 			}
 		}
 	}
@@ -255,10 +260,10 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 	int enemies[MAX_CLIENTS];
 	int numEnemies;
 	bot_moveresult_t *moveresult;
-	vec3_t dir;
+	idVec3 dir;
 	gentity_t *followent, *grenade, *ent;
 	ai_client_state_t *bs;
-	vec3_t destorg, endPos;
+	idVec3 destorg, endPos;
 	qboolean moved = qfalse;
 	int hitclient;
 	//qboolean attacked = qfalse; // TTimo: unused
@@ -283,7 +288,7 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 	// (SA) probably read the fweapon from t
 	if ( cs->grenade.grenadeFlushFiring ) {
 		// are we still moving?
-		if ( VectorLength( cs->clientState->cur_ps.velocity ) ) {
+		if ( cs->clientState->cur_ps.velocity.Length() ) {
 			// keep waiting
 			// pause for a bit, so the grenade comes out correctly
 			cs->lockViewAnglesTime = level.time + 1200;
@@ -395,13 +400,15 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 	} else {
 		// not visible, go to their previously visible position
 		if ( !cs->perception.vislist[cs->enemyNum].visible_timestamp ||
-			 Distance( bs->origin, cs->perception.vislist[cs->enemyNum].real_visible_pos ) < 16 ) {
+			 ( bs->origin - cs->perception.vislist[cs->enemyNum].real_visible_pos ).Length() < 16 ) {
 			// we're done attacking, go back to default state, which in turn will recall previous state
 			//
 			// face the direction they currently are from this position (bit of a hack, but it looks best)
-			VectorSubtract( g_entities[cs->enemyNum].client->ps.origin,
-							cs->perception.vislist[cs->enemyNum].visible_pos, dir );
-			vectoangles( dir, cs->ideal_viewangles );
+			dir = g_entities[cs->enemyNum].client->ps.origin - cs->perception.vislist[cs->enemyNum].visible_pos;
+			{
+				const idAngles convertedAngles = dir.ToAngles();
+				cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+			}
 			//
 			//G_Printf("aborting, reached visible pos\n");
 			return AIFunc_DefaultStart( cs );
@@ -430,13 +437,13 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 	}
 
 	if ( followent->client ) { // go to the last visible position
-		VectorCopy( cs->perception.vislist[cs->enemyNum].visible_pos, destorg );
+		destorg = cs->perception.vislist[cs->enemyNum].visible_pos;
 	} else // assume we know where other entities are
 	{
-		VectorCopy( followent->s.pos.trBase, destorg );
+		destorg = followent->s.pos.trBase;
 	}
 	//
-	dist = VectorDistance( destorg, cs->clientState->origin );
+	dist = ( destorg - cs->clientState->origin ).Length();
 	//
 	if ( cs->perception.vislist[cs->enemyNum].lastcheck_timestamp >
 			 cs->perception.vislist[cs->enemyNum].real_visible_timestamp ||
@@ -457,7 +464,7 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 		if ( ( cs->leaderNum < 0 ) && ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE ||
 										g_entities[cs->entityNum].waterlevel > 1 ) ) {
 			aicast_predictmove_t move;
-			vec3_t gdir;
+			idVec3 gdir;
 			bot_input_t bi;
 			usercmd_t ucmd;
 			trace_t tr;
@@ -468,14 +475,14 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 						g_entities[cs->entityNum].clipmask );
 			if ( tr.entityNum == followent->s.number ) {
 				// try walking straight to them
-				VectorSubtract( followent->r.currentOrigin, cs->clientState->origin, gdir );
-				VectorNormalize( gdir );
+				gdir = followent->r.currentOrigin - cs->clientState->origin;
+				gdir.Normalize();
 				if ( !ent->waterlevel ) {
 					gdir[2] = 0;
 				}
 				//trap_EA_Move(cs->entityNum, dir, 400);
 				trap_EA_GetInput( cs->entityNum, (float)level.time / 1000, &bi );
-				VectorCopy( gdir, bi.dir );
+				bi.dir = gdir;
 				bi.speed = 400;
 				bi.actionflags = 0;
 				AICast_InputToUserCommand( cs, &bi, &ucmd, bs->cur_ps.delta_angles );
@@ -483,7 +490,10 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 
 				if ( move.stopevent == PREDICTSTOP_HITENT ) { // success!
 					trap_EA_Move( cs->entityNum, dir, 400 );
-					vectoangles( dir, cs->ideal_viewangles );
+					{
+						const idAngles convertedAngles = dir.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					cs->ideal_viewangles[2] *= 0.5;
 					moved = qtrue;
 				} else { // clear movement
@@ -546,12 +556,12 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 		return AIFunc_DefaultStart( cs );
 	} else if ( hitclient == -2 ) {
 		// went too far, so angle down a bit
-		cs->ideal_viewangles[PITCH] += 15 * random();
+		cs->ideal_viewangles[PITCH] += 15 * gameRandom.RandomFloat();
 	} else {
 		if ( cs->thinkFuncChangeTime < level.time - 200 ) {
 			// if it went reasonably close to them, but safe from us, then fire away
-			if ( Distance( endPos, cs->clientState->origin ) >
-				 100 + Distance( endPos, g_entities[cs->enemyNum].r.currentOrigin ) ) {
+			if ( ( endPos - cs->clientState->origin ).Length() >
+				 100 + ( endPos - g_entities[cs->enemyNum].r.currentOrigin ).Length() ) {
 				trap_EA_Attack( bs->client );
 				cs->bFlags |= AI_FRAME_ATTACKED;
 				cs->weaponNum = grenadeType; // select grenade launcher
@@ -564,7 +574,7 @@ char *AIFunc_GrenadeFlush( cast_state_t *cs ) {
 				return NULL;
 			}
 		}
-		cs->ideal_viewangles[PITCH] += -10 * random();
+		cs->ideal_viewangles[PITCH] += -10 * gameRandom.RandomFloat();
 	}
 	//
 	return NULL;
@@ -599,16 +609,16 @@ AIFunc_GrenadeKick()
 char *AIFunc_GrenadeKick( cast_state_t *cs ) {
 	bot_moveresult_t *moveresult;
 	ai_client_state_t *bs;
-	vec3_t destorg, vec;
+	idVec3 destorg, vec;
 	float dist, speed;
 	int enemies[MAX_CLIENTS], numEnemies, i;
 	qboolean shouldAttack;
 	int *ammo;
 	gentity_t *danger;
 	gentity_t *ent;
-	vec3_t end;
+	idVec3 end;
 	trace_t tr;
-	vec3_t dir;
+	idVec3 dir;
 	int weapon;
 
 	// !!! NOTE: the only way control should pass out of here, is by calling AIFunc_DefaultStart()
@@ -683,7 +693,7 @@ char *AIFunc_GrenadeKick( cast_state_t *cs ) {
 	//
 	// is it about to explode in our face?
 	if ( level.time >
-		 danger->nextthink - (int)( 2.0 * VectorDistance( cs->clientState->origin, danger->r.currentOrigin ) ) ) {
+		 danger->nextthink - (int)( 2.0 * ( cs->clientState->origin - danger->r.currentOrigin ).Length() ) ) {
 		// abort!!
 		if ( !AICast_GetTakeCoverPos( cs, cs->dangerEntity, cs->dangerEntityPos, cs->combat.takeCoverPos ) ) {
 			// shit??
@@ -707,9 +717,9 @@ char *AIFunc_GrenadeKick( cast_state_t *cs ) {
 	//
 	// are we close enough to pick it up?
 	if ( /*cs->grenade.grenadeGrabFlag <= 0 || */
-		 ( danger->s.pos.trDelta[2] < 20 && VectorDistance( danger->r.currentOrigin, cs->clientState->origin ) < 48 &&
+		 ( danger->s.pos.trDelta[2] < 20 && ( danger->r.currentOrigin - cs->clientState->origin ).Length() < 48 &&
 		   ( danger->r.currentOrigin[2] < cs->clientState->origin[2] ) &&
-		   VectorLength( danger->s.pos.trDelta ) < 50 ) ) {
+		   danger->s.pos.trDelta.Length() < 50 ) ) {
 		//
 		// we have a choice here, either pick up and return, or just kick it
 		//		if ((cs->grenade.grenadeGrabFlag == -1) || (cs->grenade.grenadeGrabFlag == qtrue && level.time > danger->nextthink - 2000)) {	// kick
@@ -729,22 +739,22 @@ char *AIFunc_GrenadeKick( cast_state_t *cs ) {
 		} else if ( ent->client->ps.legsTimer < 800 ) {
 			// send the grenade on its way
 			cs->grenade.grenadeFlushFiring = qtrue;
-			AngleVectors( cs->viewangles, dir, NULL, NULL );
+			idAngles( cs->viewangles ).ToVectors( &dir, NULL, NULL );
 			dir[2] = 0.4;
-			VectorNormalize( dir );
+			dir.Normalize();
 			speed = 400;
 			if ( cs->enemyNum >= 0 ) {
-				speed = 1.5 * VectorDistance( danger->r.currentOrigin, g_entities[cs->enemyNum].r.currentOrigin );
+				speed = 1.5 * ( danger->r.currentOrigin - g_entities[cs->enemyNum].r.currentOrigin ).Length();
 				if ( speed > 650 ) {
 					speed = 650;
 				}
 			}
-			VectorScale( dir, speed, danger->s.pos.trDelta );
+			danger->s.pos.trDelta = dir * speed;
 			danger->r.ownerNum = ent->s.number; // we are now the owner, let it pass through us
 			danger->s.pos.trTime = level.time - 50; // move a bit on the very first frame
-			VectorCopy( danger->r.currentOrigin, danger->s.pos.trBase );
+			danger->s.pos.trBase = danger->r.currentOrigin;
 			danger->s.pos.trType = TR_GRAVITY;
-			SnapVector( danger->s.pos.trDelta ); // save net bandwidth
+			danger->s.pos.trDelta.Snap(); // save net bandwidth
 		}
 		/*
 		} else { // throw
@@ -795,23 +805,23 @@ char *AIFunc_GrenadeKick( cast_state_t *cs ) {
 	if ( G_PredictMissile( danger, danger->nextthink - level.time, cs->combat.takeCoverPos, qfalse ) ) {
 		// make sure it's a valid position, and drop it down to the ground
 		cs->combat.takeCoverPos[2] += -ent->r.mins[2] + 8;
-		VectorCopy( cs->combat.takeCoverPos, end );
+		end = cs->combat.takeCoverPos;
 		end[2] -= 80;
 		trap_Trace( &tr, cs->combat.takeCoverPos, ent->r.mins, ent->r.maxs, end, cs->entityNum, MASK_SOLID );
 		if ( tr.startsolid ) { // not a valid position, abort
 			level.lastGrenadeKick = level.time;
 			return AIFunc_DefaultStart( cs );
 		}
-		VectorCopy( tr.endpos, cs->combat.takeCoverPos );
+		cs->combat.takeCoverPos = tr.endpos;
 	} else { // prediction failed, so use current position
-		VectorCopy( danger->r.currentOrigin, cs->combat.takeCoverPos );
+		cs->combat.takeCoverPos = danger->r.currentOrigin;
 		cs->combat.takeCoverPos[2] += 16; // lift it off the floor
 	}
 
-	VectorCopy( cs->combat.takeCoverPos, destorg );
-	VectorSubtract( destorg, cs->clientState->origin, vec );
+	destorg = cs->combat.takeCoverPos;
+	vec = destorg - cs->clientState->origin;
 	//vec[2] *= 0.2;
-	dist = VectorLength( vec );
+	dist = vec.Length();
 	//
 	// look for things we should attack
 	// if we are out of ammo, we shouldn't bother trying to attack
@@ -880,16 +890,17 @@ char *AIFunc_GrenadeKick( cast_state_t *cs ) {
 */
 	// if we should be attacking something on our way
 	if ( shouldAttack ) {
-		vec3_t gvec, gdir;
+		idVec3 gvec, gdir;
 
 		//attack the enemy if possible
 		AICast_ProcessAttack( cs );
 		//
 		// if they are close, and we're heading for them, we should abort this manouver
-		VectorSubtract( g_entities[cs->enemyNum].client->ps.origin, bs->origin, gvec );
-		if ( VectorNormalize( gvec ) < 64 ) {
-			if ( VectorNormalize2( bs->velocity, gdir ) > 20 ) { // we are moving
-				if ( DotProduct( gdir, gvec ) > 0 ) {
+		gvec = g_entities[cs->enemyNum].client->ps.origin - bs->origin;
+		if ( gvec.Normalize() < 64 ) {
+			gdir = bs->velocity;
+			if ( gdir.Normalize() > 20 ) { // we are moving
+				if ( ( gdir * gvec ) > 0 ) {
 					// abort
 					level.lastGrenadeKick = level.time;
 					return AIFunc_DefaultStart( cs );
@@ -898,10 +909,13 @@ char *AIFunc_GrenadeKick( cast_state_t *cs ) {
 		}
 	} else {
 		// face the direction that the grenade is coming
-		VectorSubtract( danger->r.currentOrigin, cs->clientState->origin, dir );
+		dir = danger->r.currentOrigin - cs->clientState->origin;
 		dir[2] = 0;
-		VectorNormalize( dir );
-		vectoangles( dir, cs->ideal_viewangles );
+		dir.Normalize();
+		{
+			const idAngles convertedAngles = dir.ToAngles();
+			cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+		}
 	}
 
 	return NULL;

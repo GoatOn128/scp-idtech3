@@ -30,13 +30,15 @@ If you have questions concerning this license or the applicable additional terms
 
 // cg_event.c -- handle entity events at snapshot or playerstate transitions
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 #include "../ui/ui_shared.h" // for Menus_CloseAll()
 
 extern int hWeaponSnd;
 
-extern void CG_Tracer( vec3_t source, vec3_t dest, int sparks );
+extern void CG_Tracer( idVec3 source, idVec3 dest, int sparks );
 //==========================================================================
 
 /*
@@ -48,7 +50,8 @@ Also called by scoreboard drawing
 */
 const char  *CG_PlaceString( int rank ) {
 	static char str[64];
-	char    *s, *t;
+	idStr s;
+	const char *t;
 
 	if ( rank & RANK_TIED_FLAG ) {
 		rank &= ~RANK_TIED_FLAG;
@@ -70,13 +73,13 @@ const char  *CG_PlaceString( int rank ) {
 	} else if ( rank == 13 ) {
 		s = "13th";
 	} else if ( rank % 10 == 1 ) {
-		s = va( "%ist", rank );
+		s = idStr::FormatString( "%ist", rank );
 	} else if ( rank % 10 == 2 ) {
-		s = va( "%ind", rank );
+		s = idStr::FormatString( "%ind", rank );
 	} else if ( rank % 10 == 3 ) {
-		s = va( "%ird", rank );
+		s = idStr::FormatString( "%ird", rank );
 	} else {
-		s = va( "%ith", rank );
+		s = idStr::FormatString( "%ith", rank );
 	}
 
 	Com_sprintf( str, sizeof( str ), "%s%s", t, s );
@@ -125,7 +128,7 @@ static void CG_Obituary( entityState_t *ent ) {
 	if ( !targetInfo ) {
 		return;
 	}
-	Q_strncpyz( targetName, Info_ValueForKey( targetInfo, "n" ), sizeof( targetName ) - 2 );
+	idStr::Copynz( targetName, Info_ValueForKey( targetInfo, "n" ), sizeof( targetName ) - 2 );
 	strcat( targetName, S_COLOR_WHITE );
 
 	message2 = "";
@@ -208,14 +211,14 @@ static void CG_Obituary( entityState_t *ent ) {
 
 	// check for kill messages from the current clientNum
 	if ( attacker == cg.snap->ps.clientNum ) {
-		char    *s;
+		idStr s;
 
 		if ( cgs.gametype < GT_TEAM ) {
-			s = va( "You fragged %s\n%s place with %i", targetName,
+			s = idStr::FormatString( "You fragged %s\n%s place with %i", targetName,
 					CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),
 					cg.snap->ps.persistant[PERS_SCORE] );
 		} else {
-			s = va( "You fragged %s", targetName );
+			s = idStr::FormatString( "You fragged %s", targetName );
 		}
 		CG_CenterPrint( s, SCREEN_HEIGHT * 0.25, BIGCHAR_WIDTH );
 
@@ -227,11 +230,11 @@ static void CG_Obituary( entityState_t *ent ) {
 		attacker = ENTITYNUM_WORLD;
 		strcpy( attackerName, "noname" );
 	} else {
-		Q_strncpyz( attackerName, Info_ValueForKey( attackerInfo, "n" ), sizeof( attackerName ) - 2 );
+		idStr::Copynz( attackerName, Info_ValueForKey( attackerInfo, "n" ), sizeof( attackerName ) - 2 );
 		strcat( attackerName, S_COLOR_WHITE );
 		// check for kill messages about the current clientNum
 		if ( target == cg.snap->ps.clientNum ) {
-			Q_strncpyz( cg.killerName, attackerName, sizeof( cg.killerName ) );
+			idStr::Copynz( cg.killerName, attackerName, sizeof( cg.killerName ) );
 		}
 	}
 
@@ -386,7 +389,7 @@ static void CG_UseItem( centity_t *cent ) {
 					CG_CenterPrint( "drankwine", SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
 					break;
 				default:
-					CG_CenterPrint( va( "Use %s", cgs.itemPrintNames[item - bg_itemlist] ), SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
+					CG_CenterPrint( idStr::FormatString( "Use %s", cgs.itemPrintNames[item - bg_itemlist] ), SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
 					break;
 				}
 			}
@@ -447,7 +450,7 @@ static void CG_ItemPickup( int itemNum ) {
 		weapon = itemid;
 
 		if ( weapon == WP_COLT ) {
-			if ( COM_BitCheck( cg.snap->ps.weapons, weapon ) ) {
+			if ( idBitField::Test( cg.snap->ps.weapons, weapon ) ) {
 				weapon = WP_AKIMBO; // you have colt, now get akimbo (second)
 			}
 		}
@@ -480,7 +483,7 @@ static void CG_ItemPickup( int itemNum ) {
 					// FIXME:	this works fine for predicted pickups (when you walk over the weapon), but not for
 					//			manual pickups (activate item)
 					if ( cg_autoswitch.integer == 2 || cg_autoswitch.integer == 4 || cg_autoswitch.integer == 5 ) {
-						if ( !COM_BitCheck( cg.snap->ps.weapons, weapon ) ) {
+						if ( !idBitField::Test( cg.snap->ps.weapons, weapon ) ) {
 							selectIt = qtrue;
 						}
 					}   // end 2/4/5
@@ -567,7 +570,7 @@ void CG_PainEvent( centity_t *cent, int health, qboolean crouching ) {
 		{"tag_legleft",  PEFOFS( legsRefEnt ),     BOTH_PAIN7},
 		{NULL,0,0},
 	};
-	vec3_t tagOrg;
+	idVec3 tagOrg;
 	int tagIndex, bestTag, oldPainAnim;
 	float bestDist, dist;
 
@@ -587,7 +590,7 @@ void CG_PainEvent( centity_t *cent, int health, qboolean crouching ) {
 		cent->pe.painAnimLegs = -1;
 		cent->pe.painAnimTorso = -1;
 
-		if ( VectorLength( cent->currentState.origin2 ) > 1 ) {
+		if ( (cent->currentState.origin2).Length() > 1 ) {
 			// find a correct animation to play, based on the body orientation at previous frame
 			for ( tagIndex = 0, bestDist = 0, bestTag = -1; tagAnims[tagIndex].tag; tagIndex++ ) {
 				if ( oldPainAnim >= 0 && tagAnims[tagIndex].anim == oldPainAnim ) {
@@ -595,7 +598,7 @@ void CG_PainEvent( centity_t *cent, int health, qboolean crouching ) {
 				}
 				// grab the tag with this name
 				if ( CG_GetOriginForTag( cent, ( refEntity_t * )( ( (byte *)&cent->pe ) + tagAnims[tagIndex].refEntOfs ), tagAnims[tagIndex].tag, 0, tagOrg, NULL ) >= 0 ) {
-					dist = VectorDistance( tagOrg, cent->currentState.origin2 );
+					dist = ((tagOrg) - (cent->currentState.origin2)).Length();
 					if ( !bestDist || dist < bestDist ) {
 						bestTag = tagIndex;
 						bestDist = dist;
@@ -621,7 +624,7 @@ void CG_PainEvent( centity_t *cent, int health, qboolean crouching ) {
 		if ( cent->pe.painAnimTorso < 0 ) {
 			// pick a random anim
 			for ( tagIndex = 0; tagAnims[tagIndex].tag; tagIndex++ ) {};
-			bestTag = rand() % tagIndex;
+			bestTag = cgRandom.RandomInt() % tagIndex;
 			if ( !crouching ) {
 				cent->pe.painAnimLegs = tagAnims[bestTag].anim;
 			}
@@ -683,7 +686,7 @@ CG_Explode
 
 
 
-void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound, int forceLowGrav, qhandle_t shader, int parent, qboolean damage );
+void CG_Explodef( idVec3 origin, idVec3 dir, int mass, int type, qhandle_t sound, int forceLowGrav, qhandle_t shader, int parent, qboolean damage );
 
 /*
 ==============
@@ -691,13 +694,13 @@ CG_Explode
 	the old cent-based explode calls will still work with this pass-through
 ==============
 */
-void CG_Explode( centity_t *cent, vec3_t origin, vec3_t dir, qhandle_t shader ) {
-	vec3_t pos;
+void CG_Explode( centity_t *cent, idVec3 origin, idVec3 dir, qhandle_t shader ) {
+	idVec3 pos;
 	qhandle_t inheritmodel = 0;
 
 
 //	VectorCopy(origin, pos);
-	VectorCopy( cent->currentState.origin2, pos );
+	pos = cent->currentState.origin2;
 
 	// inherit shader
 	// (SA) FIXME: do this at spawn time rather than explode time so any new necessary shaders are created earlier
@@ -732,7 +735,7 @@ CG_Explodef
 	made this more generic for spawning hits and breaks without needing a *cent
 ==============
 */
-void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound, int forceLowGrav, qhandle_t shader, int parent, qboolean damage ) {
+void CG_Explodef( idVec3 origin, idVec3 dir, int mass, int type, qhandle_t sound, int forceLowGrav, qhandle_t shader, int parent, qboolean damage ) {
 	int i;
 	fxEntity_t   *le;
 	refEntity_t     *re;
@@ -744,27 +747,27 @@ void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound
 	memset( &pieces, 0, sizeof( pieces ) );
 
 	if ( type == 5 && damage ) {
-		vec3_t vec, org;
+		idVec3 vec, org;
 		centity_t *boss;
 		// set the default pos to the viewpos
-		VectorCopy( cg.refdef.vieworg, org );
+		org = cg.refdef.vieworg;
 		// find the boss
 		for ( boss = cg_entities; boss < &cg_entities[MAX_CLIENTS]; boss++ ) {
 			if ( !boss->currentValid ) {
 				continue;
 			}
 			if ( boss->currentState.aiChar == AICHAR_HEINRICH ) {
-				VectorCopy( boss->lerpOrigin, org );
+				org = boss->lerpOrigin;
 				break;
 			}
 		}
 		// optimization, ignore if too far away
-		VectorSubtract( origin, org, vec ); // whoops, that way wouldn't work for cameras...
+		vec = origin - org; // whoops, that way wouldn't work for cameras...
 		vec[2] = 0;
-		if ( VectorLength( vec ) > CG_FxInt( "wolf/controller_explodef", "tuning" ) ) {
+		if ( (vec).Length() > CG_FxInt( "wolf/controller_explodef", "tuning" ) ) {
 			return;
 		}
-		mass = (int)( 2.0 * mass * ( 1.0 - ( 0.6 + 0.4 * ( VectorLength( vec ) / CG_FxValue( "wolf/controller_explodef", "mass" ) ) ) ) );
+		mass = (int)( 2.0 * mass * ( 1.0 - ( 0.6 + 0.4 * ( (vec).Length() / CG_FxValue( "wolf/controller_explodef", "mass" ) ) ) ) );
 	}
 
 	pieces[5]   = (int)( mass / CG_FxValue( "wolf/controller_explodef", "pieces_5_" ) );
@@ -932,7 +935,7 @@ void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound
 			le->leType              = LE_FRAGMENT;
 			le->startTime           = cg.time;
 
-			le->endTime             = ( le->startTime + CG_FxInt( "wolf/controller_explodef", "le_endTime" ) + random() * CG_FxInt( "wolf/controller_explodef", "le_endTime_2" ) ) + endtime;
+			le->endTime             = ( le->startTime + CG_FxInt( "wolf/controller_explodef", "le_endTime" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_endTime_2" ) ) + endtime;
 
 			// RF, debris rocks last longer in the boss map (is thee a better way of doing this at this late stage?)
 			if ( snd == LEBS_ROCK && damage ) {
@@ -940,7 +943,7 @@ void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound
 				if ( damage ) {
 					le->leFlags |= LEF_PLAYER_DAMAGE;
 				}
-				le->endTime = le->startTime + CG_FxInt( "wolf/controller_explodef", "le_endTime_3" ) + random() * CG_FxInt( "wolf/controller_explodef", "le_endTime_4" );
+				le->endTime = le->startTime + CG_FxInt( "wolf/controller_explodef", "le_endTime_3" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_endTime_4" );
 			}
 
 			if ( parent ) {
@@ -974,8 +977,10 @@ void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound
 			le->leFlags     |= LEF_TUMBLE;
 			le->leMarkType  = (leMarkType_t)0;
 
-			VectorCopy( origin, re->origin );
-			AxisCopy( axisDefault, re->axis );
+			re->origin = origin;
+			re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 
 			le->leBounceSoundType = snd;
 			re->hModel = hmodel;
@@ -994,7 +999,7 @@ void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound
 				materialmul         = 0.3f;     // rotation speed
 				break;
 			default:
-				if ( !forceLowGrav && rand() & 1 ) {    // if low gravity is not forced and die roll goes our way use regular grav
+				if ( !forceLowGrav && cgRandom.RandomInt() & 1 ) {    // if low gravity is not forced and die roll goes our way use regular grav
 					le->pos.trType = TR_GRAVITY;
 				} else {
 					le->pos.trType = TR_GRAVITY_LOW;
@@ -1007,48 +1012,48 @@ void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound
 			// rotation
 			le->angles.trType = TR_LINEAR;
 			le->angles.trTime = cg.time;
-			le->angles.trBase[0] = rand() & CG_FxInt( "wolf/controller_explodef", "le_angles_trBase_x" );
-			le->angles.trBase[1] = rand() & CG_FxInt( "wolf/controller_explodef", "le_angles_trBase_y" );
-			le->angles.trBase[2] = rand() & CG_FxInt( "wolf/controller_explodef", "le_angles_trBase_z" );
-			le->angles.trDelta[0] = ( ( CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_x" ) + ( rand() & CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_x_2" ) ) ) - CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_x_3" ) ) * materialmul;
-			le->angles.trDelta[1] = ( ( CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_y" ) + ( rand() & CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_y_2" ) ) ) - CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_y_3" ) ) * materialmul;
-			le->angles.trDelta[2] = ( ( CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_z" ) + ( rand() & CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_z_2" ) ) ) - CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_z_3" ) ) * materialmul;
+			le->angles.trBase[0] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_explodef", "le_angles_trBase_x" );
+			le->angles.trBase[1] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_explodef", "le_angles_trBase_y" );
+			le->angles.trBase[2] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_explodef", "le_angles_trBase_z" );
+			le->angles.trDelta[0] = ( ( CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_x" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_x_2" ) ) ) - CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_x_3" ) ) * materialmul;
+			le->angles.trDelta[1] = ( ( CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_y" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_y_2" ) ) ) - CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_y_3" ) ) * materialmul;
+			le->angles.trDelta[2] = ( ( CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_z" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_z_2" ) ) ) - CG_FxInt( "wolf/controller_explodef", "le_angles_trDelta_z_3" ) ) * materialmul;
 
 
 			//			if(type == 6)	// fabric
 			//				materialmul = 1;		// translation speed
 
 
-			VectorCopy( origin, le->pos.trBase );
-			VectorNormalize( dir );
+			le->pos.trBase = origin;
+			(dir).Normalize();
 			le->pos.trTime = cg.time;
 
 			// (SA) hoping that was just intended to represent randomness
 			//			if (cent->currentState.angles2[0] || cent->currentState.angles2[1] || cent->currentState.angles2[2])
 			if ( ( le->angles.trBase[0] == 1 || le->angles.trBase[1] == 1 || le->angles.trBase[2] == 1 ) && type != 6 ) {    // not for fabric
 				le->pos.trType = TR_GRAVITY;
-				VectorScale( dir, CG_FxInt( "wolf/controller_explodef", "tuning_18" ) * CG_FxInt( "wolf/controller_explodef", "tuning_19" ), le->pos.trDelta );
-				le->pos.trDelta[0] += ( ( random() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_x" ) ) - CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_x_2" ) );
-				le->pos.trDelta[1] += ( ( random() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_y" ) ) - CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_y_2" ) );
-				le->pos.trDelta[2] = ( random() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_z" ) ) + CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_z_2" );
+				le->pos.trDelta = dir * (CG_FxInt( "wolf/controller_explodef", "tuning_18" ) * CG_FxInt( "wolf/controller_explodef", "tuning_19" ));
+				le->pos.trDelta[0] += ( ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_x" ) ) - CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_x_2" ) );
+				le->pos.trDelta[1] += ( ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_y" ) ) - CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_y_2" ) );
+				le->pos.trDelta[2] = ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_z" ) ) + CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_z_2" );
 
 			} else {
 				// location
-				VectorScale( dir, CG_FxInt( "wolf/controller_explodef", "tuning_20" ) + mass, le->pos.trDelta );
-				le->pos.trDelta[0] += ( ( random() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_x_3" ) ) - CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_x_4" ) );
-				le->pos.trDelta[1] += ( ( random() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_y_3" ) ) - CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_y_4" ) );
+				le->pos.trDelta = dir * (CG_FxInt( "wolf/controller_explodef", "tuning_20" ) + mass);
+				le->pos.trDelta[0] += ( ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_x_3" ) ) - CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_x_4" ) );
+				le->pos.trDelta[1] += ( ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_y_3" ) ) - CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_y_4" ) );
 
 				if ( dir[2] ) {
-					le->pos.trDelta[2] = random() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_z_3" ) * materialmul;  // randomize sort of a lot so they don't all land together
+					le->pos.trDelta[2] = cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_z_3" ) * materialmul;  // randomize sort of a lot so they don't all land together
 				} else {
-					le->pos.trDelta[2] = random() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_z_4" );
+					le->pos.trDelta[2] = cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_explodef", "le_pos_trDelta_z_4" );
 				}
 
 				if ( type == 5 && damage ) {
-					VectorScale( le->pos.trDelta, CG_FxValue( "wolf/controller_explodef", "tuning_21" ), le->pos.trDelta );
+					le->pos.trDelta = le->pos.trDelta * (CG_FxValue( "wolf/controller_explodef", "tuning_21" ));
 					// dont let them fly out too fast
-					while ( VectorLength( le->pos.trDelta ) > CG_FxInt( "wolf/controller_explodef", "tuning_22" ) ) {
-						VectorScale( le->pos.trDelta, 0.5, le->pos.trDelta );
+					while ( (le->pos.trDelta).Length() > CG_FxInt( "wolf/controller_explodef", "tuning_22" ) ) {
+						le->pos.trDelta = le->pos.trDelta * (0.5);
 					}
 				}
 			}
@@ -1066,14 +1071,14 @@ CG_Effect
 	Quake ed -> target_effect (0 .5 .8) (-6 -6 -6) (6 6 6) TNT explode smoke debris gore lowgrav
 ==============
 */
-void CG_Effect( centity_t *cent, vec3_t origin, vec3_t dir ) {
+void CG_Effect( centity_t *cent, idVec3 origin, idVec3 dir ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
 //	int				howmany;
 	int mass;
 //	int				large, small;
 
-	VectorSet( dir, 0, 0, 1 );    // straight up.
+	dir.Set(0, 0, 1);    // straight up.
 
 	mass = cent->currentState.density;
 
@@ -1082,24 +1087,24 @@ void CG_Effect( centity_t *cent, vec3_t origin, vec3_t dir ) {
 //	small	= (int)(mass / 24) + 1;
 
 	if ( cent->currentState.eventParm & 1 ) {  // fire
-		vec3_t sprVel, sprOrg;
+		idVec3 sprVel, sprOrg;
 		int i,j;
 
 		// RF, sprVel is used without being set, so to be sure, I'm going to clear out the vector
-		VectorClear( sprVel );
+		sprVel.Zero();
 
 		for ( i = 0; i < CG_FxInt( "wolf/controller_effect", "i" ); i++ ) {
 			for ( j = 0; j < 3; j++ )
-				sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_effect", "sprOrg_j_" ) * dir[j] + CG_FxInt( "wolf/controller_effect", "sprOrg_j__2" ) * crandom();
-			sprVel[2] += rand() % CG_FxInt( "wolf/controller_effect", "sprVel_z" );
+				sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_effect", "sprOrg_j_" ) * dir[j] + CG_FxInt( "wolf/controller_effect", "sprOrg_j__2" ) * cgRandom.CRandomFloat();
+			sprVel[2] += cgRandom.RandomInt() % CG_FxInt( "wolf/controller_effect", "sprVel_z" );
 			CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel,
-								  CG_FxInt( "wolf/controller_effect", "tuning" ) + rand() % CG_FxInt( "wolf/controller_effect", "tuning_2" ),          // duration
+								  CG_FxInt( "wolf/controller_effect", "tuning" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_effect", "tuning_2" ),          // duration
 								  CG_FxInt( "wolf/controller_effect", "tuning_3" ),                           // startsize
-								  CG_FxInt( "wolf/controller_effect", "tuning_4" ) + rand() % CG_FxInt( "wolf/controller_effect", "tuning_5" ) );          // endsize
+								  CG_FxInt( "wolf/controller_effect", "tuning_4" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_effect", "tuning_5" ) );          // endsize
 		}
 
-		VectorMA( origin, CG_FxInt( "wolf/controller_effect", "tuning_6" ), dir, sprOrg );
-		VectorScale( dir, CG_FxInt( "wolf/controller_effect", "tuning_7" ), sprVel );
+		sprOrg = origin + dir * (CG_FxInt( "wolf/controller_effect", "tuning_6" ));
+		sprVel = dir * (CG_FxInt( "wolf/controller_effect", "tuning_7" ));
 
 		// trying this one just for now just for variety
 		CG_ParticleExplosion( "explode1", sprOrg, sprVel,
@@ -1110,37 +1115,37 @@ void CG_Effect( centity_t *cent, vec3_t origin, vec3_t dir ) {
 		CG_AddDebris( origin, dir,
 					  CG_FxInt( "wolf/controller_effect", "tuning_11" ),              // speed
 					  CG_FxInt( "wolf/controller_effect", "tuning_12" ),             // duration
-					  CG_FxInt( "wolf/controller_effect", "tuning_13" ) + rand() % CG_FxInt( "wolf/controller_effect", "AddDebris_value" ) ); // count
+					  CG_FxInt( "wolf/controller_effect", "tuning_13" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_effect", "AddDebris_value" ) ); // count
 
 		trap_S_StartSound( origin, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.sfx_dynamiteexp );
 		trap_S_StartLocalSound( cgs.media.sfx_dynamiteexpDist, CHAN_AUTO );
-		CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_14" ), CG_FxInt( "wolf/controller_effect", "ImpactMark_value" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_4" ), qfalse, CG_FxInt( "wolf/controller_effect", "tuning_15" ), qfalse, -CG_FxInt( "wolf/controller_effect", "ImpactMark_value_5" ) );
+		CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_effect", "tuning_14" ), CG_FxInt( "wolf/controller_effect", "ImpactMark_value" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_4" ), qfalse, CG_FxInt( "wolf/controller_effect", "tuning_15" ), qfalse, -CG_FxInt( "wolf/controller_effect", "ImpactMark_value_5" ) );
 	}
 
 	// (SA) right now force smoke on any explosions
 //	if(cent->currentState.eventParm & 4)	// smoke
 	if ( cent->currentState.eventParm & CG_FxInt( "wolf/controller_effect", "tuning_16" ) ) {
 		int i, j;
-		vec3_t sprVel, sprOrg;
+		idVec3 sprVel, sprOrg;
 		// explosion sprite animation
-		VectorScale( dir, CG_FxInt( "wolf/controller_effect", "tuning_17" ), sprVel );
+		sprVel = dir * (CG_FxInt( "wolf/controller_effect", "tuning_17" ));
 		for ( i = 0; i < CG_FxInt( "wolf/controller_effect", "i_2" ); i++ ) {
 			for ( j = 0; j < 3; j++ )
-				sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_effect", "sprOrg_j__3" ) * dir[j] + CG_FxInt( "wolf/controller_effect", "sprOrg_j__4" ) * crandom();
-			sprVel[2] += rand() % CG_FxInt( "wolf/controller_effect", "sprVel_z_2" );
-//			CG_ParticleExplosion( 2, sprOrg, sprVel, 1000+rand()%250, 20, 40+rand()%60 );
-			CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, CG_FxInt( "wolf/controller_effect", "tuning_18" ) + rand() % CG_FxInt( "wolf/controller_effect", "tuning_19" ), CG_FxInt( "wolf/controller_effect", "tuning_20" ), CG_FxInt( "wolf/controller_effect", "tuning_21" ) + rand() % CG_FxInt( "wolf/controller_effect", "tuning_22" ) );
+				sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_effect", "sprOrg_j__3" ) * dir[j] + CG_FxInt( "wolf/controller_effect", "sprOrg_j__4" ) * cgRandom.CRandomFloat();
+			sprVel[2] += cgRandom.RandomInt() % CG_FxInt( "wolf/controller_effect", "sprVel_z_2" );
+//			CG_ParticleExplosion( 2, sprOrg, sprVel, 1000+cgRandom.RandomInt()%250, 20, 40+cgRandom.RandomInt()%60 );
+			CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, CG_FxInt( "wolf/controller_effect", "tuning_18" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_effect", "tuning_19" ), CG_FxInt( "wolf/controller_effect", "tuning_20" ), CG_FxInt( "wolf/controller_effect", "tuning_21" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_effect", "tuning_22" ) );
 		}
 	}
 
 
 	if ( cent->currentState.eventParm & 2 ) {  // explode
-		vec3_t sprVel, sprOrg;
+		idVec3 sprVel, sprOrg;
 		trap_S_StartSound( origin, ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.sfx_rockexp );
 
 		// new explode	(from rl)
-		VectorMA( origin, CG_FxInt( "wolf/controller_effect", "tuning_23" ), dir, sprOrg );
-		VectorScale( dir, CG_FxInt( "wolf/controller_effect", "tuning_24" ), sprVel );
+		sprOrg = origin + dir * (CG_FxInt( "wolf/controller_effect", "tuning_23" ));
+		sprVel = dir * (CG_FxInt( "wolf/controller_effect", "tuning_24" ));
 		CG_ParticleExplosion( "expblue", sprOrg, sprVel, CG_FxInt( "wolf/controller_effect", "tuning_25" ), CG_FxInt( "wolf/controller_effect", "tuning_26" ), CG_FxInt( "wolf/controller_effect", "tuning_27" ) );
 		//CG_ParticleExplosion( "blueexp", sprOrg, sprVel, 1200, 9, 300 );
 
@@ -1151,10 +1156,10 @@ void CG_Effect( centity_t *cent, vec3_t origin, vec3_t dir ) {
 //		CG_AddDebris( origin, dir,
 //						280,	// speed
 //						1400,	// duration
-//						// 15 + rand()%5 );	// count
-//						7 + rand()%2 );	// count
+//						// 15 + cgRandom.RandomInt()%5 );	// count
+//						7 + cgRandom.RandomInt()%2 );	// count
 
-		CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, random() * CG_FxInt( "wolf/controller_effect", "tuning_28" ), CG_FxInt( "wolf/controller_effect", "ImpactMark_value_6" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_7" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_8" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_9" ), qfalse, CG_FxInt( "wolf/controller_effect", "tuning_29" ), qfalse, 0xffffffff );
+		CG_ImpactMark( CG_FxMaterial( "wolf/controller_effect", "burnMarkShader" ), origin, dir, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_effect", "tuning_28" ), CG_FxInt( "wolf/controller_effect", "ImpactMark_value_6" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_7" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_8" ),CG_FxInt( "wolf/controller_effect", "ImpactMark_value_9" ), qfalse, CG_FxInt( "wolf/controller_effect", "tuning_29" ), qfalse, 0xffffffff );
 	}
 
 
@@ -1163,15 +1168,15 @@ void CG_Effect( centity_t *cent, vec3_t origin, vec3_t dir ) {
 		const char *s;
 		qhandle_t sh = 0;   // shader handle
 
-		vec3_t newdir = {0, 0, 0};
+		idVec3 newdir( 0, 0, 0 );
 
 		if ( cent->currentState.angles2[0] || cent->currentState.angles2[1] || cent->currentState.angles2[2] ) {
-			VectorCopy( cent->currentState.angles2, newdir );
+			newdir = cent->currentState.angles2;
 		}
 
 		s = CG_ConfigString( CS_TARGETEFFECT ); // see if ent has a shader specified
 		if ( s && strlen( s ) > 0 ) {
-			sh = trap_R_RegisterShader( va( "textures/%s", s ) );    // FIXME: don't do this here.  only for testing
+			sh = trap_R_RegisterShader( idStr::FormatString( "textures/%s", s ) );    // FIXME: don't do this here.  only for testing
 
 		}
 		cent->currentState.eFlags &= ~EF_INHERITSHADER; // don't try to inherit shader
@@ -1186,22 +1191,24 @@ void CG_Effect( centity_t *cent, vec3_t origin, vec3_t dir ) {
 
 		le->leType = LE_FRAGMENT;
 		le->startTime = cg.time;
-		le->endTime = le->startTime + CG_FxInt( "wolf/controller_effect", "le_endTime" ) + random() * CG_FxInt( "wolf/controller_effect", "le_endTime_2" );
+		le->endTime = le->startTime + CG_FxInt( "wolf/controller_effect", "le_endTime" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_effect", "le_endTime_2" );
 //----(SA)	fading out
 		re->fadeStartTime       = le->endTime - CG_FxInt( "wolf/controller_effect", "re_fadeStartTime" );
 		re->fadeEndTime         = le->endTime;
 //----(SA)	end
 
-		VectorCopy( origin, re->origin );
-		AxisCopy( axisDefault, re->axis );
+		re->origin = origin;
+		re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 		//	re->hModel = hModel;
 		re->hModel = cgs.media.gibIntestine;
 		le->pos.trType = TR_GRAVITY;
-		VectorCopy( origin, le->pos.trBase );
+		le->pos.trBase = origin;
 
 		//	VectorCopy( velocity, le->pos.trDelta );
-		VectorNormalize( dir );
-		VectorMA( dir, CG_FxInt( "wolf/controller_effect", "tuning_32" ), dir, le->pos.trDelta );
+		(dir).Normalize();
+		le->pos.trDelta = dir + dir * (CG_FxInt( "wolf/controller_effect", "tuning_32" ));
 
 		le->pos.trTime = cg.time;
 
@@ -1216,8 +1223,8 @@ void CG_Effect( centity_t *cent, vec3_t origin, vec3_t dir ) {
 		CG_AddDebris( origin, dir,
 					  CG_FxInt( "wolf/controller_effect", "tuning_34" ),      // speed
 					  CG_FxInt( "wolf/controller_effect", "tuning_35" ),     // duration
-					  // 15 + rand()%5 );	// count
-					  CG_FxInt( "wolf/controller_effect", "tuning_36" ) + rand() % CG_FxInt( "wolf/controller_effect", "AddDebris_value_2" ) ); // count
+					  // 15 + cgRandom.RandomInt()%5 );	// count
+					  CG_FxInt( "wolf/controller_effect", "tuning_36" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_effect", "AddDebris_value_2" ) ); // count
 	}
 }
 
@@ -1236,7 +1243,7 @@ CG_Shard
 	cg_shard into cg_explode at a latter time I would have no problem with that
 	but for now I want to keep it separate
 */
-void CG_Shard( centity_t *cent, vec3_t origin, vec3_t dir ) {
+void CG_Shard( centity_t *cent, idVec3 origin, idVec3 dir ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
 	int type;
@@ -1256,7 +1263,7 @@ void CG_Shard( centity_t *cent, vec3_t origin, vec3_t dir ) {
 
 		le->leType              = LE_FRAGMENT;
 		le->startTime           = cg.time;
-		le->endTime             = le->startTime + CG_FxInt( "wolf/controller_shard", "le_endTime" ) + random() * CG_FxInt( "wolf/controller_shard", "le_endTime_2" );
+		le->endTime             = le->startTime + CG_FxInt( "wolf/controller_shard", "le_endTime" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shard", "le_endTime_2" );
 
 //----(SA)	fading out
 		re->fadeStartTime       = le->endTime - CG_FxInt( "wolf/controller_shard", "re__fadeStartTime_value" );
@@ -1280,10 +1287,12 @@ void CG_Shard( centity_t *cent, vec3_t origin, vec3_t dir ) {
 		// le->leBounceSoundType	= LEBS_WOOD;
 			le->leMarkType          = (leMarkType_t)0;
 
-		VectorCopy( origin, re->origin );
-		AxisCopy( axisDefault, re->axis );
+		re->origin = origin;
+		re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 
-		rval = rand() % 2;
+		rval = cgRandom.RandomInt() % 2;
 
 		if ( type == 0 ) { // glass
 			if ( rval ) {
@@ -1310,7 +1319,7 @@ void CG_Shard( centity_t *cent, vec3_t origin, vec3_t dir ) {
 				re->hModel = CG_FxModel( "wolf/controller_shard", "shardCeramic2" );
 			}
 		} else if ( type == 4 )     { // rubble
-			rval = rand() % 3;
+			rval = cgRandom.RandomInt() % 3;
 
 			if ( rval == 1 ) {
 				re->hModel = CG_FxModel( "wolf/controller_shard", "shardRubble1" );
@@ -1331,34 +1340,34 @@ void CG_Shard( centity_t *cent, vec3_t origin, vec3_t dir ) {
 			le->pos.trType = TR_GRAVITY;
 		}
 
-		VectorCopy( origin, le->pos.trBase );
-		VectorNormalize( dir );
-		VectorScale( dir, CG_FxInt( "wolf/controller_shard", "tuning" ) * howmany, le->pos.trDelta );
+		le->pos.trBase = origin;
+		(dir).Normalize();
+		le->pos.trDelta = dir * (CG_FxInt( "wolf/controller_shard", "tuning" ) * howmany);
 		le->pos.trTime = cg.time;
-		le->pos.trDelta[0] += ( ( random() * CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_x" ) ) - CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_x_2" ) );
-		le->pos.trDelta[1] += ( ( random() * CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_y" ) ) - CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_y_2" ) );
+		le->pos.trDelta[0] += ( ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_x" ) ) - CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_x_2" ) );
+		le->pos.trDelta[1] += ( ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_y" ) ) - CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_y_2" ) );
 		if ( type ) {
-			le->pos.trDelta[2] = ( random() * CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_z" ) ) + CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_z_2" );    // randomize sort of a lot so they don't all land together
+			le->pos.trDelta[2] = ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_z" ) ) + CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_z_2" );    // randomize sort of a lot so they don't all land together
 		} else { // glass
-			le->pos.trDelta[2] = ( random() * CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_z_3" ) ) + CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_z_4" ); // randomize sort of a lot so they don't all land together
+			le->pos.trDelta[2] = ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_z_3" ) ) + CG_FxInt( "wolf/controller_shard", "le_pos_trDelta_z_4" ); // randomize sort of a lot so they don't all land together
 
 		}
 		// rotation
 		le->angles.trType = TR_LINEAR;
 		le->angles.trTime = cg.time;
-		le->angles.trBase[0] = rand() & CG_FxInt( "wolf/controller_shard", "le_angles_trBase_x" );
-		le->angles.trBase[1] = rand() & CG_FxInt( "wolf/controller_shard", "le_angles_trBase_y" );
-		le->angles.trBase[2] = rand() & CG_FxInt( "wolf/controller_shard", "le_angles_trBase_z" );
-		le->angles.trDelta[0] = ( CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_x" ) + ( rand() & CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_x_2" ) ) ) - CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_x_3" );
-		le->angles.trDelta[1] = ( CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_y" ) + ( rand() & CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_y_2" ) ) ) - CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_y_3" );
-		le->angles.trDelta[2] = ( CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_z" ) + ( rand() & CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_z_2" ) ) ) - CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_z_3" );
+		le->angles.trBase[0] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_shard", "le_angles_trBase_x" );
+		le->angles.trBase[1] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_shard", "le_angles_trBase_y" );
+		le->angles.trBase[2] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_shard", "le_angles_trBase_z" );
+		le->angles.trDelta[0] = ( CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_x" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_x_2" ) ) ) - CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_x_3" );
+		le->angles.trDelta[1] = ( CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_y" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_y_2" ) ) ) - CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_y_3" );
+		le->angles.trDelta[2] = ( CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_z" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_z_2" ) ) ) - CG_FxInt( "wolf/controller_shard", "le_angles_trDelta_z_3" );
 
 	}
 
 }
 
 
-void CG_ShardJunk( centity_t *cent, vec3_t origin, vec3_t dir ) {
+void CG_ShardJunk( centity_t *cent, idVec3 origin, idVec3 dir ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
 	int type;
@@ -1370,7 +1379,7 @@ void CG_ShardJunk( centity_t *cent, vec3_t origin, vec3_t dir ) {
 
 	le->leType              = LE_FRAGMENT;
 	le->startTime           = cg.time;
-	le->endTime             = le->startTime + CG_FxInt( "wolf/controller_shardjunk", "le_endTime" ) + random() * CG_FxInt( "wolf/controller_shardjunk", "le_endTime_2" );
+	le->endTime             = le->startTime + CG_FxInt( "wolf/controller_shardjunk", "le_endTime" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shardjunk", "le_endTime_2" );
 
 	re->fadeStartTime       = le->endTime - CG_FxInt( "wolf/controller_shardjunk", "re__fadeStartTime_value" );
 	re->fadeEndTime         = le->endTime;
@@ -1380,32 +1389,34 @@ void CG_ShardJunk( centity_t *cent, vec3_t origin, vec3_t dir ) {
 	le->bounceFactor        = CG_FxValue( "wolf/controller_shardjunk", "le_bounceFactor" );
 	le->leMarkType          = (leMarkType_t)0;
 
-	VectorCopy( origin, re->origin );
-	AxisCopy( axisDefault, re->axis );
+	re->origin = origin;
+	re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 
-	re->hModel = cgs.media.shardJunk[rand() % MAX_LOCKER_DEBRIS];
+	re->hModel = cgs.media.shardJunk[cgRandom.RandomInt() % MAX_LOCKER_DEBRIS];
 
 	le->pos.trType = TR_GRAVITY;
 
-	VectorCopy( origin, le->pos.trBase );
-	VectorNormalize( dir );
-	VectorScale( dir, CG_FxInt( "wolf/controller_shardjunk", "tuning" ) * CG_FxInt( "wolf/controller_shardjunk", "tuning_2" ), le->pos.trDelta );
+	le->pos.trBase = origin;
+	(dir).Normalize();
+	le->pos.trDelta = dir * (CG_FxInt( "wolf/controller_shardjunk", "tuning" ) * CG_FxInt( "wolf/controller_shardjunk", "tuning_2" ));
 	le->pos.trTime = cg.time;
-	le->pos.trDelta[0] += ( ( random() * CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_x" ) ) - CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_x_2" ) );
-	le->pos.trDelta[1] += ( ( random() * CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_y" ) ) - CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_y_2" ) );
+	le->pos.trDelta[0] += ( ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_x" ) ) - CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_x_2" ) );
+	le->pos.trDelta[1] += ( ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_y" ) ) - CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_y_2" ) );
 
-	le->pos.trDelta[2] = ( random() * CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_z" ) ) + CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_z_2" ); // randomize sort of a lot so they don't all land together
+	le->pos.trDelta[2] = ( cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_z" ) ) + CG_FxInt( "wolf/controller_shardjunk", "le_pos_trDelta_z_2" ); // randomize sort of a lot so they don't all land together
 
 	// rotation
 	le->angles.trType = TR_LINEAR;
 	le->angles.trTime = cg.time;
-	//le->angles.trBase[0] = rand()&31;
-	//le->angles.trBase[1] = rand()&31;
-	le->angles.trBase[2] = rand() & CG_FxInt( "wolf/controller_shardjunk", "le_angles_trBase_z" );
+	//le->angles.trBase[0] = cgRandom.RandomInt()&31;
+	//le->angles.trBase[1] = cgRandom.RandomInt()&31;
+	le->angles.trBase[2] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_shardjunk", "le_angles_trBase_z" );
 
-	//le->angles.trDelta[0] = (100 + (rand()&500)) - 300;
-	//le->angles.trDelta[1] = (100 + (rand()&500)) - 300;
-	le->angles.trDelta[2] = ( CG_FxInt( "wolf/controller_shardjunk", "le_angles_trDelta_z" ) + ( rand() & CG_FxInt( "wolf/controller_shardjunk", "le_angles_trDelta_z_2" ) ) ) - CG_FxInt( "wolf/controller_shardjunk", "le_angles_trDelta_z_3" );
+	//le->angles.trDelta[0] = (100 + (cgRandom.RandomInt()&500)) - 300;
+	//le->angles.trDelta[1] = (100 + (cgRandom.RandomInt()&500)) - 300;
+	le->angles.trDelta[2] = ( CG_FxInt( "wolf/controller_shardjunk", "le_angles_trDelta_z" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_shardjunk", "le_angles_trDelta_z_2" ) ) ) - CG_FxInt( "wolf/controller_shardjunk", "le_angles_trDelta_z_3" );
 
 }
 
@@ -1416,7 +1427,7 @@ void CG_BatDeath( centity_t *cent ) {
 void CG_SpawnSpirit( centity_t *cent ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
-	vec3_t enemyPos, v, ang;
+	idVec3 enemyPos, v, ang;
 
 	le = CG_FxSpawnModel( "wolf/controller_spawnspirit" );
 	re = &le->refEntity;
@@ -1433,8 +1444,8 @@ void CG_SpawnSpirit( centity_t *cent ) {
 
 	le->pos.trType = TR_LINEAR;
 	le->pos.trTime = cg.time;
-	VectorCopy( cent->currentState.origin, le->pos.trBase );
-	VectorClear( le->pos.trDelta );
+	le->pos.trBase = cent->currentState.origin;
+	le->pos.trDelta.Zero();
 
 	le->effectWidth = CG_FxInt( "wolf/controller_spawnspirit", "le_effectWidth" );
 	le->radius = CG_FxValue( "wolf/controller_spawnspirit", "le_radius" );
@@ -1450,18 +1461,19 @@ void CG_SpawnSpirit( centity_t *cent ) {
 
 	// get direction to enemy
 	if ( cg_entities[le->ownerNum].currentState.otherEntityNum2 == cg.snap->ps.clientNum ) {
-		VectorCopy( cg.snap->ps.origin, enemyPos );
+		enemyPos = cg.snap->ps.origin;
 		enemyPos[2] += cg.snap->ps.viewheight;
 	} else {
-		VectorCopy( cg_entities[le->ownerNum].currentState.origin2, enemyPos );
+		enemyPos = cg_entities[le->ownerNum].currentState.origin2;
 	}
 
 	// set angles
-	VectorSubtract( enemyPos, le->pos.trBase, v );
-	VectorNormalize( v );
-	vectoangles( v, ang );
-	AnglesToAxis( ang, re->axis );
-	VectorScale( v, CG_FxInt( "wolf/controller_spawnspirit", "tuning" ), le->pos.trDelta );
+	v = enemyPos - le->pos.trBase;
+	(v).Normalize();
+	const idAngles directionAngles = v.ToAngles();
+	ang.Set( directionAngles.pitch, directionAngles.yaw, directionAngles.roll );
+	idAngles( ang[0], ang[1], ang[2] ).ToVectors( &re->axis[0], &re->axis[1], &re->axis[2] );
+	le->pos.trDelta = v * (CG_FxInt( "wolf/controller_spawnspirit", "tuning" ));
 
 }
 
@@ -1474,10 +1486,10 @@ also called by CG_CheckPlayerstateEvents
 ==============
 */
 #define DEBUGNAME( x ) if ( cg_debugEvents.integer ) {CG_Printf( x "\n" );}
-void CG_EntityEvent( centity_t *cent, vec3_t position ) {
+void CG_EntityEvent( centity_t *cent, const idVec3 &position ) {
 	entityState_t   *es;
 	int event;
-	vec3_t dir;
+	idVec3 dir;
 	const char      *s;
 	int clientNum;
 	clientInfo_t    *ci;
@@ -1826,7 +1838,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 //			trap_R_SetFog(FOG_CMD_SWITCHFOG, FOG_WATER, 200, 0, 0, 0, 0);
 			char buff[64];
 			trap_Cvar_VariableStringBuffer( "r_waterFogColor", buff, sizeof( buff ) );
-			trap_SendClientCommand( va( "fogswitch %s", buff ) );
+			trap_SendClientCommand( idStr::FormatString( "fogswitch %s", buff ) );
 		}
 		break;
 	case EV_WATER_CLEAR:
@@ -1838,7 +1850,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 //			trap_R_SetFog(FOG_CMD_SWITCHFOG, FOG_MAP, 400,0,0,0,0);
 			char buff[64];
 			trap_Cvar_VariableStringBuffer( "r_mapFogColor", buff, sizeof( buff ) );
-			trap_SendClientCommand( va( "fogswitch %s", buff ) );
+			trap_SendClientCommand( idStr::FormatString( "fogswitch %s", buff ) );
 		}
 		break;
 
@@ -2158,19 +2170,19 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			flags = es->eventParm;
 			flags = ( flags << 12 );
 			if ( flags & SURF_WOOD ) { // SURF_WOOD
-				if ( rand() & 1 ) {
+				if ( cgRandom.RandomInt() & 1 ) {
 					trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.grenadebounce[GRENBOUNCE_WOOD][0] );
 				} else { trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.grenadebounce[GRENBOUNCE_WOOD][1] );}
 			} else if ( flags & ( SURF_METAL | SURF_ROOF | SURF_GLASS ) ) { //	SURF_METAL | SURF_ROOF | SURF_GLASS
-				if ( rand() & 1 ) {
+				if ( cgRandom.RandomInt() & 1 ) {
 					trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.grenadebounce[GRENBOUNCE_METAL][0] );
 				} else { trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.grenadebounce[GRENBOUNCE_METAL][1] );}
 			} else if ( flags & ( SURF_GRASS | SURF_GRAVEL | SURF_SNOW | SURF_CARPET ) ) {  //SURF_GRASS | SURF_GRAVEL | SURF_SNOW | SURF_CARPET
-				if ( rand() & 1 ) {
+				if ( cgRandom.RandomInt() & 1 ) {
 					trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.grenadebounce[GRENBOUNCE_DIRT][0] );
 				} else { trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.grenadebounce[GRENBOUNCE_DIRT][1] );}
 			} else {
-				if ( rand() & 1 ) {
+				if ( cgRandom.RandomInt() & 1 ) {
 					trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.grenadebounce[GRENBOUNCE_DEFAULT][0] );
 				} else { trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.grenadebounce[GRENBOUNCE_DEFAULT][1] );}
 			}
@@ -2179,7 +2191,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 
 	case EV_FLAMEBARREL_BOUNCE:
 		DEBUGNAME( "EV_FLAMEBARREL_BOUNCE" );
-		if ( rand() & 1 ) {
+		if ( cgRandom.RandomInt() & 1 ) {
 			trap_S_StartSound( NULL, es->number, CHAN_AUTO, cgs.media.fbarrelexp1 );
 		} else {
 			trap_S_StartSound( NULL, es->number, CHAN_AUTO,  cgs.media.fbarrelexp2 );
@@ -2254,7 +2266,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		break;
 
 	case EV_POPUPBOOK:
-		trap_UI_Popup( va( "hbook%d", es->eventParm ) );
+		trap_UI_Popup( idStr::FormatString( "hbook%d", es->eventParm ) );
 		break;
 
 	case EV_POPUP:
@@ -2272,7 +2284,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	{
 		int havepages = cg_notebookpages.integer;
 		havepages |= es->eventParm;
-		trap_Cvar_Set( "cg_notebookpages", va( "%d", havepages ) );  // store new current page name for the ui to pick up
+		trap_Cvar_Set( "cg_notebookpages", idStr::FormatString( "%d", havepages ) );  // store new current page name for the ui to pick up
 		trap_Cvar_Set( "cg_youGotMail", "1" );  //----(SA)	added
 	}
 	break;
@@ -2351,7 +2363,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 //		trap_S_StopStreamingSound( es->number );												// kill speech
 
 		trap_S_StartSound( NULL, es->number, CHAN_VOICE,
-						   CG_CustomSound( es->number, va( "*death%i.wav", event - EV_DEATH1 + 1 ) ) );
+						   CG_CustomSound( es->number, idStr::FormatString( "*death%i.wav", event - EV_DEATH1 + 1 ) ) );
 		break;
 
 	case EV_ENTDEATH:
@@ -2366,27 +2378,27 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			// explosions that's reasonable.  This will be an early thing to get fixed in future work
 		{
 			int i, j;
-			vec3_t sprVel, sprOrg;
+			idVec3 sprVel, sprOrg;
 
-			VectorCopy( cent->lerpAngles, dir );
-			VectorNormalize( dir );
+			dir = cent->lerpAngles;
+			(dir).Normalize();
 
 			// explosion sprite animation
 //					VectorScale( dir, 16, sprVel );
-			VectorScale( dir, 6, sprVel );
+			sprVel = dir * (6);
 
 			for ( i = 0; i < 5; i++ ) {
 				for ( j = 0; j < 3; j++ )
-					sprOrg[j] = cent->lerpOrigin[j] + 2 * dir[j] + 4 * crandom();
-				sprVel[2] += rand() % 10;
-				CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value" ) + rand() % CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value_2" ), CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value_3" ), CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value_4" ) + rand() % CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value_5" ) );
+					sprOrg[j] = cent->lerpOrigin[j] + 2 * dir[j] + 4 * cgRandom.CRandomFloat();
+				sprVel[2] += cgRandom.RandomInt() % 10;
+				CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value_2" ), CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value_3" ), CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value_4" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_entityevent", "ParticleExplosion_value_5" ) );
 			}
 
 			CG_AddDebris(   cent->lerpOrigin,
 							dir,
 							CG_FxInt( "wolf/controller_entityevent", "AddDebris_value" ),                 // speed
 							CG_FxInt( "wolf/controller_entityevent", "AddDebris_value_2" ),                   // duration
-							CG_FxInt( "wolf/controller_entityevent", "AddDebris_value_3" ) + rand() % CG_FxInt( "wolf/controller_entityevent", "AddDebris_value_4" ) );       // count
+							CG_FxInt( "wolf/controller_entityevent", "AddDebris_value_3" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_entityevent", "AddDebris_value_4" ) );       // count
 		}
 		break;
 		}
@@ -2438,7 +2450,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		DEBUGNAME( "EV_GIB_HEAD" );
 		trap_S_StartSound( NULL, es->number, CHAN_BODY, cgs.media.gibSound );
 		{
-			vec3_t vhead, vtorso, vlegs;
+			idVec3 vhead, vtorso, vlegs;
 			CG_GetBleedOrigin( vhead, vtorso, vlegs, cent->currentState.clientNum );
 			CG_GibHead( vhead );
 		}
@@ -2486,7 +2498,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			CG_ParticleSmoke( cgs.media.smokePuffShaderdirty, cent );
 		} else if ( cent->currentState.density == 7 ) {    // steam
 			// steam from panzerfaust casing
-			CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_2" ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_3" ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_4" ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_5" ), CG_FxValue( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_6" ) );
+			CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->currentState.origin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_2" ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_3" ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_4" ), CG_FxInt( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_5" ), CG_FxValue( "wolf/controller_entityevent", "ParticleImpactSmokePuffExtended_value_6" ) );
 		} else if ( !( cent->currentState.density ) ) {
 			CG_ParticleSmoke( cgs.media.smokePuffShader, cent );
 		} else {
@@ -2543,8 +2555,8 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		le->startTime = cg.time;
 		le->endTime = le->startTime + cent->currentState.time;      // 'time' stores lifetime
 		le->pos.trType = TR_STATIONARY;
-		VectorCopy( cent->currentState.origin, le->pos.trBase );
-		VectorCopy( cent->currentState.origin2, le->angles.trBase );
+		le->pos.trBase = cent->currentState.origin;
+		le->angles.trBase = cent->currentState.origin2;
 		le->ownerNum = 0;
 		le->radius = cent->currentState.density;        //	'density' stores pressure
 		le->headJuncIndex = cent->currentState.teamNum;     // 'type'
@@ -2586,12 +2598,12 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		int duration;
 		float x,y;
 		float speed;
-		vec3_t source, dest;
+		idVec3 source, dest;
 
 		if ( !( cent->currentState.density ) ) {
 			cent->currentState.density = 1;
 		}
-		numsparks = rand() % cent->currentState.density;
+		numsparks = cgRandom.RandomInt() % cent->currentState.density;
 		duration = cent->currentState.frame;
 		x = cent->currentState.angles2[0];
 		y = cent->currentState.angles2[1];
@@ -2604,12 +2616,12 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 		{
 
 			if ( event == EV_SPARKS_ELECTRIC ) {
-				VectorCopy( cent->currentState.origin, source );
+				source = cent->currentState.origin;
 
-				VectorCopy( source, dest );
-				dest[0] += ( ( rand() & 31 ) - 16 );
-				dest[1] += ( ( rand() & 31 ) - 16 );
-				dest[2] += ( ( rand() & 31 ) - 16 );
+				dest = source;
+				dest[0] += ( ( cgRandom.RandomInt() & 31 ) - 16 );
+				dest[1] += ( ( cgRandom.RandomInt() & 31 ) - 16 );
+				dest[2] += ( ( cgRandom.RandomInt() & 31 ) - 16 );
 
 				CG_Tracer( source, dest, 1 );
 			} else {
@@ -2700,7 +2712,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 			int i;
 			int rval;
 
-			rval = rand() % 3 + 3;
+			rval = cgRandom.RandomInt() % 3 + 3;
 
 			for ( i = 0; i < rval; i++ )
 				CG_ShardJunk( cent, position, dir );
@@ -2727,7 +2739,7 @@ void CG_EntityEvent( centity_t *cent, vec3_t position ) {
 	{
 		int rval;
 
-		rval = rand() & 3;
+		rval = cgRandom.RandomInt() & 3;
 
 		if ( splashfootstepcnt != rval ) {
 			splashfootstepcnt = rval;

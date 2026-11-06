@@ -35,12 +35,10 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
-#include "l_memory.h"
 #include "l_log.h"
-#include "l_utils.h"
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "l_libvar.h"
 #include "aasfile.h"
@@ -62,23 +60,23 @@ weightconfig_t  *weightFileList[MAX_WEIGHT_FILES];
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int ReadValue( source_t *source, float *value ) {
-	token_t token;
+int ReadValue( idParser *source, float *value ) {
+	idToken token;
 
-	if ( !PC_ExpectAnyToken( source, &token ) ) {
+	if ( !source->ExpectAnyToken( &token ) ) {
 		return qfalse;
 	}
-	if ( !strcmp( token.string, "-" ) ) {
-		SourceWarning( source, "negative value set to zero\n" );
-		if ( !PC_ExpectTokenType( source, TT_NUMBER, 0, &token ) ) {
+	if ( !strcmp( token.c_str(), "-" ) ) {
+		source->Warning( "negative value set to zero\n" );
+		if ( !source->ExpectTokenType( TT_NUMBER, 0, &token ) ) {
 			return qfalse;
 		}
 	} //end if
 	if ( token.type != TT_NUMBER ) {
-		SourceError( source, "invalid return value %s\n", token.string );
+		source->Error( "invalid return value %s\n", token.c_str() );
 		return qfalse;
 	} //end if
-	*value = token.floatvalue;
+	*value = token.GetFloatValue();
 	return qtrue;
 } //end of the function ReadValue
 //===========================================================================
@@ -87,28 +85,28 @@ int ReadValue( source_t *source, float *value ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int ReadFuzzyWeight( source_t *source, fuzzyseperator_t *fs ) {
-	if ( PC_CheckTokenString( source, "balance" ) ) {
+int ReadFuzzyWeight( idParser *source, fuzzyseperator_t *fs ) {
+	if ( source->CheckTokenString( "balance" ) ) {
 		fs->type = WT_BALANCE;
-		if ( !PC_ExpectTokenString( source, "(" ) ) {
+		if ( !source->ExpectTokenString( "(" ) ) {
 			return qfalse;
 		}
 		if ( !ReadValue( source, &fs->weight ) ) {
 			return qfalse;
 		}
-		if ( !PC_ExpectTokenString( source, "," ) ) {
+		if ( !source->ExpectTokenString( "," ) ) {
 			return qfalse;
 		}
 		if ( !ReadValue( source, &fs->minweight ) ) {
 			return qfalse;
 		}
-		if ( !PC_ExpectTokenString( source, "," ) ) {
+		if ( !source->ExpectTokenString( "," ) ) {
 			return qfalse;
 		}
 		if ( !ReadValue( source, &fs->maxweight ) ) {
 			return qfalse;
 		}
-		if ( !PC_ExpectTokenString( source, ")" ) ) {
+		if ( !source->ExpectTokenString( ")" ) ) {
 			return qfalse;
 		}
 	} //end if
@@ -121,7 +119,7 @@ int ReadFuzzyWeight( source_t *source, fuzzyseperator_t *fs ) {
 		fs->minweight = fs->weight;
 		fs->maxweight = fs->weight;
 	} //end if
-	if ( !PC_ExpectTokenString( source, ";" ) ) {
+	if ( !source->ExpectTokenString( ";" ) ) {
 		return qfalse;
 	}
 	return qtrue;
@@ -142,7 +140,7 @@ void FreeFuzzySeperators_r( fuzzyseperator_t *fs ) {
 	if ( fs->next ) {
 		FreeFuzzySeperators_r( fs->next );
 	}
-	FreeMemory( fs );
+	Mem_Free( fs );
 } //end of the function FreeFuzzySeperators
 //===========================================================================
 //
@@ -157,10 +155,10 @@ void FreeWeightConfig2( weightconfig_t *config ) {
 	{
 		FreeFuzzySeperators_r( config->weights[i].firstseperator );
 		if ( config->weights[i].name ) {
-			FreeMemory( config->weights[i].name );
+			Mem_Free( config->weights[i].name );
 		}
 	} //end for
-	FreeMemory( config );
+	Mem_Free( config );
 } //end of the function FreeWeightConfig2
 //===========================================================================
 //
@@ -180,35 +178,35 @@ void FreeWeightConfig( weightconfig_t *config ) {
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-fuzzyseperator_t *ReadFuzzySeperators_r( source_t *source ) {
+fuzzyseperator_t *ReadFuzzySeperators_r( idParser *source ) {
 	int newindent, index, def, founddefault;
-	token_t token;
+	idToken token;
 	fuzzyseperator_t *fs, *lastfs, *firstfs;
 
 	founddefault = qfalse;
 	firstfs = NULL;
 	lastfs = NULL;
-	if ( !PC_ExpectTokenString( source, "(" ) ) {
+	if ( !source->ExpectTokenString( "(" ) ) {
 		return NULL;
 	}
-	if ( !PC_ExpectTokenType( source, TT_NUMBER, TT_INTEGER, &token ) ) {
+	if ( !source->ExpectTokenType( TT_NUMBER, TT_INTEGER, &token ) ) {
 		return NULL;
 	}
-	index = token.intvalue;
-	if ( !PC_ExpectTokenString( source, ")" ) ) {
+	index = token.GetIntValue();
+	if ( !source->ExpectTokenString( ")" ) ) {
 		return NULL;
 	}
-	if ( !PC_ExpectTokenString( source, "{" ) ) {
+	if ( !source->ExpectTokenString( "{" ) ) {
 		return NULL;
 	}
-	if ( !PC_ExpectAnyToken( source, &token ) ) {
+	if ( !source->ExpectAnyToken( &token ) ) {
 		return NULL;
 	}
 	do
 	{
-		def = !strcmp( token.string, "default" );
-		if ( def || !strcmp( token.string, "case" ) ) {
-			fs = (fuzzyseperator_t *) GetClearedMemory( sizeof( fuzzyseperator_t ) );
+		def = !strcmp( token.c_str(), "default" );
+		if ( def || !strcmp( token.c_str(), "case" ) ) {
+			fs = (fuzzyseperator_t *) Mem_ClearedAlloc( sizeof( fuzzyseperator_t ), TAG_BOTLIB );
 			fs->index = index;
 			if ( lastfs ) {
 				lastfs->next = fs;
@@ -216,7 +214,7 @@ fuzzyseperator_t *ReadFuzzySeperators_r( source_t *source ) {
 			lastfs = fs;
 			if ( def ) {
 				if ( founddefault ) {
-					SourceError( source, "switch already has a default\n" );
+					source->Error( "switch already has a default\n" );
 					FreeFuzzySeperators_r( firstfs );
 					return NULL;
 				} //end if
@@ -225,31 +223,31 @@ fuzzyseperator_t *ReadFuzzySeperators_r( source_t *source ) {
 			} //end if
 			else
 			{
-				if ( !PC_ExpectTokenType( source, TT_NUMBER, TT_INTEGER, &token ) ) {
+				if ( !source->ExpectTokenType( TT_NUMBER, TT_INTEGER, &token ) ) {
 					FreeFuzzySeperators_r( firstfs );
 					return NULL;
 				} //end if
-				fs->value = token.intvalue;
+				fs->value = token.GetIntValue();
 			} //end else
-			if ( !PC_ExpectTokenString( source, ":" ) || !PC_ExpectAnyToken( source, &token ) ) {
+			if ( !source->ExpectTokenString( ":" ) || !source->ExpectAnyToken( &token ) ) {
 				FreeFuzzySeperators_r( firstfs );
 				return NULL;
 			} //end if
 			newindent = qfalse;
-			if ( !strcmp( token.string, "{" ) ) {
+			if ( !strcmp( token.c_str(), "{" ) ) {
 				newindent = qtrue;
-				if ( !PC_ExpectAnyToken( source, &token ) ) {
+				if ( !source->ExpectAnyToken( &token ) ) {
 					FreeFuzzySeperators_r( firstfs );
 					return NULL;
 				} //end if
 			} //end if
-			if ( !strcmp( token.string, "return" ) ) {
+			if ( !strcmp( token.c_str(), "return" ) ) {
 				if ( !ReadFuzzyWeight( source, fs ) ) {
 					FreeFuzzySeperators_r( firstfs );
 					return NULL;
 				} //end if
 			} //end if
-			else if ( !strcmp( token.string, "switch" ) ) {
+			else if ( !strcmp( token.c_str(), "switch" ) ) {
 				fs->child = ReadFuzzySeperators_r( source );
 				if ( !fs->child ) {
 					FreeFuzzySeperators_r( firstfs );
@@ -258,11 +256,11 @@ fuzzyseperator_t *ReadFuzzySeperators_r( source_t *source ) {
 			} //end else if
 			else
 			{
-				SourceError( source, "invalid name %s\n", token.string );
+				source->Error( "invalid name %s\n", token.c_str() );
 				return NULL;
 			} //end else
 			if ( newindent ) {
-				if ( !PC_ExpectTokenString( source, "}" ) ) {
+				if ( !source->ExpectTokenString( "}" ) ) {
 					FreeFuzzySeperators_r( firstfs );
 					return NULL;
 				} //end if
@@ -271,18 +269,18 @@ fuzzyseperator_t *ReadFuzzySeperators_r( source_t *source ) {
 		else
 		{
 			FreeFuzzySeperators_r( firstfs );
-			SourceError( source, "invalid name %s\n", token.string );
+			source->Error( "invalid name %s\n", token.c_str() );
 			return NULL;
 		} //end else
-		if ( !PC_ExpectAnyToken( source, &token ) ) {
+		if ( !source->ExpectAnyToken( &token ) ) {
 			FreeFuzzySeperators_r( firstfs );
 			return NULL;
 		} //end if
-	} while ( strcmp( token.string, "}" ) );
+	} while ( strcmp( token.c_str(), "}" ) );
 	//
 	if ( !founddefault ) {
-		SourceWarning( source, "switch without default\n" );
-		fs = (fuzzyseperator_t *) GetClearedMemory( sizeof( fuzzyseperator_t ) );
+		source->Warning( "switch without default\n" );
+		fs = (fuzzyseperator_t *) Mem_ClearedAlloc( sizeof( fuzzyseperator_t ), TAG_BOTLIB );
 		fs->index = index;
 		fs->value = MAX_INVENTORYVALUE;
 		fs->weight = 0;
@@ -304,8 +302,8 @@ fuzzyseperator_t *ReadFuzzySeperators_r( source_t *source ) {
 //===========================================================================
 weightconfig_t *ReadWeightConfig( char *filename ) {
 	int newindent, avail = 0, n;
-	token_t token;
-	source_t *source;
+	idToken token;
+	idParser *source;
 	fuzzyseperator_t *fs;
 	weightconfig_t *config = NULL;
 #ifdef DEBUG
@@ -337,79 +335,80 @@ weightconfig_t *ReadWeightConfig( char *filename ) {
 		} //end if
 	} //end if
 
-	source = LoadSourceFile( filename );
-	if ( !source ) {
+	source = new idParser( filename );
+	if ( !source->IsLoaded() ) {
+		delete source;
 		botimport.Print( PRT_ERROR, "counldn't load %s\n", filename );
 		return NULL;
 	} //end if
 	  //
-	config = (weightconfig_t *) GetClearedMemory( sizeof( weightconfig_t ) );
+	config = (weightconfig_t *) Mem_ClearedAlloc( sizeof( weightconfig_t ), TAG_BOTLIB );
 	config->numweights = 0;
-	Q_strncpyz( config->filename, filename, sizeof( config->filename ) );
+	idStr::Copynz( config->filename, filename, sizeof( config->filename ) );
 	//parse the item config file
-	while ( PC_ReadToken( source, &token ) )
+	while ( source->ReadToken( &token ) )
 	{
-		if ( !strcmp( token.string, "weight" ) ) {
+		if ( !strcmp( token.c_str(), "weight" ) ) {
 			if ( config->numweights >= MAX_WEIGHTS ) {
-				SourceWarning( source, "too many fuzzy weights\n" );
+				source->Warning( "too many fuzzy weights\n" );
 				break;
 			} //end if
-			if ( !PC_ExpectTokenType( source, TT_STRING, 0, &token ) ) {
+			if ( !source->ExpectTokenType( TT_STRING, 0, &token ) ) {
 				FreeWeightConfig( config );
-				FreeSource( source );
+				delete source;
 				return NULL;
 			} //end if
-			StripDoubleQuotes( token.string );
-			config->weights[config->numweights].name = (char *) GetClearedMemory( strlen( token.string ) + 1 );
-			strcpy( config->weights[config->numweights].name, token.string );
-			if ( !PC_ExpectAnyToken( source, &token ) ) {
+			token.Strip( "\"" );
+			config->weights[config->numweights].name = (char *) Mem_ClearedAlloc( strlen( token.c_str() ) + 1, TAG_BOTLIB );
+			strcpy( config->weights[config->numweights].name, token.c_str() );
+			if ( !source->ExpectAnyToken( &token ) ) {
 				FreeWeightConfig( config );
-				FreeSource( source );
+				delete source;
 				return NULL;
 			} //end if
 			newindent = qfalse;
-			if ( !strcmp( token.string, "{" ) ) {
+			if ( !strcmp( token.c_str(), "{" ) ) {
 				newindent = qtrue;
-				if ( !PC_ExpectAnyToken( source, &token ) ) {
+				if ( !source->ExpectAnyToken( &token ) ) {
 					FreeWeightConfig( config );
-					FreeSource( source );
+					delete source;
 					return NULL;
 				} //end if
 			} //end if
-			if ( !strcmp( token.string, "switch" ) ) {
+			if ( !strcmp( token.c_str(), "switch" ) ) {
 				fs = ReadFuzzySeperators_r( source );
 				if ( !fs ) {
 					FreeWeightConfig( config );
-					FreeSource( source );
+					delete source;
 					return NULL;
 				} //end if
 				config->weights[config->numweights].firstseperator = fs;
 			} //end if
-			else if ( !strcmp( token.string, "return" ) ) {
-				fs = (fuzzyseperator_t *) GetClearedMemory( sizeof( fuzzyseperator_t ) );
+			else if ( !strcmp( token.c_str(), "return" ) ) {
+				fs = (fuzzyseperator_t *) Mem_ClearedAlloc( sizeof( fuzzyseperator_t ), TAG_BOTLIB );
 				fs->index = 0;
 				fs->value = MAX_INVENTORYVALUE;
 				fs->next = NULL;
 				fs->child = NULL;
 				if ( !ReadFuzzyWeight( source, fs ) ) {
-					FreeMemory( fs );
+					Mem_Free( fs );
 					FreeWeightConfig( config );
-					FreeSource( source );
+					delete source;
 					return NULL;
 				} //end if
 				config->weights[config->numweights].firstseperator = fs;
 			} //end else if
 			else
 			{
-				SourceError( source, "invalid name %s\n", token.string );
+				source->Error( "invalid name %s\n", token.c_str() );
 				FreeWeightConfig( config );
-				FreeSource( source );
+				delete source;
 				return NULL;
 			} //end else
 			if ( newindent ) {
-				if ( !PC_ExpectTokenString( source, "}" ) ) {
+				if ( !source->ExpectTokenString( "}" ) ) {
 					FreeWeightConfig( config );
-					FreeSource( source );
+					delete source;
 					return NULL;
 				} //end if
 			} //end if
@@ -417,14 +416,14 @@ weightconfig_t *ReadWeightConfig( char *filename ) {
 		} //end if
 		else
 		{
-			SourceError( source, "invalid name %s\n", token.string );
+			source->Error( "invalid name %s\n", token.c_str() );
 			FreeWeightConfig( config );
-			FreeSource( source );
+			delete source;
 			return NULL;
 		} //end else
 	} //end while
 	  //free the source at the end of a pass
-	FreeSource( source );
+	delete source;
 	//if the file was located in a pak file
 	botimport.Print( PRT_MESSAGE, "loaded %s\n", filename );
 #ifdef DEBUG
@@ -674,18 +673,18 @@ float FuzzyWeightUndecided_r( int *inventory, fuzzyseperator_t *fs ) {
 	if ( inventory[fs->index] < fs->value ) {
 		if ( fs->child ) {
 			return FuzzyWeightUndecided_r( inventory, fs->child );
-		} else { return fs->minweight + random() * ( fs->maxweight - fs->minweight );}
+		} else { return fs->minweight + botlibRandom.RandomFloat() * ( fs->maxweight - fs->minweight );}
 	} //end if
 	else if ( fs->next ) {
 		if ( inventory[fs->index] < fs->next->value ) {
 			//first weight
 			if ( fs->child ) {
 				w1 = FuzzyWeightUndecided_r( inventory, fs->child );
-			} else { w1 = fs->minweight + random() * ( fs->maxweight - fs->minweight );}
+			} else { w1 = fs->minweight + botlibRandom.RandomFloat() * ( fs->maxweight - fs->minweight );}
 			//second weight
 			if ( fs->next->child ) {
 				w2 = FuzzyWeight_r( inventory, fs->next->child );
-			} else { w2 = fs->next->minweight + random() * ( fs->next->maxweight - fs->next->minweight );}
+			} else { w2 = fs->next->minweight + botlibRandom.RandomFloat() * ( fs->next->maxweight - fs->next->minweight );}
 			//the scale factor
 			scale = ( inventory[fs->index] - fs->value ) / ( fs->next->value - fs->value );
 			//scale between the two weights
@@ -749,13 +748,13 @@ float FuzzyWeightUndecided( int *inventory, weightconfig_t *wc, int weightnum ) 
 		if ( inventory[s->index] < s->value ) {
 			if ( s->child ) {
 				s = s->child;
-			} else { return s->minweight + random() * ( s->maxweight - s->minweight );}
+			} else { return s->minweight + botlibRandom.RandomFloat() * ( s->maxweight - s->minweight );}
 		} //end if
 		else
 		{
 			if ( s->next ) {
 				s = s->next;
-			} else { return s->minweight + random() * ( s->maxweight - s->minweight );}
+			} else { return s->minweight + botlibRandom.RandomFloat() * ( s->maxweight - s->minweight );}
 		} //end else
 	} //end if
 	return 0;
@@ -773,9 +772,9 @@ void EvolveFuzzySeperator_r( fuzzyseperator_t *fs ) {
 	} //end if
 	else if ( fs->type == WT_BALANCE ) {
 		//every once in a while an evolution leap occurs, mutation
-		if ( random() < 0.01 ) {
-			fs->weight += crandom() * ( fs->maxweight - fs->minweight );
-		} else { fs->weight += crandom() * ( fs->maxweight - fs->minweight ) * 0.5;}
+		if ( botlibRandom.RandomFloat() < 0.01 ) {
+			fs->weight += botlibRandom.CRandomFloat() * ( fs->maxweight - fs->minweight );
+		} else { fs->weight += botlibRandom.CRandomFloat() * ( fs->maxweight - fs->minweight ) * 0.5;}
 		//modify bounds if necesary because of mutation
 		if ( fs->weight < fs->minweight ) {
 			fs->minweight = fs->weight;

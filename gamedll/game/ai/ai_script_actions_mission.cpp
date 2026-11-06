@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -33,9 +35,10 @@ AICast_ScriptAction_GotoCast
 */
 qboolean AICast_ScriptAction_GotoCast( cast_state_t *cs, char *params ) {
 #define SCRIPT_REACHCAST_DIST 64
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	gentity_t *ent;
-	vec3_t vec, org;
+	idVec3 vec, org;
 	int i, diff;
 
 	ent = NULL;
@@ -49,8 +52,8 @@ qboolean AICast_ScriptAction_GotoCast( cast_state_t *cs, char *params ) {
 		return qfalse;
 	}
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI scripting: gotocast must have an ainame\n" );
 	}
@@ -59,34 +62,37 @@ qboolean AICast_ScriptAction_GotoCast( cast_state_t *cs, char *params ) {
 	if ( cs->script.castScriptStatus.scriptGotoEnt >= 0 &&
 		 cs->script.castScriptStatus.scriptGotoId == cs->thinkFuncChangeTime ) {
 		ent = &g_entities[cs->script.castScriptStatus.scriptGotoEnt];
-		if ( ent->targetname && !Q_strcasecmp( ent->targetname, token ) ) {
-			if ( Distance( cs->clientState->origin, ent->r.currentOrigin ) < cs->navigation.followDist ) {
+		if ( ent->targetname && !idStr::Icmp( ent->targetname, token.c_str() ) ) {
+			if ( ( cs->clientState->origin - ent->r.currentOrigin ).Length() < cs->navigation.followDist ) {
 				cs->navigation.followTime = 0;
 				AIFunc_IdleStart( cs ); // resume normal AI
 				return qtrue;
 			} else {
 				// do we have a firetarget ?
-				token = COM_ParseExt( &pString, qfalse );
+				lexer.ReadTokenOnLine( &token );
 				if ( !token[0] ) {
 					AICast_NoAttackIfNotHurtSinceLastScriptAction( cs );
 				} else { // yes we do
 					// find this targetname
-					ent = G_Find( NULL, FOFS( targetname ), token );
+					ent = G_Find( NULL, FOFS( targetname ), ( char * ) token.c_str() );
 					if ( !ent ) {
-						ent = AICast_FindEntityForName( token );
+						ent = AICast_FindEntityForName( ( char * ) token.c_str() );
 						if ( !ent ) {
-							G_Error( "AI Scripting: gotomarker cannot find targetname \"%s\"\n", token );
+							G_Error( "AI Scripting: gotomarker cannot find targetname \"%s\"\n", token.c_str() );
 						}
 					}
 
 					// set the view angle manually
 					BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
-					VectorSubtract( org, cs->clientState->origin, vec );
-					VectorNormalize( vec );
-					vectoangles( vec, cs->ideal_viewangles );
+					vec = org - cs->clientState->origin;
+					vec.Normalize();
+					{
+						const idAngles convertedAngles = vec.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					// noattack?
-					token = COM_ParseExt( &pString, qfalse );
-					if ( !token[0] || Q_stricmp( token, "noattack" ) ) {
+					lexer.ReadTokenOnLine( &token );
+					if ( !token[0] || idStr::Icmp( token.c_str(), "noattack" ) ) {
 						qboolean fire = qtrue;
 						// if it's an AI, and they aren't visible, dont shoot
 						if ( ent->r.svFlags & SVF_CASTAI ) {
@@ -121,17 +127,17 @@ qboolean AICast_ScriptAction_GotoCast( cast_state_t *cs, char *params ) {
 	}
 
 	// find the cast/player with the given "name"
-	ent = AICast_FindEntityForName( token );
+	ent = AICast_FindEntityForName( ( char * ) token.c_str() );
 	if ( !ent ) {
-		G_Error( "AI Scripting: can't find AI cast with \"ainame\" = \"%s\"\n", token );
+		G_Error( "AI Scripting: can't find AI cast with \"ainame\" = \"%s\"\n", token.c_str() );
 	}
 
-	if ( Distance( cs->clientState->origin, ent->r.currentOrigin ) < SCRIPT_REACHCAST_DIST ) { // we made it
+	if ( ( cs->clientState->origin - ent->r.currentOrigin ).Length() < SCRIPT_REACHCAST_DIST ) { // we made it
 		return qtrue;
 	}
 
 	if ( !ent ) {
-		G_Error( "AI Scripting: can't find ai_marker with \"targetname\" = \"%s\"\n", token );
+		G_Error( "AI Scripting: can't find ai_marker with \"targetname\" = \"%s\"\n", token.c_str() );
 	}
 
 	cs->script.castScriptStatus.scriptNoMoveTime = 0;
@@ -174,12 +180,13 @@ AICast_ScriptAction_Wait
 =================
 */
 qboolean AICast_ScriptAction_Wait( cast_state_t *cs, char *params ) {
-	char *pString, *token, *facetarget;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;	idToken facetarget;
 	int duration;
 	float moverange;
 	float dist;
 	gentity_t *ent;
-	vec3_t org, vec;
+	idVec3 org, vec;
 
 	// if we are in a special func, then wait
 	if ( cs->aiFlags & AIFL_SPECIAL_FUNC ) {
@@ -193,19 +200,19 @@ qboolean AICast_ScriptAction_Wait( cast_state_t *cs, char *params ) {
 
 	if ( ( cs->script.castScriptStatus.scriptFlags & SFL_FIRST_CALL ) && cs->clientState ) {
 		// first call, init the waitPos
-		VectorCopy( cs->clientState->origin, cs->script.castScriptStatus.scriptWaitPos );
+		cs->script.castScriptStatus.scriptWaitPos = cs->clientState->origin;
 	}
 
 	// get the duration
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI scripting: wait must have a duration\n" );
 	}
-	if ( !Q_stricmp( token, "forever" ) ) {
+	if ( !idStr::Icmp( token.c_str(), "forever" ) ) {
 		duration = level.time + 10000;
 	} else {
-		duration = atoi( token );
+		duration = atoi( token.c_str() );
 	}
 
 	// if this is for the player, don't worry about enforcing the moverange
@@ -213,16 +220,15 @@ qboolean AICast_ScriptAction_Wait( cast_state_t *cs, char *params ) {
 		return ( cs->script.castScriptStatus.castScriptStackChangeTime + duration < level.time );
 	}
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	// if this token is a number, then assume it is the moverange, otherwise we have a default moverange with a facetarget
 	moverange = -999;
-	facetarget = NULL;
 	if ( token[0] ) {
 		if ( toupper( token[0] ) >= 'A' && toupper( token[0] ) <= 'Z' ) {
 			facetarget = token;
 		} else { // we found a moverange
-			moverange = atof( token );
-			token = COM_ParseExt( &pString, qfalse );
+			moverange = atof( token.c_str() );
+			lexer.ReadTokenOnLine( &token );
 			if ( token[0] ) {
 				facetarget = token;
 			}
@@ -236,7 +242,7 @@ qboolean AICast_ScriptAction_Wait( cast_state_t *cs, char *params ) {
 
 	if ( moverange != 0 ) { // default to 200 if no range given
 		if ( moverange > 0 ) {
-			dist = Distance( cs->clientState->origin, cs->script.castScriptStatus.scriptWaitPos );
+			dist = ( cs->clientState->origin - cs->script.castScriptStatus.scriptWaitPos ).Length();
 			// if we are able to move, and have an enemy
 			if ( ( cs->script.castScriptStatus.scriptWaitMovetime < level.time ) && ( cs->enemyNum >= 0 ) ) {
 
@@ -272,20 +278,23 @@ qboolean AICast_ScriptAction_Wait( cast_state_t *cs, char *params ) {
 	}
 
 	// do we have a facetarget ?
-	if ( facetarget ) { // yes we do
+	if ( facetarget[0] ) { // yes we do
 		// find this targetname
-		ent = G_Find( NULL, FOFS( targetname ), facetarget );
+		ent = G_Find( NULL, FOFS( targetname ), ( char * ) facetarget.c_str() );
 		if ( !ent ) {
-			ent = AICast_FindEntityForName( facetarget );
+			ent = AICast_FindEntityForName( ( char * ) facetarget.c_str() );
 			if ( !ent ) {
-				G_Error( "AI Scripting: wait cannot find targetname \"%s\"\n", token );
+				G_Error( "AI Scripting: wait cannot find targetname \"%s\"\n", token.c_str() );
 			}
 		}
 		// set the view angle manually
 		BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
-		VectorSubtract( org, cs->clientState->origin, vec );
-		VectorNormalize( vec );
-		vectoangles( vec, cs->ideal_viewangles );
+		vec = org - cs->clientState->origin;
+		vec.Normalize();
+		{
+			const idAngles convertedAngles = vec.ToAngles();
+			cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+		}
 	}
 
 	return ( cs->script.castScriptStatus.castScriptStackChangeTime + duration < level.time );
@@ -302,19 +311,20 @@ AICast_ScriptAction_Trigger
 */
 qboolean AICast_ScriptAction_Trigger( cast_state_t *cs, char *params ) {
 	gentity_t *ent;
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int oldId;
 
 	// get the cast name
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI scripting: trigger must have a name and an identifier\n" );
 	}
 
-	ent = AICast_FindEntityForName( token );
+	ent = AICast_FindEntityForName( ( char * ) token.c_str() );
 	if ( !ent ) {
-		ent = G_Find( &g_entities[MAX_CLIENTS], FOFS( scriptName ), token );
+		ent = G_Find( &g_entities[MAX_CLIENTS], FOFS( scriptName ), ( char * ) token.c_str() );
 		if ( !ent ) {
 			if ( trap_Cvar_VariableIntegerValue( "developer" ) ) {
 				G_Printf( "AI Scripting: can't find AI cast with \"ainame\" = \"%s\"\n", params );
@@ -323,16 +333,16 @@ qboolean AICast_ScriptAction_Trigger( cast_state_t *cs, char *params ) {
 		}
 	}
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI scripting: trigger must have a name and an identifier\n" );
 	}
 
 	oldId = cs->script.castScriptStatus.scriptId;
 	if ( ent->client ) {
-		AICast_ScriptEvent( AICast_GetCastState( ent->s.number ), "trigger", token );
+		AICast_ScriptEvent( AICast_GetCastState( ent->s.number ), "trigger", ( char * ) token.c_str() );
 	} else {
-		G_Script_ScriptEvent( ent, "trigger", token );
+		G_Script_ScriptEvent( ent, "trigger", ( char * ) token.c_str() );
 	}
 
 	// if the script changed, return false so we don't muck with it's variables
@@ -364,7 +374,7 @@ qboolean AICast_ScriptAction_AlertEntity( cast_state_t *cs, char *params ) {
 
 	// call this entity's AlertEntity function
 	if ( !ent->AIScript_AlertEntity ) {
-		if ( !ent->client && ent->use && !Q_stricmp( ent->classname, "ai_trigger" ) ) {
+		if ( !ent->client && ent->use && !idStr::Icmp( ent->classname, "ai_trigger" ) ) {
 			ent->use( ent, NULL, NULL );
 			return qtrue;
 		}
@@ -393,19 +403,20 @@ AICast_ScriptAction_SaveGame
 =================
 */
 qboolean AICast_ScriptAction_SaveGame( cast_state_t *cs, char *params ) {
-	char *pString, *saveName;
-	pString = params;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken saveName;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
 
 	if ( cs->clientState ) {
 		G_Error( "AI Scripting: savegame attempted on a non-player" );
 	}
 
 	//----(SA)	check for parameter
-	saveName = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &saveName );
 	if ( !saveName[0] ) {
 		G_SaveGame( NULL ); // save the default "current" savegame
 	} else {
-		G_SaveGame( saveName );
+		G_SaveGame( ( char * ) saveName.c_str() );
 	}
 	//----(SA)	end
 
@@ -434,108 +445,109 @@ AICast_ScriptAction_Accum
 =================
 */
 qboolean AICast_ScriptAction_Accum( cast_state_t *cs, char *params ) {
-	char *pString, *token, lastToken[MAX_QPATH];
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;	char lastToken[MAX_QPATH];
 	int bufferIndex;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: accum without a buffer index\n" );
 	}
 
-	bufferIndex = atoi( token );
+	bufferIndex = atoi( token.c_str() );
 	if ( bufferIndex >= MAX_SCRIPT_ACCUM_BUFFERS ) {
 		G_Error( "AI Scripting: accum buffer is outside range (0 - %i)\n", MAX_SCRIPT_ACCUM_BUFFERS );
 	}
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: accum without a command\n" );
 	}
 
-	Q_strncpyz( lastToken, token, sizeof( lastToken ) );
-	token = COM_ParseExt( &pString, qfalse );
+	idStr::Copynz( lastToken, token.c_str(), sizeof( lastToken ) );
+	lexer.ReadTokenOnLine( &token );
 
-	if ( !Q_stricmp( lastToken, "inc" ) ) {
+	if ( !idStr::Icmp( lastToken, "inc" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		cs->script.scriptAccumBuffer[bufferIndex] += atoi( token );
-	} else if ( !Q_stricmp( lastToken, "abort_if_less_than" ) ) {
+		cs->script.scriptAccumBuffer[bufferIndex] += atoi( token.c_str() );
+	} else if ( !idStr::Icmp( lastToken, "abort_if_less_than" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( cs->script.scriptAccumBuffer[bufferIndex] < atoi( token ) ) {
+		if ( cs->script.scriptAccumBuffer[bufferIndex] < atoi( token.c_str() ) ) {
 			// abort the current script
 			cs->script.castScriptStatus.castScriptStackHead =
 				cs->script.castScriptEvents[cs->script.castScriptStatus.castScriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "abort_if_greater_than" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "abort_if_greater_than" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( cs->script.scriptAccumBuffer[bufferIndex] > atoi( token ) ) {
+		if ( cs->script.scriptAccumBuffer[bufferIndex] > atoi( token.c_str() ) ) {
 			// abort the current script
 			cs->script.castScriptStatus.castScriptStackHead =
 				cs->script.castScriptEvents[cs->script.castScriptStatus.castScriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "abort_if_not_equal" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "abort_if_not_equal" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( cs->script.scriptAccumBuffer[bufferIndex] != atoi( token ) ) {
+		if ( cs->script.scriptAccumBuffer[bufferIndex] != atoi( token.c_str() ) ) {
 			// abort the current script
 			cs->script.castScriptStatus.castScriptStackHead =
 				cs->script.castScriptEvents[cs->script.castScriptStatus.castScriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "abort_if_equal" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "abort_if_equal" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( cs->script.scriptAccumBuffer[bufferIndex] == atoi( token ) ) {
+		if ( cs->script.scriptAccumBuffer[bufferIndex] == atoi( token.c_str() ) ) {
 			// abort the current script
 			cs->script.castScriptStatus.castScriptStackHead =
 				cs->script.castScriptEvents[cs->script.castScriptStatus.castScriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "bitset" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "bitset" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		cs->script.scriptAccumBuffer[bufferIndex] |= ( 1 << atoi( token ) );
-	} else if ( !Q_stricmp( lastToken, "bitreset" ) ) {
+		cs->script.scriptAccumBuffer[bufferIndex] |= ( 1 << atoi( token.c_str() ) );
+	} else if ( !idStr::Icmp( lastToken, "bitreset" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		cs->script.scriptAccumBuffer[bufferIndex] &= ~( 1 << atoi( token ) );
-	} else if ( !Q_stricmp( lastToken, "abort_if_bitset" ) ) {
+		cs->script.scriptAccumBuffer[bufferIndex] &= ~( 1 << atoi( token.c_str() ) );
+	} else if ( !idStr::Icmp( lastToken, "abort_if_bitset" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( cs->script.scriptAccumBuffer[bufferIndex] & ( 1 << atoi( token ) ) ) {
+		if ( cs->script.scriptAccumBuffer[bufferIndex] & ( 1 << atoi( token.c_str() ) ) ) {
 			// abort the current script
 			cs->script.castScriptStatus.castScriptStackHead =
 				cs->script.castScriptEvents[cs->script.castScriptStatus.castScriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "abort_if_not_bitset" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "abort_if_not_bitset" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( !( cs->script.scriptAccumBuffer[bufferIndex] & ( 1 << atoi( token ) ) ) ) {
+		if ( !( cs->script.scriptAccumBuffer[bufferIndex] & ( 1 << atoi( token.c_str() ) ) ) ) {
 			// abort the current script
 			cs->script.castScriptStatus.castScriptStackHead =
 				cs->script.castScriptEvents[cs->script.castScriptStatus.castScriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "set" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "set" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		cs->script.scriptAccumBuffer[bufferIndex] = atoi( token );
-	} else if ( !Q_stricmp( lastToken, "random" ) ) {
+		cs->script.scriptAccumBuffer[bufferIndex] = atoi( token.c_str() );
+	} else if ( !idStr::Icmp( lastToken, "random" ) ) {
 		if ( !token[0] ) {
 			G_Error( "AI Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		cs->script.scriptAccumBuffer[bufferIndex] = rand() % atoi( token );
+		cs->script.scriptAccumBuffer[bufferIndex] = rand() % atoi( token.c_str() );
 	} else {
 		G_Error( "AI Scripting: accum %s: unknown command\n", params );
 	}
@@ -554,55 +566,9 @@ AICast_ScriptAction_SpawnCast
 =================
 */
 qboolean AICast_ScriptAction_SpawnCast( cast_state_t *cs, char *params ) {
-	//	char	*pString, *token;
-	//	char	*classname;
-	//	gentity_t	*targetEnt, *newCast;
-
 	G_Error( "AI Scripting: spawncast is no longer functional. Use trigger_spawn instead.\n" );
 	return qfalse;
-	/*
-	if (!params[0]) {
-		G_Error( "AI Scripting: spawncast without a classname\n" );
-	}
 
-	pString = params;
-
-	token = COM_ParseExt( &pString, qfalse );
-	if (!token[0]) {
-		G_Error( "AI Scripting: spawncast without a classname\n" );
-	}
-
-	classname = G_Alloc( strlen(token)+1 );
-	Q_strncpyz( classname, token, strlen(token)+1 );
-
-	token = COM_ParseExt( &pString, qfalse );
-	if (!token[0]) {
-		G_Error( "AI Scripting: spawncast without a targetname\n" );
-	}
-
-	targetEnt = G_Find( NULL, FOFS(targetname), token );
-	if (!targetEnt) {
-		G_Error( "AI Scripting: cannot find targetname \"%s\"\n", token );
-	}
-
-	token = COM_ParseExt( &pString, qfalse );
-	if (!token[0]) {
-		G_Error( "AI Scripting: spawncast without an ainame\n" );
-	}
-
-	newCast = G_Spawn();
-	newCast->classname = classname;
-	VectorCopy( targetEnt->s.origin, newCast->s.origin );
-	VectorCopy( targetEnt->s.angles, newCast->s.angles );
-	newCast->aiName = G_Alloc( strlen(token)+1 );
-	Q_strncpyz( newCast->aiName, token, strlen(token)+1 );
-
-	if (!G_CallSpawn( newCast )) {
-		G_Error( "AI Scripting: spawncast for unknown entity \"%s\"\n", newCast->classname );
-	}
-
-	return qtrue;
-*/
 }
 
 /*
@@ -613,19 +579,20 @@ AICast_ScriptAction_MissionFailed
 =================
 */
 qboolean AICast_ScriptAction_MissionFailed( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int time = 6, mof = 0;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
 
-	token = COM_ParseExt( &pString, qfalse ); // time
-	if ( token && token[0] ) {
-		time = atoi( token );
+	lexer.ReadTokenOnLine( &token ); // time
+	if ( token[0] ) {
+		time = atoi( token.c_str() );
 	}
 
-	token = COM_ParseExt( &pString, qfalse ); // mof (means of failure)
-	if ( token && token[0] ) {
-		mof = atoi( token );
+	lexer.ReadTokenOnLine( &token ); // mof (means of failure)
+	if ( token[0] ) {
+		mof = atoi( token.c_str() );
 	}
 
 	// play mission fail music
@@ -634,17 +601,17 @@ qboolean AICast_ScriptAction_MissionFailed( cast_state_t *cs, char *params ) {
 	trap_SetConfigstring( CS_MUSIC_QUEUE, "" );
 
 	// fade all sound out
-	trap_SendServerCommand( -1, va( "snd_fade 0 %d", time * 1000 ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 0 %d", time * 1000 ) );
 
 	if ( mof < 0 ) {
 		mof = 0;
 	}
-	trap_SendServerCommand( -1, va( "cp missionfail%d", mof ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "cp missionfail%d", mof ) );
 
 	// reload the current savegame, after a delay
-	trap_SetConfigstring( CS_SCREENFADE, va( "1 %i %i", level.time + 250, time * 1000 ) );
+	trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i %i", level.time + 250, time * 1000 ) );
 	//	reloading = RELOAD_FAILED;
-	trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_FAILED ) );
+	trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_FAILED ) );
 
 	level.reloadDelayTime = level.time + 1000 + time * 1000;
 
@@ -659,16 +626,17 @@ AICast_ScriptAction_ObjectivesNeeded
 =================
 */
 qboolean AICast_ScriptAction_ObjectivesNeeded( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: objectivesneeded requires a num_objectives identifier\n" );
 	}
 
-	level.numObjectives = atoi( token );
+	level.numObjectives = atoi( token.c_str() );
 
 	return qtrue;
 }
@@ -685,11 +653,12 @@ qboolean AICast_ScriptAction_ObjectiveMet( cast_state_t *cs, char *params ) {
 	gentity_t *player;
 	vmCvar_t cvar;
 	int lvl;
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: missionsuccess requires a num_objective identifier\n" );
 	}
@@ -699,7 +668,7 @@ qboolean AICast_ScriptAction_ObjectiveMet( cast_state_t *cs, char *params ) {
 	if ( player->health <= 0 ) {
 		return qfalse; // hold the script here
 	}
-	lvl = atoi( token );
+	lvl = atoi( token.c_str() );
 
 	// if you've already got it, just return.  don't need to set 'yougotmail'
 	if ( player->missionObjectives & ( 1 << ( lvl - 1 ) ) ) {
@@ -709,14 +678,14 @@ qboolean AICast_ScriptAction_ObjectiveMet( cast_state_t *cs, char *params ) {
 	player->missionObjectives |= ( 1 << ( lvl - 1 ) ); // make this bitwise
 
 	//set g_objective<n> cvar
-	trap_Cvar_Register( &cvar, va( "g_objective%i", lvl ), "1", CVAR_ROM );
+	trap_Cvar_Register( &cvar, idStr::FormatString( "g_objective%i", lvl ), "1", CVAR_ROM );
 	// set it to make sure
-	trap_Cvar_Set( va( "g_objective%i", lvl ), "1" );
+	trap_Cvar_Set( idStr::FormatString( "g_objective%i", lvl ), "1" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
-		if ( Q_strcasecmp( token, "nodisplay" ) ) { // unknown command
-			G_Error( "AI Scripting: missionsuccess with unknown parameter: %s\n", token );
+		if ( idStr::Icmp( token.c_str(), "nodisplay" ) ) { // unknown command
+			G_Error( "AI Scripting: missionsuccess with unknown parameter: %s\n", token.c_str() );
 		}
 	} else { // show on-screen information
 		trap_Cvar_Set( "cg_youGotMail", "2" ); // set flag to draw icon
@@ -796,7 +765,7 @@ AICast_ScriptAction_Mount
 */
 qboolean AICast_ScriptAction_Mount( cast_state_t *cs, char *params ) {
 	gentity_t *targetEnt, *ent;
-	vec3_t vec;
+	idVec3 vec;
 	float dist;
 
 	if ( !params || !params[0] ) {
@@ -808,9 +777,12 @@ qboolean AICast_ScriptAction_Mount( cast_state_t *cs, char *params ) {
 		G_Error( "AI Scripting: cannot find targetname \"%s\"\n", params );
 	}
 
-	VectorSubtract( targetEnt->r.currentOrigin, cs->clientState->origin, vec );
-	dist = VectorNormalize( vec );
-	vectoangles( vec, cs->ideal_viewangles );
+	vec = targetEnt->r.currentOrigin - cs->clientState->origin;
+	dist = vec.Normalize();
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 
 	if ( dist > 40 ) {
 		// walk towards it
@@ -857,7 +829,7 @@ qboolean AICast_ScriptAction_Unmount( cast_state_t *cs, char *params ) {
 		return qtrue; // nothing mounted, just skip this command
 	}
 	// face straight forward
-	VectorCopy( mg42->s.angles, cs->ideal_viewangles );
+	cs->ideal_viewangles = mg42->s.angles;
 	// try and unmount
 	Cmd_Activate_f( ent );
 	if ( !ent->active ) {
@@ -931,7 +903,8 @@ AICast_ScriptAction_ChangeLevel
 */
 qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	int i;
-	char *pch, *pch2, *newstr;
+	char *pch, *pch2;
+	char newstr[16384];
 	gentity_t *player;
 	qboolean silent = qfalse, endgame = qfalse, savepersist = qfalse;
 	int exitTime = 8000;
@@ -948,7 +921,7 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	}
 
 	// save persistent data if required
-	newstr = va( params );
+	idStr::Copynz( newstr, idStr::FormatString( params ), sizeof( newstr ) );
 	pch = strstr( newstr, " persistent" ); // (SA) whoops, this was mis-spelled
 	if ( pch ) {
 		pch = strstr( newstr, " " );
@@ -957,7 +930,7 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	}
 
 	//
-	newstr = va( params );
+	idStr::Copynz( newstr, idStr::FormatString( params ), sizeof( newstr ) );
 	pch = strstr( newstr, " silent" );
 	if ( pch ) {
 		pch = strstr( newstr, " " );
@@ -966,7 +939,7 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	}
 
 	// make sure we strip any params after the mapname
-	newstr = va( params );
+	idStr::Copynz( newstr, idStr::FormatString( params ), sizeof( newstr ) );
 	pch = strstr( newstr, " " );
 	if ( pch ) {
 		*( pch++ ) = '\0';
@@ -982,7 +955,7 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 		}
 	}
 
-	if ( !Q_stricmp( newstr, "gamefinished" ) ) { // 'gamefinished' is keyword for 'exit to credits'
+	if ( !idStr::Icmp( newstr, "gamefinished" ) ) { // 'gamefinished' is keyword for 'exit to credits'
 		endgame = qtrue;
 	}
 
@@ -1006,20 +979,20 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	}
 	trap_SetConfigstring( CS_MUSIC_QUEUE, "" ); // don't try to start anything.  no level load music
 
-	trap_SetConfigstring( CS_SCREENFADE, va( "1 %i %i", level.time + 250, 750 + exitTime ) ); // fade out screen
+	trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i %i", level.time + 250, 750 + exitTime ) ); // fade out screen
 
-	trap_SendServerCommand( -1, va( "snd_fade 0 %d", 1000 + exitTime ) ); //----(SA)	added
+	trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 0 %d", 1000 + exitTime ) ); //----(SA)	added
 
 	// load the next map, after a delay
 	level.reloadDelayTime = level.time + 1000 + exitTime;
-	trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_NEXTMAP_WAITING ) );
+	trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_NEXTMAP_WAITING ) );
 
 	if ( endgame ) {
-		trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_ENDGAME ) );
+		trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_ENDGAME ) );
 		return qtrue;
 	}
 
-	Q_strncpyz( level.nextMap, newstr, sizeof( level.nextMap ) );
+	idStr::Copynz( level.nextMap, newstr, sizeof( level.nextMap ) );
 
 	//if (g_cheats.integer)
 	//	trap_SendConsoleCommand( EXEC_APPEND, va("spdevmap %s\n", newstr) );
@@ -1075,24 +1048,25 @@ AICast_ScriptAction_Attrib
 ==================
 */
 qboolean AICast_ScriptAction_Attrib( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int i;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: attrib <attribute> <value>" );
 	}
 
 	for ( i = 0; i < AICAST_MAX_ATTRIBUTES; i++ ) {
-		if ( !Q_strcasecmp( token, castAttributeStrings[i] ) ) {
+		if ( !idStr::Icmp( token.c_str(), castAttributeStrings[i] ) ) {
 			// found a match, read in the value
-			token = COM_ParseExt( &pString, qfalse );
+			lexer.ReadTokenOnLine( &token );
 			if ( !token[0] ) {
 				G_Error( "AI_Scripting: syntax: attrib <attribute> <value>" );
 			}
 			// set the attribute
-			cs->attributes[i] = atof( token );
+			cs->attributes[i] = atof( token.c_str() );
 			break;
 		}
 	}
@@ -1118,18 +1092,19 @@ AICast_ScriptAction_Headlook
 =================
 */
 qboolean AICast_ScriptAction_Headlook( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: headlook <ON/OFF>" );
 	}
-	Q_strlwr( token );
+	token.ToLower();
 
-	if ( !Q_stricmp( token, "on" ) ) {
+	if ( !idStr::Icmp( token.c_str(), "on" ) ) {
 		cs->aiFlags &= ~AIFL_NO_HEADLOOK;
-	} else if ( !Q_stricmp( token, "off" ) ) {
+	} else if ( !idStr::Icmp( token.c_str(), "off" ) ) {
 		cs->aiFlags |= AIFL_NO_HEADLOOK;
 	} else {
 		G_Error( "AI_Scripting: syntax: headlook <ON/OFF>" );
@@ -1183,9 +1158,9 @@ AICast_ScriptAction_StateType
 */
 qboolean AICast_ScriptAction_StateType( cast_state_t *cs, char *params ) {
 
-	if ( !Q_stricmp( params, "alert" ) ) {
+	if ( !idStr::Icmp( params, "alert" ) ) {
 		cs->aiState = AISTATE_ALERT;
-	} else if ( !Q_stricmp( params, "relaxed" ) ) {
+	} else if ( !idStr::Icmp( params, "relaxed" ) ) {
 		cs->aiState = AISTATE_RELAXED;
 	}
 
@@ -1201,18 +1176,19 @@ AICast_ScriptAction_KnockBack
 */
 qboolean AICast_ScriptAction_KnockBack( cast_state_t *cs, char *params ) {
 
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: knockback <ON/OFF>" );
 	}
-	Q_strlwr( token );
+	token.ToLower();
 
-	if ( !Q_stricmp( token, "on" ) ) {
+	if ( !idStr::Icmp( token.c_str(), "on" ) ) {
 		g_entities[cs->entityNum].flags &= ~FL_NO_KNOCKBACK;
-	} else if ( !Q_stricmp( token, "off" ) ) {
+	} else if ( !idStr::Icmp( token.c_str(), "off" ) ) {
 		g_entities[cs->entityNum].flags |= FL_NO_KNOCKBACK;
 	} else {
 		G_Error( "AI_Scripting: syntax: knockback <ON/OFF>" );
@@ -1230,21 +1206,22 @@ AICast_ScriptAction_Zoom
 */
 qboolean AICast_ScriptAction_Zoom( cast_state_t *cs, char *params ) {
 
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: zoom <ON/OFF>" );
 	}
-	Q_strlwr( token );
+	token.ToLower();
 
 	// give them the inventory item
 	g_entities[cs->entityNum].client->ps.stats[STAT_KEYS] |= ( 1 << INV_BINOCS );
 
-	if ( !Q_stricmp( token, "on" ) ) {
+	if ( !idStr::Icmp( token.c_str(), "on" ) ) {
 		cs->aiFlags |= AIFL_ZOOMING;
-	} else if ( !Q_stricmp( token, "off" ) ) {
+	} else if ( !idStr::Icmp( token.c_str(), "off" ) ) {
 		cs->aiFlags &= ~AIFL_ZOOMING;
 	} else {
 		G_Error( "AI_Scripting: syntax: zoom <ON/OFF>" );
@@ -1261,13 +1238,14 @@ AICast_ScriptAction_StartCam
 ===================
 */
 qboolean ScriptStartCam( cast_state_t *cs, char *params, qboolean black ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	gentity_t *ent;
 
 	ent = &g_entities[cs->entityNum];
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_Cam: filename parameter required\n" );
 	}
@@ -1276,7 +1254,7 @@ qboolean ScriptStartCam( cast_state_t *cs, char *params, qboolean black ) {
 	ent->r.svFlags &= ~SVF_NOCLIENT;
 
 	// issue a start camera command to the client
-	trap_SendServerCommand( cs->entityNum, va( "startCam %s %d", token, (int)black ) );
+	trap_SendServerCommand( cs->entityNum, idStr::FormatString( "startCam %s %d", token.c_str(), (int)black ) );
 
 	return qtrue;
 }
@@ -1305,21 +1283,22 @@ qboolean AICast_ScriptAction_StopCam( cast_state_t *cs, char *params ) {
 //----(SA)	added
 qboolean AICast_ScriptAction_Cigarette( cast_state_t *cs, char *params ) {
 
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	gentity_t *ent;
 
 	ent = &g_entities[cs->entityNum];
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: cigarette <ON/OFF>" );
 	}
-	Q_strlwr( token );
+	token.ToLower();
 
-	if ( !Q_stricmp( token, "on" ) ) {
+	if ( !idStr::Icmp( token.c_str(), "on" ) ) {
 		g_entities[cs->entityNum].client->ps.eFlags |= EF_CIG;
-	} else if ( !Q_stricmp( token, "off" ) ) {
+	} else if ( !idStr::Icmp( token.c_str(), "off" ) ) {
 		g_entities[cs->entityNum].client->ps.eFlags &= ~EF_CIG;
 	} else {
 		G_Error( "AI_Scripting: syntax: cigarette <ON/OFF>" );
@@ -1339,21 +1318,22 @@ AICast_ScriptAction_Parachute
 */
 qboolean AICast_ScriptAction_Parachute( cast_state_t *cs, char *params ) {
 
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	gentity_t *ent;
 
 	ent = &g_entities[cs->entityNum];
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: parachute <ON/OFF>" );
 	}
-	Q_strlwr( token );
+	token.ToLower();
 
-	if ( !Q_stricmp( token, "on" ) ) {
+	if ( !idStr::Icmp( token.c_str(), "on" ) ) {
 		ent->flags |= FL_PARACHUTE;
-	} else if ( !Q_stricmp( token, "off" ) ) {
+	} else if ( !idStr::Icmp( token.c_str(), "off" ) ) {
 		ent->flags &= ~FL_PARACHUTE;
 	} else {
 		G_Error( "AI_Scripting: syntax: parachute <ON/OFF>" );
@@ -1410,9 +1390,9 @@ qboolean AICast_ScriptAction_NoTarget( cast_state_t *cs, char *params ) {
 		G_Error( "AI Scripting: notarget requires ON or OFF as parameter" );
 	}
 
-	if ( !Q_strcasecmp( params, "ON" ) ) {
+	if ( !idStr::Icmp( params, "ON" ) ) {
 		g_entities[cs->entityNum].flags |= FL_NOTARGET;
-	} else if ( !Q_strcasecmp( params, "OFF" ) ) {
+	} else if ( !idStr::Icmp( params, "OFF" ) ) {
 		g_entities[cs->entityNum].flags &= ~FL_NOTARGET;
 	} else {
 		G_Error( "AI Scripting: notarget requires ON or OFF as parameter" );
@@ -1428,17 +1408,18 @@ AICast_ScriptAction_Cvar
 */
 qboolean AICast_ScriptAction_Cvar( cast_state_t *cs, char *params ) {
 	vmCvar_t cvar;
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cvarName[MAX_QPATH];
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_mission" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: cvar <cvarName> <cvarValue>" );
 	}
-	Q_strncpyz( cvarName, token, sizeof( cvarName ) );
+	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: cvar <cvarName> <cvarValue>" );
 	}
@@ -1448,9 +1429,9 @@ qboolean AICast_ScriptAction_Cvar( cast_state_t *cs, char *params ) {
 		return qtrue;
 	}
 
-	trap_Cvar_Register( &cvar, cvarName, token, CVAR_ROM );
+	trap_Cvar_Register( &cvar, cvarName, ( char * ) token.c_str(), CVAR_ROM );
 	// set it to make sure
-	trap_Cvar_Set( cvarName, token );
+	trap_Cvar_Set( cvarName, ( char * ) token.c_str() );
 	return qtrue;
 }
 
@@ -1470,9 +1451,9 @@ qboolean AICast_ScriptAction_LockPlayer( cast_state_t *cs, char *params ) {
 		G_Error( "AI Scripting: lockplayer requires an on/off specifier\n" );
 	}
 
-	if ( !Q_stricmp( params, "on" ) ) {
+	if ( !idStr::Icmp( params, "on" ) ) {
 		ent->client->ps.pm_flags |= PMF_IGNORE_INPUT;
-	} else if ( !Q_stricmp( params, "off" ) ) {
+	} else if ( !idStr::Icmp( params, "off" ) ) {
 		ent->client->ps.pm_flags &= ~PMF_IGNORE_INPUT;
 	} else {
 		G_Error( "AI Scripting: lockplayer requires an on/off specifier\n" );

@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 // Reuse client-slot storage across actor despawns; G_Alloc cannot free individual blocks.
@@ -219,8 +221,8 @@ gentity_t *AICast_AddCastToGame( gentity_t *ent, char *castname, char *model, ch
 	//----(SA) end
 
 	// copy the origin/angles across
-	VectorCopy( ent->s.origin, bot->s.origin );
-	VectorCopy( ent->s.angles, bot->s.angles );
+	bot->s.origin = ent->s.origin;
+	bot->s.angles = ent->s.angles;
 
 	memset( &cmd, 0, sizeof( cmd ) );
 	ClientBegin( bot->s.number );
@@ -237,28 +239,29 @@ AICast_CheckLevelAttributes
 ============
 */
 void AICast_CheckLevelAttributes( cast_state_t *cs, gentity_t *ent, char **ppStr ) {
-	char *s;
+	idLexer lexer;
+	idToken token;
 	int i;
 
 	if ( !*ppStr ) {
 		return;
 	}
 
-	while ( 1 ) {
-		s = COM_Parse( ppStr );
-		if ( !s[0] || !Q_strncmp( s, "}", 2 ) ) { // end of attributes
+	lexer.LoadMemory( *ppStr, strlen( *ppStr ), "AICast_CheckLevelAttributes" );
+
+	while ( lexer.ReadToken( &token ) ) {
+		if ( token == "}" ) { // end of attributes
 			break;
 		}
 		//
 		for ( i = 0; i < AICAST_MAX_ATTRIBUTES; i++ ) {
-			if ( !Q_strcasecmp( s, castAttributeStrings[i] ) ) {
+			if ( !token.Icmp( castAttributeStrings[i] ) ) {
 				// found a match, read in the value
-				s = COM_Parse( ppStr );
-				if ( !s[0] ) { // end of attributes
+				if ( !lexer.ReadToken( &token ) ) { // end of attributes
 					break;
 				}
 				// set the attribute
-				cs->attributes[i] = atof( s );
+				cs->attributes[i] = atof( token.c_str() );
 				break;
 			}
 		}
@@ -340,13 +343,13 @@ gentity_t *AICast_CreateCharacter( gentity_t *ent, float *attributes, cast_weapo
 	//
 	AICast_SetAASIndex( cs );
 	// make sure they face the right direction
-	VectorCopy( ent->s.angles, cs->ideal_viewangles );
+	cs->ideal_viewangles = ent->s.angles;
 	// factor in the delta_angles
 	for ( j = 0; j < 3; j++ ) {
-		cs->viewangles[j] = AngleMod( newent->s.angles[j] - SHORT2ANGLE( newent->client->ps.delta_angles[j] ) );
+		cs->viewangles[j] = idMath::AngleNormalize360( newent->s.angles[j] - SHORT2ANGLE( newent->client->ps.delta_angles[j] ) );
 	}
-	VectorCopy( ent->s.angles, newent->s.angles );
-	VectorCopy( ent->s.origin, cs->startOrigin );
+	newent->s.angles = ent->s.angles;
+	cs->startOrigin = ent->s.origin;
 	//
 	cs->lastEnemy = -1;
 	cs->enemyNum = -1;
@@ -367,8 +370,8 @@ gentity_t *AICast_CreateCharacter( gentity_t *ent, float *attributes, cast_weapo
 	AICast_ScriptParse( cs );
 	//
 	// setup bounding boxes
-	//VectorCopy( mins, client->ps.mins );
-	//VectorCopy( maxs, client->ps.maxs );
+	//client->ps.mins = mins;
+	//client->ps.maxs = maxs;
 	AIChar_SetBBox( newent, cs, qfalse );
 	client->ps.friction = cs->attributes[RUNNING_SPEED] / 300.0;
 	//
@@ -537,7 +540,7 @@ AIChar_AIScript_AlertEntity
 ============
 */
 void AIChar_AIScript_AlertEntity( gentity_t *ent ) {
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 	int numTouch, touch[10], i;
 	cast_state_t *cs;
 
@@ -548,8 +551,8 @@ void AIChar_AIScript_AlertEntity( gentity_t *ent ) {
 	cs = AICast_GetCastState( ent->s.number );
 
 	// if the current bounding box is invalid, then wait
-	VectorAdd( ent->r.currentOrigin, ent->r.mins, mins );
-	VectorAdd( ent->r.currentOrigin, ent->r.maxs, maxs );
+	mins = ent->r.currentOrigin + ent->r.mins;
+	maxs = ent->r.currentOrigin + ent->r.maxs;
 	trap_UnlinkEntity( ent );
 
 	numTouch = trap_EntitiesInBox( mins, maxs, touch, 10 );
@@ -703,7 +706,7 @@ void AICast_CheckLoadGame( void ) {
 
 	if ( strlen( loading ) > 0 && atoi( loading ) != 0 ) {
 		// screen should be black if we are at this stage
-		trap_SetConfigstring( CS_SCREENFADE, va( "1 %i 1", level.time - 10 ) );
+		trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i 1", level.time - 10 ) );
 
 		//		if (!reloading && atoi(loading) == 2) {
 		if ( !( g_reloading.integer ) && atoi( loading ) == 2 ) {
@@ -734,11 +737,11 @@ void AICast_CheckLoadGame( void ) {
 
 			// wait for the clients to return from faded screen
 			//trap_SetConfigstring( CS_SCREENFADE, va("0 %i 1500", level.time + 500) );
-			trap_SetConfigstring( CS_SCREENFADE, va( "0 %i 750", level.time + 500 ) );
+			trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "0 %i 750", level.time + 500 ) );
 			level.reloadPauseTime = level.time + 1100;
 
 			// make sure sound fades up
-			trap_SendServerCommand( -1, va( "snd_fade 1 %d", 2000 ) ); //----(SA)	added
+			trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 1 %d", 2000 ) ); //----(SA)	added
 
 			AICast_CastScriptThink();
 		}
@@ -794,7 +797,7 @@ void AICast_CheckLoadGame( void ) {
 AICast_SolidsInBBox
 ===============
 */
-qboolean AICast_SolidsInBBox( vec3_t pos, vec3_t mins, vec3_t maxs, int entnum, int mask ) {
+qboolean AICast_SolidsInBBox( const idVec3 &pos, const idVec3 &mins, const idVec3 &maxs, int entnum, int mask ) {
 	trace_t tr;
 
 	if ( g_entities[entnum].health <= 0 ) {
@@ -914,7 +917,7 @@ void AICast_AgePlayTime( int entnum ) {
 	if ( ( level.time - cs->lastLoadTime ) > 1000 ) {
 		if ( /*(level.time - cs->lastLoadTime) < 2000 &&*/ ( level.time - cs->lastLoadTime ) > 0 ) {
 			cs->totalPlayTime += level.time - cs->lastLoadTime;
-			trap_Cvar_Set( "g_totalPlayTime", va( "%i", cs->totalPlayTime ) );
+			trap_Cvar_Set( "g_totalPlayTime", idStr::FormatString( "%i", cs->totalPlayTime ) );
 		}
 		//
 		cs->lastLoadTime = level.time;

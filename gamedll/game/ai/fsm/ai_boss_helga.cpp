@@ -22,10 +22,10 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
-// TTimo: unused
-//static vec3_t forward, right, up;
 
 //=================================================================================
 //
@@ -84,7 +84,7 @@ char *AIFunc_Helga_SpiritAttack( cast_state_t *cs ) {
 		ent->client->ps.eFlags |= EF_MONSTER_EFFECT;
 
 		// inform the client of our enemies position
-		VectorCopy( g_entities[cs->enemyNum].client->ps.origin, ent->s.origin2 );
+		ent->s.origin2 = g_entities[cs->enemyNum].client->ps.origin;
 		ent->s.origin2[2] += g_entities[cs->enemyNum].client->ps.viewheight;
 	}
 	//
@@ -139,7 +139,7 @@ char *AIFunc_Helga_Melee( cast_state_t *cs ) {
 	trace_t tr;
 	float enemyDist;
 	aicast_predictmove_t move;
-	vec3_t vec;
+	idVec3 vec;
 
 	cs->aiFlags |= AIFL_SPECIAL_FUNC;
 
@@ -168,12 +168,13 @@ char *AIFunc_Helga_Melee( cast_state_t *cs ) {
 	if ( cs->ability.animHitCount < MAX_HELGA_IMPACTS && helgaHitTimes[anim][cs->ability.animHitCount] >= 0 ) {
 
 		// face them
-		VectorCopy( cs->clientState->origin, vec );
+		vec = cs->clientState->origin;
 		vec[2] += ent->client->ps.viewheight;
-		VectorSubtract( enemy->client->ps.origin, vec, vec );
-		VectorNormalize( vec );
-		vectoangles( vec, cs->ideal_viewangles );
-		cs->ideal_viewangles[PITCH] = AngleNormalize180( cs->ideal_viewangles[PITCH] );
+		vec = enemy->client->ps.origin - vec;
+		vec.Normalize();
+		idAngles targetAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
+		cs->ideal_viewangles[PITCH] = idMath::AngleNormalize180( cs->ideal_viewangles[PITCH] );
 
 		// get hitDelay
 		if ( !cs->ability.animHitCount ) {
@@ -186,11 +187,11 @@ char *AIFunc_Helga_Melee( cast_state_t *cs ) {
 		// check for inflicting damage
 		if ( level.time - cs->combat.weaponFireTimes[cs->weaponNum] > hitDelay ) {
 			// do melee damage
-			enemyDist = VectorDistance( enemy->r.currentOrigin, ent->r.currentOrigin );
+			enemyDist = ( enemy->r.currentOrigin - ent->r.currentOrigin ).Length();
 			enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 			enemyDist -= ent->r.maxs[0];
 			if ( enemyDist < 10 + AICast_WeaponRange( cs, cs->weaponNum ) ) {
-				trap_Trace( &tr, ent->r.currentOrigin, NULL, NULL, enemy->r.currentOrigin, ent->s.number, MASK_SHOT );
+				trap_Trace( &tr, ent->r.currentOrigin, vec3_origin, vec3_origin, enemy->r.currentOrigin, ent->s.number, MASK_SHOT );
 				if ( tr.entityNum == cs->enemyNum ) {
 					G_Damage( &g_entities[tr.entityNum], ent, ent, vec3_origin, tr.endpos, helgaHitDamage[anim], 0,
 							  MOD_GAUNTLET );
@@ -205,9 +206,9 @@ char *AIFunc_Helga_Melee( cast_state_t *cs ) {
 
 	// if they are outside range, move forward
 	AICast_PredictMovement( ecs, 2, 0.3, &move, &g_entities[cs->enemyNum].client->pers.cmd, -1 );
-	VectorSubtract( move.endpos, cs->clientState->origin, vec );
+	vec = move.endpos - cs->clientState->origin;
 	vec[2] = 0;
-	enemyDist = VectorLength( vec );
+	enemyDist = vec.Length();
 	enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 	enemyDist -= ent->r.maxs[0];
 	if ( enemyDist > 8 ) { // we can get closer
@@ -269,7 +270,7 @@ static qboolean AI_HelgaAbilityAvailable( cast_state_t *cs, int weaponNum ) {
 	int delay = -1;
 	float dist = -1;
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 	switch ( weaponNum ) {
 	case WP_MONSTER_ATTACK1: {

@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // sv_client.c -- server code for dealing with clients
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "server.h"
 
@@ -177,7 +179,7 @@ void SV_AuthorizeIpPacket( netadr_t from ) {
 	s = Cmd_Argv( 2 );
 	r = Cmd_Argv( 3 );          // reason
 
-	if ( !Q_stricmp( s, "demo" ) ) {
+	if ( !idStr::Icmp( s, "demo" ) ) {
 		if ( Cvar_VariableValue( "fs_restrict" ) ) {
 			// a demo client connecting to a demo server
 			NET_OutOfBandPrint( NS_SERVER, svs.challenges[i].adr,
@@ -190,12 +192,12 @@ void SV_AuthorizeIpPacket( netadr_t from ) {
 		memset( &svs.challenges[i], 0, sizeof( svs.challenges[i] ) );
 		return;
 	}
-	if ( !Q_stricmp( s, "accept" ) ) {
+	if ( !idStr::Icmp( s, "accept" ) ) {
 		NET_OutOfBandPrint( NS_SERVER, svs.challenges[i].adr,
 							"challengeResponse %i", svs.challenges[i].challenge );
 		return;
 	}
-	if ( !Q_stricmp( s, "unknown" ) ) {
+	if ( !idStr::Icmp( s, "unknown" ) ) {
 		if ( !r ) {
 			NET_OutOfBandPrint( NS_SERVER, svs.challenges[i].adr, "print\nAwaiting CD key authorization\n" );
 		} else {
@@ -243,7 +245,7 @@ void SV_DirectConnect( netadr_t from ) {
 
 	Com_DPrintf( "SVC_DirectConnect ()\n" );
 
-	Q_strncpyz( userinfo, Cmd_Argv( 1 ), sizeof( userinfo ) );
+	idStr::Copynz( userinfo, Cmd_Argv( 1 ), sizeof( userinfo ) );
 
 	version = atoi( Info_ValueForKey( userinfo, "protocol" ) );
 	if ( version != PROTOCOL_VERSION ) {
@@ -410,7 +412,7 @@ gotnewcl:
 	Netchan_Setup( NS_SERVER, &newcl->netchan, from, qport );
 
 	// save the userinfo
-	Q_strncpyz( newcl->userinfo, userinfo, sizeof( newcl->userinfo ) );
+	idStr::Copynz( newcl->userinfo, userinfo, sizeof( newcl->userinfo ) );
 
 	// get the game a chance to reject this connection or modify the userinfo
 	denied = gvm->GAME_CLIENT_CONNECT( clientNum, qtrue, qfalse );
@@ -540,7 +542,7 @@ the wrong gamestate.
 void SV_SendClientGameState( client_t *client ) {
 	int start;
 	entityState_t   *base, nullstate;
-	msg_t msg;
+	idBitMsg msg;
 	byte msgBuffer[MAX_MSGLEN];
 
 	Com_DPrintf( "SV_SendClientGameState() for %s\n", client->name );
@@ -553,11 +555,11 @@ void SV_SendClientGameState( client_t *client ) {
 	// gamestate message was not just sent, forcing a retransmit
 	client->gamestateMessageNum = client->netchan.outgoingSequence;
 
-	MSG_Init( &msg, msgBuffer, sizeof( msgBuffer ) );
+	msg.InitWrite( msgBuffer, sizeof( msgBuffer  ) );
 
 	// NOTE, MRE: all server->client messages now acknowledge
 	// let the client know which reliable clientCommands we have received
-	MSG_WriteLong( &msg, client->lastClientCommand );
+	msg.WriteLong( client->lastClientCommand );
 
 	// send any server commands waiting to be sent first.
 	// we have to do this cause we send the client->reliableSequence
@@ -566,15 +568,15 @@ void SV_SendClientGameState( client_t *client ) {
 	SV_UpdateServerCommandsToClient( client, &msg );
 
 	// send the gamestate
-	MSG_WriteByte( &msg, svc_gamestate );
-	MSG_WriteLong( &msg, client->reliableSequence );
+	msg.WriteByte( svc_gamestate );
+	msg.WriteLong( client->reliableSequence );
 
 	// write the configstrings
 	for ( start = 0 ; start < MAX_CONFIGSTRINGS ; start++ ) {
 		if ( sv.configstrings[start][0] ) {
-			MSG_WriteByte( &msg, svc_configstring );
-			MSG_WriteShort( &msg, start );
-			MSG_WriteBigString( &msg, sv.configstrings[start] );
+			msg.WriteByte( svc_configstring );
+			msg.WriteShort( start );
+			msg.WriteString( sv.configstrings[start] );
 		}
 	}
 
@@ -585,16 +587,16 @@ void SV_SendClientGameState( client_t *client ) {
 		if ( !base->number ) {
 			continue;
 		}
-		MSG_WriteByte( &msg, svc_baseline );
-		MSG_WriteDeltaEntity( &msg, &nullstate, base, qtrue );
+		msg.WriteByte( svc_baseline );
+		NetMsg_WriteDeltaEntity( &msg, &nullstate, base, qtrue );
 	}
 
-	MSG_WriteByte( &msg, svc_EOF );
+	msg.WriteByte( svc_EOF );
 
-	MSG_WriteLong( &msg, client - svs.clients );
+	msg.WriteLong( client - svs.clients );
 
 	// write the checksum feed
-	MSG_WriteLong( &msg, sv.checksumFeed );
+	msg.WriteLong( sv.checksumFeed );
 
 	// deliver this to the client
 	SV_SendMessageToClient( &msg, client );
@@ -655,7 +657,7 @@ static void SV_CloseDownload( client_t *cl ) {
 	// Free the temporary buffer space
 	for ( i = 0; i < MAX_DOWNLOAD_WINDOW; i++ ) {
 		if ( cl->downloadBlocks[i] ) {
-			Z_Free( cl->downloadBlocks[i] );
+			Mem_Free( cl->downloadBlocks[i] );
 			cl->downloadBlocks[i] = NULL;
 		}
 	}
@@ -733,7 +735,7 @@ void SV_BeginDownload_f( client_t *cl ) {
 
 	// cl->downloadName is non-zero now, SV_WriteDownloadToClient will see this and open
 	// the file itself
-	Q_strncpyz( cl->downloadName, Cmd_Argv( 1 ), sizeof( cl->downloadName ) );
+	idStr::Copynz( cl->downloadName, Cmd_Argv( 1 ), sizeof( cl->downloadName ) );
 }
 
 /*
@@ -744,7 +746,7 @@ Check to see if the client wants a file, open it if needed and start pumping the
 Fill up msg with data
 ==================
 */
-void SV_WriteDownloadToClient( client_t *cl, msg_t *msg ) {
+void SV_WriteDownloadToClient( client_t *cl, idBitMsg *msg ) {
 	int curindex;
 	int rate;
 	int blockspersnap;
@@ -789,10 +791,10 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg ) {
 				Com_Printf( "clientDownload: %d : \"%s\" file not found on server\n", cl - svs.clients, cl->downloadName );
 				Com_sprintf( errorMessage, sizeof( errorMessage ), "File \"%s\" not found on server for autodownloading.\n", cl->downloadName );
 			}
-			MSG_WriteByte( msg, svc_download );
-			MSG_WriteShort( msg, 0 ); // client is expecting block zero
-			MSG_WriteLong( msg, -1 ); // illegal file size
-			MSG_WriteString( msg, errorMessage );
+			msg->WriteByte( svc_download );
+			msg->WriteShort( 0 ); // client is expecting block zero
+			msg->WriteLong( -1 ); // illegal file size
+			msg->WriteString( errorMessage );
 
 			*cl->downloadName = 0;
 			return;
@@ -811,7 +813,7 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg ) {
 		curindex = ( cl->downloadCurrentBlock % MAX_DOWNLOAD_WINDOW );
 
 		if ( !cl->downloadBlocks[curindex] ) {
-			cl->downloadBlocks[curindex] = (unsigned char *) Z_Malloc( MAX_DOWNLOAD_BLKSIZE );
+			cl->downloadBlocks[curindex] = (unsigned char *) Mem_ClearedAlloc( MAX_DOWNLOAD_BLKSIZE, TAG_IDLIB );
 		}
 
 		cl->downloadBlockSize[curindex] = FS_Read( cl->downloadBlocks[curindex], MAX_DOWNLOAD_BLKSIZE, cl->download );
@@ -889,19 +891,19 @@ void SV_WriteDownloadToClient( client_t *cl, msg_t *msg ) {
 		// Send current block
 		curindex = ( cl->downloadXmitBlock % MAX_DOWNLOAD_WINDOW );
 
-		MSG_WriteByte( msg, svc_download );
-		MSG_WriteShort( msg, cl->downloadXmitBlock );
+		msg->WriteByte( svc_download );
+		msg->WriteShort( cl->downloadXmitBlock );
 
 		// block zero is special, contains file size
 		if ( cl->downloadXmitBlock == 0 ) {
-			MSG_WriteLong( msg, cl->downloadSize );
+			msg->WriteLong( cl->downloadSize );
 		}
 
-		MSG_WriteShort( msg, cl->downloadBlockSize[curindex] );
+		msg->WriteShort( cl->downloadBlockSize[curindex] );
 
 		// Write the block
 		if ( cl->downloadBlockSize[curindex] ) {
-			MSG_WriteData( msg, cl->downloadBlocks[curindex], cl->downloadBlockSize[curindex] );
+			msg->WriteData( cl->downloadBlocks[curindex], cl->downloadBlockSize[curindex] );
 		}
 
 		Com_DPrintf( "clientDownload: %d : writing block %d\n", cl - svs.clients, cl->downloadXmitBlock );
@@ -1096,7 +1098,7 @@ void SV_UserinfoChanged( client_t *cl ) {
 	int i;
 
 	// name for C code
-	Q_strncpyz( cl->name, Info_ValueForKey( cl->userinfo, "name" ), sizeof( cl->name ) );
+	idStr::Copynz( cl->name, Info_ValueForKey( cl->userinfo, "name" ), sizeof( cl->name ) );
 
 	// rate command
 
@@ -1148,7 +1150,7 @@ SV_UpdateUserinfo_f
 ==================
 */
 static void SV_UpdateUserinfo_f( client_t *cl ) {
-	Q_strncpyz( cl->userinfo, Cmd_Argv( 1 ), sizeof( cl->userinfo ) );
+	idStr::Copynz( cl->userinfo, Cmd_Argv( 1 ), sizeof( cl->userinfo ) );
 
 	SV_UserinfoChanged( cl );
 	// call prog code to allow overrides
@@ -1207,13 +1209,13 @@ void SV_ExecuteClientCommand( client_t *cl, const char *s, qboolean clientOK ) {
 SV_ClientCommand
 ===============
 */
-static qboolean SV_ClientCommand( client_t *cl, msg_t *msg ) {
+static qboolean SV_ClientCommand( client_t *cl, idBitMsg *msg ) {
 	int seq;
 	const char  *s;
 	qboolean clientOk = qtrue;
 
-	seq = MSG_ReadLong( msg );
-	s = MSG_ReadString( msg );
+	seq = msg->ReadLong( );
+	s = msg->ReadString( );
 
 	// see if we have already executed it
 	if ( cl->lastClientCommand >= seq ) {
@@ -1291,7 +1293,7 @@ On very fast clients, there may be multiple usercmd packed into
 each of the backup packets.
 ==================
 */
-static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
+static void SV_UserMove( client_t *cl, idBitMsg *msg, qboolean delta ) {
 	int i, key;
 	int cmdCount;
 	usercmd_t nullcmd;
@@ -1304,7 +1306,7 @@ static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
 		cl->deltaMessage = -1;
 	}
 
-	cmdCount = MSG_ReadByte( msg );
+	cmdCount = msg->ReadByte( );
 
 	if ( cmdCount < 1 ) {
 		Com_Printf( "cmdCount < 1\n" );
@@ -1328,8 +1330,8 @@ static void SV_UserMove( client_t *cl, msg_t *msg, qboolean delta ) {
 	oldcmd = &nullcmd;
 	for ( i = 0 ; i < cmdCount ; i++ ) {
 		cmd = &cmds[i];
-		MSG_ReadDeltaUsercmdKey( msg, key, oldcmd, cmd );
-//		MSG_ReadDeltaUsercmd( msg, oldcmd, cmd );
+		NetMsg_ReadDeltaUsercmdKey( msg, key, oldcmd, cmd );
+//		NetMsg_ReadDeltaUsercmd( msg, oldcmd, cmd );
 		oldcmd = cmd;
 	}
 
@@ -1393,14 +1395,14 @@ SV_ExecuteClientMessage
 Parse a client packet
 ===================
 */
-void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
+void SV_ExecuteClientMessage( client_t *cl, idBitMsg *msg ) {
 	int c;
 	int serverId;
 
-	MSG_Bitstream( msg );
+	msg->SetOOB( false );
 
-	serverId = MSG_ReadLong( msg );
-	cl->messageAcknowledge = MSG_ReadLong( msg );
+	serverId = msg->ReadLong( );
+	cl->messageAcknowledge = msg->ReadLong( );
 
 	if ( cl->messageAcknowledge < 0 ) {
 		// usually only hackers create messages like this
@@ -1409,7 +1411,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 		return;
 	}
 
-	cl->reliableAcknowledge = MSG_ReadLong( msg );
+	cl->reliableAcknowledge = msg->ReadLong( );
 
 	// NOTE: when the client message is fux0red the acknowledgement numbers
 	// can be out of range, this could cause the server to send thousands of server
@@ -1448,7 +1450,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 
 	// read optional clientCommand strings
 	do {
-		c = MSG_ReadByte( msg );
+		c = msg->ReadByte( );
 		if ( c == clc_EOF ) {
 			break;
 		}
@@ -1471,7 +1473,7 @@ void SV_ExecuteClientMessage( client_t *cl, msg_t *msg ) {
 	} else if ( c != clc_EOF ) {
 		Com_Printf( "WARNING: bad command byte for client %i\n", cl - svs.clients );
 	}
-//	if ( msg->readcount != msg->cursize ) {
+//	if ( msg->GetReadCount() != msg->GetSize() ) {
 //		Com_Printf( "WARNING: Junk at end of packet for client %i\n", cl - svs.clients );
 //	}
 }

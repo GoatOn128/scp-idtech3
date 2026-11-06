@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 // these are processed at snapshot transition time, so there will definately
 // be a valid snapshot this frame
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 #include "../ui/ui_shared.h" // bk001205 - for Q3_ui as well
@@ -129,7 +131,7 @@ void CG_ParseServerinfo( void ) {
 
 	info = CG_ConfigString( CS_SERVERINFO );
 	cgs.gametype = (gametype_t)atoi( Info_ValueForKey( info, "g_gametype" ) );
-	trap_Cvar_Set( "g_gametype", va( "%i", cgs.gametype ) );
+	trap_Cvar_Set( "g_gametype", idStr::FormatString( "%i", cgs.gametype ) );
 	cgs.dmflags = atoi( Info_ValueForKey( info, "dmflags" ) );
 	cgs.teamflags = atoi( Info_ValueForKey( info, "teamflags" ) );
 	cgs.fraglimit = atoi( Info_ValueForKey( info, "fraglimit" ) );
@@ -170,44 +172,46 @@ CG_ParseMissionStats
 */
 static void CG_ParseMissionStats( void ) {
 	const char  *info;
-	char *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
 	info = CG_ConfigString( CS_MISSIONSTATS );
+	lexer.LoadMemory( info, strlen( info ), "mission_stats" );
 
 // time
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.playTimeH = atoi( token );
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.playTimeM = atoi( token );
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.playTimeS = atoi( token );
 
 // objectives
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.numObjectivesFound = atoi( token );
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.numObjectives = atoi( token );
 
 // secrets
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.numSecretsFound = atoi( token );
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.numSecrets = atoi( token );
 
 // treasure
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.numTreasureFound = atoi( token );
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.numTreasure = atoi( token );
 
 // artifacts
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.numArtifactsFound = atoi( token );
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.numArtifacts = atoi( token );
 
 // attempts
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	cg.attempts = atoi( token );
 
 }
@@ -244,16 +248,18 @@ CG_ParseScreenFade
 */
 static void CG_ParseScreenFade( void ) {
 	const char  *info;
-	char *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	float fadealpha;
 	int fadestart, fadeduration;
 
 	info = CG_ConfigString( CS_SCREENFADE );
-	token = COM_Parse( (char **)&info );
+	lexer.LoadMemory( info, strlen( info ), "screenfade" );
+	lexer.ReadToken( &token );
 	fadealpha = atof( token );
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	fadestart = atoi( token );
-	token = COM_Parse( (char **)&info );
+	lexer.ReadToken( &token );
 	fadeduration = atoi( token );
 
 	CG_Fade( 0, 0, 0, (int)( fadealpha * 255.0f ), fadestart, fadeduration );
@@ -272,15 +278,16 @@ CG_ParseFog
 */
 static void CG_ParseFog( void ) {
 	const char  *info;
-	char *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	float ne, fa, r, g, b, density;
 	int time;
 
 	info = CG_ConfigString( CS_FOGVARS );
-	token = COM_Parse( (char **)&info );    ne = atof( token );
-	token = COM_Parse( (char **)&info );
+	lexer.LoadMemory( info, strlen( info ), "fogvars" );
+	lexer.ReadToken( &token );    ne = atof( token );
 
-	if ( !token || !token[0] ) {
+	if ( !lexer.ReadToken( &token ) || !token[0] ) {
 		// set to  'no fog'
 		// 'FOG_MAP' is not registered, so it will always make fog go away
 		trap_R_SetFog( FOG_CMD_SWITCHFOG, FOG_MAP, (int)ne, 0, 0, 0, 0 );
@@ -289,11 +296,11 @@ static void CG_ParseFog( void ) {
 
 	fa = atof( token );
 
-	token = COM_Parse( (char **)&info );    density = atof( token );
-	token = COM_Parse( (char **)&info );    r = atof( token );
-	token = COM_Parse( (char **)&info );    g = atof( token );
-	token = COM_Parse( (char **)&info );    b = atof( token );
-	token = COM_Parse( (char **)&info );    time = atoi( token );
+	lexer.ReadToken( &token );    density = atof( token );
+	lexer.ReadToken( &token );    r = atof( token );
+	lexer.ReadToken( &token );    g = atof( token );
+	lexer.ReadToken( &token );    b = atof( token );
+	lexer.ReadToken( &token );    time = atoi( token );
 
 	trap_R_SetFog( FOG_SERVER, (int)ne, (int)fa, r, g, b, density );
 	trap_R_SetFog( FOG_CMD_SWITCHFOG, FOG_SERVER, time, 0, 0, 0, 0 );
@@ -413,7 +420,7 @@ static void CG_ConfigStringModified( void ) {
 		cgs.voteNo = atoi( str );
 		cgs.voteModified = qtrue;
 	} else if ( num == CS_VOTE_STRING ) {
-		Q_strncpyz( cgs.voteString, str, sizeof( cgs.voteString ) );
+		idStr::Copynz( cgs.voteString, str, sizeof( cgs.voteString ) );
 #if 0
 		trap_S_StartLocalSound( cgs.media.voteNow, CHAN_ANNOUNCER );
 	} else if ( num >= CS_TEAMVOTE_TIME && num <= CS_TEAMVOTE_TIME + 1 ) {
@@ -426,7 +433,7 @@ static void CG_ConfigStringModified( void ) {
 		cgs.teamVoteNo[num - CS_TEAMVOTE_NO] = atoi( str );
 		cgs.teamVoteModified[num - CS_TEAMVOTE_NO] = qtrue;
 	} else if ( num >= CS_TEAMVOTE_STRING && num <= CS_TEAMVOTE_STRING + 1 ) {
-		Q_strncpyz( cgs.teamVoteString[num - CS_TEAMVOTE_STRING], str, sizeof( cgs.teamVoteString ) );
+		idStr::Copynz( cgs.teamVoteString[num - CS_TEAMVOTE_STRING], str, sizeof( cgs.teamVoteString ) );
 		trap_S_StartLocalSound( cgs.media.voteNow, CHAN_ANNOUNCER );
 #endif
 	} else if ( num == CS_INTERMISSION ) {
@@ -512,13 +519,13 @@ static void CG_AddToTeamChat( const char *str ) {
 			cgs.teamChatPos++;
 			p = cgs.teamChatMsgs[cgs.teamChatPos % chatHeight];
 			*p = 0;
-			*p++ = Q_COLOR_ESCAPE;
+			*p++ = C_COLOR_ESCAPE;
 			*p++ = lastcolor;
 			len = 0;
 			ls = NULL;
 		}
 
-		if ( Q_IsColorString( str ) ) {
+		if ( idStr::IsColor( str ) ) {
 			*p++ = *str++;
 			lastcolor = *str;
 			*p++ = *str++;
@@ -555,7 +562,7 @@ void CG_SendMoveSpeed( animation_t *animList, int numAnims, char *modelName ) {
 	}
 
 	text[0] = 0;
-	Q_strcat( text, sizeof( text ), modelName );
+	idStr::Append( text, sizeof( text ), modelName );
 
 	for ( i = 0, anim = animList; i < numAnims; i++, anim++ ) {
 		if ( anim->moveSpeed <= 0 ) {
@@ -563,7 +570,7 @@ void CG_SendMoveSpeed( animation_t *animList, int numAnims, char *modelName ) {
 		}
 
 		// add this to the list
-		Q_strcat( text, sizeof( text ), va( " %s %i %.1f", anim->name, anim->moveSpeed, anim->stepGap ) );
+		idStr::Append( text, sizeof( text ), idStr::FormatString( " %s %i %.1f", anim->name, anim->moveSpeed, anim->stepGap ) );
 	}
 
 	// send the movespeeds to the server
@@ -677,7 +684,7 @@ static void CG_MapRestart( void ) {
 	// done.
 
 	// RF, init ZombieFX
-	trap_RB_ZombieFXAddNewHit( -1, NULL, NULL );
+	trap_RB_ZombieFXAddNewHit( -1, vec3_origin, vec3_origin );
 
 	// make sure the "3 frags left" warnings play again
 	cg.fraglimitWarnings = 0;
@@ -725,7 +732,7 @@ static void CG_MapRestart( void ) {
 	}
 	// clear out rumble effects
 	memset( cg.cameraShake, 0, sizeof( cg.cameraShake ) );
-	memset( cg.cameraShakeAngles, 0, sizeof( cg.cameraShakeAngles ) );
+	cg.cameraShakeAngles.Zero();
 	cg.rumbleScale = 0;
 
 	// play the "fight" sound if this is a restart without warmup
@@ -735,9 +742,9 @@ static void CG_MapRestart( void ) {
 //	}
 #ifdef MISSIONPACK
 	if ( cg_singlePlayerActive.integer ) {
-		trap_Cvar_Set( "ui_matchStartTime", va( "%i", cg.time ) );
+		trap_Cvar_Set( "ui_matchStartTime", idStr::FormatString( "%i", cg.time ) );
 		if ( cg_recordSPDemo.integer && cg_recordSPDemoName.string && *cg_recordSPDemoName.string ) {
-			trap_SendConsoleCommand( va( "set g_synchronousclients 1 ; record %s \n", cg_recordSPDemoName.string ) );
+			trap_SendConsoleCommand( idStr::FormatString( "set g_synchronousclients 1 ; record %s \n", cg_recordSPDemoName.string ) );
 		}
 	}
 #endif
@@ -819,7 +826,7 @@ static void CG_ServerCommand( void ) {
 
 	if ( !strcmp( cmd, "dp" ) ) {    // dynamite print (what a hack :(
 
-		CG_CenterPrint( va( "%s %d %s", CG_translateString( "dynamitetimer" ), atoi( CG_Argv( 1 ) ), CG_translateString( "seconds" ) ),
+		CG_CenterPrint( idStr::FormatString( "%s %d %s", CG_translateString( "dynamitetimer" ), atoi( CG_Argv( 1 ) ), CG_translateString( "seconds" ) ),
 						SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
 		return;
 	}
@@ -839,9 +846,9 @@ static void CG_ServerCommand( void ) {
 #ifdef MISSIONPACK
 		cmd = CG_Argv( 1 );           // yes, this is obviously a hack, but so is the way we hear about
 									  // votes passing or failing
-		if ( !Q_stricmpn( cmd, "vote failed", 11 ) || !Q_stricmpn( cmd, "team vote failed", 16 ) ) {
+		if ( !idStr::Icmpn( cmd, "vote failed", 11 ) || !idStr::Icmpn( cmd, "team vote failed", 16 ) ) {
 			trap_S_StartLocalSound( cgs.media.voteFailed, CHAN_ANNOUNCER );
-		} else if ( !Q_stricmpn( cmd, "vote passed", 11 ) || !Q_stricmpn( cmd, "team vote passed", 16 ) ) {
+		} else if ( !idStr::Icmpn( cmd, "vote passed", 11 ) || !idStr::Icmpn( cmd, "team vote passed", 16 ) ) {
 			trap_S_StartLocalSound( cgs.media.votePassed, CHAN_ANNOUNCER );
 		}
 #endif
@@ -851,7 +858,7 @@ static void CG_ServerCommand( void ) {
 	if ( !strcmp( cmd, "chat" ) ) {
 		if ( !cg_teamChatsOnly.integer ) {
 			trap_S_StartLocalSound( cgs.media.talkSound, CHAN_LOCAL_SOUND );
-			Q_strncpyz( text, CG_Argv( 1 ), MAX_SAY_TEXT );
+			idStr::Copynz( text, CG_Argv( 1 ), MAX_SAY_TEXT );
 			CG_RemoveChatEscapeChar( text );
 			CG_Printf( "%s\n", text );
 		}
@@ -860,7 +867,7 @@ static void CG_ServerCommand( void ) {
 
 	if ( !strcmp( cmd, "tchat" ) ) {
 		trap_S_StartLocalSound( cgs.media.talkSound, CHAN_LOCAL_SOUND );
-		Q_strncpyz( text, CG_Argv( 1 ), MAX_SAY_TEXT );
+		idStr::Copynz( text, CG_Argv( 1 ), MAX_SAY_TEXT );
 		CG_RemoveChatEscapeChar( text );
 		CG_AddToTeamChat( text );
 		CG_Printf( "%s\n", text );
@@ -870,7 +877,7 @@ static void CG_ServerCommand( void ) {
 	// NERVE - SMF - limbo chat
 	if ( !strcmp( cmd, "lchat" ) ) {
 		trap_S_StartLocalSound( cgs.media.talkSound, CHAN_LOCAL_SOUND );
-		Q_strncpyz( text, CG_Argv( 1 ), MAX_SAY_TEXT );
+		idStr::Copynz( text, CG_Argv( 1 ), MAX_SAY_TEXT );
 		CG_RemoveChatEscapeChar( text );
 //		CG_AddToLimboChat( text );
 		trap_UI_LimboChat( text );
@@ -909,7 +916,7 @@ static void CG_ServerCommand( void ) {
 		return;
 	}
 
-	if ( Q_stricmp( cmd, "remapShader" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "remapShader" ) == 0 ) {
 		if ( trap_Argc() == 4 ) {
 			trap_R_RemapShader( CG_Argv( 1 ), CG_Argv( 2 ), CG_Argv( 3 ) );
 		}
@@ -929,7 +936,7 @@ static void CG_ServerCommand( void ) {
 	}
 
 	// NERVE - SMF
-	if ( !Q_stricmp( cmd, "oid" ) ) {
+	if ( !idStr::Icmp( cmd, "oid" ) ) {
 		CG_ObjectivePrint( CG_Argv( 2 ), SMALLCHAR_WIDTH, atoi( CG_Argv( 1 ) ) );
 		return;
 	}
@@ -944,7 +951,7 @@ static void CG_ServerCommand( void ) {
 	if ( !strcmp( cmd, "mu_start" ) ) {  // has optional parameter for fade-up time
 		int fadeTime = 0;   // default to instant start
 
-		Q_strncpyz( text, CG_Argv( 2 ), MAX_SAY_TEXT );
+		idStr::Copynz( text, CG_Argv( 2 ), MAX_SAY_TEXT );
 		if ( text && strlen( text ) ) {
 			fadeTime = atoi( text );
 		}
@@ -956,7 +963,7 @@ static void CG_ServerCommand( void ) {
 	if ( !strcmp( cmd, "mu_play" ) ) {   // has optional parameter for fade-up time
 		int fadeTime = 0;   // default to instant start
 
-		Q_strncpyz( text, CG_Argv( 2 ), MAX_SAY_TEXT );
+		idStr::Copynz( text, CG_Argv( 2 ), MAX_SAY_TEXT );
 		if ( text && strlen( text ) ) {
 			fadeTime = atoi( text );
 		}
@@ -968,7 +975,7 @@ static void CG_ServerCommand( void ) {
 	if ( !strcmp( cmd, "mu_stop" ) ) {   // has optional parameter for fade-down time
 		int fadeTime = 0;   // default to instant stop
 
-		Q_strncpyz( text, CG_Argv( 1 ), MAX_SAY_TEXT );
+		idStr::Copynz( text, CG_Argv( 1 ), MAX_SAY_TEXT );
 		if ( text && strlen( text ) ) {
 			fadeTime = atoi( text );
 		}

@@ -31,6 +31,8 @@ If you have questions concerning this license or the applicable additional terms
 // bg_pmove.c -- both games player movement code
 // takes a playerstate and a usercmd as input and returns a modifed playerstate
 
+#include "../precompiled.h"
+
 #include "q_shared.h"
 #include "bg_public.h"
 #include "bg_local.h"
@@ -177,12 +179,12 @@ PM_ClipVelocity
 Slide off of the impacting surface
 ==================
 */
-void PM_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce ) {
+void PM_ClipVelocity( const idVec3 &in, const idVec3 &normal, idVec3 &out, float overbounce ) {
 	float backoff;
 	float change;
 	int i;
 
-	backoff = DotProduct( in, normal );
+	backoff = ( in * normal );
 
 	if ( backoff < 0 ) {
 		backoff *= overbounce;
@@ -244,19 +246,18 @@ Handles both ground friction and water friction
 ==================
 */
 static void PM_Friction( void ) {
-	vec3_t vec;
-	float   *vel;
+	idVec3 vec;
 	float speed, newspeed, control;
 	float drop;
 
-	vel = pm->ps->velocity;
+	idVec3 &vel = pm->ps->velocity;
 
-	VectorCopy( vel, vec );
+	vec = vel;
 	if ( pml.walking ) {
 		vec[2] = 0; // ignore slope movement
 	}
 
-	speed = VectorLength( vec );
+	speed = vec.Length();
 	if ( speed < 1 ) {
 		vel[0] = 0;
 		vel[1] = 0;     // allow sinking underwater
@@ -320,13 +321,13 @@ PM_Accelerate
 Handles user intended acceleration
 ==============
 */
-static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
+static void PM_Accelerate( idVec3 &wishdir, float wishspeed, float accel ) {
 #if 1
 	// q2 style
 	int i;
 	float addspeed, accelspeed, currentspeed;
 
-	currentspeed = DotProduct( pm->ps->velocity, wishdir );
+	currentspeed = ( pm->ps->velocity * wishdir );
 	addspeed = wishspeed - currentspeed;
 	if ( addspeed <= 0 ) {
 		return;
@@ -349,21 +350,21 @@ static void PM_Accelerate( vec3_t wishdir, float wishspeed, float accel ) {
 	}
 #else
 	// proper way (avoids strafe jump maxspeed bug), but feels bad
-	vec3_t wishVelocity;
-	vec3_t pushDir;
+	idVec3 wishVelocity;
+	idVec3 pushDir;
 	float pushLen;
 	float canPush;
 
-	VectorScale( wishdir, wishspeed, wishVelocity );
-	VectorSubtract( wishVelocity, pm->ps->velocity, pushDir );
-	pushLen = VectorNormalize( pushDir );
+	wishVelocity = wishdir * wishspeed;
+	pushDir = wishVelocity - pm->ps->velocity;
+	pushLen = pushDir.Normalize();
 
 	canPush = accel * pml.frametime * wishspeed;
 	if ( canPush > pushLen ) {
 		canPush = pushLen;
 	}
 
-	VectorMA( pm->ps->velocity, canPush, pushDir, pm->ps->velocity );
+	pm->ps->velocity = pm->ps->velocity + pushDir * canPush;
 #endif
 }
 
@@ -457,24 +458,26 @@ static void PM_SetMovementDir( void ) {
 // Ridah, changed this for more realistic angles (at the cost of more network traffic?)
 #if 1
 	float speed;
-	vec3_t moved;
+	idVec3 moved;
 	int moveyaw;
 
-	VectorSubtract( pm->ps->origin, pml.previous_origin, moved );
+	moved = pm->ps->origin - pml.previous_origin;
 
 	if (    ( pm->cmd.forwardmove || pm->cmd.rightmove )
 			&&  ( pm->ps->groundEntityNum != ENTITYNUM_NONE )
-			&&  ( speed = VectorLength( moved ) )
+			&&  ( speed = moved.Length() )
 			&&  ( speed > pml.frametime * 5 ) ) { // if moving slower than 20 units per second, just face head angles
-		vec3_t dir;
+		idVec3 dir;
 
-		VectorNormalize2( moved, dir );
-		vectoangles( dir, dir );
+		dir = moved;
+		dir.Normalize();
+		idAngles moveAngles = dir.ToAngles();
+		dir.Set( moveAngles.pitch, moveAngles.yaw, moveAngles.roll );
 
-		moveyaw = (int)AngleDelta( dir[YAW], pm->ps->viewangles[YAW] );
+		moveyaw = (int)idMath::AngleDelta( dir[YAW], pm->ps->viewangles[YAW] );
 
 		if ( pm->cmd.forwardmove < 0 ) {
-			moveyaw = (int)AngleNormalize180( moveyaw + 180 );
+			moveyaw = (int)idMath::AngleNormalize180( moveyaw + 180 );
 		}
 
 		if ( abs( moveyaw ) > 75 ) {
@@ -578,9 +581,9 @@ PM_CheckWaterJump
 =============
 */
 static qboolean PM_CheckWaterJump( void ) {
-	vec3_t spot;
+	idVec3 spot;
 	int cont;
-	vec3_t flatforward;
+	idVec3 flatforward;
 
 	if ( pm->ps->pm_time ) {
 		return qfalse;
@@ -594,9 +597,9 @@ static qboolean PM_CheckWaterJump( void ) {
 	flatforward[0] = pml.forward[0];
 	flatforward[1] = pml.forward[1];
 	flatforward[2] = 0;
-	VectorNormalize( flatforward );
+	flatforward.Normalize();
 
-	VectorMA( pm->ps->origin, 30, flatforward, spot );
+	spot = pm->ps->origin + flatforward * 30;
 	spot[2] += 4;
 	cont = pm->pointcontents( spot, pm->ps->clientNum );
 	if ( !( cont & CONTENTS_SOLID ) ) {
@@ -610,7 +613,7 @@ static qboolean PM_CheckWaterJump( void ) {
 	}
 
 	// jump out of water
-	VectorScale( pml.forward, 200, pm->ps->velocity );
+	pm->ps->velocity = pml.forward * 200;
 	pm->ps->velocity[2] = 350;
 
 	pm->ps->pm_flags |= PMF_TIME_WATERJUMP;
@@ -650,9 +653,9 @@ PM_WaterMove
 */
 static void PM_WaterMove( void ) {
 	int i;
-	vec3_t wishvel;
+	idVec3 wishvel;
 	float wishspeed;
-	vec3_t wishdir;
+	idVec3 wishdir;
 	float scale;
 	float vel;
 
@@ -691,8 +694,8 @@ static void PM_WaterMove( void ) {
 		wishvel[2] += scale * pm->cmd.upmove;
 	}
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishdir = wishvel;
+	wishspeed = wishdir.Normalize();
 
 	if ( pm->watertype == CONTENTS_SLIME ) {    //----(SA)	slag
 		if ( wishspeed > pm->ps->speed * pm_slagSwimScale ) {
@@ -710,14 +713,14 @@ static void PM_WaterMove( void ) {
 
 
 	// make sure we can go up slopes easily under water
-	if ( pml.groundPlane && DotProduct( pm->ps->velocity, pml.groundTrace.plane.normal ) < 0 ) {
-		vel = VectorLength( pm->ps->velocity );
+	if ( pml.groundPlane && ( pm->ps->velocity * pml.groundTrace.plane.normal ) < 0 ) {
+		vel = pm->ps->velocity.Length();
 		// slide along the ground plane
 		PM_ClipVelocity( pm->ps->velocity, pml.groundTrace.plane.normal,
 						 pm->ps->velocity, OVERCLIP );
 
-		VectorNormalize( pm->ps->velocity );
-		VectorScale( pm->ps->velocity, vel, pm->ps->velocity );
+		pm->ps->velocity.Normalize();
+		pm->ps->velocity = pm->ps->velocity * vel;
 	}
 
 	PM_SlideMove( qfalse );
@@ -737,7 +740,7 @@ static void PM_InvulnerabilityMove( void ) {
 	pm->cmd.forwardmove = 0;
 	pm->cmd.rightmove = 0;
 	pm->cmd.upmove = 0;
-	VectorClear(pm->ps->velocity);
+	pm->ps->velocity.Zero();
 }
 */
 
@@ -750,9 +753,9 @@ Only with the flight powerup
 */
 static void PM_FlyMove( void ) {
 	int i;
-	vec3_t wishvel;
+	idVec3 wishvel;
 	float wishspeed;
-	vec3_t wishdir;
+	idVec3 wishdir;
 	float scale;
 
 	// normal slowdown
@@ -779,8 +782,8 @@ static void PM_FlyMove( void ) {
 		wishvel[2] += scale * pm->cmd.upmove;
 	}
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishdir = wishvel;
+	wishspeed = wishdir.Normalize();
 
 	PM_Accelerate( wishdir, wishspeed, pm_flyaccelerate );
 
@@ -796,9 +799,9 @@ PM_AirMove
 */
 static void PM_AirMove( void ) {
 	int i;
-	vec3_t wishvel;
+	idVec3 wishvel;
 	float fmove, smove;
-	vec3_t wishdir;
+	idVec3 wishdir;
 	float wishspeed;
 	float scale;
 	usercmd_t cmd;
@@ -818,16 +821,16 @@ static void PM_AirMove( void ) {
 	// project moves down to flat plane
 	pml.forward[2] = 0;
 	pml.right[2] = 0;
-	VectorNormalize( pml.forward );
-	VectorNormalize( pml.right );
+	pml.forward.Normalize();
+	pml.right.Normalize();
 
 	for ( i = 0 ; i < 2 ; i++ ) {
 		wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
 	}
 	wishvel[2] = 0;
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishdir = wishvel;
+	wishspeed = wishdir.Normalize();
 	wishspeed *= scale;
 
 	// not on ground, so little effect on velocity
@@ -870,21 +873,21 @@ PM_GrappleMove
 static void PM_GrappleMove( void ) {
 // Ridah, removed this code since we don't have a grapple, and the grapplePoint was consuming valuable msg space
 #if 0
-	vec3_t vel, v;
+	idVec3 vel, v;
 	float vlen;
 
-	VectorScale(pml.forward, -16, v);
-	VectorAdd(pm->ps->grapplePoint, v, v);
-	VectorSubtract(v, pm->ps->origin, vel);
-	vlen = VectorLength(vel);
-	VectorNormalize( vel );
+	v = pml.forward * -16;
+	v = pm->ps->grapplePoint + v;
+	vel = v - pm->ps->origin;
+	vlen = vel.Length();
+	vel.Normalize();
 
 	if (vlen <= 100)
-		VectorScale(vel, 10 * vlen, vel);
+		vel = vel * 10 * vlen;
 	else
-		VectorScale(vel, 800, vel);
+		vel = vel * 800;
 
-	VectorCopy(vel, pm->ps->velocity);
+	pm->ps->velocity = vel;
 
 	pml.groundPlane = qfalse;
 #endif
@@ -899,16 +902,16 @@ PM_WalkMove
 */
 static void PM_WalkMove( void ) {
 	int i, stamtake;            //----(SA)
-	vec3_t wishvel, oldvel;
+	idVec3 wishvel, oldvel;
 	float fmove, smove;
-	vec3_t wishdir;
+	idVec3 wishdir;
 	float wishspeed;
 	float scale;
 	usercmd_t cmd;
 	float accelerate;
 	float vel;
 
-	if ( pm->waterlevel > 2 && DotProduct( pml.forward, pml.groundTrace.plane.normal ) > 0 ) {
+	if ( pm->waterlevel > 2 && ( pml.forward * pml.groundTrace.plane.normal ) > 0 ) {
 		// begin swimming
 		PM_WaterMove();
 		return;
@@ -983,8 +986,8 @@ static void PM_WalkMove( void ) {
 	PM_ClipVelocity( pml.forward, pml.groundTrace.plane.normal, pml.forward, OVERCLIP );
 	PM_ClipVelocity( pml.right, pml.groundTrace.plane.normal, pml.right, OVERCLIP );
 	//
-	VectorNormalize( pml.forward );
-	VectorNormalize( pml.right );
+	pml.forward.Normalize();
+	pml.right.Normalize();
 
 	for ( i = 0 ; i < 3 ; i++ ) {
 		wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
@@ -992,8 +995,8 @@ static void PM_WalkMove( void ) {
 	// when going up or down slopes the wish velocity should Not be zero
 //	wishvel[2] = 0;
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishdir = wishvel;
+	wishspeed = wishdir.Normalize();
 	wishspeed *= scale;
 
 	// clamp the speed lower if ducking
@@ -1060,18 +1063,18 @@ static void PM_WalkMove( void ) {
 	}
 
 
-	vel = VectorLength( pm->ps->velocity );
-	VectorCopy( pm->ps->velocity, oldvel );
+	vel = pm->ps->velocity.Length();
+	oldvel = pm->ps->velocity;
 
 	// slide along the ground plane
 	PM_ClipVelocity( pm->ps->velocity, pml.groundTrace.plane.normal,
 					 pm->ps->velocity, OVERCLIP );
 
 	// RF, only maintain speed if the direction is similar
-	if ( DotProduct( pm->ps->velocity, oldvel ) > 0 ) {
+	if ( ( pm->ps->velocity * oldvel ) > 0 ) {
 		// don't decrease velocity when going up or down a slope
-		VectorNormalize( pm->ps->velocity );
-		VectorScale( pm->ps->velocity, vel, pm->ps->velocity );
+		pm->ps->velocity.Normalize();
+		pm->ps->velocity = pm->ps->velocity * vel;
 	}
 
 	// don't do anything if standing still
@@ -1101,13 +1104,13 @@ static void PM_DeadMove( void ) {
 
 	// extra friction
 
-	forward = VectorLength( pm->ps->velocity );
+	forward = pm->ps->velocity.Length();
 	forward -= 20;
 	if ( forward <= 0 ) {
-		VectorClear( pm->ps->velocity );
+		pm->ps->velocity.Zero();
 	} else {
-		VectorNormalize( pm->ps->velocity );
-		VectorScale( pm->ps->velocity, forward, pm->ps->velocity );
+		pm->ps->velocity.Normalize();
+		pm->ps->velocity = pm->ps->velocity * forward;
 	}
 }
 
@@ -1120,9 +1123,9 @@ PM_NoclipMove
 static void PM_NoclipMove( void ) {
 	float speed, drop, friction, control, newspeed;
 	int i;
-	vec3_t wishvel;
+	idVec3 wishvel;
 	float fmove, smove;
-	vec3_t wishdir;
+	idVec3 wishdir;
 	float wishspeed;
 	float scale;
 
@@ -1130,9 +1133,9 @@ static void PM_NoclipMove( void ) {
 
 	// friction
 
-	speed = VectorLength( pm->ps->velocity );
+	speed = pm->ps->velocity.Length();
 	if ( speed < 1 ) {
-		VectorCopy( vec3_origin, pm->ps->velocity );
+		pm->ps->velocity = vec3_origin;
 	} else
 	{
 		drop = 0;
@@ -1148,7 +1151,7 @@ static void PM_NoclipMove( void ) {
 		}
 		newspeed /= speed;
 
-		VectorScale( pm->ps->velocity, newspeed, pm->ps->velocity );
+		pm->ps->velocity = pm->ps->velocity * newspeed;
 	}
 
 	// accelerate
@@ -1161,14 +1164,14 @@ static void PM_NoclipMove( void ) {
 		wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
 	wishvel[2] += pm->cmd.upmove;
 
-	VectorCopy( wishvel, wishdir );
-	wishspeed = VectorNormalize( wishdir );
+	wishdir = wishvel;
+	wishspeed = wishdir.Normalize();
 	wishspeed *= scale;
 
 	PM_Accelerate( wishdir, wishspeed, pm_accelerate );
 
 	// move
-	VectorMA( pm->ps->origin, pml.frametime, pm->ps->velocity, pm->ps->origin );
+	pm->ps->origin = pm->ps->origin + pm->ps->velocity * pml.frametime;
 }
 
 //============================================================================
@@ -1352,7 +1355,7 @@ PM_CorrectAllSolid
 */
 static int PM_CorrectAllSolid( trace_t *trace ) {
 	int i, j, k;
-	vec3_t point;
+	idVec3 point;
 
 	if ( pm->debugLevel ) {
 		Com_Printf( "%i:allsolid\n", c_pmove );
@@ -1362,7 +1365,7 @@ static int PM_CorrectAllSolid( trace_t *trace ) {
 	for ( i = -1; i <= 1; i++ ) {
 		for ( j = -1; j <= 1; j++ ) {
 			for ( k = -1; k <= 1; k++ ) {
-				VectorCopy( pm->ps->origin, point );
+				point = pm->ps->origin;
 				point[0] += (float) i;
 				point[1] += (float) j;
 				point[2] += (float) k;
@@ -1397,7 +1400,7 @@ The ground trace didn't hit a surface, so we are in freefall
 */
 static void PM_GroundTraceMissed( void ) {
 	trace_t trace;
-	vec3_t point;
+	idVec3 point;
 
 #define AI_STEPTEST_FALLDIST_PER_SEC    ( STEPSIZE + pm->ps->gravity * 0.35 )   // always allow them to fall down the minimum stepsize
 
@@ -1409,7 +1412,7 @@ static void PM_GroundTraceMissed( void ) {
 
 		// if they aren't in a jumping animation and the ground is a ways away, force into it
 		// if we didn't do the trace, the player would be backflipping down staircases
-		VectorCopy( pm->ps->origin, point );
+		point = pm->ps->origin;
 		point[2] -= 64;
 
 		pm->trace( &trace, pm->ps->origin, pm->mins, pm->maxs, point, pm->ps->clientNum, pm->tracemask );
@@ -1418,14 +1421,14 @@ static void PM_GroundTraceMissed( void ) {
 		if ( pm->ps->aiChar ) {
 			if ( trace.fraction < 1.0 ) {
 				float falldist, xyspeed;
-				vec3_t vel;
-				falldist = Distance( pm->ps->origin, trace.endpos );
-				VectorCopy( pm->ps->velocity, vel );
+				idVec3 vel;
+				falldist = ( pm->ps->origin - trace.endpos ).Length();
+				vel = pm->ps->velocity;
 				vel[2] = 0;
-				xyspeed = VectorLength( vel );
+				xyspeed = vel.Length();
 				if ( xyspeed > 120 && falldist * pml.frametime < ( xyspeed * pml.frametime + STEPSIZE ) ) {
 					// put them on the ground
-					VectorCopy( trace.endpos, pm->ps->origin );
+					pm->ps->origin = trace.endpos;
 					return;
 				}
 			}
@@ -1454,7 +1457,7 @@ PM_GroundTrace
 =============
 */
 static void PM_GroundTrace( void ) {
-	vec3_t point;
+	idVec3 point;
 	trace_t trace;
 
 	point[0] = pm->ps->origin[0];
@@ -1480,7 +1483,7 @@ static void PM_GroundTrace( void ) {
 	}
 
 	// check if getting thrown off the ground
-	if ( pm->ps->velocity[2] > 0 && DotProduct( pm->ps->velocity, trace.plane.normal ) > 10 ) {
+	if ( pm->ps->velocity[2] > 0 && ( pm->ps->velocity * trace.plane.normal ) > 10 ) {
 		if ( pm->debugLevel ) {
 			Com_Printf( "%i:kickoff\n", c_pmove );
 		}
@@ -1554,7 +1557,7 @@ PM_SetWaterLevel	FIXME: avoid this twice?  certainly if not moving
 =============
 */
 static void PM_SetWaterLevel( void ) {
-	vec3_t point;
+	idVec3 point;
 	int cont;
 	int sample1;
 	int sample2;
@@ -2059,7 +2062,7 @@ static void PM_BeginWeaponChange( int oldweapon, int newweapon, qboolean reload 
 		return;
 	}
 
-	if ( newweapon != WP_NONE && !( COM_BitCheck( pm->ps->weapons, newweapon ) ) ) {
+	if ( newweapon != WP_NONE && !( idBitField::Test( pm->ps->weapons, newweapon ) ) ) {
 		return;
 	}
 
@@ -2175,7 +2178,7 @@ static void PM_FinishWeaponChange( void ) {
 		newweapon = WP_NONE;
 	}
 
-	if ( !( COM_BitCheck( pm->ps->weapons, newweapon ) ) ) {
+	if ( !( idBitField::Test( pm->ps->weapons, newweapon ) ) ) {
 		newweapon = WP_NONE;
 	}
 
@@ -2429,7 +2432,7 @@ static void PM_SwitchIfEmpty( void ) {
 	case WP_GRENADE_PINEAPPLE:
 	case WP_DYNAMITE:
 		// take the 'weapon' away from the player
-		COM_BitClear( pm->ps->weapons, pm->ps->weapon );
+		idBitField::Clear( pm->ps->weapons, pm->ps->weapon );
 		break;
 	default:
 		break;
@@ -2519,7 +2522,7 @@ void PM_CoolWeapons( void ) {
 	for ( wp = 0; wp < WP_NUM_WEAPONS; wp++ ) {
 
 		// if you have the weapon
-		if ( COM_BitCheck( pm->ps->weapons, wp ) ) {
+		if ( idBitField::Test( pm->ps->weapons, wp ) ) {
 			// and it's hot
 			if ( pm->ps->weapHeat[wp] ) {
 				pm->ps->weapHeat[wp] -= ( (float)ammoTable[wp].coolRate * pml.frametime );
@@ -3601,10 +3604,10 @@ PM_CalcLean
 ==============
 */
 void PM_UpdateLean( playerState_t *ps, usercmd_t *cmd, pmove_t *tpm ) {
-	vec3_t start, end, tmins, tmaxs, right;
+	idVec3 start, end, tmins, tmaxs, right;
 	int leaning = 0;            // -1 left, 1 right
 	float leanofs = 0;
-	vec3_t viewangles;
+	idVec3 viewangles;
 	trace_t trace;
 
 	if ( ps->aiChar ) {
@@ -3671,18 +3674,18 @@ void PM_UpdateLean( playerState_t *ps, usercmd_t *cmd, pmove_t *tpm ) {
 	ps->leanf = leanofs;
 
 	if ( leaning ) {
-		VectorCopy( ps->origin, start );
+		start = ps->origin;
 		start[2] += ps->viewheight;
-		VectorCopy( ps->viewangles, viewangles );
+		viewangles = ps->viewangles;
 		viewangles[ROLL] = 0;
-		AngleVectors( ps->viewangles, NULL, right, NULL );
-		VectorNormalize( right );
+		idAngles( ps->viewangles ).ToVectors( NULL, &right, NULL );
+		right.Normalize();
 		right[2] = ( leanofs < 0 ) ? 0.25 : -0.25;
-		VectorMA( start, leanofs, right, end );
+		end = start + right * leanofs;
 //		VectorSet( tmins, -8, -8, -4 );
 //		VectorSet( tmaxs, 8, 8, 4 );
-		VectorSet( tmins, -12, -12, -6 );
-		VectorSet( tmaxs, 12, 12, 10 );
+		tmins.Set( -12, -12, -6 );
+		tmaxs.Set( 12, 12, 10 );
 
 //	(SA) there's a problem with this tpm.trace (crashes)
 //		tpm.trace = (void *)&trace;
@@ -3713,7 +3716,7 @@ This can be used as another entry point when only the viewangles
 are being updated isntead of a full move
 ================
 */
-void PM_UpdateViewAngles( playerState_t *ps, usercmd_t *cmd, void( trace ) ( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask ) ) {   //----(SA)	modified
+void PM_UpdateViewAngles( playerState_t *ps, usercmd_t *cmd, void( trace ) ( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentMask ) ) {   //----(SA)	modified
 	short temp;
 	int i;
 	pmove_t tpm;
@@ -3761,11 +3764,11 @@ PM_CheckLadderMove
 ================
 */
 qboolean ladderforward;
-vec3_t laddervec;
+idVec3 laddervec;
 
 void PM_CheckLadderMove( void ) {
-	vec3_t spot;
-	vec3_t flatforward;
+	idVec3 spot;
+	idVec3 flatforward;
 	trace_t trace;
 	float tracedist;
 	#define TRACE_LADDER_DIST   48.0
@@ -3811,22 +3814,22 @@ void PM_CheckLadderMove( void ) {
 	flatforward[0] = pml.forward[0];
 	flatforward[1] = pml.forward[1];
 	flatforward[2] = 0;
-	VectorNormalize( flatforward );
+	flatforward.Normalize();
 
-	VectorMA( pm->ps->origin, tracedist, flatforward, spot );
+	spot = pm->ps->origin + flatforward * tracedist;
 	pm->trace( &trace, pm->ps->origin, pm->mins, pm->maxs, spot, pm->ps->clientNum, pm->tracemask );
 	if ( ( trace.fraction < 1 ) && ( trace.surfaceFlags & SURF_LADDER ) ) {
 		pml.ladder = qtrue;
 	}
 /*
-	if (!pml.ladder && DotProduct(pm->ps->velocity, pml.forward) < 0) {
+	if (!pml.ladder && ( pm->ps->velocity * pml.forward ) < 0) {
 		// trace along the negative velocity, so we grab onto a ladder if we are trying to reverse onto it from above the ladder
 		flatforward[0] = -pm->ps->velocity[0];
 		flatforward[1] = -pm->ps->velocity[1];
 		flatforward[2] = 0;
-		VectorNormalize (flatforward);
+		flatforward.Normalize();
 
-		VectorMA (pm->ps->origin, tracedist, flatforward, spot);
+		spot = pm->ps->origin + flatforward * tracedist;
 		pm->trace (&trace, pm->ps->origin, pm->mins, pm->maxs, spot, pm->ps->clientNum, pm->tracemask);
 		if ((trace.fraction < 1) && (trace.surfaceFlags & SURF_LADDER))
 		{
@@ -3835,20 +3838,20 @@ void PM_CheckLadderMove( void ) {
 	}
 */
 	if ( pml.ladder ) {
-		VectorCopy( trace.plane.normal, laddervec );
+		laddervec = trace.plane.normal;
 	}
 
 	if ( pml.ladder && !pml.walking && ( trace.fraction * tracedist > 1.0 ) ) {
-		vec3_t mins;
+		idVec3 mins;
 		// if we are only just on the ladder, don't do this yet, or it may throw us back off the ladder
 		pml.ladder = qfalse;
-		VectorCopy( pm->mins, mins );
+		mins = pm->mins;
 		mins[2] = -1;
-		VectorMA( pm->ps->origin, -tracedist, laddervec, spot );
+		spot = pm->ps->origin + laddervec * -tracedist;
 		pm->trace( &trace, pm->ps->origin, mins, pm->maxs, spot, pm->ps->clientNum, pm->tracemask );
 		if ( ( trace.fraction < 1 ) && ( trace.surfaceFlags & SURF_LADDER ) ) {
 			// if AI, then be more stringent on their viewangles
-			if ( pm->ps->aiChar && ( DotProduct( trace.plane.normal, pml.forward ) > -0.9 ) ) {
+			if ( pm->ps->aiChar && ( ( trace.plane.normal * pml.forward ) > -0.9 ) ) {
 				pml.ladder = qfalse;
 			} else {
 				ladderforward = qtrue;
@@ -3889,12 +3892,12 @@ PM_LadderMove
 */
 void PM_LadderMove( void ) {
 	float wishspeed, scale;
-	vec3_t wishdir, wishvel;
+	idVec3 wishdir, wishvel;
 	float upscale;
 
 	if ( ladderforward ) {
 		// move towards the ladder
-		VectorScale( laddervec, -200.0, wishvel );
+		wishvel = laddervec * -200.0;
 		pm->ps->velocity[0] = wishvel[0];
 		pm->ps->velocity[1] = wishvel[1];
 	}
@@ -3909,14 +3912,14 @@ void PM_LadderMove( void ) {
 	// forward/right should be horizontal only
 	pml.forward[2] = 0;
 	pml.right[2] = 0;
-	VectorNormalize( pml.forward );
-	VectorNormalize( pml.right );
+	pml.forward.Normalize();
+	pml.right.Normalize();
 
 	// move depending on the view, if view is straight forward, then go up
 	// if view is down more then X degrees, start going down
 	// if they are back pedalling, then go in reverse of above
 	scale = PM_CmdScale( &pm->cmd );
-	VectorClear( wishvel );
+	wishvel.Zero();
 
 	if ( pm->cmd.forwardmove ) {
 		if ( pm->ps->aiChar ) {
@@ -3929,22 +3932,23 @@ void PM_LadderMove( void ) {
 
 	if ( pm->cmd.rightmove ) {
 		// strafe, so we can jump off ladder
-		vec3_t ladder_right, ang;
-		vectoangles( laddervec, ang );
-		AngleVectors( ang, NULL, ladder_right, NULL );
+		idVec3 ladder_right;
+		idAngles ang = laddervec.ToAngles();
+		ang.ToVectors( NULL, &ladder_right, NULL );
 
 		// if we are looking away from the ladder, reverse the right vector
-		if ( DotProduct( laddervec, pml.forward ) > 0 ) {
-			VectorInverse( ladder_right );
+		if ( ( laddervec * pml.forward ) > 0 ) {
+			ladder_right = -ladder_right;
 		}
 
-		VectorMA( wishvel, 0.5 * scale * (float)pm->cmd.rightmove, pml.right, wishvel );
+		wishvel = wishvel + pml.right * 0.5 * scale * (float)pm->cmd.rightmove;
 	}
 
 	// do strafe friction
 	PM_Friction();
 
-	wishspeed = VectorNormalize2( wishvel, wishdir );
+	wishdir = wishvel;
+	wishspeed = wishdir.Normalize();
 
 	PM_Accelerate( wishdir, wishspeed, pm_accelerate );
 	if ( !wishvel[2] ) {
@@ -3997,7 +4001,7 @@ void PM_Sprint( void ) {
 			}
 		} else {
 			// RF, dont drain sprintTime if not moving
-			if ( VectorLength( pm->ps->velocity ) > 128 ) { // (SA) check for a bit more movement
+			if ( pm->ps->velocity.Length() > 128 ) { // (SA) check for a bit more movement
 				pm->ps->sprintTime -= 50;
 			}
 		}
@@ -4040,7 +4044,7 @@ PmoveSingle
 
 ================
 */
-void trap_SnapVector( float *v );
+void trap_SnapVector( idVec3 &v );
 
 void PmoveSingle( pmove_t *pmove ) {
 	// Ridah
@@ -4155,10 +4159,10 @@ void PmoveSingle( pmove_t *pmove ) {
 	pm->ps->commandTime = pmove->cmd.serverTime;
 
 	// save old org in case we get stuck
-	VectorCopy( pm->ps->origin, pml.previous_origin );
+	pml.previous_origin = pm->ps->origin;
 
 	// save old velocity for crashlanding
-	VectorCopy( pm->ps->velocity, pml.previous_velocity );
+	pml.previous_velocity = pm->ps->velocity;
 
 	pml.frametime = pml.msec * 0.001;
 
@@ -4171,7 +4175,7 @@ void PmoveSingle( pmove_t *pmove ) {
 
 		}
 	}
-	AngleVectors( pm->ps->viewangles, pml.forward, pml.right, pml.up );
+	idAngles( pm->ps->viewangles ).ToVectors( &pml.forward, &pml.right, &pml.up );
 
 	if ( pm->cmd.upmove < 10 ) {
 		// not holding jump
@@ -4288,8 +4292,7 @@ void PmoveSingle( pmove_t *pmove ) {
 		PM_WaterEvents();
 
 		// snap some parts of playerstate to save network bandwidth
-		trap_SnapVector( pm->ps->velocity );
-//		SnapVector( pm->ps->velocity );
+		pm->ps->velocity.Snap();
 
 		// Ridah
 	}

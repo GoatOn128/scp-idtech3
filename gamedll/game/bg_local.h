@@ -44,7 +44,7 @@ If you have questions concerning this license or the applicable additional terms
 // pmove, just to make damn sure we don't have
 // any differences when running on client or server
 typedef struct {
-	vec3_t forward, right, up;
+	idVec3 forward, right, up;
 	float frametime;
 
 	int msec;
@@ -55,8 +55,8 @@ typedef struct {
 
 	float impactSpeed;
 
-	vec3_t previous_origin;
-	vec3_t previous_velocity;
+	idVec3 previous_origin;
+	idVec3 previous_velocity;
 	int previous_waterlevel;
 
 	// Ridah, ladders

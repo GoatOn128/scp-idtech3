@@ -36,6 +36,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "snd_local.h"
 
 #define DEF_COMSOUNDMEGS "24"    // (SA) upped for GD
@@ -48,8 +51,7 @@ SOUND MEMORY MANAGENT
 ===============================================================================
 */
 
-static sndBuffer   *buffer = NULL;
-static sndBuffer   *freelist = NULL;
+static idBlockAlloc<sndBuffer, 512, TAG_IDLIB> bufferPool;
 static int inUse = 0;
 static int totalInUse = 0;
 
@@ -65,9 +67,8 @@ SND_free
 ================
 */
 void SND_free( sndBuffer *v ) {
-	*(sndBuffer **)v = freelist;
-	freelist = (sndBuffer*)v;
-	inUse += sizeof( sndBuffer );
+	bufferPool.Free( v );
+	inUse += (int)sizeof( sndBuffer );
 }
 
 /*
@@ -78,15 +79,25 @@ SND_malloc
 sndBuffer*  SND_malloc() {
 	sndBuffer *v;
 
-	while ( freelist == NULL ) {
+	while ( bufferPool.GetFreeCount() == 0 ) {
+		int freeCount = bufferPool.GetFreeCount();
+
 		S_FreeOldestSound();
+		if ( bufferPool.GetFreeCount() == freeCount ) {
+			Com_Error( ERR_FATAL, "SND_malloc: sound buffer pool exhausted" );
+			return NULL;
+		}
 	}
 
-	inUse -= sizeof( sndBuffer );
-	totalInUse += sizeof( sndBuffer );
+	v = bufferPool.Alloc();
+	if ( v == NULL ) {
+		Com_Error( ERR_FATAL, "SND_malloc: failed to allocate sound buffer" );
+		return NULL;
+	}
 
-	v = freelist;
-	freelist = *(sndBuffer **)freelist;
+	inUse -= (int)sizeof( sndBuffer );
+	totalInUse += (int)sizeof( sndBuffer );
+
 	v->next = NULL;
 	return v;
 }
@@ -97,27 +108,34 @@ SND_setup
 ================
 */
 void SND_setup() {
-	sndBuffer *p, *q;
 	cvar_t  *cv;
 	int scs;
+	int maxSoundMegs = 0x7fffffff / ( 512 * (int)sizeof( sndBuffer ) );
 
 	cv = Cvar_Get( "com_soundMegs", DEF_COMSOUNDMEGS, CVAR_LATCH | CVAR_ARCHIVE );
 
+	if ( cv->integer <= 0 || cv->integer > maxSoundMegs ) {
+		Com_Error( ERR_FATAL, "SND_setup: invalid com_soundMegs value %d", cv->integer );
+		return;
+	}
+
 	scs = cv->integer * 512;
 
-	buffer = (sndBuffer *) malloc( scs * sizeof( sndBuffer ) );
-	// allocate the stack based hunk allocator
-	sfxScratchBuffer = (short *) malloc( SND_CHUNK_SIZE * sizeof( short ) * 4 );  //Hunk_Alloc(SND_CHUNK_SIZE * sizeof(short) * 4);
+	bufferPool.SetFixedBlocks( scs / 512 );
+	if ( bufferPool.GetTotalCount() != scs ) {
+		Com_Error( ERR_FATAL, "SND_setup: failed to allocate sound buffer pool" );
+		return;
+	}
+
+	sfxScratchBuffer = (short *) Mem_Alloc( SND_CHUNK_SIZE * sizeof( short ) * 4, TAG_IDLIB );
+	if ( sfxScratchBuffer == NULL ) {
+		Com_Error( ERR_FATAL, "SND_setup: failed to allocate sound scratch buffer" );
+		return;
+	}
 	sfxScratchPointer = NULL;
 
-	inUse = scs * sizeof( sndBuffer );
-	p = buffer;;
-	q = p + scs;
-	while ( --q > p ) {
-		*(sndBuffer **)q = q - 1;
-	}
-	*(sndBuffer **)q = NULL;
-	freelist = p + scs - 1;
+	inUse = scs * (int)sizeof( sndBuffer );
+	totalInUse = 0;
 
 	Com_Printf( "Sound memory manager started\n" );
 }
@@ -211,7 +229,7 @@ GetWavinfo
 static wavinfo_t GetWavinfo( char *name, byte *wav, int wavlength ) {
 	wavinfo_t info;
 
-	Com_Memset( &info, 0, sizeof( info ) );
+	memset( &info, 0, sizeof( info ) );
 
 	if ( !wav ) {
 		return info;
@@ -391,7 +409,7 @@ qboolean S_LoadSound( sfx_t *sfx ) {
 		Com_DPrintf( S_COLOR_YELLOW "WARNING: %s is not a 22kHz wav file\n", sfx->soundName );
 	}
 
-	samples = (short *) Hunk_AllocateTempMemory( info.samples * sizeof( short ) * 2 );
+	samples = (short *) Mem_ClearedAlloc( info.samples * sizeof( short ) * 2, TAG_IDLIB );
 
 	sfx->lastTimeUsed = Sys_Milliseconds() + 1;
 
@@ -430,7 +448,7 @@ qboolean S_LoadSound( sfx_t *sfx ) {
 		sfx->soundData = NULL;
 		ResampleSfx( sfx, info.rate, info.width, data + info.dataofs, qfalse );
 	}
-	Hunk_FreeTempMemory( samples );
+	Mem_Free( samples );
 	FS_FreeFile( data );
 
 	return qtrue;

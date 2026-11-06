@@ -35,9 +35,9 @@ struct ai_client_state_t {
 	int entitynum;
 	playerState_t cur_ps;
 	float thinktime;
-	vec3_t origin;
-	vec3_t velocity;
-	vec3_t eye;
+	idVec3 origin;
+	idVec3 velocity;
+	idVec3 eye;
 	int areanum;
 	int ms;
 };

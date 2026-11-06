@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cl.input.c  -- builds an intended movement command to send to the server
 
+#include "../precompiled.h"
+
 #include "client.h"
 
 unsigned frame_msec;
@@ -392,12 +394,12 @@ void CL_KeyMove( usercmd_t *cmd ) {
 	// done
 
 	if ( !( cl.snap.ps.persistant[PERS_HWEAPON_USE] ) ) {
-		cmd->forwardmove = ClampChar( forward );
-		cmd->rightmove = ClampChar( side );
-		cmd->upmove = ClampChar( up );
+		cmd->forwardmove = idMath::ClampChar( forward );
+		cmd->rightmove = idMath::ClampChar( side );
+		cmd->upmove = idMath::ClampChar( up );
 
 		// Rafael - Kick
-		cmd->wolfkick = ClampChar( kick );
+		cmd->wolfkick = idMath::ClampChar( kick );
 		// done
 
 	}
@@ -456,21 +458,21 @@ void CL_JoystickMove( usercmd_t *cmd ) {
 	}
 
 #ifdef __MACOS__
-	cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
+	cmd->rightmove = idMath::ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
 #else
 	if ( !kb[KB_STRAFE].active ) {
 		cl.viewangles[YAW] += anglespeed * cl_yawspeed->value * cl.joystickAxis[AXIS_SIDE];
 	} else {
-		cmd->rightmove = ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
+		cmd->rightmove = idMath::ClampChar( cmd->rightmove + cl.joystickAxis[AXIS_SIDE] );
 	}
 #endif
 	if ( kb[KB_MLOOK].active ) {
 		cl.viewangles[PITCH] += anglespeed * cl_pitchspeed->value * cl.joystickAxis[AXIS_FORWARD];
 	} else {
-		cmd->forwardmove = ClampChar( cmd->forwardmove + cl.joystickAxis[AXIS_FORWARD] );
+		cmd->forwardmove = idMath::ClampChar( cmd->forwardmove + cl.joystickAxis[AXIS_FORWARD] );
 	}
 
-	cmd->upmove = ClampChar( cmd->upmove + cl.joystickAxis[AXIS_UP] );
+	cmd->upmove = idMath::ClampChar( cmd->upmove + cl.joystickAxis[AXIS_UP] );
 }
 
 /*
@@ -533,7 +535,7 @@ void CL_MouseMove( usercmd_t *cmd ) {
 
 	// add mouse X/Y movement to cmd
 	if ( kb[KB_STRAFE].active ) {
-		cmd->rightmove = ClampChar( cmd->rightmove + m_side->value * mx );
+		cmd->rightmove = idMath::ClampChar( cmd->rightmove + m_side->value * mx );
 	} else {
 		cl.viewangles[YAW] -= m_yaw->value * mx;
 	}
@@ -541,7 +543,7 @@ void CL_MouseMove( usercmd_t *cmd ) {
 	if ( ( kb[KB_MLOOK].active || cl_freelook->integer ) && !kb[KB_STRAFE].active ) {
 		cl.viewangles[PITCH] += m_pitch->value * my;
 	} else {
-		cmd->forwardmove = ClampChar( cmd->forwardmove - m_forward->value * my );
+		cmd->forwardmove = idMath::ClampChar( cmd->forwardmove - m_forward->value * my );
 	}
 }
 
@@ -615,10 +617,10 @@ CL_CreateCmd
 */
 usercmd_t CL_CreateCmd( void ) {
 	usercmd_t cmd;
-	vec3_t oldAngles;
+	idVec3 oldAngles;
 	float recoilAdd;
 
-	VectorCopy( cl.viewangles, oldAngles );
+	oldAngles = cl.viewangles;
 
 	// keyboard angle adjustment
 	CL_AdjustAngles();
@@ -786,7 +788,7 @@ During normal gameplay, a client packet will contain something like:
 ===================
 */
 void CL_WritePacket( void ) {
-	msg_t buf;
+	idBitMsg buf;
 	byte data[MAX_MSGLEN];
 	int i, j;
 	usercmd_t   *cmd, *oldcmd;
@@ -803,26 +805,26 @@ void CL_WritePacket( void ) {
 	memset( &nullcmd, 0, sizeof( nullcmd ) );
 	oldcmd = &nullcmd;
 
-	MSG_Init( &buf, data, sizeof( data ) );
+	buf.InitWrite( data, sizeof( data  ) );
 
-	MSG_Bitstream( &buf );
+	buf.SetOOB( false );
 	// write the current serverId so the server
 	// can tell if this is from the current gameState
-	MSG_WriteLong( &buf, cl.serverId );
+	buf.WriteLong( cl.serverId );
 
 	// write the last message we received, which can
 	// be used for delta compression, and is also used
 	// to tell if we dropped a gamestate
-	MSG_WriteLong( &buf, clc.serverMessageSequence );
+	buf.WriteLong( clc.serverMessageSequence );
 
 	// write the last reliable message we received
-	MSG_WriteLong( &buf, clc.serverCommandSequence );
+	buf.WriteLong( clc.serverCommandSequence );
 
 	// write any unacknowledged clientCommands
 	for ( i = clc.reliableAcknowledge + 1 ; i <= clc.reliableSequence ; i++ ) {
-		MSG_WriteByte( &buf, clc_clientCommand );
-		MSG_WriteLong( &buf, i );
-		MSG_WriteString( &buf, clc.reliableCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ] );
+		buf.WriteByte( clc_clientCommand );
+		buf.WriteLong( i );
+		buf.WriteString( clc.reliableCommands[ i & ( MAX_RELIABLE_COMMANDS - 1 ) ] );
 	}
 
 	// we want to send all the usercmds that were generated in the last
@@ -847,13 +849,13 @@ void CL_WritePacket( void ) {
 		// begin a client move command
 		if ( cl_nodelta->integer || !cl.snap.valid || clc.demowaiting
 			 || clc.serverMessageSequence != cl.snap.messageNum ) {
-			MSG_WriteByte( &buf, clc_moveNoDelta );
+			buf.WriteByte( clc_moveNoDelta );
 		} else {
-			MSG_WriteByte( &buf, clc_move );
+			buf.WriteByte( clc_move );
 		}
 
 		// write the command count
-		MSG_WriteByte( &buf, count );
+		buf.WriteByte( count );
 
 		// use the checksum feed in the key
 		key = clc.checksumFeed;
@@ -866,7 +868,7 @@ void CL_WritePacket( void ) {
 		for ( i = 0 ; i < count ; i++ ) {
 			j = ( cl.cmdNumber - count + i + 1 ) & CMD_MASK;
 			cmd = &cl.cmds[j];
-			MSG_WriteDeltaUsercmdKey( &buf, key, oldcmd, cmd );
+			NetMsg_WriteDeltaUsercmdKey( &buf, key, oldcmd, cmd );
 			oldcmd = cmd;
 		}
 	}
@@ -881,9 +883,9 @@ void CL_WritePacket( void ) {
 	clc.lastPacketSentTime = cls.realtime;
 
 	if ( cl_showSend->integer ) {
-		Com_Printf( "%i ", buf.cursize );
+		Com_Printf( "%i ", buf.GetSize() );
 	}
-//	Netchan_Transmit (&clc.netchan, buf.cursize, buf.data);
+//	Netchan_Transmit (&clc.netchan, buf.GetSize(), buf.data);
 	CL_Netchan_Transmit( &clc.netchan, &buf );
 
 	// clients never really should have messages large enough

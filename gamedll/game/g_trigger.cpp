@@ -26,11 +26,13 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 
 void InitTrigger( gentity_t *self ) {
-	if ( !VectorCompare( self->s.angles, vec3_origin ) ) {
+	if ( !self->s.angles.Compare( vec3_origin ) ) {
 		G_SetMovedir( self->s.angles, self->movedir );
 	}
 
@@ -60,7 +62,7 @@ void multi_trigger( gentity_t *ent, gentity_t *activator ) {
 
 	if ( ent->wait > 0 ) {
 		ent->think = multi_wait;
-		ent->nextthink = level.time + ( ent->wait + ent->random * crandom() ) * 1000;
+		ent->nextthink = level.time + ( ent->wait + ent->random * gameRandom.CRandomFloat() ) * 1000;
 	} else {
 		// we can't just remove (self) here, because this is a touch function
 		// called while looping through area links...
@@ -94,7 +96,7 @@ void Enable_Trigger_Touch( gentity_t *ent ) {
 	int mask = MASK_SHOT;
 	int targTemp1, targTemp2;
 	int entTemp1, entTemp2;
-	vec3_t dir, forward, kvel;
+	idVec3 dir, forward, kvel;
 	float angle;
 	qboolean thisone = qfalse;
 
@@ -159,14 +161,14 @@ void Enable_Trigger_Touch( gentity_t *ent ) {
 		if ( ent->s.angles2[YAW] && thisone ) {
 			angle = ent->s.angles2[YAW];
 
-			VectorClear( dir );
-			VectorClear( targ->client->ps.velocity );
+			dir.Zero();
+			targ->client->ps.velocity.Zero();
 
 			dir[YAW] = angle;
-			AngleVectors( dir, forward, NULL, NULL );
+			idAngles( dir ).ToVectors( &forward, NULL, NULL );
 
-			VectorScale( forward, 32, kvel );
-			VectorAdd( targ->client->ps.velocity, kvel, targ->client->ps.velocity );
+			kvel = forward * 32;
+			targ->client->ps.velocity = targ->client->ps.velocity + kvel;
 		}
 	}
 
@@ -253,7 +255,7 @@ void trigger_push_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 		// don't play the event sound again if we are in a fat trigger
 		G_AddPredictableEvent( other, EV_JUMP_PAD, 0 );
 	}
-	VectorCopy( self->s.origin2, other->client->ps.velocity );
+	other->client->ps.velocity = self->s.origin2;
 
 	if ( self->spawnflags & 2 ) {
 		G_FreeEntity( self );
@@ -270,12 +272,12 @@ Calculate origin2 so the target apogee will be hit
 */
 void AimAtTarget( gentity_t *self ) {
 	gentity_t   *ent;
-	vec3_t origin;
+	idVec3 origin;
 	float height, gravity, time, forward;
 	float dist;
 
-	VectorAdd( self->r.absmin, self->r.absmax, origin );
-	VectorScale( origin, 0.5, origin );
+	origin = self->r.absmin + self->r.absmax;
+	origin = origin * 0.5;
 
 	ent = G_PickTarget( self->target );
 	if ( !ent ) {
@@ -292,12 +294,12 @@ void AimAtTarget( gentity_t *self ) {
 	}
 
 	// set s.origin2 to the push velocity
-	VectorSubtract( ent->s.origin, origin, self->s.origin2 );
+	self->s.origin2 = ent->s.origin - origin;
 	self->s.origin2[2] = 0;
-	dist = VectorNormalize( self->s.origin2 );
+	dist = self->s.origin2.Normalize();
 
 	forward = dist / time;
-	VectorScale( self->s.origin2, forward, self->s.origin2 );
+	self->s.origin2 = self->s.origin2 * forward;
 
 	self->s.origin2[2] = time * gravity;
 }
@@ -315,7 +317,7 @@ void SP_trigger_push( gentity_t *self ) {
 //	InitTrigger (self);
 
 // init trigger
-	if ( !VectorCompare( self->s.angles, vec3_origin ) ) {
+	if ( !self->s.angles.Compare( vec3_origin ) ) {
 		G_SetMovedir( self->s.angles, self->movedir );
 	}
 
@@ -363,7 +365,7 @@ void Use_target_push( gentity_t *self, gentity_t *other, gentity_t *activator ) 
 		return;
 	}
 
-	VectorCopy( self->s.origin2, activator->client->ps.velocity );
+	activator->client->ps.velocity = self->s.origin2;
 
 	// play fly sound every 1.5 seconds
 	if ( activator->fly_sound_debounce_time < level.time ) {
@@ -382,7 +384,7 @@ void SP_target_push( gentity_t *self ) {
 		self->speed = 1000;
 	}
 	G_SetMovedir( self->s.angles, self->s.origin2 );
-	VectorScale( self->s.origin2, self->speed, self->s.origin2 );
+	self->s.origin2 = self->s.origin2 * self->speed;
 
 	if ( self->spawnflags & 1 ) {
 		//self->noise_index = G_SoundIndex("sound/world/jumppad.wav");
@@ -390,8 +392,8 @@ void SP_target_push( gentity_t *self ) {
 		self->noise_index = G_SoundIndex( "sound/misc/windfly.wav" );
 	}
 	if ( self->target ) {
-		VectorCopy( self->s.origin, self->r.absmin );
-		VectorCopy( self->s.origin, self->r.absmax );
+		self->r.absmin = self->s.origin;
+		self->r.absmax = self->s.origin;
 		self->think = AimAtTarget;
 		self->nextthink = level.time + FRAMETIME;
 	}
@@ -507,7 +509,7 @@ void hurt_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 	} else {
 		dflags = 0;
 	}
-	G_Damage( other, self, self, NULL, NULL, self->damage, dflags, MOD_TRIGGER_HURT );
+	G_Damage( other, self, self, vec3_origin, vec3_origin, self->damage, dflags, MOD_TRIGGER_HURT );
 
 	if ( self->spawnflags & 32 ) {
 		self->touch = NULL;
@@ -596,7 +598,7 @@ so, the basic time between firing is a random time between
 void func_timer_think( gentity_t *self ) {
 	G_UseTargets( self, self->activator );
 	// set time before next firing
-	self->nextthink = level.time + 1000 * ( self->wait + crandom() * self->random );
+	self->nextthink = level.time + 1000 * ( self->wait + gameRandom.CRandomFloat() * self->random );
 }
 
 void func_timer_use( gentity_t *self, gentity_t *other, gentity_t *activator ) {
@@ -664,7 +666,7 @@ Must be targeted at one or more entities.
 Once triggered, this entity is destroyed
 */
 void SP_trigger_deathCheck( gentity_t *ent ) {
-	VectorCopy( ent->s.angles, ent->s.angles2 );
+	ent->s.angles2 = ent->s.angles;
 
 	if ( !( ent->aiName ) ) {
 		G_Error( "trigger_once_enabledeath does not have an aiName \n" );
@@ -761,7 +763,7 @@ void SP_trigger_aidoor( gentity_t *ent ) {
 void gas_touch( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 	gentity_t       *traceEnt;
 	trace_t tr;
-	vec3_t dir;
+	idVec3 dir;
 	int damage = 1;
 
 	if ( !other->client ) {
@@ -773,7 +775,7 @@ void gas_touch( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 		damage = 5;
 	}
 
-	trap_Trace( &tr, ent->r.currentOrigin, NULL, NULL, other->r.currentOrigin, ent->s.number, MASK_SHOT );
+	trap_Trace( &tr, ent->r.currentOrigin, vec3_origin, vec3_origin, other->r.currentOrigin, ent->s.number, MASK_SHOT );
 
 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
 		return;
@@ -787,7 +789,7 @@ void gas_touch( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 
 	if ( traceEnt->takedamage ) {
 
-		VectorClear( dir );
+		dir.Zero();
 
 		G_Damage( traceEnt, ent, ent, dir, tr.endpos,
 				  damage, 0, MOD_POISONGAS );
@@ -815,7 +817,7 @@ void gas_think( gentity_t *ent ) {
 	ent->nextthink = level.time + FRAMETIME;
 
 	tent = G_TempEntity( ent->r.currentOrigin, EV_SMOKE );
-	VectorCopy( ent->r.currentOrigin, tent->s.origin );
+	tent->s.origin = ent->r.currentOrigin;
 
 	if ( ent->s.density == 5 ) {
 		tent->s.time = 500;
@@ -921,19 +923,19 @@ void Touch_objective_info( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 
 	if ( ent->track ) {
 		if ( ent->spawnflags & AXIS_OBJECTIVE ) {
-			trap_SendServerCommand( other - g_entities, va( "oid 0 \"" S_COLOR_RED "You are near %s\n\"", ent->track ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid 0 \"" S_COLOR_RED "You are near %s\n\"", ent->track ) );
 		} else if ( ent->spawnflags & ALLIED_OBJECTIVE ) {
-			trap_SendServerCommand( other - g_entities, va( "oid 1 \"" S_COLOR_BLUE "You are near %s\n\"", ent->track ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid 1 \"" S_COLOR_BLUE "You are near %s\n\"", ent->track ) );
 		} else {
-			trap_SendServerCommand( other - g_entities, va( "oid -1 \"You are near %s\n\"", ent->track ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid -1 \"You are near %s\n\"", ent->track ) );
 		}
 	} else {
 		if ( ent->spawnflags & AXIS_OBJECTIVE ) {
-			trap_SendServerCommand( other - g_entities, va( "oid 0 \"" S_COLOR_RED "You are near objective #%i\n\"", ent->count ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid 0 \"" S_COLOR_RED "You are near objective #%i\n\"", ent->count ) );
 		} else if ( ent->spawnflags & ALLIED_OBJECTIVE ) {
-			trap_SendServerCommand( other - g_entities, va( "oid 1 \"" S_COLOR_BLUE "You are near objective #%i\n\"", ent->count ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid 1 \"" S_COLOR_BLUE "You are near objective #%i\n\"", ent->count ) );
 		} else {
-			trap_SendServerCommand( other - g_entities, va( "oid -1 \"You are near objective #%i\n\"", ent->count ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid -1 \"You are near objective #%i\n\"", ent->count ) );
 		}
 	}
 

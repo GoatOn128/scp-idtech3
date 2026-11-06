@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 // cg_draw.c -- draw all of the graphical elements during
 // active (after loading) gameplay
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "../ui/ui_shared.h"
 
@@ -84,7 +86,7 @@ int CG_Text_Width( const char *text, int font, float scale, int limit ) {
 		}
 		count = 0;
 		while ( s && *s && count < len ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			} else {
@@ -129,7 +131,7 @@ int CG_Text_Height( const char *text, int font, float scale, int limit ) {
 		}
 		count = 0;
 		while ( s && *s && count < len ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			} else {
@@ -153,9 +155,10 @@ void CG_Text_PaintChar( float x, float y, float width, float height, float scale
 	trap_R_DrawStretchPic( x, y, w, h, s, t, s2, t2, hShader );
 }
 
-void CG_Text_Paint( float x, float y, int font, float scale, vec4_t color, const char *text, float adjust, int limit, int style ) {
+void CG_Text_Paint( float x, float y, int font, float scale, const idVec4 &color, const char *text, float adjust, int limit, int style ) {
 	int len, count;
-	vec4_t newColor;
+	idVec4 newColor;
+	idVec4 drawColor = color;
 	glyphInfo_t *glyph;
 	float useScale;
 	fontInfo_t *fnt = &cgDC.Assets.textFont;
@@ -176,12 +179,12 @@ void CG_Text_Paint( float x, float y, int font, float scale, vec4_t color, const
 
 	useScale = scale * fnt->glyphScale;
 
-	color[3] *= cg_hudAlpha.value;  // (SA) adjust for cg_hudalpha
+	drawColor[3] *= cg_hudAlpha.value;  // (SA) adjust for cg_hudalpha
 
 	if ( text ) {
 		const char *s = text;
-		trap_R_SetColor( color );
-		memcpy( &newColor[0], &color[0], sizeof( vec4_t ) );
+		trap_R_SetColor( drawColor.ToFloatPtr() );
+		newColor = drawColor;
 		len = strlen( text );
 		if ( limit > 0 && len > limit ) {
 			len = limit;
@@ -191,10 +194,13 @@ void CG_Text_Paint( float x, float y, int font, float scale, vec4_t color, const
 			glyph = &fnt->glyphs[(int)*s];
 			//int yadj = Assets.textFont.glyphs[text[i]].bottom + Assets.textFont.glyphs[text[i]].top;
 			//float yadj = scale * (Assets.textFont.glyphs[text[i]].imageHeight - Assets.textFont.glyphs[text[i]].height);
-			if ( Q_IsColorString( s ) ) {
-				memcpy( newColor, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( newColor ) );
-				newColor[3] = color[3];
-				trap_R_SetColor( newColor );
+			if ( idStr::IsColor( s ) ) {
+				newColor.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
+							  g_color_table[ColorIndex( *( s + 1 ) )][1],
+							  g_color_table[ColorIndex( *( s + 1 ) )][2],
+							  g_color_table[ColorIndex( *( s + 1 ) )][3] );
+				newColor[3] = drawColor[3];
+				trap_R_SetColor( newColor.ToFloatPtr() );
 				s += 2;
 				continue;
 			} else {
@@ -202,7 +208,7 @@ void CG_Text_Paint( float x, float y, int font, float scale, vec4_t color, const
 				if ( style == ITEM_TEXTSTYLE_SHADOWED || style == ITEM_TEXTSTYLE_SHADOWEDMORE ) {
 					int ofs = style == ITEM_TEXTSTYLE_SHADOWED ? 1 : 2;
 					colorBlack[3] = newColor[3];
-					trap_R_SetColor( colorBlack );
+					trap_R_SetColor( colorBlack.ToFloatPtr() );
 					CG_Text_PaintChar( x + ofs, y - yadj + ofs,
 									   glyph->imageWidth,
 									   glyph->imageHeight,
@@ -213,7 +219,7 @@ void CG_Text_Paint( float x, float y, int font, float scale, vec4_t color, const
 									   glyph->t2,
 									   glyph->glyph );
 					colorBlack[3] = 1.0;
-					trap_R_SetColor( newColor );
+					trap_R_SetColor( newColor.ToFloatPtr() );
 				}
 				CG_Text_PaintChar( x, y - yadj,
 								   glyph->imageWidth,
@@ -308,7 +314,7 @@ CG_Draw3DModel
 
 ================
 */
-void CG_Draw3DModel( float x, float y, float w, float h, qhandle_t model, qhandle_t skin, vec3_t origin, vec3_t angles ) {
+void CG_Draw3DModel( float x, float y, float w, float h, qhandle_t model, qhandle_t skin, const idVec3 &origin, const idVec3 &angles ) {
 	refdef_t refdef;
 	refEntity_t ent;
 
@@ -321,15 +327,17 @@ void CG_Draw3DModel( float x, float y, float w, float h, qhandle_t model, qhandl
 	memset( &refdef, 0, sizeof( refdef ) );
 
 	memset( &ent, 0, sizeof( ent ) );
-	AnglesToAxis( angles, ent.axis );
-	VectorCopy( origin, ent.origin );
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
+	ent.origin = origin;
 	ent.hModel = model;
 	ent.customSkin = skin;
 	ent.renderfx = RF_NOSHADOW;     // no stencil shadows
 
 	refdef.rdflags = RDF_NOWORLDMODEL;
 
-	AxisClear( refdef.viewaxis );
+	refdef.viewaxis[0] = idVec3( 1.0f, 0.0f, 0.0f );
+	refdef.viewaxis[1] = idVec3( 0.0f, 1.0f, 0.0f );
+	refdef.viewaxis[2] = idVec3( 0.0f, 0.0f, 1.0f );
 
 	refdef.fov_x = 30;
 	refdef.fov_y = 30;
@@ -358,12 +366,12 @@ CG_DrawHead
 Used for both the status bar and the scoreboard
 ================
 */
-void CG_DrawHead( float x, float y, float w, float h, int clientNum, vec3_t headAngles ) {
+void CG_DrawHead( float x, float y, float w, float h, int clientNum, const idVec3 &headAngles ) {
 	clipHandle_t cm;
 	clientInfo_t    *ci;
 	float len;
-	vec3_t origin;
-	vec3_t mins, maxs;
+	idVec3 origin;
+	idVec3 mins, maxs;
 
 	ci = &cgs.clientinfo[ clientNum ];
 
@@ -385,7 +393,7 @@ void CG_DrawHead( float x, float y, float w, float h, int clientNum, vec3_t head
 		origin[0] = len / 0.268;    // len / tan( fov/2 )
 
 		// allow per-model tweaking
-		VectorAdd( origin, ci->modelInfo->headOffset, origin );
+		origin = origin + ci->modelInfo->headOffset;
 
 		CG_Draw3DModel( x, y, w, h, ci->headModel, ci->headSkin, origin, headAngles );
 //	} else if ( cg_drawIcons.integer ) {
@@ -408,10 +416,10 @@ Used for both the status bar and the scoreboard
 void CG_DrawFlagModel( float x, float y, float w, float h, int team ) {
 	qhandle_t cm;
 	float len;
-	vec3_t origin, angles;
-	vec3_t mins, maxs;
+	idVec3 origin, angles;
+	idVec3 mins, maxs;
 
-	VectorClear( angles );
+	angles.Zero();
 
 	cm = cgs.media.redFlagModel;
 
@@ -426,7 +434,7 @@ void CG_DrawFlagModel( float x, float y, float w, float h, int team ) {
 	len = 0.5 * ( maxs[2] - mins[2] );
 	origin[0] = len / 0.268;    // len / tan( fov/2 )
 
-	angles[YAW] = 60 * sin( cg.time / 2000.0 );;
+	angles[YAW] = 60 * idMath::Sin( cg.time / 2000.0 );;
 
 	CG_Draw3DModel( x, y, w, h,
 					team == TEAM_RED ? cgs.media.redFlagModel : cgs.media.blueFlagModel,
@@ -442,10 +450,10 @@ CG_DrawKeyModel
 void CG_DrawKeyModel( int keynum, float x, float y, float w, float h, int fadetime ) {
 	qhandle_t cm;
 	float len;
-	vec3_t origin, angles;
-	vec3_t mins, maxs;
+	idVec3 origin, angles;
+	idVec3 mins, maxs;
 
-	VectorClear( angles );
+	angles.Zero();
 
 	cm = cg_items[keynum].models[0];
 
@@ -459,7 +467,7 @@ void CG_DrawKeyModel( int keynum, float x, float y, float w, float h, int fadeti
 	len = 0.75 * ( maxs[2] - mins[2] );
 	origin[0] = len / 0.268;    // len / tan( fov/2 )
 
-	angles[YAW] = 30 * sin( cg.time / 2000.0 );;
+	angles[YAW] = 30 * idMath::Sin( cg.time / 2000.0 );;
 
 	CG_Draw3DModel( x, y, w, h, cg_items[keynum].models[0], 0, origin, angles );
 }
@@ -472,11 +480,11 @@ CG_DrawStatusBarHead
 */
 #ifdef OLDWOLFUI
 static void CG_DrawStatusBarHead( float x ) {
-	vec3_t angles;
+	idVec3 angles;
 	float size, stretch;
 	float frac;
 
-	VectorClear( angles );
+	angles.Zero();
 
 	if ( cg.damageTime && cg.time - cg.damageTime < DAMAGE_TIME ) {
 		frac = (float)( cg.time - cg.damageTime ) / DAMAGE_TIME;
@@ -488,21 +496,21 @@ static void CG_DrawStatusBarHead( float x ) {
 
 		cg.headStartYaw = 180 + cg.viewDamage[cg.damageIndex].damageX * 45;
 
-		cg.headEndYaw = 180 + 20 * cos( crandom() * M_PI );
-		cg.headEndPitch = 5 * cos( crandom() * M_PI );
+		cg.headEndYaw = 180 + 20 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
+		cg.headEndPitch = 5 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
 
 		cg.headStartTime = cg.time;
-		cg.headEndTime = cg.time + 100 + random() * 2000;
+		cg.headEndTime = cg.time + 100 + cgRandom.RandomFloat() * 2000;
 	} else {
 		if ( cg.time >= cg.headEndTime ) {
 			// select a new head angle
 			cg.headStartYaw = cg.headEndYaw;
 			cg.headStartPitch = cg.headEndPitch;
 			cg.headStartTime = cg.headEndTime;
-			cg.headEndTime = cg.time + 100 + random() * 2000;
+			cg.headEndTime = cg.time + 100 + cgRandom.RandomFloat() * 2000;
 
-			cg.headEndYaw = 180 + 20 * cos( crandom() * M_PI );
-			cg.headEndPitch = 5 * cos( crandom() * M_PI );
+			cg.headEndYaw = 180 + 20 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
+			cg.headEndPitch = 5 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
 		}
 
 		size = ICON_SIZE * 1.25;
@@ -536,7 +544,7 @@ static void CG_DrawStatusBarKeys() {
 	gitem_t *gi;
 	int itemnum;
 //	int		fadetime = 0;
-	float   *fadeColor;
+	idVec4  *fadeColor;
 
 
 //----(SA)	added
@@ -589,7 +597,7 @@ CG_DrawTeamBackground
 ================
 */
 void CG_DrawTeamBackground( int x, int y, int w, int h, float alpha, int team ) {
-	vec4_t hcolor;
+	idVec4 hcolor;
 
 	hcolor[3] = alpha;
 	if ( team == TEAM_RED ) {
@@ -603,7 +611,7 @@ void CG_DrawTeamBackground( int x, int y, int w, int h, float alpha, int team ) 
 	} else {
 		return;
 	}
-	trap_R_SetColor( hcolor );
+	trap_R_SetColor( hcolor.ToFloatPtr() );
 	CG_DrawPic( x, y, w, h, cgs.media.teamStatusBar );
 	trap_R_SetColor( NULL );
 }
@@ -629,9 +637,9 @@ static void CG_DrawStatusBar( void ) {
 	centity_t   *cent;
 	playerState_t   *ps;
 	int value, inclip;
-	vec4_t hcolor;
-	vec3_t angles;
-//	vec3_t		origin;
+	idVec4 hcolor;
+	idVec3 angles;
+//	idVec3		origin;
 	static float colors[4][4] = {
 //		{ 0.2, 1.0, 0.2, 1.0 } , { 1.0, 0.2, 0.2, 1.0 }, {0.5, 0.5, 0.5, 1} };
 		{ 1, 0.69, 0, 1.0 },        // normal
@@ -650,7 +658,7 @@ static void CG_DrawStatusBar( void ) {
 		hcolor[1] = 0;
 		hcolor[2] = 0;
 		hcolor[3] = 0.33;
-		trap_R_SetColor( hcolor );
+		trap_R_SetColor( hcolor.ToFloatPtr() );
 		CG_DrawPic( 0, 420, 640, 60, cgs.media.teamStatusBar );
 		trap_R_SetColor( NULL );
 	} else if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_BLUE ) {
@@ -658,7 +666,7 @@ static void CG_DrawStatusBar( void ) {
 		hcolor[1] = 0;
 		hcolor[2] = 1;
 		hcolor[3] = 0.33;
-		trap_R_SetColor( hcolor );
+		trap_R_SetColor( hcolor.ToFloatPtr() );
 		CG_DrawPic( 0, 420, 640, 60, cgs.media.teamStatusBar );
 		trap_R_SetColor( NULL );
 	}
@@ -666,7 +674,7 @@ static void CG_DrawStatusBar( void ) {
 	cent = &cg_entities[cg.snap->ps.clientNum];
 	ps = &cg.snap->ps;
 
-	VectorClear( angles );
+	angles.Zero();
 
 	// draw any 3D icons first, so the changes back to 2D are minimized
 
@@ -676,7 +684,7 @@ static void CG_DrawStatusBar( void ) {
 		origin[0] = 70;
 		origin[1] = 0;
 		origin[2] = 0;
-		angles[YAW] = 90 + 20 * sin( cg.time / 1000.0 );;
+		angles[YAW] = 90 + 20 * idMath::Sin( cg.time / 1000.0 );;
 //----(SA) Wolf statusbar change
 		CG_Draw3DModel( CHAR_WIDTH*3 + TEXT_ICON_SPACE, STATUSBARHEIGHT -20, ICON_SIZE, ICON_SIZE,
 					   cg_weapons[ cent->currentState.weapon ].ammoModel, 0, origin, angles );
@@ -783,11 +791,11 @@ static void CG_DrawStatusBar( void ) {
 			// don't draw ammo value for knife
 			if ( cg.predictedPlayerState.weapon != WP_KNIFE ) {
 				if ( cgs.dmflags & DF_NO_WEAPRELOAD ) {
-					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, va( "%d.", value ), cg_hudAlpha.value );
+					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, idStr::FormatString( "%d.", value ), cg_hudAlpha.value );
 				} else if ( value ) {
-					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, va( "%d/%d", inclip, value ), cg_hudAlpha.value );
+					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, idStr::FormatString( "%d/%d", inclip, value ), cg_hudAlpha.value );
 				} else {
-					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, va( "%d", inclip ), cg_hudAlpha.value );
+					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, idStr::FormatString( "%d", inclip ), cg_hudAlpha.value );
 				}
 			}
 
@@ -836,7 +844,7 @@ static void CG_DrawStatusBar( void ) {
 	}
 //----(SA) end
 	CG_ColorForHealth( hcolor );
-	trap_R_SetColor( hcolor );
+	trap_R_SetColor( hcolor.ToFloatPtr() );
 
 
 	//
@@ -880,7 +888,7 @@ CG_DrawAttacker
 static float CG_DrawAttacker( float y ) {
 	int t;
 	float size;
-	vec3_t angles;
+	idVec3 angles;
 	const char  *info;
 	const char  *name;
 	int clientNum;
@@ -914,7 +922,7 @@ static float CG_DrawAttacker( float y ) {
 	info = CG_ConfigString( CS_PLAYERS + clientNum );
 	name = Info_ValueForKey(  info, "n" );
 	y += size;
-	CG_DrawBigString( 640 - ( Q_PrintStrlen( name ) * BIGCHAR_WIDTH ), y, name, 0.5 );
+	CG_DrawBigString( 640 - ( idStr::LengthWithoutColors( name ) * BIGCHAR_WIDTH ), y, name, 0.5 );
 
 	return y + BIGCHAR_HEIGHT + 2;
 }
@@ -927,10 +935,10 @@ CG_DrawSnapshot
 ==================
 */
 static float CG_DrawSnapshot( float y ) {
-	char        *s;
+	idStr s;
 	int w;
 
-	s = va( "time:%i snap:%i cmd:%i", cg.snap->serverTime,
+	s = idStr::FormatString( "time:%i snap:%i cmd:%i", cg.snap->serverTime,
 			cg.latestSnapshotNum, cgs.serverCommandSequence );
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
@@ -946,7 +954,7 @@ CG_DrawFPS
 */
 #define FPS_FRAMES  4
 static float CG_DrawFPS( float y ) {
-	char        *s;
+	idStr s;
 	int w;
 	static int previousTimes[FPS_FRAMES];
 	static int index;
@@ -974,7 +982,7 @@ static float CG_DrawFPS( float y ) {
 		}
 		fps = 1000 * FPS_FRAMES / total;
 
-		s = va( "%ifps", fps );
+		s = idStr::FormatString( "%ifps", fps );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
 		CG_DrawBigString( UPPERRIGHT_X - w, y + 2, s, 1.0F );
@@ -989,7 +997,7 @@ CG_DrawTimer
 =================
 */
 static float CG_DrawTimer( float y ) {
-	char        *s;
+	idStr s;
 	int w;
 	int mins, seconds, tens;
 	int msec;
@@ -1008,7 +1016,7 @@ static float CG_DrawTimer( float y ) {
 	tens = seconds / 10;
 	seconds -= tens * 10;
 
-	s = va( "%i:%i%i", mins, tens, seconds );
+	s = idStr::FormatString( "%i:%i%i", mins, tens, seconds );
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
 	CG_DrawBigString( UPPERRIGHT_X - w, y + 2, s, 1.0F );
@@ -1032,7 +1040,7 @@ static float CG_DrawTeamOverlay( float y ) {
 	int x, w, h, xx;
 	int i, j, len;
 	const char *p;
-	vec4_t hcolor;
+	idVec4 hcolor;
 	int pwidth, lwidth;
 	int plyrs;
 	char st[16];
@@ -1117,7 +1125,7 @@ static float CG_DrawTeamOverlay( float y ) {
 		hcolor[2] = 1;
 		hcolor[3] = 0.33;
 	}
-	trap_R_SetColor( hcolor );
+	trap_R_SetColor( hcolor.ToFloatPtr() );
 	CG_DrawPic( x, y, w, h, cgs.media.teamStatusBar );
 	trap_R_SetColor( NULL );
 
@@ -1239,11 +1247,11 @@ Draw the small two score display
 */
 #ifdef OLDWOLFUI
 static float CG_DrawScores( float y ) {
-	const char  *s;
+	idStr s;
 	int s1, s2, score;
 	int x, w;
 	int v;
-	vec4_t color;
+	idVec4 color;
 
 	s = CG_ConfigString( CS_SCORES1 );
 	s1 = cgs.scores1;
@@ -1260,7 +1268,7 @@ static float CG_DrawScores( float y ) {
 		color[1] = 0;
 		color[2] = 1;
 		color[3] = 0.33;
-		s = va( "%2i", s2 );
+		s = idStr::FormatString( "%2i", s2 );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 		x -= w;
 		CG_FillRect( x, y - 4,  w, BIGCHAR_HEIGHT + 8, color );
@@ -1274,7 +1282,7 @@ static float CG_DrawScores( float y ) {
 		color[1] = 0;
 		color[2] = 0;
 		color[3] = 0.33;
-		s = va( "%2i", s1 );
+		s = idStr::FormatString( "%2i", s1 );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 		x -= w;
 		CG_FillRect( x, y - 4,  w, BIGCHAR_HEIGHT + 8, color );
@@ -1289,7 +1297,7 @@ static float CG_DrawScores( float y ) {
 			v = cgs.fraglimit;
 		}
 		if ( v ) {
-			s = va( "%2i", v );
+			s = idStr::FormatString( "%2i", v );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 			x -= w;
 			CG_DrawBigString( x + 4, y, s, 1.0F );
@@ -1309,7 +1317,7 @@ static float CG_DrawScores( float y ) {
 			s2 = score;
 		}
 		if ( s2 != SCORE_NOT_PRESENT ) {
-			s = va( "%2i", s2 );
+			s = idStr::FormatString( "%2i", s2 );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 			x -= w;
 			if ( !spectator && score == s2 && score != s1 ) {
@@ -1331,7 +1339,7 @@ static float CG_DrawScores( float y ) {
 
 		// first place
 		if ( s1 != SCORE_NOT_PRESENT ) {
-			s = va( "%2i", s1 );
+			s = idStr::FormatString( "%2i", s1 );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 			x -= w;
 			if ( !spectator && score == s1 ) {
@@ -1352,7 +1360,7 @@ static float CG_DrawScores( float y ) {
 		}
 
 		if ( cgs.fraglimit ) {
-			s = va( "%2i", cgs.fraglimit );
+			s = idStr::FormatString( "%2i", cgs.fraglimit );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 			x -= w;
 			CG_DrawBigString( x + 4, y, s, 1.0F );
@@ -1439,7 +1447,7 @@ static float CG_DrawPowerups( float y ) {
 		if ( t - cg.time >= POWERUP_BLINKS * POWERUP_BLINK_TIME ) {
 			trap_R_SetColor( NULL );
 		} else {
-			vec4_t modulate;
+			idVec4 modulate;
 
 			f = (float)( t - cg.time ) / POWERUP_BLINK_TIME;
 			f -= (int)f;
@@ -1492,7 +1500,7 @@ CG_DrawTeamInfo
 static void CG_DrawTeamInfo( void ) {
 	int w, h;
 	int i, len;
-	vec4_t hcolor;
+	idVec4 hcolor;
 	int chatHeight;
 
 #define CHATLOC_Y 420 // bottom end
@@ -1542,7 +1550,7 @@ static void CG_DrawTeamInfo( void ) {
 			hcolor[3] = 0.33;
 		}
 
-		trap_R_SetColor( hcolor );
+		trap_R_SetColor( hcolor.ToFloatPtr() );
 		CG_DrawPic( CHATLOC_X, CHATLOC_Y - h, 640, h, cgs.media.teamStatusBar );
 		trap_R_SetColor( NULL );
 
@@ -1569,9 +1577,9 @@ CG_DrawPickupItem
 */
 static void CG_DrawPickupItem( void ) {
 	int value;
-	float   *fadeColor;
+	idVec4  *fadeColor;
 	char pickupText[256];
-	float color[4];
+	idVec4 color;
 
 	value = cg.itemPickup;
 	if ( value ) {
@@ -1602,7 +1610,7 @@ static void CG_DrawPickupItem( void ) {
 
 			//----(SA)	trying smaller text
 			color[0] = color[1] = color[2] = 1.0;
-			color[3] = fadeColor[0];
+			color[3] = ( *fadeColor )[3];
 			CG_DrawStringExt2( ICON_SIZE + 16, 398, pickupText, color, qfalse, qtrue, 10, 10, 0 );
 //			CG_Text_Paint(ICON_SIZE + 16, 398, 2, 0.3f, color, pickupText, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 
@@ -1681,7 +1689,7 @@ CG_DrawReward
 ===================
 */
 static void CG_DrawReward( void ) {
-	float   *color;
+	idVec4  *color;
 	int i;
 	float x, y;
 
@@ -1693,7 +1701,7 @@ static void CG_DrawReward( void ) {
 		return;
 	}
 
-	trap_R_SetColor( color );
+	trap_R_SetColor( color->ToFloatPtr() );
 	y = 56;
 	x = 320 - cg.rewardCount * ICON_SIZE / 2;
 	for ( i = 0 ; i < cg.rewardCount ; i++ ) {
@@ -1853,7 +1861,7 @@ static void CG_DrawLagometer( void ) {
 		if ( v > 0 ) {
 			if ( color != 1 ) {
 				color = 1;
-				trap_R_SetColor( g_color_table[ColorIndex( COLOR_YELLOW )] );
+				trap_R_SetColor( g_color_table[ColorIndex( C_COLOR_YELLOW )].ToFloatPtr() );
 			}
 			if ( v > range ) {
 				v = range;
@@ -1862,7 +1870,7 @@ static void CG_DrawLagometer( void ) {
 		} else if ( v < 0 ) {
 			if ( color != 2 ) {
 				color = 2;
-				trap_R_SetColor( g_color_table[ColorIndex( COLOR_BLUE )] );
+				trap_R_SetColor( g_color_table[ColorIndex( C_COLOR_BLUE )].ToFloatPtr() );
 			}
 			v = -v;
 			if ( v > range ) {
@@ -1883,12 +1891,12 @@ static void CG_DrawLagometer( void ) {
 			if ( lagometer.snapshotFlags[i] & SNAPFLAG_RATE_DELAYED ) {
 				if ( color != 5 ) {
 					color = 5;  // YELLOW for rate delay
-					trap_R_SetColor( g_color_table[ColorIndex( COLOR_YELLOW )] );
+					trap_R_SetColor( g_color_table[ColorIndex( C_COLOR_YELLOW )].ToFloatPtr() );
 				}
 			} else {
 				if ( color != 3 ) {
 					color = 3;
-					trap_R_SetColor( g_color_table[ColorIndex( COLOR_GREEN )] );
+					trap_R_SetColor( g_color_table[ColorIndex( C_COLOR_GREEN )].ToFloatPtr() );
 				}
 			}
 			v = v * vscale;
@@ -1899,7 +1907,7 @@ static void CG_DrawLagometer( void ) {
 		} else if ( v < 0 ) {
 			if ( color != 4 ) {
 				color = 4;      // RED for dropped snapshots
-				trap_R_SetColor( g_color_table[ColorIndex( COLOR_RED )] );
+				trap_R_SetColor( g_color_table[ColorIndex( C_COLOR_RED )].ToFloatPtr() );
 			}
 			trap_R_DrawStretchPic( ax + aw - a, ay + ah - range, 1, range, 0, 0, 0, 0, cgs.media.whiteShader );
 		}
@@ -1935,7 +1943,7 @@ void CG_CenterPrint( const char *str, int y, int charWidth ) {
 	unsigned char   *s;
 
 //----(SA)	added translation lookup
-	Q_strncpyz( (char *)cg.centerPrint, CG_translateString( (char*)str ), sizeof( cg.centerPrint ) );
+	idStr::Copynz( (char *)cg.centerPrint, CG_translateString( (char*)str ), sizeof( cg.centerPrint ) );
 //----(SA)	end
 
 
@@ -1950,7 +1958,7 @@ void CG_CenterPrint( const char *str, int y, int charWidth ) {
 		if ( *s == '\n' ) {
 			cg.centerPrintLines++;
 		}
-		if ( !Q_strncmp( (const char *)s, "\\n", 1 ) ) {
+		if ( !idStr::Cmpn( (const char *)s, "\\n", 1 ) ) {
 			cg.centerPrintLines++;
 			s++;
 		}
@@ -1968,7 +1976,7 @@ static void CG_DrawCenterString( void ) {
 	char    *start;
 	int l;
 	int x, y, w;
-	float   *color;
+	idVec4  *color;
 
 	if ( !cg.centerPrintTime ) {
 		return;
@@ -1979,7 +1987,7 @@ static void CG_DrawCenterString( void ) {
 		return;
 	}
 
-	trap_R_SetColor( color );
+	trap_R_SetColor( color->ToFloatPtr() );
 
 	start = (char *)cg.centerPrint;
 
@@ -1989,7 +1997,7 @@ static void CG_DrawCenterString( void ) {
 		char linebuffer[1024];
 
 		for ( l = 0; l < 40; l++ ) {
-			if ( !start[l] || start[l] == '\n' || !Q_strncmp( &start[l], "\\n", 1 ) ) {
+			if ( !start[l] || start[l] == '\n' || !idStr::Cmpn( &start[l], "\\n", 1 ) ) {
 				break;
 			}
 			linebuffer[l] = start[l];
@@ -2000,7 +2008,7 @@ static void CG_DrawCenterString( void ) {
 
 		x = ( SCREEN_WIDTH - w ) / 2;
 
-		CG_DrawStringExt( x, y, linebuffer, color, qfalse, qtrue, cg.centerPrintCharWidth, (int)( cg.centerPrintCharWidth * 1.5 ), 0 );
+		CG_DrawStringExt( x, y, linebuffer, *color, qfalse, qtrue, cg.centerPrintCharWidth, (int)( cg.centerPrintCharWidth * 1.5 ), 0 );
 //		CG_Text_Paint(x, y, 2, 0.3f, color, linebuffer, 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 
 //		y += cg.centerPrintCharWidth * 1.5;
@@ -2008,7 +2016,7 @@ static void CG_DrawCenterString( void ) {
 
 //		while ( *start && ( *start != '\n' ) && !Q_strncmp(start, "\\n", 1) ) {
 		while ( *start && ( *start != '\n' ) ) {
-			if ( !Q_strncmp( start, "\\n", 1 ) ) {
+			if ( !idStr::Cmpn( start, "\\n", 1 ) ) {
 				start++;
 				break;
 			}
@@ -2041,8 +2049,8 @@ CG_DrawWeapReticle
 */
 static void CG_DrawWeapReticle( void ) {
 	int weap;
-	vec4_t color = {0, 0, 0, 1};
-	vec4_t snoopercolor = {0.7, .8, 0.7, 0};    // greenish
+	idVec4 color( 0, 0, 0, 1 );
+	idVec4 snoopercolor( 0.7f, .8f, 0.7f, 0 );    // greenish
 	float snooperBrightness;
 	float x = 80, y, w = 240, h = 240;
 
@@ -2085,11 +2093,11 @@ static void CG_DrawWeapReticle( void ) {
 
 //----(SA)	added
 		// DM didn't like how bright it gets
-		snooperBrightness = Com_Clamp( 0.0f, 1.0f, cg_reticleBrightness.value );
+		snooperBrightness = idMath::ClampFloat( 0.0f, 1.0f, cg_reticleBrightness.value );
 		snoopercolor[0] *= snooperBrightness;
 		snoopercolor[1] *= snooperBrightness;
 		snoopercolor[2] *= snooperBrightness;
-		trap_R_SetColor( snoopercolor );
+		trap_R_SetColor( snoopercolor.ToFloatPtr() );
 //----(SA)	end
 
 		if ( cgs.media.snooperShaderSimple ) {
@@ -2152,7 +2160,7 @@ CG_DrawBinocReticle
 */
 static void CG_DrawBinocReticle( void ) {
 	// an alternative.  This gives nice sharp lines at the expense of a few extra polys
-	vec4_t color = {0, 0, 0, 1};
+	idVec4 color( 0, 0, 0, 1 );
 	float x, y, w = 320, h = 240;
 
 	if ( cgs.media.binocShaderSimpleQ ) {
@@ -2188,7 +2196,7 @@ static void CG_DrawCrosshair( void ) {
 	float f;
 	float x, y;
 	int weapnum;                // DHM - Nerve
-	vec4_t hcolor = {1, 1, 1, 0};
+	idVec4 hcolor( 1, 1, 1, 0 );
 	qboolean friendInSights = qfalse;
 
 	if ( cg.renderingThirdPerson ) {
@@ -2265,7 +2273,7 @@ static void CG_DrawCrosshair( void ) {
 
 // JPW NERVE -- don't let players run with rifles -- speed 80 == crouch, 128 == walk, 256 == run
 		if ( cg_gameType.integer != GT_SINGLE_PLAYER ) {
-			if ( VectorLength( cg.snap->ps.velocity ) > 127.0f ) {
+			if ( (cg.snap->ps.velocity).Length() > 127.0f ) {
 				if ( cg.snap->ps.weapon == WP_SNIPERRIFLE ) {
 					CG_FinishWeaponChange( WP_SNIPERRIFLE, WP_MAUSER );
 				}
@@ -2292,7 +2300,7 @@ static void CG_DrawCrosshair( void ) {
 
 	// mauser only gets crosshair if you don't have the scope (I don't like this, but it's a test)
 	if ( cg.weaponSelect == WP_MAUSER ) {
-		if ( COM_BitCheck( cg.predictedPlayerState.weapons, WP_SNIPERRIFLE ) ) {
+		if ( idBitField::Test( cg.predictedPlayerState.weapons, WP_SNIPERRIFLE ) ) {
 			return;
 		}
 	}
@@ -2319,7 +2327,7 @@ static void CG_DrawCrosshair( void ) {
 
 	// set color based on health
 	if ( cg_crosshairHealth.integer ) {
-		trap_R_SetColor( hcolor );
+		trap_R_SetColor( hcolor.ToFloatPtr() );
 	} else {
 		trap_R_SetColor( NULL );
 	}
@@ -2368,7 +2376,7 @@ CG_ScanForCrosshairEntity
 static void CG_ScanForCrosshairEntity( void ) {
 	trace_t trace;
 //	gentity_t	*traceEnt;
-	vec3_t start, end;
+	idVec3 start, end;
 	int content;
 
 	// DHM - Nerve :: We want this in multiplayer
@@ -2376,8 +2384,8 @@ static void CG_ScanForCrosshairEntity( void ) {
 		return; //----(SA)	don't use any scanning at the moment.
 
 	}
-	VectorCopy( cg.refdef.vieworg, start );
-	VectorMA( start, 4096, cg.refdef.viewaxis[0], end );    //----(SA)	changed from 8192
+	start = cg.refdef.vieworg;
+	end = start + cg.refdef.viewaxis[0] * (4096);    //----(SA)	changed from 8192
 
 	CG_Trace( &trace, start, vec3_origin, vec3_origin, end,
 			  cg.snap->ps.clientNum, CONTENTS_SOLID | CONTENTS_BODY | CONTENTS_ITEM );
@@ -2414,8 +2422,8 @@ CG_DrawDynamiteStatus
 ==============
 */
 static void CG_DrawDynamiteStatus( void ) {
-	float color[4];
-	char        *name;
+	idVec4 color;
+	idStr name;
 	int timeleft;
 	float w;
 
@@ -2429,7 +2437,7 @@ static void CG_DrawDynamiteStatus( void ) {
 
 	timeleft = cg.snap->ps.grenadeTimeLeft;
 
-//	color = g_color_table[ColorIndex(COLOR_RED)];
+//	color = g_color_table[ColorIndex(idStr::C_COLOR_RED)];
 	color[0] = color[3] = 1.0f;
 
 	// fade red as it pulses past seconds
@@ -2439,14 +2447,14 @@ static void CG_DrawDynamiteStatus( void ) {
 		color[3] = (float)timeleft / 300.0f;
 	}
 
-	trap_R_SetColor( color );
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	timeleft *= 5;
 	timeleft -= ( timeleft % 5000 );
 	timeleft += 5000;
 	timeleft /= 1000;
 
-	name = va( "Timer: %d", timeleft );
+	name = idStr::FormatString( "Timer: %d", timeleft );
 	w = CG_DrawStrlen( name ) * BIGCHAR_WIDTH;
 
 	color[3] *= cg_hudAlpha.value;
@@ -2485,8 +2493,8 @@ CG_DrawCrosshairNames
 =====================
 */
 static void CG_DrawCrosshairNames( void ) {
-	float       *color;
-	vec4_t teamColor;           // NERVE - SMF
+	idVec4      *color;
+	idVec4 teamColor;           // NERVE - SMF
 	char        *name;
 	float w;
 
@@ -2518,29 +2526,31 @@ static void CG_DrawCrosshairNames( void ) {
 	}
 
 	// NERVE - SMF - use fade alpha but color text according to teams
-	teamColor[3] = color[3];
+	teamColor[3] = ( *color )[3];
 
 	// NERVE - SMF - no longer identify opposing side, so just use green now
 //	if ( cgs.clientinfo[ cg.crosshairClientNum ].team != cgs.clientinfo[ cg.clientNum ].team )
 //		VectorSet( teamColor, 0.7608, 0.1250, 0.0859 );			// LIGHT-RED
 //	else
-	VectorSet( teamColor, 0.1250, 0.7608, 0.0859 );             // LIGHT-GREEN
+	teamColor[0] = 0.1250;
+	teamColor[1] = 0.7608;
+	teamColor[2] = 0.0859;             // LIGHT-GREEN
 
-	trap_R_SetColor( teamColor );
+	trap_R_SetColor( teamColor.ToFloatPtr() );
 	// -NERVE - SMF
 
 	name = cgs.clientinfo[ cg.crosshairClientNum ].name;
-	w = CG_DrawStrlen( va( "Axis: %s", name ) ) * BIGCHAR_WIDTH;
+	w = CG_DrawStrlen( idStr::FormatString( "Axis: %s", name ) ) * BIGCHAR_WIDTH;
 //	CG_DrawBigString( 320 - w / 2, 170, name, color[3] * 0.5 );
 
 	// NERVE - SMF
 	if ( strlen( name ) ) {
 		if ( ( cgs.clientinfo[ cg.crosshairClientNum ].team == TEAM_RED ) &&
 			 ( cgs.clientinfo[cg.snap->ps.clientNum].team == TEAM_RED ) ) { // JPW NERVE -- only show same team info so people can't pan-search
-			CG_DrawBigStringColor( 320 - w / 2, 170, va( "Axis: %s", name ), teamColor );
+			CG_DrawBigStringColor( 320 - w / 2, 170, idStr::FormatString( "Axis: %s", name ), teamColor );
 		} else if ( ( cgs.clientinfo[ cg.crosshairClientNum ].team == TEAM_BLUE ) &&
 					( cgs.clientinfo[cg.snap->ps.clientNum].team == TEAM_BLUE ) ) { // JPW NERVE -- so's we can't find snipers for free
-			CG_DrawBigStringColor( 320 - w / 2, 170, va( "Ally: %s", name ), teamColor );
+			CG_DrawBigStringColor( 320 - w / 2, 170, idStr::FormatString( "Ally: %s", name ), teamColor );
 		}
 	}
 	// -NERVE - SMF
@@ -2573,7 +2583,7 @@ CG_DrawVote
 =================
 */
 static void CG_DrawVote( void ) {
-	char    *s;
+	idStr s;
 	int sec;
 
 	if ( !cgs.voteTime ) {
@@ -2590,7 +2600,7 @@ static void CG_DrawVote( void ) {
 	if ( sec < 0 ) {
 		sec = 0;
 	}
-	s = va( "VOTE(%i):%s yes(F1):%i no(F2):%i", sec, cgs.voteString, cgs.voteYes, cgs.voteNo );
+	s = idStr::FormatString( "VOTE(%i):%s yes(F1):%i no(F2):%i", sec, cgs.voteString, cgs.voteYes, cgs.voteNo );
 	CG_DrawSmallString( 0, 58, s, 1.0F );
 }
 
@@ -2657,7 +2667,7 @@ CG_DrawFollow
 */
 static qboolean CG_DrawFollow( void ) {
 	float x;
-	vec4_t color;
+	idVec4 color;
 	const char  *name;
 	char deploytime[128];        // JPW NERVE
 
@@ -2707,7 +2717,7 @@ CG_DrawAmmoWarning
 =================
 */
 static void CG_DrawAmmoWarning( void ) {
-	const char  *s;
+	idStr s;
 	int w;
 
 //----(SA)	forcing return for now
@@ -2743,7 +2753,7 @@ static void CG_DrawWarmup( void ) {
 	int i;
 	clientInfo_t    *ci1, *ci2;
 	int cw;
-	const char  *s;
+	idStr s;
 
 	if ( cgs.gametype == GT_SINGLE_PLAYER ) {
 		return;     // (SA) don't bother with this stuff in sp
@@ -2777,7 +2787,7 @@ static void CG_DrawWarmup( void ) {
 	}
 
 	if ( ci1 && ci2 ) {
-		s = va( "%s vs %s", ci1->name, ci2->name );
+		s = idStr::FormatString( "%s vs %s", ci1->name, ci2->name );
 		w = CG_DrawStrlen( s );
 		if ( w > 640 / GIANT_WIDTH ) {
 			cw = 640 / w;
@@ -2793,7 +2803,7 @@ static void CG_DrawWarmup( void ) {
 	if ( sec < 0 ) {
 		sec = 0;
 	}
-	s = va( "Starts in: %i", sec + 1 );
+	s = idStr::FormatString( "Starts in: %i", sec + 1 );
 	if ( sec != cg.warmupCount ) {
 		cg.warmupCount = sec;
 		switch ( sec ) {
@@ -2840,7 +2850,7 @@ CG_DrawFlashFade
 static void CG_DrawFlashFade( void ) {
 	static int lastTime;
 	int elapsed, time;
-	vec4_t col;
+	idVec4 col;
 
 	if ( cgs.scrFadeStartTime + cgs.scrFadeDuration < cg.time ) {
 		cgs.scrFadeAlphaCurrent = cgs.scrFadeAlpha;
@@ -2864,7 +2874,7 @@ static void CG_DrawFlashFade( void ) {
 	// now draw the fade
 	if ( cgs.scrFadeAlphaCurrent > 0.0 ) {
 //		CG_Printf("fade: %f\n", cgs.scrFadeAlphaCurrent);
-		VectorClear( col );
+		col.Zero();
 		col[3] = cgs.scrFadeAlphaCurrent;
 //		CG_FillRect( -10, -10, 650, 490, col );
 		CG_FillRect( 0, 0, 640, 480, col ); // why do a bunch of these extend outside 640x480?
@@ -2882,7 +2892,7 @@ CG_DrawFlashZoomTransition
 ==============
 */
 static void CG_DrawFlashZoomTransition( void ) {
-	vec4_t color;
+	idVec4 color;
 	float frac;
 	int fadeTime;
 
@@ -2916,9 +2926,9 @@ static void CG_DrawFlashZoomTransition( void ) {
 //			Vector4Set( color, 0.7f, 0.3f, 0.7f, 1.0f - frac );
 //			Vector4Set( color, 1, 0.5, 1, 1.0f - frac );
 //			Vector4Set( color, 0.5f, 0.3f, 0.5f, 1.0f - frac );
-			Vector4Set( color, 0.7f, 0.6f, 0.7f, 1.0f - frac );
+			color.Set(0.7f, 0.6f, 0.7f, 1.0f - frac);
 		} else {
-			Vector4Set( color, 0, 0, 0, 1.0f - frac );
+			color.Set(0, 0, 0, 1.0f - frac);
 		}
 
 		CG_FillRect( -10, -10, 650, 490, color );
@@ -2933,7 +2943,7 @@ CG_DrawFlashDamage
 =================
 */
 static void CG_DrawFlashDamage( void ) {
-	vec4_t col;
+	idVec4 col;
 	float redFlash;
 
 	if ( !cg.snap ) {
@@ -2941,14 +2951,14 @@ static void CG_DrawFlashDamage( void ) {
 	}
 
 	if ( cg.v_dmg_time > cg.time ) {
-		redFlash = fabs( cg.v_dmg_pitch * ( ( cg.v_dmg_time - cg.time ) / DAMAGE_TIME ) );
+		redFlash = idMath::Fabs( cg.v_dmg_pitch * ( ( cg.v_dmg_time - cg.time ) / DAMAGE_TIME ) );
 
 		// blend the entire screen red
 		if ( redFlash > 5 ) {
 			redFlash = 5;
 		}
 
-		VectorSet( col, 0.2, 0, 0 );
+		col.Set( 0.2f, 0, 0, 0 );
 		col[3] =  0.7 * ( redFlash / 5.0 );
 
 		CG_FillRect( -10, -10, 650, 490, col );
@@ -2962,7 +2972,7 @@ CG_DrawFlashFire
 =================
 */
 static void CG_DrawFlashFire( void ) {
-	vec4_t col = {1,1,1,1};
+	idVec4 col( 1, 1, 1, 1 );
 	float alpha, max, f;
 
 	if ( !cg.snap ) {
@@ -2994,7 +3004,7 @@ static void CG_DrawFlashFire( void ) {
 			alpha = f;
 		}
 
-		max = 0.5 + 0.5 * sin( (float)( ( cg.time / 10 ) % 1000 ) / 1000.0 );
+		max = 0.5 + 0.5 * idMath::Sin( (float)( ( cg.time / 10 ) % 1000 ) / 1000.0 );
 		if ( alpha > max ) {
 			alpha = max;
 		}
@@ -3002,7 +3012,7 @@ static void CG_DrawFlashFire( void ) {
 		col[1] = alpha;
 		col[2] = alpha;
 		col[3] = alpha;
-		trap_R_SetColor( col );
+		trap_R_SetColor( col.ToFloatPtr() );
 		CG_DrawPic( -10, -10, 650, 490, cgs.media.viewFlashFire[( cg.time / 50 ) % 16] );
 		trap_R_SetColor( NULL );
 
@@ -3019,7 +3029,7 @@ CG_DrawFlashLightning
 =================
 */
 static void CG_DrawFlashLightning( void ) {
-	//vec4_t		col={1,1,1,1}; // TTimo: unused
+	//idVec4		col={1,1,1,1}; // TTimo: unused
 	float alpha;
 	centity_t *cent;
 	qhandle_t shader;
@@ -3092,7 +3102,7 @@ CG_DrawObjectiveInfo
 void CG_ObjectivePrint( const char *str, int charWidth, int team ) {
 	char    *s;
 
-	Q_strncpyz( cg.oidPrint, str, sizeof( cg.oidPrint ) );
+	idStr::Copynz( cg.oidPrint, str, sizeof( cg.oidPrint ) );
 
 	cg.oidPrintTime = cg.time;
 	cg.oidPrintY = OID_TOP;
@@ -3114,8 +3124,8 @@ static void CG_DrawObjectiveInfo( void ) {
 	int l;
 	int x, y, w;
 	int x1, y1, x2, y2;
-	float   *color;
-	vec4_t backColor = { 0.2f, 0.2f, 0.2f, 1.f };
+	idVec4  *color;
+	idVec4 backColor( 0.2f, 0.2f, 0.2f, 1.f );
 
 	if ( !cg.oidPrintTime ) {
 		return;
@@ -3126,7 +3136,7 @@ static void CG_DrawObjectiveInfo( void ) {
 		return;
 	}
 
-	trap_R_SetColor( color );
+	trap_R_SetColor( color->ToFloatPtr() );
 
 	start = cg.oidPrint;
 
@@ -3169,10 +3179,10 @@ static void CG_DrawObjectiveInfo( void ) {
 	x2 = x2 + 4;
 	y2 = y - cg.oidPrintCharWidth * 1.5 + 4;
 
-	backColor[3] = color[3];
+	backColor[3] = ( *color )[3];
 	CG_FillRect( x1, y1, x2 - x1, y2 - y1, backColor );
 
-	VectorSet( backColor, 0, 0, 0 );
+	backColor.Set( 0, 0, 0, backColor[3] );
 	CG_DrawRect( x1, y1, x2 - x1, y2 - y1, 1, backColor );
 
 	// do the actual drawing
@@ -3197,7 +3207,7 @@ static void CG_DrawObjectiveInfo( void ) {
 
 		x = OID_LEFT;
 
-		CG_DrawStringExt( x, y, linebuffer, color, qfalse, qtrue,
+		CG_DrawStringExt( x, y, linebuffer, *color, qfalse, qtrue,
 						  cg.oidPrintCharWidth, (int)( cg.oidPrintCharWidth * 1.5 ), 0 );
 
 		y += cg.oidPrintCharWidth * 1.5;
@@ -3272,7 +3282,7 @@ CG_DrawGameScreenFade
 ===============
 */
 static void CG_DrawGameScreenFade( void ) {
-	vec4_t col;
+	idVec4 col;
 
 	if ( cg.viewFade <= 0.0 ) {
 		return;
@@ -3282,7 +3292,7 @@ static void CG_DrawGameScreenFade( void ) {
 		return;
 	}
 
-	VectorClear( col );
+	col.Zero();
 	col[3] = cg.viewFade;
 	CG_FillRect( 0, 0, 640, 480, col );
 }
@@ -3296,7 +3306,7 @@ static void CG_ScreenFade( void ) {
 	int msec;
 	int i;
 	float t, invt;
-	vec4_t color;
+	idVec4 color;
 
 	// Ridah, fade the screen (in-game)
 	CG_DrawGameScreenFade();
@@ -3424,7 +3434,7 @@ static void CG_Draw2D( void ) {
 CG_StartShakeCamera
 ====================
 */
-void CG_StartShakeCamera( float p, int duration, vec3_t src, float radius ) {
+void CG_StartShakeCamera( float p, int duration, const idVec3 &src, float radius ) {
 	int i;
 
 	// find a free shake slot
@@ -3442,7 +3452,7 @@ void CG_StartShakeCamera( float p, int duration, vec3_t src, float radius ) {
 
 	cg.cameraShake[i].length = duration;
 	cg.cameraShake[i].time = cg.time;
-	VectorCopy( src, cg.cameraShake[i].src );
+	cg.cameraShake[i].src = src;
 	cg.cameraShake[i].radius = radius;
 }
 
@@ -3461,7 +3471,7 @@ void CG_CalcShakeCamera() {
 	sx = (float)cg.time / 600.0; // x * (float)(cg.cameraShake[i].length) / 600.0;
 	for ( i = 0; i < MAX_CAMERA_SHAKE; i++ ) {
 		if ( cg.cameraShake[i].time <= cg.time && cg.cameraShake[i].time + cg.cameraShake[i].length > cg.time ) {
-			dist = Distance( cg.cameraShake[i].src, cg.refdef.vieworg );
+			dist = ( cg.cameraShake[i].src - cg.refdef.vieworg ).Length();
 			// fade with distance
 			val = cg.cameraShake[i].scale * ( 1.0f - ( dist / cg.cameraShake[i].radius ) );
 			// fade with time
@@ -3482,7 +3492,8 @@ void CG_CalcShakeCamera() {
 	}
 
 	if ( scale <= 0.0f ) {
-		cg.cameraShakePhase = crandom() * M_PI; // randomize the phase
+		static idRandom cameraShakeRandom;
+		cg.cameraShakePhase = cameraShakeRandom.CRandomFloat() * idMath::PI; // randomize the phase
 		return;
 	}
 
@@ -3491,17 +3502,17 @@ void CG_CalcShakeCamera() {
 	}
 
 	// up/down
-	val = sin( M_PI * 8 * sx + cg.cameraShakePhase ) * bx * 18.0f * scale;
+	val = idMath::Sin( idMath::PI * 8 * sx + cg.cameraShakePhase ) * bx * 18.0f * scale;
 	cg.cameraShakeAngles[0] = val;
 	//cg.refdefViewAngles[0] += val;
 
 	// left/right
-	val = sin( M_PI * 15 * sx + cg.cameraShakePhase ) * bx * 16.0f * scale;
+	val = idMath::Sin( idMath::PI * 15 * sx + cg.cameraShakePhase ) * bx * 16.0f * scale;
 	cg.cameraShakeAngles[1] = val;
 	//cg.refdefViewAngles[1] += val;
 
 	// roll
-	val = sin( M_PI * 12 * sx + cg.cameraShakePhase ) * bx * 10.0f * scale;
+	val = idMath::Sin( idMath::PI * 12 * sx + cg.cameraShakePhase ) * bx * 10.0f * scale;
 	cg.cameraShakeAngles[2] = val;
 	//cg.refdefViewAngles[2] += val;
 }
@@ -3512,8 +3523,8 @@ CG_ApplyShakeCamera
 ====================
 */
 void CG_ApplyShakeCamera() {
-	VectorAdd( cg.refdefViewAngles, cg.cameraShakeAngles, cg.refdefViewAngles );
-	AnglesToAxis( cg.refdefViewAngles, cg.refdef.viewaxis );
+	cg.refdefViewAngles = cg.refdefViewAngles + cg.cameraShakeAngles;
+	idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &cg.refdef.viewaxis[0], &cg.refdef.viewaxis[1], &cg.refdef.viewaxis[2] );
 }
 
 /*
@@ -3525,7 +3536,7 @@ Perform all drawing needed to completely fill the screen
 */
 void CG_DrawActive( stereoFrame_t stereoView ) {
 	float separation;
-	vec3_t baseOrg;
+	idVec3 baseOrg;
 
 	// optionally draw the info screen instead
 	if ( !cg.snap ) {
@@ -3569,9 +3580,9 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 //	CG_TileClear();	// (SA) moved down
 
 	// offset vieworg appropriately if we're doing stereo separation
-	VectorCopy( cg.refdef.vieworg, baseOrg );
+	baseOrg = cg.refdef.vieworg;
 	if ( separation != 0 ) {
-		VectorMA( cg.refdef.vieworg, -separation, cg.refdef.viewaxis[1], cg.refdef.vieworg );
+		cg.refdef.vieworg = cg.refdef.vieworg + cg.refdef.viewaxis[1] * (-separation);
 	}
 
 	cg.refdef.glfog.registered = 0; // make sure it doesn't use fog from another scene
@@ -3605,7 +3616,7 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 
 	// restore original viewpoint if running stereo
 	if ( separation != 0 ) {
-		VectorCopy( baseOrg, cg.refdef.vieworg );
+		cg.refdef.vieworg = baseOrg;
 	}
 
 	// clear around the rendered view if sized down
@@ -3614,4 +3625,3 @@ void CG_DrawActive( stereoFrame_t stereoView ) {
 	// draw status bar and other floating elements
 	CG_Draw2D();
 }
-

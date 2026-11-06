@@ -5,7 +5,6 @@ set(CGAME_SOURCES
     FxPrimitives.cpp
     FxScheduler.cpp
     FxTemplate.cpp
-    genericparser2.cpp
     ../game/bg_animation.cpp
     ../game/bg_misc.cpp
     ../game/bg_pmove.cpp
@@ -34,7 +33,6 @@ set(CGAME_SOURCES
     cg_fx_trails.cpp
     cg_view.cpp
     cg_weapons.cpp
-    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
     ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp
     ../ui/ui_shared.cpp)
 
@@ -47,6 +45,7 @@ source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${CGAME_SOURCES})
 add_library(cgame SHARED ${CGAME_SOURCES})
 set_target_properties(cgame PROPERTIES OUTPUT_NAME cgamex86)
 set_target_properties(cgame PROPERTIES FOLDER "dlls")
+target_link_libraries(cgame PRIVATE idlib)
 if ( NOT WIN32 )
     set_target_properties(cgame PROPERTIES PREFIX "")
 endif()
@@ -57,12 +56,8 @@ if ( MSVC )
 endif()
 target_include_directories(cgame PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client")
 if ( APPLE )
-    # the cgame module imports engine symbols (Com_Printf, Com_Error) from
-    # the host executable at load time, the same way it does on windows, so
-    # tell the mac linker those imports are resolved at load time
     target_link_options(cgame PRIVATE -Wl,-undefined,dynamic_lookup)
 endif()
 
-# the engine loads the game modules from the game directory next to
-# the exe, matching the retail WolfSP.exe + Main layout
 configure_target(cgame main)
+target_precompile_headers(cgame PRIVATE "${CMAKE_SOURCE_DIR}/gamedll/precompiled.h")

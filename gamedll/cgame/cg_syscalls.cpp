@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // Native module bindings supplied through the typed cgame import table.
+#include "../precompiled.h"
+
 #include "cg_local.h"
 
 static const cgameImport_t *cgImports;
@@ -119,61 +121,65 @@ clipHandle_t trap_CM_InlineModel( int index ) {
 	return cgImports->CM_InlineModel( index );
 }
 
-clipHandle_t trap_CM_TempBoxModel( const vec3_t mins, const vec3_t maxs ) {
+clipHandle_t trap_CM_TempBoxModel( const idVec3 &mins, const idVec3 &maxs ) {
 	return cgImports->CM_TempBoxModel( mins, maxs );
 }
 
-clipHandle_t trap_CM_TempCapsuleModel( const vec3_t mins, const vec3_t maxs ) {
+clipHandle_t trap_CM_TempCapsuleModel( const idVec3 &mins, const idVec3 &maxs ) {
 	return cgImports->CM_TempCapsuleModel( mins, maxs );
 }
 
-int trap_CM_PointContents( const vec3_t p, clipHandle_t model ) {
+int trap_CM_PointContents( const idVec3 &p, clipHandle_t model ) {
 	return cgImports->CM_PointContents( p, model );
 }
 
-int trap_CM_TransformedPointContents( const vec3_t p, clipHandle_t model, const vec3_t origin, const vec3_t angles ) {
+int trap_CM_TransformedPointContents( const idVec3 &p, clipHandle_t model, const idVec3 &origin, const idVec3 &angles ) {
 	return cgImports->CM_TransformedPointContents( p, model, origin, angles );
 }
 
-void    trap_CM_BoxTrace( trace_t *results, const vec3_t start, const vec3_t end,
-						  const vec3_t mins, const vec3_t maxs,
+void    trap_CM_BoxTrace( trace_t *results, const idVec3 &start, const idVec3 &end,
+						  const idVec3 *mins, const idVec3 *maxs,
 						  clipHandle_t model, int brushmask ) {
-	cgImports->CM_BoxTrace( results, start, end, mins, maxs, model, brushmask );
+	cgImports->CM_BoxTrace( results, start, end, mins ? *mins : vec3_origin, maxs ? *maxs : vec3_origin, model, brushmask );
 }
 
-void    trap_CM_TransformedBoxTrace( trace_t *results, const vec3_t start, const vec3_t end,
-									 const vec3_t mins, const vec3_t maxs,
+void    trap_CM_TransformedBoxTrace( trace_t *results, const idVec3 &start, const idVec3 &end,
+									 const idVec3 *mins, const idVec3 *maxs,
 									 clipHandle_t model, int brushmask,
-									 const vec3_t origin, const vec3_t angles ) {
-	cgImports->CM_TransformedBoxTrace( results, start, end, mins, maxs, model, brushmask, origin, angles );
+									 const idVec3 &origin, const idVec3 &angles ) {
+	cgImports->CM_TransformedBoxTrace( results, start, end, mins ? *mins : vec3_origin, maxs ? *maxs : vec3_origin, model, brushmask, origin, angles );
 }
 
-void    trap_CM_CapsuleTrace( trace_t *results, const vec3_t start, const vec3_t end,
-							  const vec3_t mins, const vec3_t maxs,
+void    trap_CM_CapsuleTrace( trace_t *results, const idVec3 &start, const idVec3 &end,
+							  const idVec3 *mins, const idVec3 *maxs,
 							  clipHandle_t model, int brushmask ) {
-	cgImports->CM_CapsuleTrace( results, start, end, mins, maxs, model, brushmask );
+	cgImports->CM_CapsuleTrace( results, start, end, mins ? *mins : vec3_origin, maxs ? *maxs : vec3_origin, model, brushmask );
 }
 
-void    trap_CM_TransformedCapsuleTrace( trace_t *results, const vec3_t start, const vec3_t end,
-										 const vec3_t mins, const vec3_t maxs,
+void    trap_CM_TransformedCapsuleTrace( trace_t *results, const idVec3 &start, const idVec3 &end,
+										 const idVec3 *mins, const idVec3 *maxs,
 										 clipHandle_t model, int brushmask,
-										 const vec3_t origin, const vec3_t angles ) {
-	cgImports->CM_TransformedCapsuleTrace( results, start, end, mins, maxs, model, brushmask, origin, angles );
+										 const idVec3 &origin, const idVec3 &angles ) {
+	cgImports->CM_TransformedCapsuleTrace( results, start, end, mins ? *mins : vec3_origin, maxs ? *maxs : vec3_origin, model, brushmask, origin, angles );
 }
 
-int     trap_CM_MarkFragments( int numPoints, const vec3_t *points,
-							   const vec3_t projection,
-							   int maxPoints, vec3_t pointBuffer,
+int     trap_CM_MarkFragments( int numPoints, const idVec3 *points,
+							   const idVec3 &projection,
+							   int maxPoints, idVec5 *pointBuffer,
 							   int maxFragments, markFragment_t *fragmentBuffer ) {
 	return cgImports->RE_MarkFragments( numPoints, points, projection, maxPoints, pointBuffer, maxFragments, fragmentBuffer );
 }
 
-void trap_S_StartSound( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfx ) {
+void trap_S_StartSound( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfx ) {
 	cgImports->S_StartSound( origin, entityNum, entchannel, sfx );
 }
 
+void trap_S_StartSound( const idVec3 &origin, int entityNum, int entchannel, sfxHandle_t sfx ) {
+	cgImports->S_StartSound( &origin, entityNum, entchannel, sfx );
+}
+
 //----(SA)	added
-void trap_S_StartSoundEx( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfx, int flags ) {
+void trap_S_StartSoundEx( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfx, int flags ) {
 	cgImports->S_StartSoundEx( origin, entityNum, entchannel, sfx, flags );
 }
 //----(SA)	end
@@ -186,17 +192,17 @@ void trap_S_ClearLoopingSounds( qboolean killall ) {
 	cgImports->S_ClearLoopingSounds( killall );
 }
 
-void trap_S_AddLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int volume ) {
+void trap_S_AddLoopingSound( int entityNum, const idVec3 &origin, const idVec3 &velocity, sfxHandle_t sfx, int volume ) {
 	cgImports->S_AddLoopingSound( entityNum, origin, velocity, sfx, volume );
 }
 
 //----(SA)	added
-void trap_S_AddRangedLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx, int range ) {
+void trap_S_AddRangedLoopingSound( int entityNum, const idVec3 &origin, const idVec3 &velocity, sfxHandle_t sfx, int range ) {
 	cgImports->S_AddRangedLoopingSound( entityNum, origin, velocity, sfx, range );
 }
 //----(SA)	end
 
-void trap_S_AddRealLoopingSound( int entityNum, const vec3_t origin, const vec3_t velocity, sfxHandle_t sfx ) {
+void trap_S_AddRealLoopingSound( int entityNum, const idVec3 &origin, const idVec3 &velocity, sfxHandle_t sfx ) {
 	cgImports->S_AddRealLoopingSound( entityNum, origin, velocity, sfx );
 }
 
@@ -210,7 +216,7 @@ void trap_S_StopStreamingSound( int entityNum ) {
 }
 //----(SA)	end
 
-void trap_S_UpdateEntityPosition( int entityNum, const vec3_t origin ) {
+void trap_S_UpdateEntityPosition( int entityNum, const idVec3 &origin ) {
 	cgImports->S_UpdateEntityPosition( entityNum, origin );
 }
 
@@ -220,7 +226,7 @@ int trap_S_GetVoiceAmplitude( int entityNum ) {
 }
 // done.
 
-void trap_S_Respatialize( int entityNum, const vec3_t origin, vec3_t axis[3], int inwater ) {
+void trap_S_Respatialize( int entityNum, const idVec3 &origin, const idVec3 *axis, int inwater ) {
 	cgImports->S_Respatialize( entityNum, origin, axis, inwater );
 }
 
@@ -297,17 +303,17 @@ void trap_R_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *
 	cgImports->RE_AddPolysToScene( hShader, numVerts, verts, numPolys );
 }
 
-void trap_RB_ZombieFXAddNewHit( int entityNum, const vec3_t hitPos, const vec3_t hitDir ) {
+void trap_RB_ZombieFXAddNewHit( int entityNum, const idVec3 &hitPos, const idVec3 &hitDir ) {
 	cgImports->RE_ZombieFXAddNewHit( entityNum, hitPos, hitDir );
 }
 // done.
 
-void trap_R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b, int overdraw ) {
+void trap_R_AddLightToScene( const idVec3 &org, float intensity, float r, float g, float b, int overdraw ) {
 	cgImports->RE_AddLightToScene( org, intensity, r, g, b, overdraw );
 }
 
 //----(SA)
-void trap_R_AddCoronaToScene( const vec3_t org, float r, float g, float b, float scale, int id, int flags ) {
+void trap_R_AddCoronaToScene( const idVec3 &org, float r, float g, float b, float scale, int id, int flags ) {
 	cgImports->RE_AddCoronaToScene( org, r, g, b, scale, id, flags );
 }
 //----(SA)
@@ -336,7 +342,7 @@ void    trap_R_DrawStretchPicGradient(  float x, float y, float w, float h,
 	cgImports->RE_DrawStretchPicGradient( x, y, w, h, s1, t1, s2, t2, hShader, gradientColor, gradientType );
 }
 
-void trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs ) {
+void trap_R_ModelBounds( clipHandle_t model, idVec3 &mins, idVec3 &maxs ) {
 	cgImports->RE_ModelBounds( model, mins, maxs );
 }
 
@@ -406,7 +412,7 @@ void trap_stopCamera( int camNum ) {
 }
 //----(SA)	end
 
-qboolean trap_getCameraInfo( int camNum, int time, vec3_t *origin, vec3_t *angles, float *fov ) {
+qboolean trap_getCameraInfo( int camNum, int time, idVec3 *origin, idVec3 *angles, float *fov ) {
 	return cgImports->getCameraInfo( camNum, time, origin, angles, fov );
 }
 
@@ -428,27 +434,6 @@ int trap_Key_GetKey( const char *binding ) {
 }
 
 
-int trap_PC_AddGlobalDefine( char *define ) {
-	return cgImports->PC_AddGlobalDefine( define );
-}
-
-int trap_PC_LoadSource( const char *filename ) {
-	return cgImports->PC_LoadSourceHandle( filename );
-}
-
-int trap_PC_FreeSource( int handle ) {
-	return cgImports->PC_FreeSourceHandle( handle );
-}
-
-int trap_PC_ReadToken( int handle, pc_token_t *pc_token ) {
-	return cgImports->PC_ReadTokenHandle( handle, pc_token );
-}
-
-
-int trap_PC_SourceFileAndLine( int handle, char *filename, int *line ) {
-	return cgImports->PC_SourceFileAndLine( handle, filename, line );
-}
-
 void trap_S_StopBackgroundTrack( void ) {
 	cgImports->S_StopBackgroundTrack(  );
 }
@@ -457,8 +442,8 @@ int trap_RealTime( qtime_t *qtime ) {
 	return cgImports->Com_RealTime( qtime );
 }
 
-void trap_SnapVector( float *v ) {
-	cgImports->Sys_SnapVector( v );
+void trap_SnapVector( idVec3 &v ) {
+	cgImports->Sys_SnapVector( v.ToFloatPtr() );
 }
 
 void trap_SendMoveSpeedsToGame( int entnum, char *movespeeds ) {

@@ -1,6 +1,5 @@
 set(UI_SOURCES
     ../game/bg_misc.cpp
-    ${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
     ${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp
     ui_atoms.cpp
     ui_gameinfo.cpp
@@ -19,6 +18,7 @@ source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${UI_SOURCES})
 add_library(ui SHARED ${UI_SOURCES})
 set_target_properties(ui PROPERTIES OUTPUT_NAME uix86)
 set_target_properties(ui PROPERTIES FOLDER "dlls")
+target_link_libraries(ui PRIVATE idlib)
 if ( NOT WIN32 )
     set_target_properties(ui PROPERTIES PREFIX "")
 endif()
@@ -29,12 +29,8 @@ if ( MSVC )
 endif()
 target_include_directories(ui PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon" "${CMAKE_SOURCE_DIR}/engine/renderer" "${CMAKE_SOURCE_DIR}/engine/client")
 if ( APPLE )
-    # the ui module imports engine symbols (Com_Printf, Com_Error) from
-    # the host executable at load time, the same way it does on windows, so
-    # tell the mac linker those imports are resolved at load time
     target_link_options(ui PRIVATE -Wl,-undefined,dynamic_lookup)
 endif()
 
-# the engine loads the game modules from the game directory next to
-# the exe, matching the retail WolfSP.exe + Main layout
 configure_target(ui main)
+target_precompile_headers(ui PRIVATE "${CMAKE_SOURCE_DIR}/gamedll/precompiled.h")

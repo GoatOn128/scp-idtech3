@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 #include "../ui/ui_shared.h"
@@ -80,6 +82,7 @@ extern "C" const cgameExport_t *QDECL GetCGameAPI( const cgameImport_t *imports 
 }
 
 cg_t cg;
+idRandom cgRandom;
 cgs_t cgs;
 centity_t cg_entities[MAX_GENTITIES];
 weaponInfo_t cg_weapons[MAX_WEAPONS];
@@ -610,7 +613,7 @@ const char *CG_Argv( int arg ) {
 void CG_SetupDlightstyles( void ) {
 	int i, j;
 	char        *str;
-	char        *token;
+	idToken token;
 	int entnum;
 	centity_t   *cent;
 
@@ -623,25 +626,41 @@ void CG_SetupDlightstyles( void ) {
 			break;
 		}
 
-		token = COM_Parse( &str );   // ent num
-		entnum = atoi( token );
+		idLexer lexer( str, strlen( str ), "dynamic light configstring" );
+		if ( !lexer.ReadToken( &token ) ) {
+			CG_Error( "CG_SetupDlightstyles: missing entity number" );
+			continue;
+		}
+		entnum = atoi( token.c_str() );
 		cent = &cg_entities[entnum];
 
-		token = COM_Parse( &str );   // stylestring
-		Q_strncpyz( cent->dl_stylestring, token, strlen( token ) );
+		if ( !lexer.ReadToken( &token ) ) {
+			CG_Error( "CG_SetupDlightstyles: missing style string" );
+			continue;
+		}
+		idStr::Copynz( cent->dl_stylestring, token.c_str(), strlen( token.c_str() ) );
 
-		token = COM_Parse( &str );   // offset
-		cent->dl_frame      = atoi( token );
+		if ( !lexer.ReadToken( &token ) ) {
+			CG_Error( "CG_SetupDlightstyles: missing offset" );
+			continue;
+		}
+		cent->dl_frame      = atoi( token.c_str() );
 		cent->dl_oldframe   = cent->dl_frame - 1;
 		if ( cent->dl_oldframe < 0 ) {
 			cent->dl_oldframe = strlen( cent->dl_stylestring );
 		}
 
-		token = COM_Parse( &str );   // sound id
-		cent->dl_sound = atoi( token );
+		if ( !lexer.ReadToken( &token ) ) {
+			CG_Error( "CG_SetupDlightstyles: missing sound id" );
+			continue;
+		}
+		cent->dl_sound = atoi( token.c_str() );
 
-		token = COM_Parse( &str );   // attenuation
-		cent->dl_atten = atoi( token );
+		if ( !lexer.ReadToken( &token ) ) {
+			CG_Error( "CG_SetupDlightstyles: missing attenuation" );
+			continue;
+		}
+		cent->dl_atten = atoi( token.c_str() );
 
 		for ( j = 0; j < strlen( cent->dl_stylestring ); j++ ) {
 
@@ -727,11 +746,9 @@ CG_LoadPickupNames
 #define MAX_BUFFER          20000
 static void CG_LoadPickupNames( void ) {
 	char buffer[MAX_BUFFER];
-	char *text;
 	char filename[MAX_QPATH];
 	fileHandle_t f;
 	int len, i;
-	char *token;
 
 	Com_sprintf( filename, MAX_QPATH, "text/pickupnames.txt" );
 	len = trap_FS_FOpenFile( filename, &f, FS_READ );
@@ -739,30 +756,31 @@ static void CG_LoadPickupNames( void ) {
 		CG_Printf( S_COLOR_RED "WARNING: pickup name file (pickupnames.txt not found in main/text)\n" );
 		return;
 	}
-	if ( len > MAX_BUFFER ) {
+	if ( len >= MAX_BUFFER ) {
 		CG_Error( "%s is too big, make it smaller (max = %i bytes)\n", filename, MAX_BUFFER );
+		trap_FS_FCloseFile( f );
+		return;
 	}
 
 	// load the file into memory
 	trap_FS_Read( buffer, len, f );
 	buffer[len] = 0;
 	trap_FS_FCloseFile( f );
-	// parse the list
-	text = buffer;
+	idLexer lexer( buffer, len, filename );
+	idToken token;
 
 	for ( i = 0; i < bg_numItems; i++ ) {
-		token = COM_ParseExt( &text, qtrue );
-		if ( !token[0] ) {
+		if ( !lexer.ReadToken( &token ) ) {
 			break;
 		}
-		if ( !Q_stricmp( token, "---" ) ) {   // no name.  use hardcoded value
+		if ( !idStr::Icmp( token.c_str(), "---" ) ) {   // no name.  use hardcoded value
 			if ( bg_itemlist[i].pickup_name && strlen( bg_itemlist[i].pickup_name ) ) {
 				Com_sprintf( cgs.itemPrintNames[i], MAX_QPATH, bg_itemlist[ i ].pickup_name );
 			} else {
 				cgs.itemPrintNames[i][0] = 0;
 			}
 		} else {
-			Com_sprintf( cgs.itemPrintNames[i], MAX_QPATH, token );
+			idStr::Copynz( cgs.itemPrintNames[i], token.c_str(), sizeof( cgs.itemPrintNames[i] ) );
 		}
 	}
 }
@@ -770,11 +788,9 @@ static void CG_LoadPickupNames( void ) {
 // a straight dupe right now so I don't mess anything up while adding this
 static void CG_LoadTranslationStrings( void ) {
 	char buffer[MAX_BUFFER];
-	char *text;
 	char filename[MAX_QPATH];
 	fileHandle_t f;
 	int len, i, numStrings;
-	char *token;
 
 	Com_sprintf( filename, MAX_QPATH, "text/strings.txt" );
 	len = trap_FS_FOpenFile( filename, &f, FS_READ );
@@ -782,26 +798,26 @@ static void CG_LoadTranslationStrings( void ) {
 		CG_Printf( S_COLOR_RED "WARNING: string translation file (strings.txt not found in main/text)\n" );
 		return;
 	}
-	if ( len > MAX_BUFFER ) {
+	if ( len >= MAX_BUFFER ) {
 		CG_Error( "%s is too big, make it smaller (max = %i bytes)\n", filename, MAX_BUFFER );
+		trap_FS_FCloseFile( f );
+		return;
 	}
 
 	// load the file into memory
 	trap_FS_Read( buffer, len, f );
 	buffer[len] = 0;
 	trap_FS_FCloseFile( f );
-	// parse the list
-	text = buffer;
+	idLexer lexer( buffer, len, filename );
+	idToken token;
 
 	numStrings = sizeof( translateStrings ) / sizeof( translateStrings[0] ) - 1;
 
 	for ( i = 0; i < numStrings; i++ ) {
-		token = COM_ParseExt( &text, qtrue );
-		if ( !token[0] ) {
+		if ( !lexer.ReadToken( &token ) ) {
 			break;
 		}
-		translateStrings[i].localname = (char *) malloc( strlen( token ) + 1 );
-		strcpy( translateStrings[i].localname, token );
+		translateStrings[i].localname = Mem_CopyString( token.c_str() );
 	}
 }
 
@@ -1120,17 +1136,17 @@ static void CG_RegisterGraphics( void ) {
 
 	// Rafael - bleedanim
 	for ( i = 0; i < 5; i++ ) {
-		cgs.media.viewBloodAni[i] = trap_R_RegisterShader( va( "viewBloodBlend%i", i + 1 ) );
+		cgs.media.viewBloodAni[i] = trap_R_RegisterShader( idStr::FormatString( "viewBloodBlend%i", i + 1 ) );
 	}
 	cgs.media.viewFlashBlood = trap_R_RegisterShader( "viewFlashBlood" );
 	for ( i = 0; i < 16; i++ ) {
-		cgs.media.viewFlashFire[i] = trap_R_RegisterShader( va( "viewFlashFire%i", i + 1 ) );
+		cgs.media.viewFlashFire[i] = trap_R_RegisterShader( idStr::FormatString( "viewFlashFire%i", i + 1 ) );
 	}
 	// done
 
 	// Rafael bats
 	for ( i = 0; i < 10; i++ ) {
-		cgs.media.bats[i] = trap_R_RegisterShader( va( "bats%i",i + 1 ) );
+		cgs.media.bats[i] = trap_R_RegisterShader( idStr::FormatString( "bats%i",i + 1 ) );
 	}
 	// done
 
@@ -1212,7 +1228,7 @@ static void CG_RegisterGraphics( void ) {
 //----(SA)	end
 
 	for ( i = 0 ; i < NUM_CROSSHAIRS ; i++ ) {
-		cgs.media.crosshairShader[i] = trap_R_RegisterShaderNoMip( va( "gfx/2d/crosshair%c", 'a' + i ) );
+		cgs.media.crosshairShader[i] = trap_R_RegisterShaderNoMip( idStr::FormatString( "gfx/2d/crosshair%c", 'a' + i ) );
 	}
 
 	cgs.media.crosshairFriendly =  trap_R_RegisterShader( "gfx/2d/friendlycross" );  //----(SA)	added
@@ -1280,7 +1296,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.balloonShader = trap_R_RegisterShader( "sprites/balloon3" );
 
 	for ( i = 0; i < MAX_AISTATES; i++ ) {
-		cgs.media.aiStateShaders[i] = trap_R_RegisterShader( va( "sprites/aistate%i", i + 1 ) );
+		cgs.media.aiStateShaders[i] = trap_R_RegisterShader( idStr::FormatString( "sprites/aistate%i", i + 1 ) );
 	}
 
 	cgs.media.bloodExplosionShader = trap_R_RegisterShader( "bloodExplosion" );
@@ -1461,7 +1477,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.numInlineModels = trap_CM_NumInlineModels();
 	for ( i = 1 ; i < cgs.numInlineModels ; i++ ) {
 		char modelName[10];
-		vec3_t mins, maxs;
+		idVec3 mins, maxs;
 		int j;
 
 		Com_sprintf( modelName, sizeof( modelName ), "*%i", i );
@@ -1550,13 +1566,20 @@ CG_StartMusic
 ======================
 */
 void CG_StartMusic( void ) {
-	char    *s;
 	char parm1[MAX_QPATH], parm2[MAX_QPATH];
 
 	// start the background music
-	s = (char *)CG_ConfigString( CS_MUSIC );
-	Q_strncpyz( parm1, COM_Parse( &s ), sizeof( parm1 ) );
-	Q_strncpyz( parm2, COM_Parse( &s ), sizeof( parm2 ) );
+	const char *music = CG_ConfigString( CS_MUSIC );
+	idLexer lexer( music, strlen( music ), "music configstring" );
+	idToken token;
+	parm1[0] = '\0';
+	parm2[0] = '\0';
+	if ( lexer.ReadToken( &token ) ) {
+		idStr::Copynz( parm1, token.c_str(), sizeof( parm1 ) );
+		if ( lexer.ReadToken( &token ) ) {
+			idStr::Copynz( parm2, token.c_str(), sizeof( parm2 ) );
+		}
+	}
 
 	if ( strlen( parm1 ) ) {
 		trap_S_StartBackgroundTrack( parm1, parm2, 0 );
@@ -1570,12 +1593,16 @@ CG_QueueMusic
 ==============
 */
 void CG_QueueMusic( void ) {
-	char    *s;
 	char parm[MAX_QPATH];
 
 	// prepare the next background track
-	s = (char *)CG_ConfigString( CS_MUSIC_QUEUE );
-	Q_strncpyz( parm, COM_Parse( &s ), sizeof( parm ) );
+	const char *music = CG_ConfigString( CS_MUSIC_QUEUE );
+	idLexer lexer( music, strlen( music ), "queued music configstring" );
+	idToken token;
+	parm[0] = '\0';
+	if ( lexer.ReadToken( &token ) ) {
+		idStr::Copynz( parm, token.c_str(), sizeof( parm ) );
+	}
 
 	// even if no strlen(parm).  we want to be able to clear the queue
 
@@ -1594,11 +1621,11 @@ char *CG_GetMenuBuffer( const char *filename ) {
 
 	len = trap_FS_FOpenFile( filename, &f, FS_READ );
 	if ( !f ) {
-		trap_Print( va( S_COLOR_RED "menu file not found: %s, using default\n", filename ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "menu file not found: %s, using default\n", filename ) );
 		return NULL;
 	}
 	if ( len >= MAX_MENUFILE ) {
-		trap_Print( va( S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", filename, len, MAX_MENUFILE ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", filename, len, MAX_MENUFILE ) );
 		trap_FS_FCloseFile( f );
 		return NULL;
 	}
@@ -1615,235 +1642,107 @@ char *CG_GetMenuBuffer( const char *filename ) {
 // new hud stuff ( mission pack )
 // ==============================
 //
-qboolean CG_Asset_Parse( int handle ) {
-	pc_token_t token;
+qboolean CG_Asset_Parse( idLexer *parser ) {
+	idToken token;
 	const char *tempStr;
 
-	if ( !trap_PC_ReadToken( handle, &token ) ) {
-		return qfalse;
-	}
-	if ( Q_stricmp( token.string, "{" ) != 0 ) {
+	if ( !parser->ReadToken( &token ) || idStr::Icmp( token.c_str(), "{" ) != 0 ) {
 		return qfalse;
 	}
 
-	while ( 1 ) {
-		if ( !trap_PC_ReadToken( handle, &token ) ) {
-			return qfalse;
-		}
-
-		if ( Q_stricmp( token.string, "}" ) == 0 ) {
+	while ( parser->ReadToken( &token ) ) {
+		if ( idStr::Icmp( token.c_str(), "}" ) == 0 ) {
 			return qtrue;
 		}
-
-		// font
-		if ( Q_stricmp( token.string, "font" ) == 0 ) {
+		if ( idStr::Icmp( token.c_str(), "font" ) == 0 || idStr::Icmp( token.c_str(), "smallFont" ) == 0 ||
+			 idStr::Icmp( token.c_str(), "bigfont" ) == 0 || idStr::Icmp( token.c_str(), "handwritingFont" ) == 0 ) {
 			int pointSize;
-			if ( !PC_String_Parse( handle, &tempStr ) || !PC_Int_Parse( handle, &pointSize ) ) {
+			if ( !String_Parse( parser, &tempStr ) || !Int_Parse( parser, &pointSize ) ) {
 				return qfalse;
 			}
-			cgDC.registerFont( tempStr, pointSize, &cgDC.Assets.textFont );
+			fontInfo_t *font = &cgDC.Assets.textFont;
+			if ( idStr::Icmp( token.c_str(), "smallFont" ) == 0 ) {
+				font = &cgDC.Assets.smallFont;
+			} else if ( idStr::Icmp( token.c_str(), "bigfont" ) == 0 ) {
+				font = &cgDC.Assets.bigFont;
+			} else if ( idStr::Icmp( token.c_str(), "handwritingFont" ) == 0 ) {
+				font = &cgDC.Assets.handwritingFont;
+			}
+			cgDC.registerFont( tempStr, pointSize, font );
 			continue;
 		}
-
-		// smallFont
-		if ( Q_stricmp( token.string, "smallFont" ) == 0 ) {
-			int pointSize;
-			if ( !PC_String_Parse( handle, &tempStr ) || !PC_Int_Parse( handle, &pointSize ) ) {
-				return qfalse;
-			}
-			cgDC.registerFont( tempStr, pointSize, &cgDC.Assets.smallFont );
-			continue;
-		}
-
-		// font
-		if ( Q_stricmp( token.string, "bigfont" ) == 0 ) {
-			int pointSize;
-			if ( !PC_String_Parse( handle, &tempStr ) || !PC_Int_Parse( handle, &pointSize ) ) {
-				return qfalse;
-			}
-			cgDC.registerFont( tempStr, pointSize, &cgDC.Assets.bigFont );
-			continue;
-		}
-
-		// handwriting
-		if ( Q_stricmp( token.string, "handwritingFont" ) == 0 ) {
-			int pointSize;
-			if ( !PC_String_Parse( handle, &tempStr ) || !PC_Int_Parse( handle, &pointSize ) ) {
-				return qfalse;
-			}
-			cgDC.registerFont( tempStr, pointSize, &cgDC.Assets.handwritingFont );
-			continue;
-		}
-
-		// gradientbar
-		if ( Q_stricmp( token.string, "gradientbar" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
-				return qfalse;
-			}
+		if ( idStr::Icmp( token.c_str(), "gradientbar" ) == 0 ) {
+			if ( !String_Parse( parser, &tempStr ) ) return qfalse;
 			cgDC.Assets.gradientBar = trap_R_RegisterShaderNoMip( tempStr );
-			continue;
-		}
-
-		// enterMenuSound
-		if ( Q_stricmp( token.string, "menuEnterSound" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
-				return qfalse;
-			}
+		} else if ( idStr::Icmp( token.c_str(), "menuEnterSound" ) == 0 ) {
+			if ( !String_Parse( parser, &tempStr ) ) return qfalse;
 			cgDC.Assets.menuEnterSound = trap_S_RegisterSound( tempStr );
-			continue;
-		}
-
-		// exitMenuSound
-		if ( Q_stricmp( token.string, "menuExitSound" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
-				return qfalse;
-			}
+		} else if ( idStr::Icmp( token.c_str(), "menuExitSound" ) == 0 ) {
+			if ( !String_Parse( parser, &tempStr ) ) return qfalse;
 			cgDC.Assets.menuExitSound = trap_S_RegisterSound( tempStr );
-			continue;
-		}
-
-		// itemFocusSound
-		if ( Q_stricmp( token.string, "itemFocusSound" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
-				return qfalse;
-			}
+		} else if ( idStr::Icmp( token.c_str(), "itemFocusSound" ) == 0 ) {
+			if ( !String_Parse( parser, &tempStr ) ) return qfalse;
 			cgDC.Assets.itemFocusSound = trap_S_RegisterSound( tempStr );
-			continue;
-		}
-
-		// menuBuzzSound
-		if ( Q_stricmp( token.string, "menuBuzzSound" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
-				return qfalse;
-			}
+		} else if ( idStr::Icmp( token.c_str(), "menuBuzzSound" ) == 0 ) {
+			if ( !String_Parse( parser, &tempStr ) ) return qfalse;
 			cgDC.Assets.menuBuzzSound = trap_S_RegisterSound( tempStr );
-			continue;
-		}
-
-		if ( Q_stricmp( token.string, "cursor" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &cgDC.Assets.cursorStr ) ) {
-				return qfalse;
-			}
+		} else if ( idStr::Icmp( token.c_str(), "cursor" ) == 0 ) {
+			if ( !String_Parse( parser, &cgDC.Assets.cursorStr ) ) return qfalse;
 			cgDC.Assets.cursor = trap_R_RegisterShaderNoMip( cgDC.Assets.cursorStr );
-			continue;
-		}
-
-		if ( Q_stricmp( token.string, "fadeClamp" ) == 0 ) {
-			if ( !PC_Float_Parse( handle, &cgDC.Assets.fadeClamp ) ) {
-				return qfalse;
-			}
-			continue;
-		}
-
-		if ( Q_stricmp( token.string, "fadeCycle" ) == 0 ) {
-			if ( !PC_Int_Parse( handle, &cgDC.Assets.fadeCycle ) ) {
-				return qfalse;
-			}
-			continue;
-		}
-
-		if ( Q_stricmp( token.string, "fadeAmount" ) == 0 ) {
-			if ( !PC_Float_Parse( handle, &cgDC.Assets.fadeAmount ) ) {
-				return qfalse;
-			}
-			continue;
-		}
-
-		if ( Q_stricmp( token.string, "shadowX" ) == 0 ) {
-			if ( !PC_Float_Parse( handle, &cgDC.Assets.shadowX ) ) {
-				return qfalse;
-			}
-			continue;
-		}
-
-		if ( Q_stricmp( token.string, "shadowY" ) == 0 ) {
-			if ( !PC_Float_Parse( handle, &cgDC.Assets.shadowY ) ) {
-				return qfalse;
-			}
-			continue;
-		}
-
-		if ( Q_stricmp( token.string, "shadowColor" ) == 0 ) {
-			if ( !PC_Color_Parse( handle, &cgDC.Assets.shadowColor ) ) {
-				return qfalse;
-			}
+		} else if ( idStr::Icmp( token.c_str(), "fadeClamp" ) == 0 ) {
+			if ( !Float_Parse( parser, &cgDC.Assets.fadeClamp ) ) return qfalse;
+		} else if ( idStr::Icmp( token.c_str(), "fadeCycle" ) == 0 ) {
+			if ( !Int_Parse( parser, &cgDC.Assets.fadeCycle ) ) return qfalse;
+		} else if ( idStr::Icmp( token.c_str(), "fadeAmount" ) == 0 ) {
+			if ( !Float_Parse( parser, &cgDC.Assets.fadeAmount ) ) return qfalse;
+		} else if ( idStr::Icmp( token.c_str(), "shadowX" ) == 0 ) {
+			if ( !Float_Parse( parser, &cgDC.Assets.shadowX ) ) return qfalse;
+		} else if ( idStr::Icmp( token.c_str(), "shadowY" ) == 0 ) {
+			if ( !Float_Parse( parser, &cgDC.Assets.shadowY ) ) return qfalse;
+		} else if ( idStr::Icmp( token.c_str(), "shadowColor" ) == 0 ) {
+			if ( !Color_Parse( parser, &cgDC.Assets.shadowColor ) ) return qfalse;
 			cgDC.Assets.shadowFadeClamp = cgDC.Assets.shadowColor[3];
-			continue;
 		}
 	}
-	//return qfalse;
+	return qfalse;
 }
 
 void CG_ParseMenu( const char *menuFile ) {
-	pc_token_t token;
-	int handle;
-
-	handle = trap_PC_LoadSource( menuFile );
-	if ( !handle ) {
-		handle = trap_PC_LoadSource( "ui/testhud.menu" );
+	char *buffer = CG_GetMenuBuffer( menuFile );
+	if ( !buffer ) {
+		buffer = CG_GetMenuBuffer( "ui/testhud.menu" );
 	}
-	if ( !handle ) {
+	if ( !buffer ) {
 		return;
 	}
 
-	while ( 1 ) {
-		if ( !trap_PC_ReadToken( handle, &token ) ) {
+	idLexer parser;
+	parser.LoadMemory( buffer, strlen( buffer ), menuFile );
+	idToken token;
+	while ( parser.ReadToken( &token ) ) {
+		if ( token[0] == '}' ) {
 			break;
 		}
-
-		//if ( Q_stricmp( token, "{" ) ) {
-		//	Com_Printf( "Missing { in menu file\n" );
-		//	break;
-		//}
-
-		//if ( menuCount == MAX_MENUS ) {
-		//	Com_Printf( "Too many menus!\n" );
-		//	break;
-		//}
-
-		if ( token.string[0] == '}' ) {
-			break;
-		}
-
-		if ( Q_stricmp( token.string, "assetGlobalDef" ) == 0 ) {
-			if ( CG_Asset_Parse( handle ) ) {
-				continue;
-			} else {
+		if ( idStr::Icmp( token.c_str(), "assetGlobalDef" ) == 0 ) {
+			if ( !CG_Asset_Parse( &parser ) ) {
 				break;
 			}
-		}
-
-
-		if ( Q_stricmp( token.string, "menudef" ) == 0 ) {
-			// start a new menu
-			Menu_New( handle );
+		} else if ( idStr::Icmp( token.c_str(), "menudef" ) == 0 ) {
+			Menu_New( &parser );
 		}
 	}
-	trap_PC_FreeSource( handle );
 }
 
-qboolean CG_Load_Menu( char **p ) {
-	char *token;
-
-	token = COM_ParseExt( p, qtrue );
-
-	if ( token[0] != '{' ) {
+qboolean CG_Load_Menu( idLexer &parser ) {
+	idToken token;
+	if ( !parser.ReadToken( &token ) || token[0] != '{' ) {
 		return qfalse;
 	}
-
-	while ( 1 ) {
-
-		token = COM_ParseExt( p, qtrue );
-
-		if ( Q_stricmp( token, "}" ) == 0 ) {
+	while ( parser.ReadToken( &token ) ) {
+		if ( token[0] == '}' ) {
 			return qtrue;
 		}
-
-		if ( !token || token[0] == 0 ) {
-			return qfalse;
-		}
-
-		CG_ParseMenu( token );
+		CG_ParseMenu( token.c_str() );
 	}
 	return qfalse;
 }
@@ -1851,25 +1750,22 @@ qboolean CG_Load_Menu( char **p ) {
 
 
 void CG_LoadMenus( const char *menuFile ) {
-	char    *token;
-	char *p;
 	int len, start;
 	fileHandle_t f;
 	static char buf[MAX_MENUDEFFILE];
 
 	start = trap_Milliseconds();
-
 	len = trap_FS_FOpenFile( menuFile, &f, FS_READ );
 	if ( !f ) {
-		trap_Error( va( S_COLOR_YELLOW "menu file not found: %s, using default\n", menuFile ) );
+		trap_Error( idStr::FormatString( S_COLOR_YELLOW "menu file not found: %s, using default\n", menuFile ) );
 		len = trap_FS_FOpenFile( "ui/hud.txt", &f, FS_READ );
 		if ( !f ) {
-			trap_Error( va( S_COLOR_RED "default menu file not found: ui/hud.txt, unable to continue!\n", menuFile ) );
+			trap_Error( idStr::FormatString( S_COLOR_RED "default menu file not found: ui/hud.txt, unable to continue!\n", menuFile ) );
+			return;
 		}
 	}
-
 	if ( len >= MAX_MENUDEFFILE ) {
-		trap_Error( va( S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", menuFile, len, MAX_MENUDEFFILE ) );
+		trap_Error( idStr::FormatString( S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", menuFile, len, MAX_MENUDEFFILE ) );
 		trap_FS_FCloseFile( f );
 		return;
 	}
@@ -1878,43 +1774,19 @@ void CG_LoadMenus( const char *menuFile ) {
 	buf[len] = 0;
 	trap_FS_FCloseFile( f );
 
-	COM_Compress( buf );
-
+	idLexer parser;
+	parser.LoadMemory( buf, len, menuFile );
 	Menu_Reset();
-
-	p = buf;
-
-	while ( 1 ) {
-		token = COM_ParseExt( &p, qtrue );
-		if ( !token || token[0] == 0 || token[0] == '}' ) {
+	idToken token;
+	while ( parser.ReadToken( &token ) ) {
+		if ( token[0] == 0 || token[0] == '}' ) {
 			break;
 		}
-
-		//if ( Q_stricmp( token, "{" ) ) {
-		//	Com_Printf( "Missing { in menu file\n" );
-		//	break;
-		//}
-
-		//if ( menuCount == MAX_MENUS ) {
-		//	Com_Printf( "Too many menus!\n" );
-		//	break;
-		//}
-
-		if ( Q_stricmp( token, "}" ) == 0 ) {
+		if ( idStr::Icmp( token.c_str(), "loadmenu" ) == 0 && !CG_Load_Menu( parser ) ) {
 			break;
-		}
-
-		if ( Q_stricmp( token, "loadmenu" ) == 0 ) {
-			if ( CG_Load_Menu( &p ) ) {
-				continue;
-			} else {
-				break;
-			}
 		}
 	}
-
 	Com_Printf( "UI menu load time = %d milli seconds\n", trap_Milliseconds() - start );
-
 }
 
 
@@ -1970,6 +1842,7 @@ static clientInfo_t * CG_InfoFromScoreIndex( int index, int team, int *scoreInde
 }
 
 static const char *CG_FeederItemText( float feederID, int index, int column, qhandle_t *handle ) {
+	static idStr formattedText;
 #ifdef MISSIONPACK
 	gitem_t *item;
 #endif  // #ifdef MISSIONPACK
@@ -2006,7 +1879,8 @@ static const char *CG_FeederItemText( float feederID, int index, int column, qha
 				if ( info->botSkill > 0 && info->botSkill <= 5 ) {
 					*handle = cgs.media.botSkillShaders[ info->botSkill - 1 ];
 				} else if ( info->handicap < 100 ) {
-					return va( "%i", info->handicap );
+					formattedText.Format( "%i", info->handicap );
+					return formattedText.c_str();
 				}
 			}
 			break;
@@ -2023,7 +1897,8 @@ static const char *CG_FeederItemText( float feederID, int index, int column, qha
 			}
 			if ( team == -1 ) {
 				if ( cgs.gametype == GT_TOURNAMENT ) {
-					return va( "%i/%i", info->wins, info->losses );
+					formattedText.Format( "%i/%i", info->wins, info->losses );
+					return formattedText.c_str();
 				} else if ( info->infoValid && info->team == TEAM_SPECTATOR ) {
 					return "Spectator";
 				} else {
@@ -2040,16 +1915,19 @@ static const char *CG_FeederItemText( float feederID, int index, int column, qha
 			return info->name;
 			break;
 		case 4:
-			return va( "%i", info->score );
+			formattedText.Format( "%i", info->score );
+			return formattedText.c_str();
 			break;
 		case 5:
-			return va( "%4i", sp->time );
+			formattedText.Format( "%4i", sp->time );
+			return formattedText.c_str();
 			break;
 		case 6:
 			if ( sp->ping == -1 ) {
 				return "connecting";
 			}
-			return va( "%4i", sp->ping );
+			formattedText.Format( "%4i", sp->ping );
+			return formattedText.c_str();
 			break;
 		}
 	}
@@ -2086,7 +1964,7 @@ static float CG_Cvar_Get( const char *cvar ) {
 	return atof( buff );
 }
 
-void CG_Text_PaintWithCursor( float x, float y, int font, float scale, vec4_t color, const char *text, int cursorPos, char cursor, int limit, int style ) {
+void CG_Text_PaintWithCursor( float x, float y, int font, float scale, const idVec4 &color, const char *text, int cursorPos, char cursor, int limit, int style ) {
 	CG_Text_Paint( x, y, font, scale, color, text, 0, limit, style );
 }
 
@@ -2356,7 +2234,7 @@ void CG_Init( int serverMessageNum, int serverCommandSequence ) {
 
 
 	// RF, init ZombieFX
-	trap_RB_ZombieFXAddNewHit( -1, NULL, NULL );
+	trap_RB_ZombieFXAddNewHit( -1, vec3_origin, vec3_origin );
 
 	// remove the last loading update
 	cg.infoScreenText[0] = 0;

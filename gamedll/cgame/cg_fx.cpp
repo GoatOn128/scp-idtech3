@@ -1,6 +1,7 @@
+#include "../precompiled.h"
+
 #include "FxScheduler.h"
 #include "cg_fx.h"
-#include <cmath>
 
 static int fxLastFrameTime = -1;
 
@@ -9,11 +10,15 @@ void CG_FxInit( void ) {
     fileHandle_t file = 0;
     int length = theFxHelper.OpenFile( "effects/wolf/manifest.txt", &file, FS_READ );
     if ( length > 0 && length < 16384 ) {
-        std::vector<char> buffer( length + 1, 0 );
-        theFxHelper.ReadFile( buffer.data(), length, file );
-        char *cursor = buffer.data();
-        for ( char *name = COM_Parse( &cursor ); name[0]; name = COM_Parse( &cursor ) ) {
-            theFxScheduler.RegisterEffect( name );
+        idList<char> buffer;
+        buffer.SetNum( length + 1 );
+        buffer[length] = '\0';
+        theFxHelper.ReadFile( buffer.Ptr(), length, file );
+        idLexer lexer;
+        lexer.LoadMemory( buffer.Ptr(), length, "effects/wolf/manifest.txt" );
+        idToken token;
+        while ( lexer.ReadToken( &token ) ) {
+            theFxScheduler.RegisterEffect( token.c_str() );
         }
     } else {
         CG_Printf( "FX: missing or invalid effects/wolf/manifest.txt\n" );
@@ -49,14 +54,14 @@ void CG_FxDraw( void ) {
 	CG_UpdateFlamethrowerSounds();
 }
 
-void CG_FxPlay( const char *name, const vec3_t origin, const vec3_t direction ) {
+void CG_FxPlay( const char *name, const idVec3 &origin, const idVec3 &direction ) {
 	int handle = theFxScheduler.RegisterEffect( name );
 	if ( handle ) {
-		vec3_t position, forward;
-		VectorCopy( origin, position );
-		VectorCopy( direction, forward );
-		if ( VectorNormalize( forward ) == 0 ) {
-			VectorSet( forward, 0, 0, 1 );
+		idVec3 position, forward;
+		position = origin;
+		forward = direction;
+		if ( forward.Normalize() == 0 ) {
+			forward.Set( 0, 0, 1 );
 		}
 		theFxScheduler.PlayEffect( handle, position, forward );
 	}
@@ -67,29 +72,35 @@ void CG_FxTest_f( void ) {
 		CG_Printf( "usage: fxplay <effect name under effects/> [surface]\n" );
 		return;
 	}
-	vec3_t origin, direction;
-	VectorCopy( cg.refdef.viewaxis[0], direction );
-	VectorMA( cg.refdef.vieworg, 96, direction, origin );
+	idVec3 origin, direction;
+	direction = cg.refdef.viewaxis[0];
+	origin = cg.refdef.vieworg + direction * 96;
 	if ( trap_Argc() == 3 ) {
-		if ( Q_stricmp( CG_Argv( 2 ), "surface" ) ) {
+		if ( idStr::Icmp( CG_Argv( 2 ), "surface" ) ) {
 			CG_Printf( "usage: fxplay <effect name under effects/> [surface]\n" );
 			return;
 		}
 		trace_t trace;
-		VectorMA( cg.refdef.vieworg, 8192, direction, origin );
+		origin = cg.refdef.vieworg + direction * 8192;
 		CG_Trace( &trace, cg.refdef.vieworg, NULL, NULL, origin, cg.snap->ps.clientNum, MASK_SOLID );
 		if ( trace.fraction == 1 || trace.startsolid || trace.allsolid || ( trace.surfaceFlags & SURF_SKY ) ) {
 			CG_Printf( "FX: aim at a solid surface\n" );
 			return;
 		}
-		VectorCopy( trace.endpos, origin );
-		VectorCopy( trace.plane.normal, direction );
+		origin = trace.endpos;
+		direction = trace.plane.normal;
 	}
 	CG_FxPlay( CG_Argv( 1 ), origin, direction );
 }
 
-static bool FX_Binds( const std::string &bindings, const char *name ) {
-	return ( " " + bindings + " " ).find( " " + std::string( name ) + " " ) != std::string::npos;
+static bool FX_Binds( const idStr &bindings, const char *name ) {
+	idStr padded( " " );
+	padded += bindings;
+	padded += " ";
+	idStr needle( " " );
+	needle += name;
+	needle += " ";
+	return padded.Find( needle.c_str() ) != -1;
 }
 
 static void FX_OffsetRange( CFxRange &range, float offset ) {
@@ -102,7 +113,7 @@ static void FX_ScaleRange( CFxRange &range, float scale ) {
 	range.SetRange( first < last ? first : last, first < last ? last : first );
 }
 
-void CG_FxPlayParameters( const char *name, const vec3_t origin, const vec3_t direction, const FxParameters &p ) {
+void CG_FxPlayParameters( const char *name, const idVec3 &origin, const idVec3 &direction, const FxParameters &p ) {
 	if ( theFxHelper.mTimeFrozen ) { return; }
 	int registered = theFxScheduler.RegisterEffect( name );
 	if ( !registered ) { return; }
@@ -111,7 +122,7 @@ void CG_FxPlayParameters( const char *name, const vec3_t origin, const vec3_t di
 	if ( !effect || !handle ) { return; }
 	for ( int i = 0; i < effect->mPrimitiveCount; i++ ) {
 		CPrimitiveTemplate &primitive = *effect->mPrimitives[i];
-		const std::string &bindings = primitive.mBindings;
+		const idStr &bindings = primitive.mBindings;
 		if ( FX_Binds( bindings, "life" ) && p.life > 0 ) { primitive.mLife.SetRange( p.life, p.life ); }
 		if ( FX_Binds( bindings, "size" ) && p.size >= 0 ) {
 			FX_ScaleRange( primitive.mSizeStart, p.size );
@@ -129,7 +140,7 @@ void CG_FxPlayParameters( const char *name, const vec3_t origin, const vec3_t di
 		if ( FX_Binds( bindings, "shader" ) && p.shader ) { primitive.mMediaHandles.SetHandle( p.shader ); }
 		if ( FX_Binds( bindings, "aspect" ) && p.aspect > 0 ) { primitive.mAspect = p.aspect; }
 		if ( FX_Binds( bindings, "pathLength" ) && primitive.mCountSpacing > 0 ) {
-			float count = ceilf( p.pathLength / primitive.mCountSpacing );
+			float count = idMath::Ceil( p.pathLength / primitive.mCountSpacing );
 			count = count < 1 ? 1 : ( count > MAX_EFFECTS ? MAX_EFFECTS : count );
 			primitive.mSpawnCount.SetRange( count, count );
 		}
@@ -166,18 +177,18 @@ void CG_FxPlayParameters( const char *name, const vec3_t origin, const vec3_t di
 		if ( FX_Binds( bindings, "verticalSign" ) ) { FX_ScaleRange( primitive.mVelZ, p.verticalSign ); }
 		primitive.mGroup = p.group;
 	}
-	vec3_t position, forward;
-	VectorCopy( origin, position );
-	VectorCopy( direction, forward );
-	if ( VectorNormalize( forward ) == 0 ) { VectorSet( forward, 0, 0, 1 ); }
+	idVec3 position, forward;
+	position = origin;
+	forward = direction;
+	if ( forward.Normalize() == 0 ) { forward.Set( 0, 0, 1 ); }
 	theFxScheduler.PlayEffect( handle, position, forward );
 }
 
 static const FxControllerProperty &CG_FxProperty( const char *effect, const char *property ) {
 	const CPrimitiveTemplate *definition = theFxScheduler.Definition( effect );
 	if ( definition ) {
-		auto found = definition->mProperties.find( property );
-		if ( found != definition->mProperties.end() ) { return found->second; }
+		const FxControllerProperty *found = nullptr;
+		if ( definition->mProperties.Get( property, &found ) ) { return *found; }
 	}
 	CG_Error( "FX: missing required property %s in %s", property, effect );
 	static FxControllerProperty empty;

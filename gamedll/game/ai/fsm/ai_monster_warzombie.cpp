@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 //=================================================================================
@@ -98,7 +100,7 @@ char *AIFunc_WarriorZombieMelee( cast_state_t *cs ) {
 		if ( anim < 3 ) { // back handed-swinging, dont allow legs to move
 			// if they are outside range, move forward
 			AICast_PredictMovement( ecs, 2, 0.5, &move, &g_entities[cs->enemyNum].client->pers.cmd, -1 );
-			enemyDist = Distance( move.endpos, cs->clientState->origin );
+			enemyDist = ( move.endpos - cs->clientState->origin ).Length();
 			enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 			enemyDist -= ent->r.maxs[0];
 			if ( enemyDist > 16 ) { // we can get closer
@@ -199,7 +201,7 @@ AIFunc_WarriorZombieDefense
 */
 char *AIFunc_WarriorZombieDefense( cast_state_t *cs ) {
 	gentity_t *ent, *enemy;
-	vec3_t enemyDir, vec;
+	idVec3 enemyDir, vec;
 	float dist;
 
 	ent = &g_entities[cs->entityNum];
@@ -238,13 +240,13 @@ char *AIFunc_WarriorZombieDefense( cast_state_t *cs ) {
 		}
 
 		// if our enemy isn't looking right at us, abort
-		VectorSubtract( ent->client->ps.origin, enemy->client->ps.origin, vec );
-		dist = VectorNormalize( vec );
+		vec = ent->client->ps.origin - enemy->client->ps.origin;
+		dist = vec.Normalize();
 		if ( dist > 512 ) {
 			dist = 512;
 		}
-		AngleVectors( enemy->client->ps.viewangles, enemyDir, NULL, NULL );
-		if ( DotProduct( vec, enemyDir ) < ( 0.98 - 0.2 * ( dist / 512 ) ) ) {
+		idAngles( enemy->client->ps.viewangles ).ToVectors( &enemyDir, NULL, NULL );
+		if ( ( vec * enemyDir ) < ( 0.98 - 0.2 * ( dist / 512 ) ) ) {
 			ent->flags &= ~FL_DEFENSE_GUARD;
 			ent->client->ps.torsoTimer = 0;
 			ent->client->ps.legsTimer = 0;
@@ -276,7 +278,7 @@ AIFunc_WarriorZombieDefenseStart
 */
 char *AIFunc_WarriorZombieDefenseStart( cast_state_t *cs ) {
 	gentity_t *ent, *enemy;
-	vec3_t enemyDir, vec;
+	idVec3 enemyDir, vec;
 	float dist;
 	static int lastWarriorDefense;
 
@@ -299,16 +301,16 @@ char *AIFunc_WarriorZombieDefenseStart( cast_state_t *cs ) {
 	}
 
 	// if our enemy isn't looking right at us, abort
-	VectorSubtract( ent->client->ps.origin, enemy->client->ps.origin, vec );
-	dist = VectorNormalize( vec );
+	vec = ent->client->ps.origin - enemy->client->ps.origin;
+	dist = vec.Normalize();
 	if ( dist > 512 ) {
 		dist = 512;
 	}
 	if ( dist < 128 ) {
 		return NULL;
 	}
-	AngleVectors( enemy->client->ps.viewangles, enemyDir, NULL, NULL );
-	if ( DotProduct( vec, enemyDir ) < ( 0.98 - 0.2 * ( dist / 512 ) ) ) {
+	idAngles( enemy->client->ps.viewangles ).ToVectors( &enemyDir, NULL, NULL );
+	if ( ( vec * enemyDir ) < ( 0.98 - 0.2 * ( dist / 512 ) ) ) {
 		return NULL;
 	}
 
@@ -350,7 +352,7 @@ static qboolean AI_WarZombieAbilityAvailable( cast_state_t *cs, int weaponNum ) 
 	int delay = -1;
 	float dist = -1;
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 	switch ( weaponNum ) {
 	case WP_MONSTER_ATTACK1: {

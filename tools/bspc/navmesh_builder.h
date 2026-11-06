@@ -24,14 +24,22 @@ along with IceWolf.  If not, see <http://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <filesystem>
-#include <string>
+#include "../../idlib/precompiled.h"
+#include "../../idlib/Str.h"
 
-struct NavBuildOptions {
-	std::filesystem::path bspPath;
-	std::filesystem::path configPath;
-	std::filesystem::path outputPath;
+struct NavBuildOptions final {
+	idStr bspPath;
+	idStr configPath;
+	idStr outputPath;
 	int agentIndex = 0;
 };
 
-bool BuildNavMesh( const NavBuildOptions &options, std::string &error );
+class NavMeshBuilder final {
+public:
+	explicit NavMeshBuilder( const NavBuildOptions &options );
+
+	bool Build( idStr &error ) const;
+
+private:
+	NavBuildOptions options;
+};

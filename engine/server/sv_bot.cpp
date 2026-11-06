@@ -28,8 +28,11 @@ If you have questions concerning this license or the applicable additional terms
 
 // sv_bot.c
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "server.h"
-#include "../../gamedll/game/botlib.h"
+#include "../../gamedll/botlib/botlib.h"
 
 #define MAX_DEBUGPOLYS      128
 
@@ -176,7 +179,7 @@ void QDECL BotImport_Print( int type, char *fmt, ... ) {
 	va_list ap;
 
 	va_start( ap, fmt );
-	vsnprintf( str, sizeof( str ), fmt, ap );
+	idStr::vsnPrintf( str, sizeof( str ), fmt, ap );
 	va_end( ap );
 
 	switch ( type ) {
@@ -221,9 +224,9 @@ void BotImport_Trace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, vec3_t m
 	bsptrace->allsolid = trace.allsolid;
 	bsptrace->startsolid = trace.startsolid;
 	bsptrace->fraction = trace.fraction;
-	VectorCopy( trace.endpos, bsptrace->endpos );
+	bsptrace->endpos = trace.endpos;
 	bsptrace->plane.dist = trace.plane.dist;
-	VectorCopy( trace.plane.normal, bsptrace->plane.normal );
+	bsptrace->plane.normal = trace.plane.normal;
 	bsptrace->plane.signbits = trace.plane.signbits;
 	bsptrace->plane.type = trace.plane.type;
 	bsptrace->surface.value = trace.surfaceFlags;
@@ -247,9 +250,9 @@ void BotImport_EntityTrace( bsp_trace_t *bsptrace, vec3_t start, vec3_t mins, ve
 	bsptrace->allsolid = trace.allsolid;
 	bsptrace->startsolid = trace.startsolid;
 	bsptrace->fraction = trace.fraction;
-	VectorCopy( trace.endpos, bsptrace->endpos );
+	bsptrace->endpos = trace.endpos;
 	bsptrace->plane.dist = trace.plane.dist;
-	VectorCopy( trace.plane.normal, bsptrace->plane.normal );
+	bsptrace->plane.normal = trace.plane.normal;
 	bsptrace->plane.signbits = trace.plane.signbits;
 	bsptrace->plane.type = trace.plane.type;
 	bsptrace->surface.value = trace.surfaceFlags;
@@ -294,7 +297,7 @@ BotImport_BSPModelMinsMaxsOrigin
 */
 void BotImport_BSPModelMinsMaxsOrigin( int modelnum, vec3_t angles, vec3_t outmins, vec3_t outmaxs, vec3_t origin ) {
 	clipHandle_t h;
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 	float max;
 	int i;
 
@@ -304,51 +307,27 @@ void BotImport_BSPModelMinsMaxsOrigin( int modelnum, vec3_t angles, vec3_t outmi
 	if ( ( angles[0] || angles[1] || angles[2] ) ) {
 		// expand for rotation
 
-		max = RadiusFromBounds( mins, maxs );
+		max = idBounds( mins, maxs ).GetRadius();
 		for ( i = 0; i < 3; i++ ) {
 			mins[i] = -max;
 			maxs[i] = max;
 		}
 	}
 	if ( outmins ) {
-		VectorCopy( mins, outmins );
+		outmins[0] = mins[0];
+		outmins[1] = mins[1];
+		outmins[2] = mins[2];
 	}
 	if ( outmaxs ) {
-		VectorCopy( maxs, outmaxs );
+		outmaxs[0] = maxs[0];
+		outmaxs[1] = maxs[1];
+		outmaxs[2] = maxs[2];
 	}
 	if ( origin ) {
-		VectorClear( origin );
+		origin[0] = 0.0f;
+		origin[1] = 0.0f;
+		origin[2] = 0.0f;
 	}
-}
-
-/*
-==================
-BotImport_GetMemory
-==================
-*/
-void *BotImport_GetMemory( int size ) {
-	return malloc( size );
-}
-
-/*
-==================
-BotImport_FreeMemory
-==================
-*/
-void BotImport_FreeMemory( void *ptr ) {
-	free( ptr );
-}
-
-/*
-=================
-BotImport_HunkAlloc
-=================
-*/
-void *BotImport_HunkAlloc( int size ) {
-	if ( Hunk_CheckMark() ) {
-		Com_Error( ERR_DROP, "SV_Bot_HunkAlloc: Alloc with marks already set\n" );
-	}
-	return Hunk_Alloc( size, h_high );
 }
 
 /*
@@ -426,32 +405,38 @@ BotImport_DebugLineShow
 ==================
 */
 void BotImport_DebugLineShow( int line, vec3_t start, vec3_t end, int color ) {
-	vec3_t points[4], dir, cross, up = {0, 0, 1};
+	idVec3 startPoint( start[0], start[1], start[2] );
+	idVec3 endPoint( end[0], end[1], end[2] );
+	idVec3 points[4] = { startPoint, startPoint, endPoint, endPoint };
+	const idVec3 up( 0.0f, 0.0f, 1.0f );
+	idVec3 dir, cross;
+	vec3_t debugPoints[4];
 	float dot;
 
-	VectorCopy( start, points[0] );
-	VectorCopy( start, points[1] );
 	//points[1][2] -= 2;
-	VectorCopy( end, points[2] );
 	//points[2][2] -= 2;
-	VectorCopy( end, points[3] );
-
-
-	VectorSubtract( end, start, dir );
-	VectorNormalize( dir );
-	dot = DotProduct( dir, up );
+	dir = endPoint - startPoint;
+	dir.Normalize();
+	dot = dir * up;
 	if ( dot > 0.99 || dot < -0.99 ) {
-		VectorSet( cross, 1, 0, 0 );
-	} else { CrossProduct( dir, up, cross );}
+		cross.Set( 1.0f, 0.0f, 0.0f );
+	} else {
+		cross = dir.Cross( up );
+	}
 
-	VectorNormalize( cross );
+	cross.Normalize();
 
-	VectorMA( points[0], 2, cross, points[0] );
-	VectorMA( points[1], -2, cross, points[1] );
-	VectorMA( points[2], -2, cross, points[2] );
-	VectorMA( points[3], 2, cross, points[3] );
+	points[0] += 2.0f * cross;
+	points[1] -= 2.0f * cross;
+	points[2] -= 2.0f * cross;
+	points[3] += 2.0f * cross;
 
-	BotImport_DebugPolygonShow( line, color, 4, points );
+	for ( int i = 0; i < 4; i++ ) {
+		debugPoints[i][0] = points[i][0];
+		debugPoints[i][1] = points[i][1];
+		debugPoints[i][2] = points[i][2];
+	}
+	BotImport_DebugPolygonShow( line, color, 4, debugPoints );
 }
 
 /*
@@ -587,11 +572,6 @@ void SV_BotInitBotLib( void ) {
 	botlib_import.BSPEntityData = BotImport_BSPEntityData;
 	botlib_import.BSPModelMinsMaxsOrigin = BotImport_BSPModelMinsMaxsOrigin;
 	botlib_import.BotClientCommand = BotClientCommand;
-
-	//memory management
-	botlib_import.GetMemory = BotImport_GetMemory;
-	botlib_import.FreeMemory = BotImport_FreeMemory;
-	botlib_import.HunkAlloc = BotImport_HunkAlloc;
 
 	// file system acess
 	botlib_import.FS_FOpenFile = FS_FOpenFileByMode;

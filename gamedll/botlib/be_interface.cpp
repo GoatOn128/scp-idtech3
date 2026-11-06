@@ -35,12 +35,11 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
-#include "l_memory.h"
 #include "l_log.h"
 #include "l_libvar.h"
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "aasfile.h"
 #include "../game/botlib.h"
@@ -64,6 +63,7 @@ botlib_export_t be_botlib_export;
 botlib_import_t botimport;
 //
 int bot_developer;
+idRandom botlibRandom;
 //qtrue if the library is setup
 int botlibsetup = qfalse;
 
@@ -110,10 +110,7 @@ void QDECL Com_Printf( const char *msg, ... ) {
 //===========================================================================
 // Ridah, faster Win32 code
 #ifdef _WIN32
-#undef MAX_PATH     // this is an ugly hack, to temporarily ignore the current definition, since it's also defined in windows.h
 #include <windows.h>
-#undef MAX_PATH
-#define MAX_PATH    MAX_QPATH
 #endif
 
 int Sys_MilliSeconds( void ) {
@@ -252,19 +249,15 @@ int Export_BotLibShutdown( void ) {
 	// free all libvars
 	LibVarDeAllocAll();
 	// remove all global defines from the pre compiler
-	PC_RemoveAllGlobalDefines();
+	idParser::RemoveAllGlobalDefines();
 	// shut down library log file
 	Log_Shutdown();
 	//
 	botlibsetup = qfalse;
 	botlibglobals.botlibsetup = qfalse;
 	recursive = 0;
-	// print any files still open
-	PC_CheckOpenSourceHandles();
-	//
 #ifdef _DEBUG
 	Log_AlwaysOpen( "memory.log" );
-	PrintMemoryLabels();
 	Log_Shutdown();
 #endif
 	return BLERR_NOERROR;
@@ -360,32 +353,32 @@ int Export_BotLibUpdateEntity( int ent, bot_entitystate_t *state ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-void AAS_TestMovementPrediction( int entnum, vec3_t origin, vec3_t dir );
-void ElevatorBottomCenter( aas_reachability_t *reach, vec3_t bottomcenter );
-int BotGetReachabilityToGoal( vec3_t origin, int areanum, int entnum,
+void AAS_TestMovementPrediction( int entnum, idVec3 origin, idVec3 dir );
+void ElevatorBottomCenter( aas_reachability_t *reach, idVec3 bottomcenter );
+int BotGetReachabilityToGoal( idVec3 origin, int areanum, int entnum,
 							  int lastgoalareanum, int lastareanum,
 							  int *avoidreach, float *avoidreachtimes, int *avoidreachtries,
 							  bot_goal_t *goal, int travelflags, int movetravelflags );
 
-int AAS_PointLight( vec3_t origin, int *red, int *green, int *blue );
+int AAS_PointLight( idVec3 origin, int *red, int *green, int *blue );
 
-int AAS_TraceAreas( vec3_t start, vec3_t end, int *areas, vec3_t *points, int maxareas );
+int AAS_TraceAreas( idVec3 start, idVec3 end, int *areas, idVec3 *points, int maxareas );
 
 int AAS_Reachability_WeaponJump( int area1num, int area2num );
 
-int BotFuzzyPointReachabilityArea( vec3_t origin );
+int BotFuzzyPointReachabilityArea( idVec3 origin );
 
-float BotGapDistance( vec3_t origin, vec3_t hordir, int entnum );
+float BotGapDistance( idVec3 origin, idVec3 hordir, int entnum );
 
-int AAS_NearestHideArea( int srcnum, vec3_t origin, int areanum, int enemynum, vec3_t enemyorigin, int enemyareanum, int travelflags );
+int AAS_NearestHideArea( int srcnum, idVec3 origin, int areanum, int enemynum, idVec3 enemyorigin, int enemyareanum, int travelflags );
 
 int AAS_FindAttackSpotWithinRange( int srcnum, int rangenum, int enemynum, float rangedist, int travelflags, float *outpos );
 
-qboolean AAS_GetRouteFirstVisPos( vec3_t srcpos, vec3_t destpos, int travelflags, vec3_t retpos );
+qboolean AAS_GetRouteFirstVisPos( idVec3 srcpos, idVec3 destpos, int travelflags, idVec3 retpos );
 
-void AAS_SetAASBlockingEntity( vec3_t absmin, vec3_t absmax, qboolean blocking );
+void AAS_SetAASBlockingEntity( idVec3 absmin, idVec3 absmax, qboolean blocking );
 
-int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
+int BotExportTest( int parm0, char *parm1, idVec3 parm2, idVec3 parm3 ) {
 	#if 0 // The legacy AAS debug inspector does not apply to Detour navmeshes.
 
 //	return AAS_PointLight(parm2, NULL, NULL, NULL);
@@ -395,8 +388,8 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 	static int line[2];
 	int newarea, i, highlightarea, bot_testhidepos, hideposarea, bot_testroutevispos;
 //	int reachnum;
-	vec3_t eye, forward, right, end, origin;
-//	vec3_t bottomcenter;
+	idVec3 eye, forward, right, end, origin;
+//	idVec3 bottomcenter;
 //	aas_trace_t trace;
 //	aas_face_t *face;
 //	aas_entity_t *ent;
@@ -405,8 +398,8 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 //	bot_goal_t goal;
 
 //	clock_t start_time, end_time;
-	vec3_t mins = {-16, -16, -24};
-	vec3_t maxs = {16, 16, 32};
+	idVec3 mins( -16, -16, -24 );
+	idVec3 maxs( 16, 16, 32 );
 //	int areas[10], numareas;
 
 
@@ -424,11 +417,11 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 //	AAS_ClearShownDebugLines();
 	bot_testhidepos = LibVarGetValue( "bot_testhidepos" );
 	if ( bot_testhidepos ) {
-		VectorCopy( parm2, origin );
+		origin = parm2;
 		newarea = BotFuzzyPointReachabilityArea( origin );
 		if ( parm0 & 1 ) {
 			botlibglobals.goalareanum = newarea;
-			VectorCopy( origin, botlibglobals.goalorigin );
+			botlibglobals.goalorigin = origin;
 			botimport.Print( PRT_MESSAGE, "new enemy position %2.1f %2.1f %2.1f area %d\n",
 							 origin[0], origin[1], origin[2], newarea );
 		} //end if
@@ -460,11 +453,11 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 
 	bot_testroutevispos = LibVarGetValue( "bot_testroutevispos" );
 	if ( bot_testroutevispos ) {
-		VectorCopy( parm2, origin );
+		origin = parm2;
 		newarea = BotFuzzyPointReachabilityArea( origin );
 		if ( parm0 & 1 ) {
 			botlibglobals.goalareanum = newarea;
-			VectorCopy( origin, botlibglobals.goalorigin );
+			botlibglobals.goalorigin = origin;
 			botimport.Print( PRT_MESSAGE, "new enemy position %2.1f %2.1f %2.1f area %d\n",
 							 origin[0], origin[1], origin[2], newarea );
 		} //end if
@@ -491,7 +484,7 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 	} //end if
 	else
 	{
-		VectorCopy( parm2, origin );
+		origin = parm2;
 		origin[2] += 0.5;
 		//newarea = AAS_PointAreaNum(origin);
 		newarea = BotFuzzyPointReachabilityArea( origin );
@@ -557,7 +550,7 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 	  //*
 	if ( parm0 & 1 ) {
 		botlibglobals.goalareanum = newarea;
-		VectorCopy( parm2, botlibglobals.goalorigin );
+		botlibglobals.goalorigin = parm2;
 		botimport.Print( PRT_MESSAGE, "new goal %2.1f %2.1f %2.1f area %d\n",
 						 origin[0], origin[1], origin[2], newarea );
 	} //end if*/
@@ -623,7 +616,7 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 		aas_reachability_t reach;
 
 		goal.areanum = botlibglobals.goalareanum;
-		VectorCopy( botlibglobals.goalorigin, goal.origin );
+		goal.origin = botlibglobals.goalorigin;
 		reachnum = BotGetReachabilityToGoal( origin, newarea, -1,
 											 lastgoalareanum, lastareanum,
 											 avoidreach, avoidreachtimes, avoidreachtries,
@@ -631,7 +624,7 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 		AAS_ReachabilityFromNum( reachnum, &reach );
 		AAS_ShowReachability( &reach );
 	} //end else
-	VectorClear( forward );
+	forward.Zero();
 	//BotGapDistance(origin, forward, 0);
 	/*
 	if (parm0 & BUTTON_USE)
@@ -640,13 +633,13 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 		AAS_Reachability_WeaponJump(703, 716);
 	} //end if*/
 
-	AngleVectors( parm3, forward, right, NULL );
+	idAngles( parm3 ).ToVectors( &forward, &right, NULL );
 	//get the eye 16 units to the right of the origin
-	VectorMA( parm2, 8, right, eye );
+	eye = parm2 + right * 8;
 	//get the eye 24 units up
 	eye[2] += 24;
 	//get the end point for the line to be traced
-	VectorMA( eye, 800, forward, end );
+	end = eye + forward * 800;
 
 //	AAS_TestMovementPrediction(1, parm2, forward);
 /*	//trace the line to find the hit point
@@ -673,7 +666,7 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 	start_time = clock();
 	for (i = 0; i < 2000; i++)
 	{
-		AAS_Trace(eye, mins, maxs, end, 1, MASK_PLAYERSOLID);
+		AAS_Trace(eye, &mins, &maxs, end, 1, MASK_PLAYERSOLID);
 	} //end for
 	end_time = clock();
 	botimport.Print(PRT_MESSAGE, "id %lu clocks, %lu CLOCKS_PER_SEC\n", end_time - start_time, CLOCKS_PER_SEC);
@@ -681,8 +674,7 @@ int BotExportTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
 
 	/*
 	AAS_ClearShownDebugLines();
-	//bsptrace = AAS_Trace(eye, NULL, NULL, end, 1, MASK_PLAYERSOLID);
-	bsptrace = AAS_Trace(eye, mins, maxs, end, 1, MASK_PLAYERSOLID);
+	bsptrace = AAS_Trace( eye, &mins, &maxs, end, 1, MASK_PLAYERSOLID );
 	if (!line[0]) line[0] = botimport.DebugLineCreate();
 	botimport.DebugLineShow(line[0], eye, bsptrace.endpos, LINECOLOR_YELLOW);
 	if (bsptrace.fraction < 1.0)
@@ -951,11 +943,7 @@ botlib_export_t *GetBotLibAPI( int apiVersion, botlib_import_t *import ) {
 	be_botlib_export.BotLibShutdown = Export_BotLibShutdown;
 	be_botlib_export.BotLibVarSet = Export_BotLibVarSet;
 	be_botlib_export.BotLibVarGet = Export_BotLibVarGet;
-	be_botlib_export.PC_AddGlobalDefine = PC_AddGlobalDefine;
-	be_botlib_export.PC_LoadSourceHandle = PC_LoadSourceHandle;
-	be_botlib_export.PC_FreeSourceHandle = PC_FreeSourceHandle;
-	be_botlib_export.PC_ReadTokenHandle = PC_ReadTokenHandle;
-	be_botlib_export.PC_SourceFileAndLine = PC_SourceFileAndLine;
+	be_botlib_export.BotLibDefine = idParser::AddGlobalDefine;
 
 	be_botlib_export.BotLibStartFrame = Export_BotLibStartFrame;
 	be_botlib_export.BotLibLoadMap = Export_BotLibLoadMap;

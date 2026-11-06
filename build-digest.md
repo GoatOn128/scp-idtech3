@@ -62,8 +62,8 @@ warnings: 49 in 8 kinds
 - [4x] -unused-result
   - /home/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:1166:14: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
   - /home/runner/work/scp-idtech3/scp-idtech3/engine/qcommon/unzip.cpp:1137:14: warning: ignoring return value of ‘size_t fread(void*, size_t, size_t, FILE*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
-  - /home/runner/work/scp-idtech3/scp-idtech3/engine/sys/sdl/sdl_main.cpp:205:22: warning: ignoring return value of ‘int chdir(const char*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
-  - /home/runner/work/scp-idtech3/scp-idtech3/engine/sys/sdl/sdl_main.cpp:379:15: warning: ignoring return value of ‘char* getcwd(char*, size_t)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  - /home/runner/work/scp-idtech3/scp-idtech3/engine/sys/sys_main.cpp:205:22: warning: ignoring return value of ‘int chdir(const char*)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
+  - /home/runner/work/scp-idtech3/scp-idtech3/engine/sys/sys_main.cpp:379:15: warning: ignoring return value of ‘char* getcwd(char*, size_t)’ declared with attribute ‘warn_unused_result’ [-Wunused-result]
 - [2x] format ‘%d’ expects argument of type ‘int’, but argument 3 has type ‘long int’ [-Wformat=]
   - /home/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2441:34: warning: format ‘%d’ expects argument of type ‘int’, but argument 3 has type ‘long int’ [-Wformat=]
   - /home/runner/work/scp-idtech3/scp-idtech3/gamedll/botlib/l_precomp.cpp:2547:34: warning: format ‘%d’ expects argument of type ‘int’, but argument 3 has type ‘long int’ [-Wformat=]

@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "ui_local.h"
 
 // Native module bindings supplied through the typed UI import table.
@@ -155,11 +157,11 @@ void trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *v
 	uiImports->RE_AddPolyToScene( hShader, numVerts, verts );
 }
 
-void trap_R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b, int overdraw ) {
+void trap_R_AddLightToScene( const idVec3 &org, float intensity, float r, float g, float b, int overdraw ) {
 	uiImports->RE_AddLightToScene( org, intensity, r, g, b, overdraw );
 }
 
-void trap_R_AddCoronaToScene( const vec3_t org, float r, float g, float b, float scale, int id, int flags ) {
+void trap_R_AddCoronaToScene( const idVec3 &org, float r, float g, float b, float scale, int id, int flags ) {
 	uiImports->RE_AddCoronaToScene( org, r, g, b, scale, id, flags );
 }
 
@@ -175,7 +177,7 @@ void trap_R_DrawStretchPic( float x, float y, float w, float h, float s1, float 
 	uiImports->RE_DrawStretchPic( x, y, w, h, s1, t1, s2, t2, hShader );
 }
 
-void trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs ) {
+void trap_R_ModelBounds( clipHandle_t model, idVec3 &mins, idVec3 &maxs ) {
 	uiImports->RE_ModelBounds( model, mins, maxs );
 }
 
@@ -359,26 +361,6 @@ void trap_GetCDKey( char *buf, int buflen ) {
 
 void trap_SetCDKey( char *buf ) {
 	uiImports->CLUI_SetCDKey( buf );
-}
-
-int trap_PC_AddGlobalDefine( char *define ) {
-	return uiImports->PC_AddGlobalDefine( define );
-}
-
-int trap_PC_LoadSource( const char *filename ) {
-	return uiImports->PC_LoadSourceHandle( filename );
-}
-
-int trap_PC_FreeSource( int handle ) {
-	return uiImports->PC_FreeSourceHandle( handle );
-}
-
-int trap_PC_ReadToken( int handle, pc_token_t *pc_token ) {
-	return uiImports->PC_ReadTokenHandle( handle, pc_token );
-}
-
-int trap_PC_SourceFileAndLine( int handle, char *filename, int *line ) {
-	return uiImports->PC_SourceFileAndLine( handle, filename, line );
 }
 
 void trap_S_StopBackgroundTrack( void ) {

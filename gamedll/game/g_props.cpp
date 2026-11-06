@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 #define     GENERIC_DAMAGE  6
@@ -41,10 +43,10 @@ int chair_metalbreak;
 
 // JOSEPH 1-28-00
 void DropToFloorG( gentity_t *ent ) {
-	vec3_t dest;
+	idVec3 dest;
 	trace_t tr;
 
-	VectorSet( dest, ent->r.currentOrigin[0], ent->r.currentOrigin[1], ent->r.currentOrigin[2] - 4096 );
+	dest.Set( ent->r.currentOrigin[0], ent->r.currentOrigin[1], ent->r.currentOrigin[2] - 4096 );
 	trap_Trace( &tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, dest, ent->s.number, MASK_SOLID );
 
 	if ( tr.startsolid ) {
@@ -59,10 +61,10 @@ void DropToFloorG( gentity_t *ent ) {
 }
 
 void DropToFloor( gentity_t *ent ) {
-	vec3_t dest;
+	idVec3 dest;
 	trace_t tr;
 
-	VectorSet( dest, ent->r.currentOrigin[0], ent->r.currentOrigin[1], ent->r.currentOrigin[2] - 4096 );
+	dest.Set( ent->r.currentOrigin[0], ent->r.currentOrigin[1], ent->r.currentOrigin[2] - 4096 );
 	trap_Trace( &tr, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, dest, ent->s.number, MASK_SOLID );
 
 	if ( tr.startsolid ) {
@@ -82,10 +84,10 @@ void DropToFloor( gentity_t *ent ) {
 }
 
 void moveit( gentity_t *ent, float yaw, float dist ) {
-	vec3_t move;
-	vec3_t origin;
+	idVec3 move;
+	idVec3 origin;
 	trace_t tr;
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 
 	yaw = yaw * M_PI * 2 / 360;
 
@@ -93,7 +95,7 @@ void moveit( gentity_t *ent, float yaw, float dist ) {
 	move[1] = sin( yaw ) * dist;
 	move[2] = 0;
 
-	VectorAdd( ent->r.currentOrigin, move, origin );
+	origin = ent->r.currentOrigin + move;
 
 	mins[0] = ent->r.mins[0];
 	mins[1] = ent->r.mins[1];
@@ -114,9 +116,9 @@ void moveit( gentity_t *ent, float yaw, float dist ) {
 		trap_Trace( &tr, ent->r.currentOrigin, mins, maxs, origin, ent->s.number, MASK_SHOT );
 	}
 
-	VectorCopy( tr.endpos, ent->r.currentOrigin );
+	ent->r.currentOrigin = tr.endpos;
 
-	VectorCopy( ent->r.currentOrigin, ent->s.pos.trBase );
+	ent->s.pos.trBase = ent->r.currentOrigin;
 
 	trap_LinkEntity( ent );
 
@@ -125,15 +127,15 @@ void moveit( gentity_t *ent, float yaw, float dist ) {
 
 void touch_props_box_32( gentity_t *self, gentity_t *other, trace_t *trace ) {
 	float ratio;
-	vec3_t v;
+	idVec3 v;
 
 	if ( other->r.currentOrigin[2] > ( self->r.currentOrigin[2] + 10 + 15 ) ) {
 		return;
 	}
 
 	ratio = 2.5;
-	VectorSubtract( self->r.currentOrigin, other->r.currentOrigin, v );
-	moveit( self, vectoyaw( v ), ( 20 * ratio * FRAMETIME ) * .001 );
+	v = self->r.currentOrigin - other->r.currentOrigin;
+	moveit( self, v.ToYaw(), ( 20 * ratio * FRAMETIME ) * .001 );
 }
 
 /*QUAKED props_box_32 (1 0 0) (-16 -16 -16) (16 16 16)
@@ -145,8 +147,8 @@ void SP_props_box_32( gentity_t *self ) {
 	self->clipmask   = CONTENTS_SOLID;
 	self->r.contents = CONTENTS_SOLID;
 
-	VectorSet( self->r.mins, -16, -16, -16 );
-	VectorSet( self->r.maxs, 16, 16, 16 );
+	self->r.mins.Set( -16, -16, -16 );
+	self->r.maxs.Set( 16, 16, 16 );
 
 	self->touch = touch_props_box_32;
 
@@ -158,15 +160,15 @@ void SP_props_box_32( gentity_t *self ) {
 
 void touch_props_box_48( gentity_t *self, gentity_t *other, trace_t *trace ) {
 	float ratio;
-	vec3_t v;
+	idVec3 v;
 
 	if ( other->r.currentOrigin[2] > ( self->r.currentOrigin[2] + 10 + 23 ) ) {
 		return;
 	}
 
 	ratio = 2.0;
-	VectorSubtract( self->r.currentOrigin, other->r.currentOrigin, v );
-	moveit( self, vectoyaw( v ), ( 20 * ratio * FRAMETIME ) * .001 );
+	v = self->r.currentOrigin - other->r.currentOrigin;
+	moveit( self, v.ToYaw(), ( 20 * ratio * FRAMETIME ) * .001 );
 }
 
 /*QUAKED props_box_48 (1 0 0) (-24 -24 -24) (24 24 24)
@@ -178,8 +180,8 @@ void SP_props_box_48( gentity_t *self ) {
 	self->clipmask   = CONTENTS_SOLID;
 	self->r.contents = CONTENTS_SOLID;
 
-	VectorSet( self->r.mins, -24, -24, -24 );
-	VectorSet( self->r.maxs, 24, 24, 24 );
+	self->r.mins.Set( -24, -24, -24 );
+	self->r.maxs.Set( 24, 24, 24 );
 
 	self->touch = touch_props_box_48;
 
@@ -191,15 +193,15 @@ void SP_props_box_48( gentity_t *self ) {
 
 void touch_props_box_64( gentity_t *self, gentity_t *other, trace_t *trace ) {
 	float ratio;
-	vec3_t v;
+	idVec3 v;
 
 	if ( other->r.currentOrigin[2] > ( self->r.currentOrigin[2] + 10 + 31 ) ) {
 		return;
 	}
 
 	ratio = 1.5;
-	VectorSubtract( self->r.currentOrigin, other->r.currentOrigin, v );
-	moveit( self, vectoyaw( v ), ( 20 * ratio * FRAMETIME ) * .001 );
+	v = self->r.currentOrigin - other->r.currentOrigin;
+	moveit( self, v.ToYaw(), ( 20 * ratio * FRAMETIME ) * .001 );
 }
 
 /*QUAKED props_box_64 (1 0 0) (-32 -32 -32) (32 32 32)
@@ -211,8 +213,8 @@ void SP_props_box_64( gentity_t *self ) {
 	self->clipmask   = CONTENTS_SOLID;
 	self->r.contents = CONTENTS_SOLID;
 
-	VectorSet( self->r.mins, -32, -32, -32 );
-	VectorSet( self->r.maxs, 32, 32, 32 );
+	self->r.mins.Set( -32, -32, -32 );
+	self->r.maxs.Set( 32, 32, 32 );
 
 	self->touch = touch_props_box_64;
 
@@ -235,7 +237,7 @@ void Psmoke_think( gentity_t *ent ) {
 	}
 
 	tent = G_TempEntity( ent->s.origin, EV_SMOKE );
-	VectorCopy( ent->s.origin, tent->s.origin );
+	tent->s.origin = ent->s.origin;
 	tent->s.time = 3000;
 	tent->s.time2 = 100;
 	tent->s.density = 0;
@@ -250,7 +252,7 @@ void prop_smoke( gentity_t *ent ) {
 	gentity_t *Psmoke;
 
 	Psmoke = G_Spawn();
-	VectorCopy( ent->r.currentOrigin, Psmoke->s.origin );
+	Psmoke->s.origin = ent->r.currentOrigin;
 	Psmoke->think = Psmoke_think;
 	Psmoke->nextthink = level.time + FRAMETIME;
 }
@@ -275,8 +277,8 @@ void PGUNsparks_use( gentity_t *ent, gentity_t *self, gentity_t *activator ) {
 	gentity_t *tent;
 
 	tent = G_TempEntity( ent->r.currentOrigin, EV_GUNSPARKS );
-	VectorCopy( ent->r.currentOrigin, tent->s.origin );
-	VectorCopy( ent->r.currentAngles, tent->s.angles );
+	tent->s.origin = ent->r.currentOrigin;
+	tent->s.angles = ent->r.currentAngles;
 	tent->s.density = ent->health;
 	tent->s.angles2[2] = ent->speed;
 
@@ -294,8 +296,8 @@ void Psparks_think( gentity_t *ent ) {
 	} else {
 		tent = G_TempEntity( ent->r.currentOrigin, EV_SPARKS );
 	}
-	VectorCopy( ent->r.currentOrigin, tent->s.origin );
-	VectorCopy( ent->r.currentAngles, tent->s.angles );
+	tent->s.origin = ent->r.currentOrigin;
+	tent->s.angles = ent->r.currentAngles;
 	tent->s.density = ent->health;
 	tent->s.frame = ent->wait;
 	tent->s.angles2[0] = ent->start_size;
@@ -308,25 +310,25 @@ void Psparks_think( gentity_t *ent ) {
 void sparks_angles_think( gentity_t *ent ) {
 
 	gentity_t *target = NULL;
-	vec3_t vec;
+	idVec3 vec;
 
 	if ( ent->target ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->target );
 	}
 
 	if ( !target ) {
-		VectorSet( ent->r.currentAngles, 0, 0, 1 );
+		ent->r.currentAngles.Set( 0, 0, 1 );
 	} else
 	{
-		VectorSubtract( ent->s.origin, target->s.origin, vec );
-		VectorNormalize( vec );
-		VectorCopy( vec, ent->r.currentAngles );
+		vec = ent->s.origin - target->s.origin;
+		vec.Normalize();
+		ent->r.currentAngles = vec;
 	}
 
 	trap_LinkEntity( ent );
 
 	ent->nextthink = level.time + FRAMETIME;
-	if ( !Q_stricmp( ent->classname, "props_sparks" ) ) {
+	if ( !idStr::Icmp( ent->classname, "props_sparks" ) ) {
 		ent->think = Psparks_think;
 	} else {
 		ent->use = PGUNsparks_use;
@@ -408,15 +410,15 @@ health = how many pieces 16 is default
 void smokedust_use( gentity_t *ent, gentity_t *self, gentity_t *activator ) {
 	int i;
 	gentity_t   *tent;
-	vec3_t forward;
+	idVec3 forward;
 
-	AngleVectors( ent->r.currentAngles, forward, NULL, NULL );
+	idAngles( ent->r.currentAngles ).ToVectors( &forward, NULL, NULL );
 
 	for ( i = 0; i < ent->health; i++ )
 	{
 		tent = G_TempEntity( ent->r.currentOrigin, EV_SMOKE );
-		VectorCopy( ent->r.currentOrigin, tent->s.origin );
-		VectorCopy( forward, tent->s.origin2 );
+		tent->s.origin = ent->r.currentOrigin;
+		tent->s.origin2 = forward;
 		tent->s.time = 1000;
 		tent->s.time2 = 750;
 		tent->s.density = 3;
@@ -444,23 +446,23 @@ or you could set its angles in the editor
 
 void dust_use( gentity_t *ent, gentity_t *self, gentity_t *activator ) {
 	gentity_t   *tent;
-	vec3_t forward;
+	idVec3 forward;
 
 	if ( ent->target ) {
 		tent = G_TempEntity( ent->r.currentOrigin, EV_DUST );
-		VectorCopy( ent->r.currentOrigin, tent->s.origin );
-		VectorCopy( ent->r.currentAngles, tent->s.angles );
+		tent->s.origin = ent->r.currentOrigin;
+		tent->s.angles = ent->r.currentAngles;
 		if ( ent->spawnflags & 1 ) {
 			tent->s.density = 1;
 		}
 	} else
 	{
 
-		AngleVectors( ent->r.currentAngles, forward, NULL, NULL );
+		idAngles( ent->r.currentAngles ).ToVectors( &forward, NULL, NULL );
 
 		tent = G_TempEntity( ent->r.currentOrigin, EV_DUST );
-		VectorCopy( ent->r.currentOrigin, tent->s.origin );
-		VectorCopy( forward, tent->s.angles );
+		tent->s.origin = ent->r.currentOrigin;
+		tent->s.angles = forward;
 		if ( ent->spawnflags & 1 ) {
 			tent->s.density = 1;
 		}
@@ -469,7 +471,7 @@ void dust_use( gentity_t *ent, gentity_t *self, gentity_t *activator ) {
 
 void dust_angles_think( gentity_t *ent ) {
 	gentity_t *target;
-	vec3_t vec;
+	idVec3 vec;
 
 	target = G_Find( NULL, FOFS( targetname ), ent->target );
 
@@ -477,8 +479,8 @@ void dust_angles_think( gentity_t *ent ) {
 		return;
 	}
 
-	VectorSubtract( ent->s.origin, target->s.origin, vec );
-	VectorCopy( vec, ent->r.currentAngles );
+	vec = ent->s.origin - target->s.origin;
+	ent->r.currentAngles = vec;
 	trap_LinkEntity( ent );
 
 }
@@ -522,8 +524,8 @@ void propExplosionLarge( gentity_t *ent ) {
 	bolt->splashMethodOfDeath = MOD_GRENADE_SPLASH;
 	bolt->clipmask = MASK_SHOT;
 
-	VectorCopy( ent->r.currentOrigin, bolt->s.pos.trBase );
-	VectorCopy( ent->r.currentOrigin, bolt->r.currentOrigin );
+	bolt->s.pos.trBase = ent->r.currentOrigin;
+	bolt->r.currentOrigin = ent->r.currentOrigin;
 }
 
 void propExplosion( gentity_t *ent ) {
@@ -548,31 +550,31 @@ void propExplosion( gentity_t *ent ) {
 	bolt->splashMethodOfDeath = MOD_GRENADE_SPLASH;
 	bolt->clipmask = MASK_SHOT;
 
-	VectorCopy( ent->r.currentOrigin, bolt->s.pos.trBase );
-	VectorCopy( ent->r.currentOrigin, bolt->r.currentOrigin );
+	bolt->s.pos.trBase = ent->r.currentOrigin;
+	bolt->r.currentOrigin = ent->r.currentOrigin;
 }
 
 void InitProp( gentity_t *ent ) {
 	float light;
-	vec3_t color;
+	idVec3 color;
 	qboolean lightSet, colorSet;
 	char        *sound;
 
-	if ( !Q_stricmp( ent->classname, "props_bench" ) ) {
+	if ( !idStr::Icmp( ent->classname, "props_bench" ) ) {
 		ent->s.modelindex2 = G_ModelIndex( "models/furniture/bench/bench_sm.md3" );
-	} else if ( !Q_stricmp( ent->classname, "props_radio" ) )  {
+	} else if ( !idStr::Icmp( ent->classname, "props_radio" ) )  {
 		ent->s.modelindex2 = G_ModelIndex( "models/mapobjects/electronics/radio1.md3" );
-	} else if ( !Q_stricmp( ent->classname, "props_locker_tall" ) )  {
+	} else if ( !idStr::Icmp( ent->classname, "props_locker_tall" ) )  {
 		ent->s.modelindex2 = G_ModelIndex( "models/furniture/storage/lockertall.md3" );
-	} else if ( !Q_stricmp( ent->classname, "props_flippy_table" ) )  {
+	} else if ( !idStr::Icmp( ent->classname, "props_flippy_table" ) )  {
 		ent->s.modelindex2 = G_ModelIndex( "models/furniture/table/woodflip.md3" );
-	} else if ( !Q_stricmp( ent->classname, "props_crate_32x64" ) )  {
+	} else if ( !idStr::Icmp( ent->classname, "props_crate_32x64" ) )  {
 		ent->s.modelindex2 = G_ModelIndex( "models/furniture/crate/crate32x64.md3" );
-	} else if ( !Q_stricmp( ent->classname, "props_58x112tablew" ) )  {
+	} else if ( !idStr::Icmp( ent->classname, "props_58x112tablew" ) )  {
 		ent->s.modelindex2 = G_ModelIndex( "models/furniture/table/56x112tablew.md3" );
-	} else if ( !Q_stricmp( ent->classname, "props_castlebed" ) )  {
+	} else if ( !idStr::Icmp( ent->classname, "props_castlebed" ) )  {
 		ent->s.modelindex2 = G_ModelIndex( "models/furniture/bed/castlebed.md3" );
-	} else if ( !Q_stricmp( ent->classname, "props_radioSEVEN" ) )  {
+	} else if ( !idStr::Icmp( ent->classname, "props_radioSEVEN" ) )  {
 		ent->s.modelindex2 = G_ModelIndex( "models/mapobjects/electronics/radios.md3" );
 	}
 
@@ -884,7 +886,7 @@ void Props_Chair_Die( gentity_t *ent, gentity_t *inflictor, gentity_t *attacker,
 
 void Just_Got_Thrown( gentity_t *self ) {
 	float len;
-	vec3_t vec;
+	idVec3 vec;
 	qboolean prop_hits = qfalse;
 
 	len = 0;
@@ -899,7 +901,7 @@ void Just_Got_Thrown( gentity_t *self ) {
 
 			if ( player && player != self->enemy ) {
 				prop_hits = qtrue;
-				G_Damage( self->enemy, self, player, NULL, NULL, 5, 0, MOD_CRUSH );
+				G_Damage( self->enemy, self, player, vec3_origin, vec3_origin, 5, 0, MOD_CRUSH );
 
 				self->die = Props_Chair_Die;
 
@@ -914,17 +916,17 @@ void Just_Got_Thrown( gentity_t *self ) {
 //		AICast_AudibleEvent( self->s.number, self->r.currentOrigin, 384 );
 
 		G_AddEvent( self, EV_GENERAL_SOUND, snd_chairhitground );
-		VectorSubtract( self->r.currentOrigin, self->s.origin2, vec );
-		len = VectorLength( vec );
+		vec = self->r.currentOrigin - self->s.origin2;
+		len = vec.Length();
 
 		{
 			trace_t trace;
-			vec3_t end;
+			idVec3 end;
 			gentity_t   *traceEnt;
 			gentity_t   *player;
 			qboolean reGrab = qtrue;
 
-			VectorCopy( self->r.currentOrigin, end );
+			end = self->r.currentOrigin;
 			end[2] += 1;
 
 			trap_Trace( &trace, self->r.currentOrigin, self->r.mins, self->r.maxs, end, self->s.number, MASK_SHOT );
@@ -991,7 +993,7 @@ void Just_Got_Thrown( gentity_t *self ) {
 }
 
 void Props_TurnLightsOff( gentity_t *self ) {
-	if ( !Q_stricmp( self->classname, "props_desklamp" ) ) {
+	if ( !idStr::Icmp( self->classname, "props_desklamp" ) ) {
 		if ( self->target ) {
 			G_UseTargets( self, NULL );
 			self->target = NULL;
@@ -1000,11 +1002,11 @@ void Props_TurnLightsOff( gentity_t *self ) {
 }
 
 void Props_Activated( gentity_t *self ) {
-	vec3_t angles;
-	vec3_t dest;
-	vec3_t forward, right;
-	vec3_t velocity;
-	vec3_t prop_ang;
+	idVec3 angles;
+	idVec3 dest;
+	idVec3 forward, right;
+	idVec3 velocity;
+	idVec3 prop_ang;
 
 	gentity_t *prop;
 
@@ -1036,10 +1038,10 @@ void Props_Activated( gentity_t *self ) {
 
 		G_AddEvent( owner, EV_GENERAL_SOUND, snd_chairthrow );
 
-		AngleVectors( owner->client->ps.viewangles, velocity, NULL, NULL );
-		VectorScale( velocity, 250, velocity );
-		velocity[2] += 100 + crandom() * 25;
-		VectorCopy( velocity, self->s.pos.trDelta );
+		idAngles( owner->client->ps.viewangles ).ToVectors( &velocity, NULL, NULL );
+		velocity = velocity * 250;
+		velocity[2] += 100 + gameRandom.CRandomFloat() * 25;
+		self->s.pos.trDelta = velocity;
 
 		self->think = NULL;
 		self->nextthink = 0;
@@ -1048,7 +1050,7 @@ void Props_Activated( gentity_t *self ) {
 		prop->s.modelindex = self->s.modelindex;
 		G_SetOrigin( prop, self->r.currentOrigin );
 
-		VectorCopy( owner->client->ps.viewangles, prop_ang );
+		prop_ang = owner->client->ps.viewangles;
 		prop_ang[0] = 0;
 
 		G_SetAngle( prop, prop_ang );
@@ -1057,15 +1059,15 @@ void Props_Activated( gentity_t *self ) {
 		prop->r.contents = CONTENTS_SOLID;
 		prop->isProp = qtrue;
 
-		VectorSet( prop->r.mins, -12, -12, 0 );
-		VectorSet( prop->r.maxs, 12, 12, 48 );
+		prop->r.mins.Set( -12, -12, 0 );
+		prop->r.maxs.Set( 12, 12, 48 );
 
 		prop->physicsObject = qtrue;
 		prop->physicsBounce = 0.2;
 
-		VectorCopy( owner->client->ps.origin, prop->s.pos.trBase );
+		prop->s.pos.trBase = owner->client->ps.origin;
 
-		VectorCopy( self->s.pos.trDelta, prop->s.pos.trDelta );
+		prop->s.pos.trDelta = self->s.pos.trDelta;
 
 		prop->s.pos.trType = TR_GRAVITY;
 		prop->s.pos.trTime = level.time;
@@ -1089,7 +1091,7 @@ void Props_Activated( gentity_t *self ) {
 
 		prop->s.groundEntityNum = -1;
 
-		VectorCopy( self->r.currentOrigin, prop->s.origin2 );
+		prop->s.origin2 = self->r.currentOrigin;
 
 		prop->die = Props_Chair_Die;
 
@@ -1103,14 +1105,14 @@ void Props_Activated( gentity_t *self ) {
 		return;
 	} else
 	{
-		if (    !Q_stricmp( self->classname, "props_chair_hiback" ) ||
-				!Q_stricmp( self->classname, "props_chair_chat" ) ||
-				!Q_stricmp( self->classname, "props_chair_chatarm" ) ||
-				!Q_stricmp( self->classname, "props_chair_side" )
+		if (    !idStr::Icmp( self->classname, "props_chair_hiback" ) ||
+				!idStr::Icmp( self->classname, "props_chair_chat" ) ||
+				!idStr::Icmp( self->classname, "props_chair_chatarm" ) ||
+				!idStr::Icmp( self->classname, "props_chair_side" )
 				) {
 			self->s.frame = 23;
 			self->s.density = 1;
-		} else if ( !Q_stricmp( self->classname, "props_chair" ) ) {
+		} else if ( !idStr::Icmp( self->classname, "props_chair" ) ) {
 			self->s.frame = 28;
 			self->s.density = 1;
 		}
@@ -1119,16 +1121,16 @@ void Props_Activated( gentity_t *self ) {
 	trap_UnlinkEntity( self );
 
 	// move the entity in step with the activators movement
-	VectorCopy( owner->client->ps.viewangles, angles );
+	angles = owner->client->ps.viewangles;
 	angles[0] = 0;
 
 	self->s.apos.trBase[YAW] = owner->client->ps.viewangles[YAW];
 
-	AngleVectors( angles, forward, right, NULL );
-	VectorCopy( owner->r.currentOrigin, dest );
+	idAngles( angles ).ToVectors( &forward, &right, NULL );
+	dest = owner->r.currentOrigin;
 
-	VectorCopy( dest, self->r.currentOrigin );
-	VectorCopy( dest, self->s.pos.trBase );
+	self->r.currentOrigin = dest;
+	self->s.pos.trBase = dest;
 
 	self->s.eType = ET_PROP;
 
@@ -1153,26 +1155,26 @@ void Props_Chair_Think( gentity_t *self ) {
 	BG_EvaluateTrajectory( &self->s.pos, level.time, self->s.pos.trBase );
 
 	if ( level.time > self->s.pos.trDuration ) {
-		VectorClear( self->s.pos.trDelta );
+		self->s.pos.trDelta.Zero();
 		self->s.pos.trDuration = 0;
 		self->s.pos.trType = TR_STATIONARY;
 	} else
 	{
-		vec3_t mins, maxs;
+		idVec3 mins, maxs;
 
-		VectorCopy( self->r.mins, mins );
-		VectorCopy( self->r.maxs, maxs );
+		mins = self->r.mins;
+		maxs = self->r.maxs;
 
 		mins[2] += 1;
 
 		trap_Trace( &tr, self->r.currentOrigin, mins, maxs, self->s.pos.trBase, self->s.number, MASK_SHOT );
 
 		if ( tr.fraction == 1 ) {
-			VectorCopy( self->s.pos.trBase, self->r.currentOrigin );
+			self->r.currentOrigin = self->s.pos.trBase;
 		} else
 		{
-			VectorCopy( self->r.currentOrigin, self->s.pos.trBase );
-			VectorClear( self->s.pos.trDelta );
+			self->s.pos.trBase = self->r.currentOrigin;
+			self->s.pos.trDelta.Zero();
 			self->s.pos.trDuration = 0;
 			self->s.pos.trType = TR_STATIONARY;
 		}
@@ -1207,32 +1209,32 @@ void Props_Chair_Think( gentity_t *self ) {
 	trap_LinkEntity( self );
 }
 
-qboolean Prop_Touch( gentity_t *self, gentity_t *other, vec3_t v ) {
+qboolean Prop_Touch( gentity_t *self, gentity_t *other, idVec3 &v ) {
 
-	vec3_t forward;
-	vec3_t dest;
-	vec3_t angle;
-	vec3_t start, end;
-	vec3_t mins, maxs;
+	idVec3 forward;
+	idVec3 dest;
+	idAngles angle;
+	idVec3 start, end;
+	idVec3 mins, maxs;
 	trace_t tr;
 
 	if ( !other->client ) {
 		return qfalse;
 	}
 
-	vectoangles( v, angle );
+	angle = v.ToAngles();
 	angle[0] = 0;
-	AngleVectors( angle, forward, NULL, NULL );
-	VectorClear( dest );
-	VectorMA( dest, 128, forward, dest );
-	VectorMA( self->r.currentOrigin, 32, forward, end );
+	angle.ToVectors( &forward, NULL, NULL );
+	dest.Zero();
+	dest = dest + forward * 128;
+	end = self->r.currentOrigin + forward * 32;
 
-	VectorCopy( self->r.currentOrigin, start );
+	start = self->r.currentOrigin;
 	end[2] += 8;
 	start[2] += 8;
 
-	VectorCopy( self->r.mins, mins );
-	VectorCopy( self->r.maxs, maxs );
+	mins = self->r.mins;
+	maxs = self->r.maxs;
 
 	mins[2] += 1;
 
@@ -1242,8 +1244,8 @@ qboolean Prop_Touch( gentity_t *self, gentity_t *other, vec3_t v ) {
 		return qfalse;
 	}
 
-	VectorCopy( dest, self->s.pos.trDelta );
-	VectorCopy( self->r.currentOrigin, self->s.pos.trBase );
+	self->s.pos.trDelta = dest;
+	self->s.pos.trBase = self->r.currentOrigin;
 
 	self->s.pos.trDuration = level.time + 100;
 	self->s.pos.trTime = level.time;
@@ -1255,17 +1257,17 @@ qboolean Prop_Touch( gentity_t *self, gentity_t *other, vec3_t v ) {
 }
 
 void Prop_Check_Ground( gentity_t *self ) {
-	vec3_t mins, maxs;
-	vec3_t start, end;
+	idVec3 mins, maxs;
+	idVec3 start, end;
 	trace_t tr;
 
-	VectorCopy( self->r.currentOrigin, start );
-	VectorCopy( self->r.currentOrigin, end );
+	start = self->r.currentOrigin;
+	end = self->r.currentOrigin;
 
 	end[2] -= 4;
 
-	VectorCopy( self->r.mins, mins );
-	VectorCopy( self->r.maxs, maxs );
+	mins = self->r.mins;
+	maxs = self->r.maxs;
 
 //	trap_Trace( &tr, start, mins, maxs, end, self->s.number, MASK_SHOT );
 	trap_Trace( &tr, start, mins, maxs, end, self->s.number, MASK_MISSILESHOT );
@@ -1279,7 +1281,7 @@ void Prop_Check_Ground( gentity_t *self ) {
 }
 
 void Props_Chair_Touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
-	vec3_t v;
+	idVec3 v;
 	qboolean has_moved;
 
 	if ( !other->client ) {
@@ -1294,7 +1296,7 @@ void Props_Chair_Touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 		return;
 	}
 
-	VectorSubtract( self->r.currentOrigin, other->r.currentOrigin, v );
+	v = self->r.currentOrigin - other->r.currentOrigin;
 
 	has_moved = Prop_Touch( self, other, v );
 
@@ -1317,7 +1319,7 @@ void Props_Chair_Touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 		self->random = level.time + 1000 + ( rand() % 200 );
 	}
 
-	if ( !Q_stricmp( self->classname, "props_desklamp" ) ) {
+	if ( !idStr::Icmp( self->classname, "props_desklamp" ) ) {
 		// player may have picked it up before
 		if ( self->target ) {
 			G_UseTargets( self, NULL );
@@ -1331,7 +1333,7 @@ void Props_Chair_Animate( gentity_t *ent ) {
 
 	ent->touch = NULL;
 
-	if ( !Q_stricmp( ent->classname, "props_chair" ) ) {
+	if ( !idStr::Icmp( ent->classname, "props_chair" ) ) {
 		if ( ent->s.frame >= 27 ) {
 			ent->s.frame = 27;
 			G_UseTargets( ent, NULL );
@@ -1345,10 +1347,10 @@ void Props_Chair_Animate( gentity_t *ent ) {
 			ent->nextthink = level.time + ( FRAMETIME / 2 );
 		}
 	} else if (
-		( !Q_stricmp( ent->classname, "props_chair_side" ) ) ||
-		( !Q_stricmp( ent->classname, "props_chair_chat" ) ) ||
-		( !Q_stricmp( ent->classname, "props_chair_chatarm" ) ) ||
-		( !Q_stricmp( ent->classname, "props_chair_hiback" ) )
+		( !idStr::Icmp( ent->classname, "props_chair_side" ) ) ||
+		( !idStr::Icmp( ent->classname, "props_chair_chat" ) ) ||
+		( !idStr::Icmp( ent->classname, "props_chair_chatarm" ) ) ||
+		( !idStr::Icmp( ent->classname, "props_chair_hiback" ) )
 		) {
 		if ( ent->s.frame >= 20 ) {
 			ent->s.frame = 20;
@@ -1362,7 +1364,7 @@ void Props_Chair_Animate( gentity_t *ent ) {
 		{
 			ent->nextthink = level.time + ( FRAMETIME / 2 );
 		}
-	} else if ( !Q_stricmp( ent->classname, "props_desklamp" ) )       {
+	} else if ( !idStr::Icmp( ent->classname, "props_desklamp" ) )       {
 		if ( ent->s.frame >= 11 ) {
 			// player may have picked it up before
 			if ( ent->target ) {
@@ -1385,32 +1387,32 @@ void Props_Chair_Animate( gentity_t *ent ) {
 
 	if ( ent->enemy ) {
 		float ratio;
-		vec3_t v;
+		idVec3 v;
 
 		ratio = 2.5;
-		VectorSubtract( ent->r.currentOrigin, ent->enemy->r.currentOrigin, v );
-		moveit( ent, vectoyaw( v ), ( ent->delay * ratio * FRAMETIME ) * .001 );
+		v = ent->r.currentOrigin - ent->enemy->r.currentOrigin;
+		moveit( ent, v.ToYaw(), ( ent->delay * ratio * FRAMETIME ) * .001 );
 	}
 
 }
 
 void Spawn_Shard( gentity_t *ent, gentity_t *inflictor, int quantity, int type ) {
 	gentity_t *sfx;
-	vec3_t dir, start;
+	idVec3 dir, start;
 
-	VectorCopy( ent->r.currentOrigin, start );
+	start = ent->r.currentOrigin;
 
-	if ( !Q_stricmp( ent->classname, "props_radioSEVEN" ) ) {
-		start[0] += crandom() * 32;
-		start[1] += crandom() * 32;
-		VectorSubtract( inflictor->r.currentOrigin, ent->r.currentOrigin, dir );
-		VectorNormalize( dir );
+	if ( !idStr::Icmp( ent->classname, "props_radioSEVEN" ) ) {
+		start[0] += gameRandom.CRandomFloat() * 32;
+		start[1] += gameRandom.CRandomFloat() * 32;
+		dir = inflictor->r.currentOrigin - ent->r.currentOrigin;
+		dir.Normalize();
 	} else if ( inflictor )     {
-		VectorSubtract( inflictor->r.currentOrigin, ent->r.currentOrigin, dir );
-		VectorNormalize( dir );
-		VectorNegate( dir, dir );
+		dir = inflictor->r.currentOrigin - ent->r.currentOrigin;
+		dir.Normalize();
+		dir = -dir;
 	} else {
-		VectorSet( dir, 0,0,1 );
+		dir.Set( 0, 0, 1 );
 	}
 
 	sfx = G_Spawn();
@@ -1556,8 +1558,8 @@ void SP_Props_Chair( gentity_t *ent ) {
 
 	ent->isProp = qtrue;
 
-	VectorSet( ent->r.mins, -12, -12, 0 );
-	VectorSet( ent->r.maxs, 12, 12, 48 );
+	ent->r.mins.Set( -12, -12, 0 );
+	ent->r.maxs.Set( 12, 12, 48 );
 
 	G_SetOrigin( ent, ent->s.origin );
 	G_SetAngle( ent, ent->s.angles );
@@ -1618,8 +1620,8 @@ void SP_Props_GenericChair( gentity_t *ent ) {
 
 	ent->isProp     = qtrue;
 
-	VectorSet( ent->r.mins, -12, -12, 0 );
-	VectorSet( ent->r.maxs, 12, 12, 48 );
+	ent->r.mins.Set( -12, -12, 0 );
+	ent->r.maxs.Set( 12, 12, 48 );
 
 	G_SetOrigin( ent, ent->s.origin );
 	G_SetAngle( ent, ent->s.angles );
@@ -1723,7 +1725,7 @@ void Use_DamageInflictor( gentity_t *ent, gentity_t *other, gentity_t *activator
 			G_Printf( "Use_DamageInflictor damaging self.\n" );
 		} else
 		{
-			G_Damage( daent, ent, ent, NULL, NULL, 9999, 0, MOD_CRUSH );
+			G_Damage( daent, ent, ent, vec3_origin, vec3_origin, 9999, 0, MOD_CRUSH );
 		}
 	}
 
@@ -1820,8 +1822,8 @@ void SP_Props_Desklamp( gentity_t *ent ) {
 	ent->isProp = qtrue;
 	ent->nopickup = qtrue;
 
-	VectorSet( ent->r.mins, -6, -6, 0 );
-	VectorSet( ent->r.maxs, 6, 6, 14 );
+	ent->r.mins.Set( -6, -6, 0 );
+	ent->r.maxs.Set( 6, 6, 14 );
 
 	G_SetOrigin( ent, ent->s.origin );
 	G_SetAngle( ent, ent->s.angles );
@@ -1869,7 +1871,7 @@ void Props_Barrel_Touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 void Props_Barrel_Animate( gentity_t *ent ) {
 	float ratio;
-	vec3_t v;
+	idVec3 v;
 
 	if ( ent->s.frame == 14 ) {
 		if ( ent->spawnflags & 1 ) {
@@ -1895,20 +1897,20 @@ void Props_Barrel_Animate( gentity_t *ent ) {
 
 	if ( !( ent->spawnflags & 1 ) ) {
 		ratio = 2.5;
-		VectorSubtract( ent->r.currentOrigin, ent->enemy->r.currentOrigin, v );
-		moveit( ent, vectoyaw( v ), ( ent->delay * ratio * FRAMETIME ) * .001 );
+		v = ent->r.currentOrigin - ent->enemy->r.currentOrigin;
+		moveit( ent, v.ToYaw(), ( ent->delay * ratio * FRAMETIME ) * .001 );
 	}
 
 }
 
 void barrel_smoke( gentity_t *ent ) {
 	gentity_t   *tent;
-	vec3_t point;
+	idVec3 point;
 
-	VectorCopy( ent->r.currentOrigin, point );
+	point = ent->r.currentOrigin;
 
 	tent = G_TempEntity( point, EV_SMOKE );
-	VectorCopy( point, tent->s.origin );
+	tent->s.origin = point;
 	tent->s.time = 4000;
 	tent->s.time2 = 1000;
 	tent->s.density = 0;
@@ -1934,21 +1936,21 @@ void smoker_think( gentity_t *ent ) {
 void SP_OilSlick( gentity_t *ent ) {
 	gentity_t *tent;
 	gentity_t   *target = NULL;
-	vec3_t point;
+	idVec3 point;
 
 	if ( ent->target ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->target );
 	}
 
 	if ( target ) {
-		VectorCopy( target->s.origin, point );
+		point = target->s.origin;
 		point[2] = ent->r.currentOrigin[2]; // just in case
 	} else {
-		VectorCopy( ent->r.currentOrigin, point );
+		point = ent->r.currentOrigin;
 	}
 
 	tent = G_TempEntity( ent->r.currentOrigin, EV_OILSLICK );
-	VectorCopy( ent->r.currentOrigin, tent->s.origin );
+	tent->s.origin = ent->r.currentOrigin;
 	tent->s.angles2[0] = 16;
 	tent->s.angles2[1] = 48;
 	tent->s.angles2[2] = 10000;
@@ -1966,23 +1968,23 @@ void OilParticles_think( gentity_t *ent ) {
 		ent->nextthink = ( level.time + FRAMETIME / 2 );
 
 		tent = G_TempEntity( ent->r.currentOrigin, EV_OILPARTICLES );
-		VectorCopy( ent->r.currentOrigin, tent->s.origin );
+		tent->s.origin = ent->r.currentOrigin;
 		tent->s.time = ent->count2;
 		tent->s.density = ent->s.density;
-		VectorCopy( ent->rotate, tent->s.origin2 );
+		tent->s.origin2 = ent->rotate;
 	} else {
 		G_FreeEntity( ent );
 	}
 }
 
 void Delayed_Leak_Think( gentity_t *ent ) {
-	vec3_t point;
+	idVec3 point;
 	gentity_t *tent;
 
-	VectorCopy( ent->r.currentOrigin, point );
+	point = ent->r.currentOrigin;
 
 	tent = G_TempEntity( point, EV_OILSLICK );
-	VectorCopy( point, tent->s.origin );
+	tent->s.origin = point;
 
 	tent->s.angles2[0] = 0;
 	tent->s.angles2[1] = 0;
@@ -1990,20 +1992,20 @@ void Delayed_Leak_Think( gentity_t *ent ) {
 	tent->s.density = ent->count;
 }
 
-qboolean validOilSlickSpawnPoint( vec3_t point, gentity_t *ent ) {
+qboolean validOilSlickSpawnPoint( idVec3 &point, gentity_t *ent ) {
 	trace_t tr;
-	vec3_t end;
+	idVec3 end;
 	gentity_t *traceEnt;
 
-	VectorCopy( point, end );
+	end = point;
 	end[2] -= 9999;
 
-	trap_Trace( &tr, point, NULL, NULL, end, ent->s.number, MASK_SHOT );
+	trap_Trace( &tr, point, vec3_origin, vec3_origin, end, ent->s.number, MASK_SHOT );
 
 	traceEnt = &g_entities[ tr.entityNum ];
 
 	if ( traceEnt && traceEnt->classname ) {
-		if ( !Q_stricmp( traceEnt->classname, "worldspawn" ) ) {
+		if ( !idStr::Icmp( traceEnt->classname, "worldspawn" ) ) {
 			if ( tr.plane.normal[0] == 0 && tr.plane.normal[1] == 0 && tr.plane.normal[2] == 1 ) {
 				return qtrue;
 			}
@@ -2016,9 +2018,9 @@ qboolean validOilSlickSpawnPoint( vec3_t point, gentity_t *ent ) {
 
 void SP_OilParticles( gentity_t *ent ) {
 	gentity_t *OilLeak;
-	vec3_t point;
-	vec3_t vec;
-	vec3_t forward;
+	idVec3 point;
+	idVec3 vec;
+	idVec3 forward;
 
 // Note to self quick fix
 // need to move this to client
@@ -2026,20 +2028,20 @@ void SP_OilParticles( gentity_t *ent ) {
 
 	OilLeak = G_Spawn();
 
-	VectorCopy( ent->r.currentOrigin, point );
+	point = ent->r.currentOrigin;
 
 	point[2] = ent->pos3[2];
 
-	VectorSubtract( ent->pos3, point, vec );
-	vectoangles( vec, vec );
-	AngleVectors( vec, forward, NULL, NULL );
-	VectorMA( point, 12, forward, point );
+	vec = ent->pos3 - point;
+	idAngles oilAngles = vec.ToAngles();
+	oilAngles.ToVectors( &forward, NULL, NULL );
+	point = point + forward * 12;
 
 	G_SetOrigin( OilLeak, point );
 
 	G_SetAngle( OilLeak, ent->r.currentAngles );
 
-	VectorCopy( forward, OilLeak->rotate );
+	OilLeak->rotate = forward;
 
 	OilLeak->think = OilParticles_think;
 	OilLeak->nextthink = level.time + FRAMETIME;
@@ -2052,7 +2054,7 @@ void SP_OilParticles( gentity_t *ent ) {
 }
 
 
-void Props_Barrel_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point ) {
+void Props_Barrel_Pain( gentity_t *ent, gentity_t *attacker, int damage, idVec3 &point ) {
 
 	if ( ent->health <= 0 ) {
 		return;
@@ -2085,14 +2087,14 @@ void OilSlick_remove( gentity_t *ent ) {
 	remove->s.density = ent->s.number;
 	remove->think = OilSlick_remove_think;
 	remove->nextthink = level.time + 1000;
-	VectorCopy( ent->r.currentOrigin, remove->r.currentOrigin );
+	remove->r.currentOrigin = ent->r.currentOrigin;
 	trap_LinkEntity( remove );
 }
 
 void Props_Barrel_Die( gentity_t *ent, gentity_t *inflictor, gentity_t *attacker, int damage, int mod ) {
 	int quantity;
 	int type;
-	vec3_t dir;
+	idVec3 dir;
 	gentity_t *smoker;
 
 	if ( ent->spawnflags & 1 ) {
@@ -2116,7 +2118,7 @@ void Props_Barrel_Die( gentity_t *ent, gentity_t *inflictor, gentity_t *attacker
 
 	ent->takedamage = qfalse;
 
-	AngleVectors( ent->r.currentAngles, dir, NULL, NULL );
+	idAngles( ent->r.currentAngles ).ToVectors( &dir, NULL, NULL );
 	dir[2] = 1;
 
 	if ( !( ent->spawnflags & 2 ) ) {
@@ -2152,22 +2154,22 @@ void Props_Barrel_Die( gentity_t *ent, gentity_t *inflictor, gentity_t *attacker
 
 void Props_OilSlickSlippery( gentity_t *ent ) {
 	gentity_t *player;
-	vec3_t vec, kvel, dir;
+	idVec3 vec, kvel, dir;
 	float len;
 
 	player = AICast_FindEntityForName( "player" );
 
 	if ( player ) {
-		VectorSubtract( player->r.currentOrigin, ent->r.currentOrigin, vec );
-		len = VectorLength( vec );
+		vec = player->r.currentOrigin - ent->r.currentOrigin;
+		len = vec.Length();
 
 		if ( len < 64 && player->s.groundEntityNum != -1 ) {
-			len = VectorLength( player->client->ps.velocity );
+			len = player->client->ps.velocity.Length();
 
 			if ( len && !( player->client->ps.pm_time ) ) {
-				VectorSet( dir, fabs( crandom() ), fabs( crandom() ), 0 );
-				VectorScale( dir, 32, kvel );
-				VectorAdd( player->client->ps.velocity, kvel, player->client->ps.velocity );
+				dir.Set( fabs( gameRandom.CRandomFloat() ), fabs( gameRandom.CRandomFloat() ), 0 );
+				kvel = dir * 32;
+				player->client->ps.velocity = player->client->ps.velocity + kvel;
 
 				{
 					int t;
@@ -2224,8 +2226,8 @@ void SP_Props_Flamebarrel( gentity_t *ent ) {
 	ent->isProp = qtrue;
 	ent->nopickup = qtrue;
 
-	VectorSet( ent->r.mins, -13, -13, 0 );
-	VectorSet( ent->r.maxs, 13, 13, 36 );
+	ent->r.mins.Set( -13, -13, 0 );
+	ent->r.maxs.Set( 13, 13, 36 );
 
 	G_SetOrigin( ent, ent->s.origin );
 	G_SetAngle( ent, ent->s.angles );
@@ -2301,15 +2303,15 @@ shard =
 
 void touch_crate_64( gentity_t *self, gentity_t *other, trace_t *trace ) {
 	float ratio;
-	vec3_t v;
+	idVec3 v;
 
 	if ( other->r.currentOrigin[2] > ( self->r.currentOrigin[2] + 10 + 31 ) ) {
 		return;
 	}
 
 	ratio = 1.5;
-	VectorSubtract( self->r.currentOrigin, other->r.currentOrigin, v );
-	moveit( self, vectoyaw( v ), ( 20 * ratio * FRAMETIME ) * .001 );
+	v = self->r.currentOrigin - other->r.currentOrigin;
+	moveit( self, v.ToYaw(), ( 20 * ratio * FRAMETIME ) * .001 );
 }
 
 void crate_animate( gentity_t *ent ) {
@@ -2356,8 +2358,8 @@ void SP_crate_64( gentity_t *self ) {
 	self->clipmask   = CONTENTS_SOLID;
 	self->r.contents = CONTENTS_SOLID;
 
-	VectorSet( self->r.mins, -32, -32, 0 );
-	VectorSet( self->r.maxs, 32, 32, 64 );
+	self->r.mins.Set( -32, -32, 0 );
+	self->r.maxs.Set( 32, 32, 64 );
 
 	self->s.eType = ET_MOVER;
 
@@ -2398,8 +2400,8 @@ void SP_crate_32( gentity_t *self ) {
 	self->clipmask   = CONTENTS_SOLID;
 	self->r.contents = CONTENTS_SOLID;
 
-	VectorSet( self->r.mins, -16, -16, 0 );
-	VectorSet( self->r.maxs, 16, 16, 32 );
+	self->r.mins.Set( -16, -16, 0 );
+	self->r.maxs.Set( 16, 16, 32 );
 
 	self->s.eType = ET_MOVER;
 
@@ -2508,20 +2510,20 @@ void flippy_table_use( gentity_t *ent, gentity_t *other, gentity_t *activator ) 
 			slave->s.pos.trType = ent->s.pos.trType;
 			slave->s.pos.trTime = ent->s.pos.trTime;
 			slave->s.pos.trDuration = ent->s.pos.trDuration;
-			VectorCopy( ent->s.pos.trBase, slave->s.pos.trBase );
-			VectorCopy( ent->s.pos.trDelta, slave->s.pos.trDelta );
+			slave->s.pos.trBase = ent->s.pos.trBase;
+			slave->s.pos.trDelta = ent->s.pos.trDelta;
 
 			slave->s.apos.trType = ent->s.apos.trType;
 			slave->s.apos.trTime = ent->s.apos.trTime;
 			slave->s.apos.trDuration = ent->s.apos.trDuration;
-			VectorCopy( ent->s.apos.trBase, slave->s.apos.trBase );
-			VectorCopy( ent->s.apos.trDelta, slave->s.apos.trDelta );
+			slave->s.apos.trBase = ent->s.apos.trBase;
+			slave->s.apos.trDelta = ent->s.apos.trDelta;
 
 			slave->think = ent->think;
 			slave->nextthink = ent->nextthink;
 
-			VectorCopy( ent->pos1, slave->pos1 );
-			VectorCopy( ent->pos2, slave->pos2 );
+			slave->pos1 = ent->pos1;
+			slave->pos2 = ent->pos2;
 
 			slave->speed = ent->speed;
 
@@ -2563,38 +2565,38 @@ void props_flippy_table_die( gentity_t *ent, gentity_t *inflictor, gentity_t *at
 }
 
 void props_flippy_blocked( gentity_t *ent, gentity_t *other ) {
-	vec3_t velocity;
-	vec3_t angles;
-	vec3_t kvel;
+	idVec3 velocity;
+	idVec3 angles;
+	idVec3 kvel;
 
 	// just for now
 	float angle = ent->r.currentAngles[YAW];
 
 	if ( other->client ) {
 		// shoot the player off of it
-		VectorCopy( ent->s.apos.trBase, angles );
+		angles = ent->s.apos.trBase;
 		angles[YAW] += angle;
 		angles[PITCH] = 0;  // always forward
 
-		AngleVectors( angles, velocity, NULL, NULL );
-		VectorScale( velocity, 24, velocity );
-		velocity[2] += 100 + crandom() * 50;
+		idAngles( angles ).ToVectors( &velocity, NULL, NULL );
+		velocity = velocity * 24;
+		velocity[2] += 100 + gameRandom.CRandomFloat() * 50;
 
-		VectorScale( velocity, 32, kvel );
-		VectorAdd( other->client->ps.velocity, kvel, other->client->ps.velocity );
+		kvel = velocity * 32;
+		other->client->ps.velocity = other->client->ps.velocity + kvel;
 	} else if ( other->s.eType == ET_ITEM )     {
-		VectorCopy( ent->s.apos.trBase, angles );
+		angles = ent->s.apos.trBase;
 		angles[YAW] += angle;
 		angles[PITCH] = 0;  // always forward
 
-		AngleVectors( angles, velocity, NULL, NULL );
-		VectorScale( velocity, 150, velocity );
-		velocity[2] += 300 + crandom() * 50;
+		idAngles( angles ).ToVectors( &velocity, NULL, NULL );
+		velocity = velocity * 150;
+		velocity[2] += 300 + gameRandom.CRandomFloat() * 50;
 
-		VectorScale( velocity, 8, kvel );
+		kvel = velocity * 8;
 		other->s.pos.trType = TR_GRAVITY;
 		other->s.pos.trTime = level.time;
-		VectorCopy( kvel, other->s.pos.trDelta );
+		other->s.pos.trDelta = kvel;
 
 		other->s.eFlags |= EF_BOUNCE;
 	} else
@@ -2623,7 +2625,7 @@ void SP_Props_Flipping_Table( gentity_t *ent ) {
 		G_Printf( "you forgot to select the X or Y Axis\n" );
 	}
 
-	VectorClear( ent->rotate );
+	ent->rotate.Zero();
 
 	if      ( ent->spawnflags & 4 ) {
 		ent->rotate[2] = 1;
@@ -2635,9 +2637,9 @@ void SP_Props_Flipping_Table( gentity_t *ent ) {
 
 	InitMoverRotate( ent );
 
-	VectorCopy( ent->s.origin, ent->s.pos.trBase );
-	VectorCopy( ent->s.pos.trBase, ent->r.currentOrigin );
-	VectorCopy( ent->s.apos.trBase, ent->r.currentAngles );
+	ent->s.pos.trBase = ent->s.origin;
+	ent->r.currentOrigin = ent->s.pos.trBase;
+	ent->r.currentAngles = ent->s.apos.trBase;
 
 	ent->blocked = props_flippy_blocked;
 
@@ -2747,7 +2749,7 @@ void props_castlebed_touch( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 	if ( other->client->ps.pm_flags & PMF_JUMP_HELD
 		 && other->s.groundEntityNum == ent->s.number
 		 && !other->client->ps.pm_time ) {
-		G_Damage( ent, other, other, NULL, NULL, 1, 0, MOD_CRUSH );
+		G_Damage( ent, other, other, vec3_origin, vec3_origin, 1, 0, MOD_CRUSH );
 
 		// TDB: need sound of bed springs for this
 		G_Printf( "SOUND sqweeky\n" );
@@ -2819,7 +2821,7 @@ void props_snowGenerator_think( gentity_t *ent ) {
 	gentity_t   *tent;
 	float high, wide, deep;
 	int i;
-	vec3_t point;
+	idVec3 point;
 
 	if ( !( ent->spawnflags & 1 ) ) {
 		return;
@@ -2831,16 +2833,16 @@ void props_snowGenerator_think( gentity_t *ent ) {
 
 	for ( i = 0; i < ent->count; i++ )
 	{
-		VectorCopy( ent->pos1, point );
+		point = ent->pos1;
 
 		// we need to randomize to the extent of the brush
-		point[0] += crandom() * ( deep * 0.5 );
-		point[1] += crandom() * ( wide * 0.5 );
-		point[2] += crandom() * ( high * 0.5 );
+		point[0] += gameRandom.CRandomFloat() * ( deep * 0.5 );
+		point[1] += gameRandom.CRandomFloat() * ( wide * 0.5 );
+		point[2] += gameRandom.CRandomFloat() * ( high * 0.5 );
 
 		tent = G_TempEntity( point, EV_SNOWFLURRY );
-		VectorCopy( point, tent->s.origin );
-		VectorCopy( ent->movedir, tent->s.angles );
+		tent->s.origin = point;
+		tent->s.angles = ent->movedir;
 		tent->s.time = 2000; // life time
 		tent->s.time2 = 1000; // alpha fade start
 	}
@@ -2864,15 +2866,15 @@ void props_snowGenerator_use( gentity_t *ent, gentity_t *other, gentity_t *activ
 }
 
 void SP_props_snowGenerator( gentity_t *ent ) {
-	vec3_t center;
+	idVec3 center;
 	gentity_t   *target = NULL;
 
 	trap_SetBrushModel( ent, ent->model );
 
-	VectorAdd( ent->r.absmin, ent->r.absmax, center );
-	VectorScale( center, 0.5, center );
+	center = ent->r.absmin + ent->r.absmax;
+	center = center * 0.5;
 
-	VectorCopy( center, ent->pos1 );
+	ent->pos1 = center;
 
 	if ( !ent->target ) {
 		G_Printf( "snowGenerator at loc %s does not have a target\n", vtos( center ) );
@@ -2885,8 +2887,8 @@ void SP_props_snowGenerator( gentity_t *ent ) {
 			return;
 		}
 
-		VectorSubtract( target->s.origin, ent->s.origin, ent->movedir );
-		VectorNormalize( ent->movedir );
+		ent->movedir = target->s.origin - ent->s.origin;
+		ent->movedir.Normalize();
 	}
 
 	ent->r.contents = CONTENTS_TRIGGER;
@@ -2948,11 +2950,11 @@ assign a model
 
 void propsFireColumnUse( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 	gentity_t   *tent;
-	vec3_t start, dir;
+	idVec3 start, dir;
 
-	VectorCopy( ent->s.origin, start );
+	start = ent->s.origin;
 
-	AngleVectors( ent->r.currentAngles, dir, NULL, NULL );
+	idAngles( ent->r.currentAngles ).ToVectors( &dir, NULL, NULL );
 
 	tent = fire_flamebarrel( ent, start, dir );
 
@@ -2989,10 +2991,10 @@ void propsFireColumnUse( gentity_t *ent, gentity_t *other, gentity_t *activator 
 
 	// speed
 	if ( ent->speed ) {
-		VectorClear( tent->s.pos.trDelta );
-		VectorScale( dir, ent->speed + ( crandom() * 100 ), tent->s.pos.trDelta );
-		SnapVector( tent->s.pos.trDelta );
-		VectorCopy( start, tent->r.currentOrigin );
+		tent->s.pos.trDelta.Zero();
+		tent->s.pos.trDelta = dir * ent->speed + ( gameRandom.CRandomFloat() * 100 );
+		tent->s.pos.trDelta.Snap();
+		tent->r.currentOrigin = start;
 	}
 
 	if ( ent->start_size ) {
@@ -3012,19 +3014,21 @@ void propsFireColumnUse( gentity_t *ent, gentity_t *other, gentity_t *activator 
 
 void propsFireColumnInit( gentity_t *ent ) {
 	gentity_t   *target;
-	vec3_t vec;
-	vec3_t angles;
+	idVec3 vec;
+	idVec3 angles;
 
 	if ( ent->target ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->target );
-		VectorSubtract( target->s.origin, ent->s.origin, vec );
-		vectoangles( vec, angles );
+		vec = target->s.origin - ent->s.origin;
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 		G_SetAngle( ent, angles );
 	} else
 	{
 		// ok then just up
-		VectorSet( vec, 0, 0, 1 );
-		vectoangles( vec, angles );
+		vec.Set( 0, 0, 1 );
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 		G_SetAngle( ent, angles );
 	}
 
@@ -3061,10 +3065,10 @@ for stone:
 void props_ExploPartUse( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 //	int i, numpieces;
 	gentity_t *part;
-	vec3_t start, dir;
+	idVec3 start, dir;
 
-	VectorCopy( ent->s.origin, start );
-	AngleVectors( ent->r.currentAngles, dir, NULL, NULL );
+	start = ent->s.origin;
+	idAngles( ent->r.currentAngles ).ToVectors( &dir, NULL, NULL );
 
 	if ( ent->s.modelindex ) {
 		part = fire_flamebarrel( ent, start, dir );
@@ -3082,10 +3086,10 @@ void props_ExploPartUse( gentity_t *ent, gentity_t *other, gentity_t *activator 
 		G_SetAngle( part, ent->r.currentAngles );
 
 		if ( ent->speed ) {
-			VectorClear( part->s.pos.trDelta );
-			VectorScale( dir, ent->speed + ( crandom() * 100 ), part->s.pos.trDelta );
-			SnapVector( part->s.pos.trDelta );
-			VectorCopy( start, part->r.currentOrigin );
+			part->s.pos.trDelta.Zero();
+			part->s.pos.trDelta = dir * ent->speed + ( gameRandom.CRandomFloat() * 100 );
+			part->s.pos.trDelta.Snap();
+			part->r.currentOrigin = start;
 		}
 	}
 
@@ -3094,18 +3098,20 @@ void props_ExploPartUse( gentity_t *ent, gentity_t *other, gentity_t *activator 
 
 void props_ExploPartInit( gentity_t *ent ) {
 	gentity_t *target;
-	vec3_t vec, angles;
+	idVec3 vec, angles;
 
 	if ( ent->target ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->target );
-		VectorSubtract( target->s.origin, ent->s.origin, vec );
-		vectoangles( vec, angles );
+		vec = target->s.origin - ent->s.origin;
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 		G_SetAngle( ent, angles );
 	} else
 	{
 		// ok then just up
-		VectorSet( vec, 0, 0, 1 );
-		vectoangles( vec, angles );
+		vec.Set( 0, 0, 1 );
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 		G_SetAngle( ent, angles );
 	}
 }
@@ -3121,7 +3127,7 @@ void SP_props_ExploPart( gentity_t *ent ) {
 
 	G_SpawnString( "type", "wood", &type );
 
-	if ( !Q_stricmp( type,"wood" ) ) {
+	if ( !idStr::Icmp( type,"wood" ) ) {
 		if ( ent->count == 64 ) {
 			ent->s.modelindex = G_ModelIndex( "models/shards/2x4a.md3" );
 		} else if ( ent->count == 48 ) {
@@ -3135,8 +3141,8 @@ void SP_props_ExploPart( gentity_t *ent ) {
 		} else if ( ent->count == 8 ) {
 			ent->s.modelindex = G_ModelIndex( "models/shards/2x4f.md3" );
 		}
-	} else if ( !Q_stricmp( type,"concrete" ) )        {
-	} else if ( !Q_stricmp( type,"stone" ) )        {
+	} else if ( !idStr::Icmp( type,"concrete" ) )        {
+	} else if ( !idStr::Icmp( type,"stone" ) )        {
 	}
 
 	if ( G_SpawnString( "noise", "100", &sound ) ) {
@@ -3239,7 +3245,7 @@ void props_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 void SP_props_decoration( gentity_t *ent ) {
 	float light;
-	vec3_t color;
+	idVec3 color;
 	qboolean lightSet, colorSet;
 	char        *sound;
 	char        *type;
@@ -3301,15 +3307,15 @@ void SP_props_decoration( gentity_t *ent ) {
 		ent->die = props_decoration_death;
 
 		G_SpawnString( "type", "wood", &type );
-		if ( !Q_stricmp( type,"wood" ) ) {
+		if ( !idStr::Icmp( type,"wood" ) ) {
 			ent->key = 1;
-		} else if ( !Q_stricmp( type,"glass" ) ) {
+		} else if ( !idStr::Icmp( type,"glass" ) ) {
 			ent->key = 0;
-		} else if ( !Q_stricmp( type,"metal" ) )                                                       {
+		} else if ( !idStr::Icmp( type,"metal" ) )                                                       {
 			ent->key = 2;
-		} else if ( !Q_stricmp( type,"ceramic" ) )                                                                                                               {
+		} else if ( !idStr::Icmp( type,"ceramic" ) )                                                                                                               {
 			ent->key = 3;
-		} else if ( !Q_stricmp( type, "rubble" ) )                                                                                                                                                                         {
+		} else if ( !idStr::Icmp( type, "rubble" ) )                                                                                                                                                                         {
 			ent->key = 4;
 		}
 
@@ -3329,9 +3335,9 @@ void SP_props_decoration( gentity_t *ent ) {
 
 		width /= 2;
 
-		if ( Q_stricmp( ent->classname, "props_decorBRUSH" ) ) {
-			VectorSet( ent->r.mins, -width, -width, 0 );
-			VectorSet( ent->r.maxs, width, width, height );
+		if ( idStr::Icmp( ent->classname, "props_decorBRUSH" ) ) {
+			ent->r.mins.Set( -width, -width, 0 );
+			ent->r.maxs.Set( width, width, height );
 		}
 
 		ent->clipmask   = CONTENTS_SOLID;
@@ -3428,7 +3434,7 @@ you will need to specify the bounding box for the entity
 void SP_props_decor_Scale( gentity_t *ent ) {
 
 	float scale[3] = {1,1,1};
-	vec3_t scalevec;
+	idVec3 scalevec;
 
 
 	SP_props_decoration( ent );
@@ -3442,11 +3448,11 @@ void SP_props_decor_Scale( gentity_t *ent ) {
 
 	// look for axis specific scaling
 	if ( G_SpawnVector( "modelscale_vec", "1 1 1", &scalevec[0] ) ) {
-		VectorCopy( scalevec, scale );
+		scale = scalevec;
 	}
 
 	// scale is stored in 'angles2'
-	VectorCopy( scale, ent->s.angles2 );
+	ent->s.angles2 = scale;
 
 	trap_LinkEntity( ent );
 
@@ -3462,7 +3468,7 @@ To have the portal sky fogged, enter any of the following values:
 */
 void SP_skyportal( gentity_t *ent ) {
 	char    *fov;
-	vec3_t fogv;    //----(SA)
+	idVec3 fogv;    //----(SA)
 	int fogn;       //----(SA)
 	int fogf;       //----(SA)
 	int isfog = 0;      // (SA)
@@ -3477,7 +3483,7 @@ void SP_skyportal( gentity_t *ent ) {
 	isfog += G_SpawnInt( "fognear", "0", &fogn );
 	isfog += G_SpawnInt( "fogfar", "300", &fogf );
 
-	trap_SetConfigstring( CS_SKYBOXORG, va( "%.2f %.2f %.2f %.1f %i %.2f %.2f %.2f %i %i", ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], fov_x, (int)isfog, fogv[0], fogv[1], fogv[2], fogn, fogf ) );
+	trap_SetConfigstring( CS_SKYBOXORG, idStr::FormatString( "%.2f %.2f %.2f %.1f %i %.2f %.2f %.2f %i %i", ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], fov_x, (int)isfog, fogv[0], fogv[1], fogv[2], fogn, fogf ) );
 //----(SA)	end
 }
 
@@ -3501,30 +3507,30 @@ you will need to specify the bounding box for the entity
 
 void props_statue_blocked( gentity_t *ent ) {
 	trace_t trace;
-	vec3_t start, end, mins, maxs;
-	vec3_t forward;
+	idVec3 start, end, mins, maxs;
+	idVec3 forward;
 	float dist;
 	gentity_t   *traceEnt;
 	float grav = 128;
-	vec3_t kvel;
+	idVec3 kvel;
 
-	if ( !Q_stricmp( ent->classname, "props_statueBRUSH" ) ) {
+	if ( !idStr::Icmp( ent->classname, "props_statueBRUSH" ) ) {
 		return;
 	}
 
-	VectorCopy( ent->s.origin, start );
+	start = ent->s.origin;
 	start[2] += 24;
 
-	VectorSet( mins, ent->r.mins[0], ent->r.mins[1], -23 );
-	VectorSet( maxs, ent->r.maxs[0], ent->r.maxs[1], 23 );
+	mins.Set( ent->r.mins[0], ent->r.mins[1], -23 );
+	maxs.Set( ent->r.maxs[0], ent->r.maxs[1], 23 );
 
-	AngleVectors( ent->r.currentAngles, forward, NULL, NULL );
+	idAngles( ent->r.currentAngles ).ToVectors( &forward, NULL, NULL );
 
-	VectorCopy( start, end );
+	end = start;
 
 	dist = ( ( ent->r.maxs[2] + 16 ) / ent->count2 ) * ent->s.frame;
 
-	VectorMA( end, dist, forward, end );
+	end = end + forward * dist;
 
 	trap_Trace( &trace, start, mins, maxs, end, ent->s.number, MASK_SHOT );
 
@@ -3535,11 +3541,11 @@ void props_statue_blocked( gentity_t *ent ) {
 	traceEnt = &g_entities[ trace.entityNum ];
 
 	if ( traceEnt->takedamage && traceEnt->client ) {
-		G_Damage( traceEnt, ent, ent, NULL, trace.endpos, ent->damage, 0, MOD_CRUSH );
+		G_Damage( traceEnt, ent, ent, vec3_origin, trace.endpos, ent->damage, 0, MOD_CRUSH );
 
 		// TBD: push client back a bit
-		VectorScale( forward, grav, kvel );
-		VectorAdd( traceEnt->client->ps.velocity, kvel, traceEnt->client->ps.velocity );
+		kvel = forward * grav;
+		traceEnt->client->ps.velocity = traceEnt->client->ps.velocity + kvel;
 
 		if ( !traceEnt->client->ps.pm_time ) {
 			int t;
@@ -3556,7 +3562,7 @@ void props_statue_blocked( gentity_t *ent ) {
 		}
 
 	} else {
-		G_Damage( traceEnt, ent, ent, NULL, trace.endpos, 9999, 0, MOD_CRUSH );
+		G_Damage( traceEnt, ent, ent, vec3_origin, trace.endpos, 9999, 0, MOD_CRUSH );
 	}
 
 }
@@ -3629,7 +3635,7 @@ void props_statue_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 void SP_props_statue( gentity_t *ent ) {
 	float light;
-	vec3_t color;
+	idVec3 color;
 	qboolean lightSet, colorSet;
 	char        *sound;
 	char        *type;
@@ -3678,15 +3684,15 @@ void SP_props_statue( gentity_t *ent ) {
 	ent->die = props_statue_death;
 
 	G_SpawnString( "type", "wood", &type );
-	if ( !Q_stricmp( type,"wood" ) ) {
+	if ( !idStr::Icmp( type,"wood" ) ) {
 		ent->key = 1;
-	} else if ( !Q_stricmp( type,"glass" ) )   {
+	} else if ( !idStr::Icmp( type,"glass" ) )   {
 		ent->key = 0;
-	} else if ( !Q_stricmp( type,"metal" ) )                                                           {
+	} else if ( !idStr::Icmp( type,"metal" ) )                                                           {
 		ent->key = 2;
-	} else if ( !Q_stricmp( type,"ceramic" ) )                                                                                                                   {
+	} else if ( !idStr::Icmp( type,"ceramic" ) )                                                                                                                   {
 		ent->key = 3;
-	} else if ( !Q_stricmp( type, "rubble" ) )                                                                                                                                                                             {
+	} else if ( !idStr::Icmp( type, "rubble" ) )                                                                                                                                                                             {
 		ent->key = 4;
 	}
 
@@ -3705,9 +3711,9 @@ void SP_props_statue( gentity_t *ent ) {
 
 	width /= 2;
 
-	if ( Q_stricmp( ent->classname, "props_statueBRUSH" ) ) {
-		VectorSet( ent->r.mins, -width, -width, 0 );
-		VectorSet( ent->r.maxs, width, width, height );
+	if ( idStr::Icmp( ent->classname, "props_statueBRUSH" ) ) {
+		ent->r.mins.Set( -width, -width, 0 );
+		ent->r.maxs.Set( width, width, height );
 	}
 
 	ent->clipmask   = CONTENTS_SOLID;
@@ -3786,16 +3792,16 @@ int locker_debris_model[MAX_LOCKER_DEBRIS];
 
 void Spawn_Junk( gentity_t *ent ) {
 	gentity_t *sfx;
-	vec3_t dir, start;
+	idVec3 dir, start;
 
-	VectorCopy( ent->r.currentOrigin, start );
+	start = ent->r.currentOrigin;
 
-	start[0] += crandom() * 32;
-	start[1] += crandom() * 32;
+	start[0] += gameRandom.CRandomFloat() * 32;
+	start[1] += gameRandom.CRandomFloat() * 32;
 	start[2] += 16;
 
-	VectorSubtract( start, ent->r.currentOrigin, dir );
-	VectorNormalize( dir );
+	dir = start - ent->r.currentOrigin;
+	dir.Normalize();
 
 	sfx = G_Spawn();
 
@@ -3833,7 +3839,7 @@ void props_locker_use( gentity_t *ent, gentity_t *other, gentity_t *activator ) 
 	ent->nextthink = level.time + 1000; // rattle a sec
 }
 
-void props_locker_pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point ) {
+void props_locker_pain( gentity_t *ent, gentity_t *attacker, int damage, idVec3 point ) {
 	props_locker_use( ent, attacker, attacker );
 }
 
@@ -3882,7 +3888,8 @@ void props_locker_spawn_item( gentity_t *ent ) {
 	}
 
 //	drop = Drop_Item (ent, item, 0, qtrue);
-	drop = LaunchItem( item, ent->r.currentOrigin, tv( 0, 0, 20 ) );
+	idVec3 up( 0, 0, 20 );
+	drop = LaunchItem( item, ent->r.currentOrigin, up );
 
 
 	if ( !drop ) {
@@ -3895,21 +3902,21 @@ extern qhandle_t    trap_R_GetShaderFromModel( qhandle_t modelid, int surfnum, i
 
 void props_locker_mass( gentity_t *ent ) {
 	gentity_t   *tent;
-	vec3_t start;
-	vec3_t dir;
+	idVec3 start;
+	idVec3 dir;
 
-	VectorCopy( ent->r.currentOrigin, start );
+	start = ent->r.currentOrigin;
 
-	start[0] += crandom() * 32;
-	start[1] += crandom() * 32;
+	start[0] += gameRandom.CRandomFloat() * 32;
+	start[1] += gameRandom.CRandomFloat() * 32;
 	start[2] += 16;
 
-	VectorSubtract( start, ent->r.currentOrigin, dir );
-	VectorNormalize( dir );
+	dir = start - ent->r.currentOrigin;
+	dir.Normalize();
 
 	tent = G_TempEntity( ent->r.currentOrigin, EV_EFFECT );
-	VectorCopy( ent->r.currentOrigin, tent->s.origin );
-	VectorCopy( dir, tent->s.angles2 );
+	tent->s.origin = ent->r.currentOrigin;
+	tent->s.angles2 = dir;
 
 	tent->s.dl_intensity = 0;
 
@@ -3980,11 +3987,11 @@ void SP_props_footlocker( gentity_t *self ) {
 	// NOTE:	Non axis-aligned orientation not allowed.  It will work, but
 	//			the bounding box will not exactly match the model.
 	if ( self->s.angles[1] == 90 || self->s.angles[1] == 270 ) {
-		VectorSet( self->r.mins, -21, -12, 0 );
-		VectorSet( self->r.maxs, 21, 12, 24 );
+		self->r.mins.Set( -21, -12, 0 );
+		self->r.maxs.Set( 21, 12, 24 );
 	} else {
-		VectorSet( self->r.mins, -12, -21, 0 );
-		VectorSet( self->r.maxs, 12, 21, 24 );
+		self->r.mins.Set( -12, -21, 0 );
+		self->r.maxs.Set( 12, 21, 24 );
 	}
 
 	self->s.modelindex = G_ModelIndex( "models/mapobjects/furniture/footlocker.md3" );
@@ -4010,19 +4017,19 @@ void SP_props_footlocker( gentity_t *self ) {
 	}
 
 	if ( G_SpawnString( "type", "wood", &type ) ) {
-		if ( !Q_stricmp( type,"wood" ) ) {
+		if ( !idStr::Icmp( type,"wood" ) ) {
 			self->key = 0;
-		} else if ( !Q_stricmp( type,"glass" ) ) {
+		} else if ( !idStr::Icmp( type,"glass" ) ) {
 			self->key = 1;
-		} else if ( !Q_stricmp( type,"metal" ) )                                                       {
+		} else if ( !idStr::Icmp( type,"metal" ) )                                                       {
 			self->key = 2;
-		} else if ( !Q_stricmp( type,"gibs" ) )                                                                                                                {
+		} else if ( !idStr::Icmp( type,"gibs" ) )                                                                                                                {
 			self->key = 3;
-		} else if ( !Q_stricmp( type,"brick" ) )                                                                                                                                                                        {
+		} else if ( !idStr::Icmp( type,"brick" ) )                                                                                                                                                                        {
 			self->key = 4;
-		} else if ( !Q_stricmp( type,"rock" ) )                                                                                                                                                                                                                                 {
+		} else if ( !idStr::Icmp( type,"rock" ) )                                                                                                                                                                                                                                 {
 			self->key = 5;
-		} else if ( !Q_stricmp( type,"fabric" ) )                                                                                                                                                                                                                                                                                         {
+		} else if ( !idStr::Icmp( type,"fabric" ) )                                                                                                                                                                                                                                                                                         {
 			self->key = 6;
 		}
 	} else {
@@ -4045,7 +4052,7 @@ needs to aim at a info_notnull
 NOSOUND - silent (duh)
 */
 void props_flamethrower_think( gentity_t *ent ) {
-	vec3_t vec, angles;
+	idVec3 vec, angles;
 	gentity_t   *target = NULL;
 
 	if ( ent->spawnflags & 1 ) { // tracking
@@ -4055,14 +4062,15 @@ void props_flamethrower_think( gentity_t *ent ) {
 
 		if ( !target ) {
 //			VectorSet (ent->r.currentAngles, 0, 0, 1);	// (SA) wasn't working
-			VectorSet( ent->s.apos.trBase, 0, 0, 1 );
+			ent->s.apos.trBase.Set( 0, 0, 1 );
 		} else
 		{
-			VectorSubtract( target->s.origin, ent->s.origin, vec );
-			VectorNormalize( vec );
-			vectoangles( vec, angles );
+			vec = target->s.origin - ent->s.origin;
+			vec.Normalize();
+			idAngles targetAngles = vec.ToAngles();
+			angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 //			VectorCopy (angles, ent->r.currentAngles);	// (SA) wasn't working
-			VectorCopy( angles, ent->s.apos.trBase );
+			ent->s.apos.trBase = angles;
 		}
 	}
 
@@ -4123,8 +4131,8 @@ void props_flamethrower_use( gentity_t *ent, gentity_t *other, gentity_t *activa
 
 void props_flamethrower_init( gentity_t *ent ) {
 	gentity_t *target = NULL;
-	vec3_t vec;
-	vec3_t angles;
+	idVec3 vec;
+	idVec3 angles;
 
 	if ( ent->target ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->target );
@@ -4132,15 +4140,16 @@ void props_flamethrower_init( gentity_t *ent ) {
 
 	if ( !target ) {
 //		VectorSet (ent->r.currentAngles, 0, 0, 1);	//----(SA)
-		VectorSet( ent->s.apos.trBase, 0, 0, 1 );
+		ent->s.apos.trBase.Set( 0, 0, 1 );
 	} else
 	{
-		VectorSubtract( target->s.origin, ent->s.origin, vec );
-		VectorNormalize( vec );
-		vectoangles( vec, angles );
+		vec = target->s.origin - ent->s.origin;
+		vec.Normalize();
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 //		VectorCopy (angles, ent->r.currentAngles);	//----(SA)
-		VectorCopy( angles, ent->s.apos.trBase );
-		VectorCopy( angles, ent->s.angles ); // RF, added to fix wierd release build issues
+		ent->s.apos.trBase = angles;
+		ent->s.angles = angles; // RF, added to fix wierd release build issues
 	}
 
 	trap_LinkEntity( ent );

@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cg_info.c -- display information while data is being loading
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "../ui/ui_shared.h"
 
@@ -76,10 +78,10 @@ CG_LoadingString
 ======================
 */
 void CG_LoadingString( const char *s ) {
-	Q_strncpyz( (char *)cg.infoScreenText, s, sizeof( cg.infoScreenText ) );
+	idStr::Copynz( (char *)cg.infoScreenText, s, sizeof( cg.infoScreenText ) );
 
 	if ( s && s[0] != 0 ) {
-		CG_Printf( va( "LOADING... %s\n",s ) );   //----(SA)	added so you can see from the console what's going on
+		CG_Printf( idStr::FormatString( "LOADING... %s\n",s ) );   //----(SA)	added so you can see from the console what's going on
 
 	}
 	trap_UpdateScreen();
@@ -129,8 +131,8 @@ void CG_LoadingClient( int clientNum ) {
 
 	info = CG_ConfigString( CS_PLAYERS + clientNum );
 
-	Q_strncpyz( model, Info_ValueForKey( info, "model" ), sizeof( model ) );
-	skin = Q_strrchr( model, '/' );
+	idStr::Copynz( model, Info_ValueForKey( info, "model" ), sizeof( model ) );
+	skin = strrchr( model, '/' );
 	if ( skin ) {
 		*skin++ = '\0';
 	} else {
@@ -146,11 +148,11 @@ void CG_LoadingClient( int clientNum ) {
 //		}
 	}
 
-	Q_strncpyz( personality, Info_ValueForKey( info, "n" ), sizeof( personality ) );
-	Q_CleanStr( personality );
+	idStr::Copynz( personality, Info_ValueForKey( info, "n" ), sizeof( personality ) );
+	idStr::Clean( personality );
 
 	if ( cgs.gametype == GT_SINGLE_PLAYER ) {
-		trap_S_RegisterSound( va( "sound/player/announce/%s.wav", personality ) );
+		trap_S_RegisterSound( idStr::FormatString( "sound/player/announce/%s.wav", personality ) );
 	}
 
 	CG_LoadingString( personality );
@@ -167,12 +169,12 @@ typedef struct {
 	int YOfs;
 	int labelX;
 	int labelFlags;
-	vec4_t labelColor;
+	idVec4 labelColor;
 
 	char    *format;
 	int formatX;
 	int formatFlags;
-	vec4_t formatColor;
+	idVec4 formatColor;
 
 	int numVars;
 } statsItem_t;
@@ -180,11 +182,11 @@ typedef struct {
 // this defines the layout of the mission stats
 // NOTE: these must match the stats sent in AICast_ScriptAction_ChangeLevel()
 static statsItem_t statsItems[] = {
-	{ "end_time",        168,    214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  "%02i:%02i:%02i",    348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  3 },
-	{ "end_objectives",  28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  2 },
-	{ "end_secrets", 28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  2 },
-	{ "end_treasure",    28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {0.62f, 0.56f,  0.0f,   1.0f},  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  2 },
-	{ "end_attempts",    28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  "%i",                348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  1 },
+	{ "end_time",        168,    214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  "%02i:%02i:%02i",    348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  3 },
+	{ "end_objectives",  28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  2 },
+	{ "end_secrets", 28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  2 },
+	{ "end_treasure",    28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 0.62f, 0.56f, 0.0f, 1.0f ),  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  2 },
+	{ "end_attempts",    28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  "%i",                348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  1 },
 
 	{ NULL }
 };
@@ -206,15 +208,17 @@ void CG_DrawStats( char *stats ) {
 	int i, y, v, j;
 	#define MAX_STATS_VARS  64
 	int vars[MAX_STATS_VARS];
-	char *str, *token;
-	char *formatStr;
+	char *str;
+	idStr formatStr;
 	int varIndex;
 	char string[MAX_QPATH];
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
 	UI_DrawProportionalString( 320, 120, "MISSION STATS",
 							   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 
-	Q_strncpyz( string, stats, sizeof( string ) );
+	idStr::Copynz( string, stats, sizeof( string ) );
 	str = string;
 	// convert commas to spaces
 	for ( i = 0; str[i]; i++ ) {
@@ -222,6 +226,7 @@ void CG_DrawStats( char *stats ) {
 			str[i] = ' ';
 		}
 	}
+	lexer.LoadMemory( string, strlen( string ), "mission_stats" );
 
 	for ( i = 0, y = 0, v = 0; statsItems[i].label; i++ ) {
 		y += statsItems[i].YOfs;
@@ -232,28 +237,27 @@ void CG_DrawStats( char *stats ) {
 		if ( statsItems[i].numVars ) {
 			varIndex = v;
 			for ( j = 0; j < statsItems[i].numVars; j++ ) {
-				token = COM_Parse( &str );
-				if ( !token || !token[0] ) {
+				if ( !lexer.ReadToken( &token ) || !token[0] ) {
 					CG_Error( "error parsing mission stats\n" );
 					return;
 				}
 
-				vars[v++] = atoi( token );
+				vars[v++] = atoi( token.c_str() );
 			}
 
 			// build the formatStr
 			switch ( statsItems[i].numVars ) {
 			case 1:
-				formatStr = va( statsItems[i].format, vars[varIndex] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex] );
 				break;
 			case 2:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1] );
 				break;
 			case 3:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2] );
 				break;
 			case 4:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2], vars[varIndex + 3] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2], vars[varIndex + 3] );
 				break;
 			}
 
@@ -274,15 +278,18 @@ CG_DrawExitStats
 
 void CG_DrawExitStats( void ) {
 	int i, y, v, j;
-	float *color;   // faded color based on cursor hint drawing
-	float color2[4] = {0, 0, 0, 1};
-	const char *str;
-	char *mstats, *token;
+	idVec4 *color;   // faded color based on cursor hint drawing
+	idVec4 color2( 0, 0, 0, 1 );
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
 	#define MAX_STATS_VARS  64
 	int vars[MAX_STATS_VARS];
-	char *formatStr = NULL; // TTimo: init
+	idStr formatStr;
 	int varIndex = 0;     // TTimo: init
+
+	char *mstats;
+	const char *str;
 
 	if ( cg_paused.integer ) {
 		// no draw if any menu's are up	 (or otherwise paused)
@@ -297,15 +304,14 @@ void CG_DrawExitStats( void ) {
 
 	// check for fade up
 	if ( cg.time < ( cg.exitStatsTime + cg.exitStatsFade ) ) {
-		color[3] = (float)( cg.time - cg.exitStatsTime ) / (float)cg.exitStatsFade;
+		(*color)[3] = (float)( cg.time - cg.exitStatsTime ) / (float)cg.exitStatsFade;
 	}
 
-	color2[3] = color[3];
+	color2[3] = (*color)[3];
 
 
 // parse it
 	str = CG_ConfigString( CS_MISSIONSTATS );
-
 	if ( !str || !str[0] ) {
 		return;
 	}
@@ -340,22 +346,22 @@ void CG_DrawExitStats( void ) {
 
 	// title
 	color2[0] = color2[1] = color2[2] = 1;
-	color2[3] = color[3];
+	color2[3] = (*color)[3];
 //	CG_Text_Paint(280, 120, 2, 0.25f, color2, va("%s", CG_translateString("end_title")), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 	//----(SA)	scale change per MK
-	CG_Text_Paint( 270, 120, 2, 0.313f, color2, va( "%s", CG_translateString( "end_title" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
+	CG_Text_Paint( 270, 120, 2, 0.313f, color2, idStr::FormatString( "%s", CG_translateString( "end_title" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
 
 	color2[0] = color2[1] = color2[2] = 1;
 	if ( cg.cursorHintIcon == HINT_NOEXIT ) {
 		// "exit not available"
 //		CG_Text_Paint(250, 320, 2, 0.3f, color2, va("%s", CG_translateString("end_noexit")), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 		//----(SA)	scale change per MK
-		CG_Text_Paint( 260, 320, 2, 0.225f, color2, va( "%s", CG_translateString( "end_noexit" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
+		CG_Text_Paint( 260, 320, 2, 0.225f, color2, idStr::FormatString( "%s", CG_translateString( "end_noexit" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
 	} else {
 		// "forward to proceed"
 //		CG_Text_Paint(230, 320, 2, 0.3f, color2, va("%s", CG_translateString("end_exit")), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 		//----(SA)	scale change per MK
-		CG_Text_Paint( 250, 320, 2, 0.225f, color2, va( "%s", CG_translateString( "end_exit" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
+		CG_Text_Paint( 250, 320, 2, 0.225f, color2, idStr::FormatString( "%s", CG_translateString( "end_exit" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
 	}
 
 	mstats = (char*)str + 2;    // add offset for 's='
@@ -364,39 +370,39 @@ void CG_DrawExitStats( void ) {
 			mstats[i] = ' ';
 		}
 	}
+	lexer.LoadMemory( mstats, strlen( mstats ), "mission_stats" );
 	for ( i = 0, y = 0, v = 0; statsItems[i].label; i++ ) {
 		y += statsItems[i].YOfs;
 
-		VectorCopy4( statsItems[i].labelColor, color2 );
+		color2 = statsItems[i].labelColor;
 //		statsItems[i].labelColor[3] = statsItems[i].formatColor[3] = color[3];	// set proper alpha
-		color2[3] = statsItems[i].formatColor[3] = color[3];    // set proper alpha
+		color2[3] = statsItems[i].formatColor[3] = (*color)[3];    // set proper alpha
 
 
 		if ( statsItems[i].numVars ) {
 			varIndex = v;
 			for ( j = 0; j < statsItems[i].numVars; j++ ) {
-				token = COM_Parse( &mstats );
-				if ( !token || !token[0] ) {
+				if ( !lexer.ReadToken( &token ) || !token[0] ) {
 					CG_Error( "error parsing mission stats\n" );
 					return;
 				}
 
-				vars[v++] = atoi( token );
+				vars[v++] = atoi( token.c_str() );
 			}
 
 			// build the formatStr
 			switch ( statsItems[i].numVars ) {
 			case 1:
-				formatStr = va( statsItems[i].format, vars[varIndex] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex] );
 				break;
 			case 2:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1] );
 				break;
 			case 3:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2] );
 				break;
 			case 4:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2], vars[varIndex + 3] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2], vars[varIndex + 3] );
 				break;
 			}
 
@@ -420,10 +426,10 @@ void CG_DrawExitStats( void ) {
 //		UI_DrawProportionalString( statsItems[i].labelX, y, statsItems[i].label, statsItems[i].labelFlags, *statsItems[i].labelColor );
 
 //		CG_Text_Paint(statsItems[i].labelX, y, 2, 0.3, statsItems[i].labelColor, va("%s:", CG_translateString(statsItems[i].label)), 0, 0, statsItems[i].labelFlags);
-		CG_Text_Paint( statsItems[i].labelX, y, 2, 0.3, color2, va( "%s:", CG_translateString( statsItems[i].label ) ), 0, 0, statsItems[i].labelFlags );
+		CG_Text_Paint( statsItems[i].labelX, y, 2, 0.3, color2, idStr::FormatString( "%s:", CG_translateString( statsItems[i].label ) ), 0, 0, statsItems[i].labelFlags );
 
 	}
-	token = COM_Parse( &mstats );
+	lexer.ReadToken( &token );
 
 // end (parse it)
 }
@@ -453,7 +459,7 @@ void CG_DrawInformation( void ) {
 	int expectedHunk;
 	char hunkBuf[MAX_QPATH];
 
-	vec4_t color;
+	idVec4 color;
 
 	if ( cg.snap && ( strlen( cg_missionStats.string ) <= 1 ) ) {
 		return;     // we are in the world, no need to draw information
@@ -483,7 +489,7 @@ void CG_DrawInformation( void ) {
 	//----(SA)	just the briefing now
 
 	if ( s && s[0] != 0 ) {  // there is often no 's'
-		levelshot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", s ) );
+		levelshot = trap_R_RegisterShaderNoMip( idStr::FormatString( "levelshots/%s.tga", s ) );
 	}
 
 	if ( !levelshot ) {
@@ -502,12 +508,12 @@ void CG_DrawInformation( void ) {
 //	UI_DrawProportionalString( 320, 16, va( "Loading %s", Info_ValueForKey( info, "mapname" ) ), UI_SMALLFONT|UI_CENTER|UI_DROPSHADOW, colorWhite );
 
 	// show the loading progress
-	VectorSet( color, 0.8, 0.8, 0.8 );
+	color.Set( 0.8, 0.8, 0.8, 0.8 );
 	color[3] = 0.8;
 
 	if ( strlen( cg_missionStats.string ) > 1 && cg_missionStats.string[0] == 's' ) {
-		vec2_t xy = { 190, 470 };
-		vec2_t wh = { 260, 10 };
+		idVec2 xy( 190, 470 );
+		idVec2 wh( 260, 10 );
 
 		// draw the mission stats while loading
 
@@ -531,8 +537,8 @@ void CG_DrawInformation( void ) {
 	if ( cgs.gametype == GT_SINGLE_PLAYER ) {
 
 		if ( 0 ) { // bar drawn in menu now
-			vec2_t xy = { 200, 468 };
-			vec2_t wh = { 240, 10 };
+			idVec2 xy( 200, 468 );
+			idVec2 wh( 240, 10 );
 
 			// show the percent complete bar
 			if ( expectedHunk > 0 ) {
@@ -560,7 +566,7 @@ void CG_DrawInformation( void ) {
 	// the first 150 rows are reserved for the client connection
 	// screen to write into
 	if ( cg.infoScreenText[0] ) {
-		UI_DrawProportionalString( 320, 128, va( "Loading... %s", cg.infoScreenText ),
+		UI_DrawProportionalString( 320, 128, idStr::FormatString( "Loading... %s", cg.infoScreenText ),
 								   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 	} else {
 		UI_DrawProportionalString( 320, 128, "Awaiting snapshot...",
@@ -640,7 +646,7 @@ void CG_DrawInformation( void ) {
 
 	value = atoi( Info_ValueForKey( info, "timelimit" ) );
 	if ( value ) {
-		UI_DrawProportionalString( 320, y, va( "timelimit %i", value ),
+		UI_DrawProportionalString( 320, y, idStr::FormatString( "timelimit %i", value ),
 								   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 		y += PROP_HEIGHT;
 	}
@@ -648,7 +654,7 @@ void CG_DrawInformation( void ) {
 	if ( cgs.gametype != GT_CTF && cgs.gametype != GT_SINGLE_PLAYER ) {
 		value = atoi( Info_ValueForKey( info, "fraglimit" ) );
 		if ( value ) {
-			UI_DrawProportionalString( 320, y, va( "fraglimit %i", value ),
+			UI_DrawProportionalString( 320, y, idStr::FormatString( "fraglimit %i", value ),
 									   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 			y += PROP_HEIGHT;
 		}
@@ -657,7 +663,7 @@ void CG_DrawInformation( void ) {
 	if ( cgs.gametype == GT_CTF ) {
 		value = atoi( Info_ValueForKey( info, "capturelimit" ) );
 		if ( value ) {
-			UI_DrawProportionalString( 320, y, va( "capturelimit %i", value ),
+			UI_DrawProportionalString( 320, y, idStr::FormatString( "capturelimit %i", value ),
 									   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 			y += PROP_HEIGHT;
 		}

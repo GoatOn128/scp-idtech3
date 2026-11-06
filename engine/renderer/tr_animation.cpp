@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 /*
@@ -66,9 +68,9 @@ static mdsFrame_t      *oldFrame, *oldTorsoFrame;
 static int frameSize;
 static short           *sh, *sh2;
 static float           *pf;
-static vec3_t angles, tangles, torsoParentOffset, torsoAxis[3], tmpAxis[3];
-static float           *tempVert, *tempNormal;
-static vec3_t vec, v2, dir;
+static idVec3 angles, tangles, torsoParentOffset, torsoAxis[3], tmpAxis[3];
+static idVec3 tempVert, tempNormal;
+static idVec3 vec, v2, dir;
 static float diff, a1, a2;
 static int render_count;
 static float lodRadius, lodScale;
@@ -76,24 +78,24 @@ static int             *collapse_map, *pCollapseMap;
 static int collapse[ MDS_MAX_VERTS ], *pCollapse;
 static int p0, p1, p2;
 static qboolean isTorso, fullTorso;
-static vec4_t m1[4], m2[4];
-//static  vec4_t m3[4], m4[4], tmp1[4], tmp2[4]; // TTimo: unused
-static vec3_t t;
+static idVec4 m1[4], m2[4];
+//static  idVec4 m3[4], m4[4], tmp1[4], tmp2[4]; // TTimo: unused
+static idVec3 t;
 static refEntity_t lastBoneEntity;
 
 static int totalrv, totalrt, totalv, totalt;    //----(SA)
 
 //-----------------------------------------------------------------------------
 
-static float ProjectRadius( float r, vec3_t location ) {
+static float ProjectRadius( float r, const idVec3 &location ) {
 	float pr;
 	float dist;
 	float c;
-	vec3_t p;
+	idVec3 p;
 	float projected[4];
 
-	c = DotProduct( tr.viewParms.orent.axis[0], tr.viewParms.orent.origin );
-	dist = DotProduct( tr.viewParms.orent.axis[0], location ) - c;
+	c = ( tr.viewParms.orent.axis[0] ) * ( tr.viewParms.orent.origin );
+	dist = ( tr.viewParms.orent.axis[0] ) * ( location ) - c;
 
 	if ( dist <= 0 ) {
 		return 0;
@@ -139,7 +141,7 @@ R_CullModel
 =============
 */
 static int R_CullModel( mdsHeader_t *header, trRefEntity_t *ent ) {
-	vec3_t bounds[2];
+	idVec3 bounds[2];
 	mdsFrame_t  *prevFrame, *newFrame;
 	int i, frameLen;
 	qboolean cullSphere;
@@ -237,7 +239,7 @@ R_CalcMDSLod
 
 =================
 */
-float R_CalcMDSLod( refEntity_t *refent, vec3_t origin, float radius, float modelBias, float modelScale ) {
+float R_CalcMDSLod( refEntity_t *refent, const idVec3 &origin, float radius, float modelBias, float modelScale ) {
 	float flod, lod;
 	float projectedRadius;
 
@@ -261,11 +263,11 @@ float R_CalcMDSLod( refEntity_t *refent, vec3_t origin, float radius, float mode
 	}
 
 	if ( refent->reFlags & REFLAG_FORCE_LOD ) {
-		flod *= 0.5;
+		flod *= 0.5f;
 	}
 //----(SA)	like reflag_force_lod, but separate for the moment
 	if ( refent->reFlags & REFLAG_DEAD_LOD ) {
-		flod *= 0.8;
+		flod *= 0.8f;
 	}
 
 	flod -= 0.25 * ( r_lodbias->value ) + modelBias;
@@ -289,7 +291,7 @@ static int R_ComputeFogNum( mdsHeader_t *header, trRefEntity_t *ent ) {
 	int i, j;
 	fog_t           *fog;
 	mdsFrame_t      *mdsFrame;
-	vec3_t localOrigin;
+	idVec3 localOrigin;
 
 	if ( tr.refdef.rdflags & RDF_NOWORLDMODEL ) {
 		return 0;
@@ -297,7 +299,7 @@ static int R_ComputeFogNum( mdsHeader_t *header, trRefEntity_t *ent ) {
 
 	// FIXME: non-normalized axis issues
 	mdsFrame = ( mdsFrame_t * )( ( byte * ) header + header->ofsFrames + ( sizeof( mdsFrame_t ) + sizeof( mdsBoneFrameCompressed_t ) * ( header->numBones - 1 ) ) * ent->e.frame );
-	VectorAdd( ent->e.origin, mdsFrame->localOrigin, localOrigin );
+	localOrigin = ent->e.origin + mdsFrame->localOrigin;
 	for ( i = 1 ; i < tr.world->numfogs ; i++ ) {
 		fog = &tr.world->fogs[i];
 		for ( j = 0 ; j < 3 ; j++ ) {
@@ -362,7 +364,7 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 //		think of it like batman's mask.  the polygons that have eye texture are duplicated
 //		and the 'lids' rendered with polygonoffset over the top of the open eyes.  this gives
 //		minimal overdraw/alpha blending/texture use without breaking the model and causing seams
-		if ( !Q_stricmp( surface->name, "h_blink" ) ) {
+		if ( !idStr::Icmp( surface->name, "h_blink" ) ) {
 			if ( !( ent->e.renderfx & RF_BLINK ) ) {
 				surface = ( mdsSurface_t * )( (byte *)surface + surface->ofsEnd );
 				continue;
@@ -407,49 +409,49 @@ void R_AddAnimSurfaces( trRefEntity_t *ent ) {
 	}
 }
 
-__inline void LocalMatrixTransformVector( vec3_t in, vec3_t mat[ 3 ], vec3_t out ) {
+__inline void LocalMatrixTransformVector( const idVec3 &in, idVec3 mat[3], idVec3 &out ) {
 	out[ 0 ] = in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ];
 	out[ 1 ] = in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ];
 	out[ 2 ] = in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ];
 }
 
-__inline void LocalMatrixTransformVectorTranslate( vec3_t in, vec3_t mat[ 3 ], vec3_t trans, vec3_t out ) {
+__inline void LocalMatrixTransformVectorTranslate( const idVec3 &in, idVec3 mat[3], const idVec3 &trans, idVec3 &out ) {
 	out[ 0 ] = in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] + trans[ 0 ];
 	out[ 1 ] = in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] + trans[ 1 ];
 	out[ 2 ] = in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] + trans[ 2 ];
 }
 
-__inline void LocalScaledMatrixTransformVector( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t out ) {
+__inline void LocalScaledMatrixTransformVector( const idVec3 &in, float s, idVec3 mat[3], idVec3 &out ) {
 	out[ 0 ] = ( 1.0f - s ) * in[ 0 ] + s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] );
 	out[ 1 ] = ( 1.0f - s ) * in[ 1 ] + s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] );
 	out[ 2 ] = ( 1.0f - s ) * in[ 2 ] + s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] );
 }
 
-__inline void LocalScaledMatrixTransformVectorTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t trans, vec3_t out ) {
+__inline void LocalScaledMatrixTransformVectorTranslate( const idVec3 &in, float s, idVec3 mat[3], const idVec3 &trans, idVec3 &out ) {
 	out[ 0 ] = ( 1.0f - s ) * in[ 0 ] + s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] + trans[ 0 ] );
 	out[ 1 ] = ( 1.0f - s ) * in[ 1 ] + s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] + trans[ 1 ] );
 	out[ 2 ] = ( 1.0f - s ) * in[ 2 ] + s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] + trans[ 2 ] );
 }
 
-__inline void LocalScaledMatrixTransformVectorFullTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t trans, vec3_t out ) {
+__inline void LocalScaledMatrixTransformVectorFullTranslate( const idVec3 &in, float s, idVec3 mat[3], const idVec3 &trans, idVec3 &out ) {
 	out[ 0 ] = ( 1.0f - s ) * in[ 0 ] + s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] ) + trans[ 0 ];
 	out[ 1 ] = ( 1.0f - s ) * in[ 1 ] + s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] ) + trans[ 1 ];
 	out[ 2 ] = ( 1.0f - s ) * in[ 2 ] + s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] ) + trans[ 2 ];
 }
 
-__inline void LocalAddScaledMatrixTransformVectorFullTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t trans, vec3_t out ) {
+__inline void LocalAddScaledMatrixTransformVectorFullTranslate( const idVec3 &in, float s, idVec3 mat[3], const idVec3 &trans, idVec3 &out ) {
 	out[ 0 ] += s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] ) + trans[ 0 ];
 	out[ 1 ] += s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] ) + trans[ 1 ];
 	out[ 2 ] += s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] ) + trans[ 2 ];
 }
 
-__inline void LocalAddScaledMatrixTransformVectorTranslate( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t trans, vec3_t out ) {
+__inline void LocalAddScaledMatrixTransformVectorTranslate( const idVec3 &in, float s, idVec3 mat[3], const idVec3 &trans, idVec3 &out ) {
 	out[ 0 ] += s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] + trans[ 0 ] );
 	out[ 1 ] += s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] + trans[ 1 ] );
 	out[ 2 ] += s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] + trans[ 2 ] );
 }
 
-__inline void LocalAddScaledMatrixTransformVector( vec3_t in, float s, vec3_t mat[ 3 ], vec3_t out ) {
+__inline void LocalAddScaledMatrixTransformVector( const idVec3 &in, float s, idVec3 mat[3], idVec3 &out ) {
 	out[ 0 ] += s * ( in[ 0 ] * mat[ 0 ][ 0 ] + in[ 1 ] * mat[ 0 ][ 1 ] + in[ 2 ] * mat[ 0 ][ 2 ] );
 	out[ 1 ] += s * ( in[ 0 ] * mat[ 1 ][ 0 ] + in[ 1 ] * mat[ 1 ][ 1 ] + in[ 2 ] * mat[ 1 ][ 2 ] );
 	out[ 2 ] += s * ( in[ 0 ] * mat[ 2 ][ 0 ] + in[ 1 ] * mat[ 2 ][ 1 ] + in[ 2 ] * mat[ 2 ][ 2 ] );
@@ -461,11 +463,11 @@ static float sp, sy;
 //static float    cr; // TTimo: unused
 static float cp, cy;
 
-__inline void LocalAngleVector( vec3_t angs, vec3_t forward ) {
-	LAVangle = angs[YAW] * ( M_PI * 2 / 360 );
+__inline void LocalAngleVector( const idVec3 &angs, idVec3 &forward ) {
+	LAVangle = angs[YAW] * ( idMath::TWO_PI / 360.0f );
 	sy = sin( LAVangle );
 	cy = cos( LAVangle );
-	LAVangle = angs[PITCH] * ( M_PI * 2 / 360 );
+	LAVangle = angs[PITCH] * ( idMath::TWO_PI / 360.0f );
 	sp = sin( LAVangle );
 	cp = cos( LAVangle );
 
@@ -474,22 +476,16 @@ __inline void LocalAngleVector( vec3_t angs, vec3_t forward ) {
 	forward[2] = -sp;
 }
 
-__inline void LocalVectorMA( vec3_t org, float dist, vec3_t dirv, vec3_t out ) {
-	out[0] = org[0] + dist * dirv[0];
-	out[1] = org[1] + dist * dirv[1];
-	out[2] = org[2] + dist * dirv[2];
-}
-
 #define ANGLES_SHORT_TO_FLOAT( pf, sh )     { *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); }
 
-__inline void SLerp_Normal( vec3_t from, vec3_t to, float tt, vec3_t out ) {
+__inline void SLerp_Normal( const idVec3 &from, const idVec3 &to, float tt, idVec3 &out ) {
 	float ft = 1.0 - tt;
 
 	out[0] = from[0] * ft + to[0] * tt;
 	out[1] = from[1] * ft + to[1] * tt;
 	out[2] = from[2] * ft + to[2] * tt;
 
-	VectorNormalize( out );
+	out.Normalize();
 }
 
 /*
@@ -500,7 +496,7 @@ __inline void SLerp_Normal( vec3_t from, vec3_t to, float tt, vec3_t out ) {
 ===============================================================================
 */
 
-__inline void Matrix4Multiply( const vec4_t a[4], const vec4_t b[4], vec4_t dst[4] ) {
+__inline void Matrix4Multiply( const idVec4 a[4], const idVec4 b[4], idVec4 dst[4] ) {
 	dst[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0] + a[0][3] * b[3][0];
 	dst[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1] + a[0][3] * b[3][1];
 	dst[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2] + a[0][3] * b[3][2];
@@ -524,7 +520,7 @@ __inline void Matrix4Multiply( const vec4_t a[4], const vec4_t b[4], vec4_t dst[
 
 // TTimo: const vec_t ** would require explicit casts for ANSI C conformance
 // see unix/const-arg.c in Wolf MP source
-__inline void Matrix4MultiplyInto3x3AndTranslation( /*const*/ vec4_t a[4], /*const*/ vec4_t b[4], vec3_t dst[3], vec3_t trans ) {
+__inline void Matrix4MultiplyInto3x3AndTranslation( /*const*/ idVec4 a[4], /*const*/ idVec4 b[4], idVec3 dst[3], idVec3 trans ) {
 	dst[0][0] = a[0][0] * b[0][0] + a[0][1] * b[1][0] + a[0][2] * b[2][0] + a[0][3] * b[3][0];
 	dst[0][1] = a[0][0] * b[0][1] + a[0][1] * b[1][1] + a[0][2] * b[2][1] + a[0][3] * b[3][1];
 	dst[0][2] = a[0][0] * b[0][2] + a[0][1] * b[1][2] + a[0][2] * b[2][2] + a[0][3] * b[3][2];
@@ -541,7 +537,7 @@ __inline void Matrix4MultiplyInto3x3AndTranslation( /*const*/ vec4_t a[4], /*con
 	trans[2]      = a[2][0] * b[0][3] + a[2][1] * b[1][3] + a[2][2] * b[2][3] + a[2][3] * b[3][3];
 }
 
-__inline void Matrix4Transpose( const vec4_t matrix[4], vec4_t transpose[4] ) {
+__inline void Matrix4Transpose( const idVec4 matrix[4], idVec4 transpose[4] ) {
 	int i, j;
 	for ( i = 0; i < 4; i++ ) {
 		for ( j = 0; j < 4; j++ ) {
@@ -550,7 +546,7 @@ __inline void Matrix4Transpose( const vec4_t matrix[4], vec4_t transpose[4] ) {
 	}
 }
 
-__inline void Matrix4FromAxis( const vec3_t axis[3], vec4_t dst[4] ) {
+__inline void Matrix4FromAxis( const idVec3 axis[3], idVec4 dst[4] ) {
 	int i, j;
 	for ( i = 0; i < 3; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
@@ -562,7 +558,7 @@ __inline void Matrix4FromAxis( const vec3_t axis[3], vec4_t dst[4] ) {
 	dst[3][3] = 1;
 }
 
-__inline void Matrix4FromScaledAxis( const vec3_t axis[3], const float scale, vec4_t dst[4] ) {
+__inline void Matrix4FromScaledAxis( const idVec3 axis[3], const float scale, idVec4 dst[4] ) {
 	int i, j;
 
 	for ( i = 0; i < 3; i++ ) {
@@ -578,7 +574,7 @@ __inline void Matrix4FromScaledAxis( const vec3_t axis[3], const float scale, ve
 	dst[3][3] = 1;
 }
 
-__inline void Matrix4FromTranslation( const vec3_t trans, vec4_t dst[4] ) {
+__inline void Matrix4FromTranslation( const idVec3 trans, idVec4 dst[4] ) {
 	int i, j;
 
 	for ( i = 0; i < 3; i++ ) {
@@ -598,7 +594,7 @@ __inline void Matrix4FromTranslation( const vec3_t trans, vec4_t dst[4] ) {
 // can put an axis rotation followed by a translation directly into one matrix
 // TTimo: const vec_t ** would require explicit casts for ANSI C conformance
 // see unix/const-arg.c in Wolf MP source
-__inline void Matrix4FromAxisPlusTranslation( /*const*/ vec3_t axis[3], const vec3_t trans, vec4_t dst[4] ) {
+__inline void Matrix4FromAxisPlusTranslation( /*const*/ idVec3 axis[3], const idVec3 trans, idVec4 dst[4] ) {
 	int i, j;
 	for ( i = 0; i < 3; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
@@ -613,7 +609,7 @@ __inline void Matrix4FromAxisPlusTranslation( /*const*/ vec3_t axis[3], const ve
 // can put a scaled axis rotation followed by a translation directly into one matrix
 // TTimo: const vec_t ** would require explicit casts for ANSI C conformance
 // see unix/const-arg.c in Wolf MP source
-__inline void Matrix4FromScaledAxisPlusTranslation( /*const*/ vec3_t axis[3], const float scale, const vec3_t trans, vec4_t dst[4] ) {
+__inline void Matrix4FromScaledAxisPlusTranslation( /*const*/ idVec3 axis[3], const float scale, const idVec3 trans, idVec4 dst[4] ) {
 	int i, j;
 
 	for ( i = 0; i < 3; i++ ) {
@@ -629,7 +625,7 @@ __inline void Matrix4FromScaledAxisPlusTranslation( /*const*/ vec3_t axis[3], co
 	dst[3][3] = 1;
 }
 
-__inline void Matrix4FromScale( const float scale, vec4_t dst[4] ) {
+__inline void Matrix4FromScale( const float scale, idVec4 dst[4] ) {
 	int i, j;
 
 	for ( i = 0; i < 4; i++ ) {
@@ -644,7 +640,7 @@ __inline void Matrix4FromScale( const float scale, vec4_t dst[4] ) {
 	dst[3][3] = 1;
 }
 
-__inline void Matrix4TransformVector( const vec4_t m[4], const vec3_t src, vec3_t dst ) {
+__inline void Matrix4TransformVector( const idVec4 m[4], const idVec3 src, idVec3 dst ) {
 	dst[0] = m[0][0] * src[0] + m[0][1] * src[1] + m[0][2] * src[2] + m[0][3];
 	dst[1] = m[1][0] * src[0] + m[1][1] * src[1] + m[1][2] * src[2] + m[1][3];
 	dst[2] = m[2][0] * src[0] + m[2][1] * src[1] + m[2][2] * src[2] + m[2][3];
@@ -658,7 +654,7 @@ __inline void Matrix4TransformVector( const vec4_t m[4], const vec3_t src, vec3_
 ===============================================================================
 */
 
-__inline void Matrix3Transpose( const vec3_t matrix[3], vec3_t transpose[3] ) {
+__inline void Matrix3Transpose( const idVec3 matrix[3], idVec3 transpose[3] ) {
 	int i, j;
 	for ( i = 0; i < 3; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
@@ -703,16 +699,16 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 #ifdef HIGH_PRECISION_BONES
 	// rotation
 	if ( fullTorso ) {
-		VectorCopy( cTBonePtr->angles, angles );
+		angles = cTBonePtr->angles;
 	} else {
-		VectorCopy( cBonePtr->angles, angles );
+		angles = cBonePtr->angles;
 		if ( isTorso ) {
-			VectorCopy( cTBonePtr->angles, tangles );
+			tangles = cTBonePtr->angles;
 			// blend the angles together
 			for ( j = 0; j < 3; j++ ) {
 				diff = tangles[j] - angles[j];
 				if ( fabs( diff ) > 180 ) {
-					diff = AngleNormalize180( diff );
+					diff = idMath::AngleNormalize180( diff );
 				}
 				angles[j] = angles[j] + thisBoneInfo->torsoWeight * diff;
 			}
@@ -722,28 +718,28 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 	// rotation
 	if ( fullTorso ) {
 		sh = (short *)cTBonePtr->angles;
-		pf = angles;
+		pf = angles.ToFloatPtr();
 		ANGLES_SHORT_TO_FLOAT( pf, sh );
 	} else {
 		sh = (short *)cBonePtr->angles;
-		pf = angles;
+		pf = angles.ToFloatPtr();
 		ANGLES_SHORT_TO_FLOAT( pf, sh );
 		if ( isTorso ) {
 			sh = (short *)cTBonePtr->angles;
-			pf = tangles;
+			pf = tangles.ToFloatPtr();
 			ANGLES_SHORT_TO_FLOAT( pf, sh );
 			// blend the angles together
 			for ( j = 0; j < 3; j++ ) {
 				diff = tangles[j] - angles[j];
 				if ( fabs( diff ) > 180 ) {
-					diff = AngleNormalize180( diff );
+					diff = idMath::AngleNormalize180( diff );
 				}
 				angles[j] = angles[j] + thisBoneInfo->torsoWeight * diff;
 			}
 		}
 	}
 #endif
-	AnglesToAxis( angles, bonePtr->matrix );
+	idAngles( angles ).ToVectors( &bonePtr->matrix[0], &bonePtr->matrix[1], &bonePtr->matrix[2] );
 
 	// translation
 	if ( parentBone ) {
@@ -754,7 +750,7 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 			angles[1] = cTBonePtr->ofsAngles[1];
 			angles[2] = 0;
 			LocalAngleVector( angles, vec );
-			LocalVectorMA( parentBone->translation, thisBoneInfo->parentDist, vec, bonePtr->translation );
+			bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 		} else {
 
 			angles[0] = cBonePtr->ofsAngles[0];
@@ -770,36 +766,36 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 
 				// blend the angles together
 				SLerp_Normal( vec, v2, thisBoneInfo->torsoWeight, vec );
-				LocalVectorMA( parentBone->translation, thisBoneInfo->parentDist, vec, bonePtr->translation );
+				bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 
 			} else {    // legs bone
-				LocalVectorMA( parentBone->translation, thisBoneInfo->parentDist, vec, bonePtr->translation );
+				bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 			}
 		}
 #else
 		if ( fullTorso ) {
-			sh = (short *)cTBonePtr->ofsAngles; pf = angles;
+			sh = (short *)cTBonePtr->ofsAngles; pf = angles.ToFloatPtr();
 			*( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = 0;
 			LocalAngleVector( angles, vec );
-			LocalVectorMA( parentBone->translation, thisBoneInfo->parentDist, vec, bonePtr->translation );
+			bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 		} else {
 
-			sh = (short *)cBonePtr->ofsAngles; pf = angles;
+			sh = (short *)cBonePtr->ofsAngles; pf = angles.ToFloatPtr();
 			*( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = 0;
 			LocalAngleVector( angles, vec );
 
 			if ( isTorso ) {
 				sh = (short *)cTBonePtr->ofsAngles;
-				pf = tangles;
+				pf = tangles.ToFloatPtr();
 				*( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = 0;
 				LocalAngleVector( tangles, v2 );
 
 				// blend the angles together
 				SLerp_Normal( vec, v2, thisBoneInfo->torsoWeight, vec );
-				LocalVectorMA( parentBone->translation, thisBoneInfo->parentDist, vec, bonePtr->translation );
+				bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 
 			} else {    // legs bone
-				LocalVectorMA( parentBone->translation, thisBoneInfo->parentDist, vec, bonePtr->translation );
+				bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 			}
 		}
 #endif
@@ -810,7 +806,7 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 	}
 	//
 	if ( boneNum == header->torsoParent ) { // this is the torsoParent
-		VectorCopy( bonePtr->translation, torsoParentOffset );
+		torsoParentOffset = bonePtr->translation;
 	}
 	//
 	validBones[boneNum] = 1;
@@ -861,46 +857,46 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 
 		sh = (short *)cTBonePtr->angles;
 		sh2 = (short *)cOldTBonePtr->angles;
-		pf = angles;
+		pf = angles.ToFloatPtr();
 
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - torsoBacklerp * diff;
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - torsoBacklerp * diff;
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - torsoBacklerp * diff;
 
 	} else {
 
 		sh = (short *)cBonePtr->angles;
 		sh2 = (short *)cOldBonePtr->angles;
-		pf = angles;
+		pf = angles.ToFloatPtr();
 
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - backlerp * diff;
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - backlerp * diff;
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - backlerp * diff;
 
 		if ( isTorso ) {
 
 			sh = (short *)cTBonePtr->angles;
 			sh2 = (short *)cOldTBonePtr->angles;
-			pf = tangles;
+			pf = tangles.ToFloatPtr();
 
-			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 			*( pf++ ) = a1 - torsoBacklerp * diff;
-			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 			*( pf++ ) = a1 - torsoBacklerp * diff;
-			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 			*( pf++ ) = a1 - torsoBacklerp * diff;
 
 			// blend the angles together
 			for ( j = 0; j < 3; j++ ) {
 				diff = tangles[j] - angles[j];
 				if ( fabs( diff ) > 180 ) {
-					diff = AngleNormalize180( diff );
+					diff = idMath::AngleNormalize180( diff );
 				}
 				angles[j] = angles[j] + thisBoneInfo->torsoWeight * diff;
 			}
@@ -908,7 +904,7 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 		}
 
 	}
-	AnglesToAxis( angles, bonePtr->matrix );
+	idAngles( angles ).ToVectors( &bonePtr->matrix[0], &bonePtr->matrix[1], &bonePtr->matrix[2] );
 
 	if ( parentBone ) {
 
@@ -920,13 +916,13 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 			sh2 = (short *)cOldBonePtr->ofsAngles;
 		}
 
-		pf = angles;
+		pf = angles.ToFloatPtr();
 		*( pf++ ) = SHORT2ANGLE( *( sh++ ) );
 		*( pf++ ) = SHORT2ANGLE( *( sh++ ) );
 		*( pf++ ) = 0;
 		LocalAngleVector( angles, v2 );     // new
 
-		pf = angles;
+		pf = angles.ToFloatPtr();
 		*( pf++ ) = SHORT2ANGLE( *( sh2++ ) );
 		*( pf++ ) = SHORT2ANGLE( *( sh2++ ) );
 		*( pf++ ) = 0;
@@ -946,13 +942,13 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 			sh = (short *)cTBonePtr->ofsAngles;
 			sh2 = (short *)cOldTBonePtr->ofsAngles;
 
-			pf = angles;
+			pf = angles.ToFloatPtr();
 			*( pf++ ) = SHORT2ANGLE( *( sh++ ) );
 			*( pf++ ) = SHORT2ANGLE( *( sh++ ) );
 			*( pf++ ) = 0;
 			LocalAngleVector( angles, v2 );     // new
 
-			pf = angles;
+			pf = angles.ToFloatPtr();
 			*( pf++ ) = SHORT2ANGLE( *( sh2++ ) );
 			*( pf++ ) = SHORT2ANGLE( *( sh2++ ) );
 			*( pf++ ) = 0;
@@ -966,7 +962,7 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 
 		}
 
-		LocalVectorMA( parentBone->translation, thisBoneInfo->parentDist, dir, bonePtr->translation );
+		bonePtr->translation = parentBone->translation + dir * thisBoneInfo->parentDist;
 
 	} else {    // just interpolate the frame positions
 
@@ -977,7 +973,7 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 	}
 	//
 	if ( boneNum == header->torsoParent ) { // this is the torsoParent
-		VectorCopy( bonePtr->translation, torsoParentOffset );
+		torsoParentOffset = bonePtr->translation;
 	}
 	validBones[boneNum] = 1;
 	//
@@ -1129,7 +1125,7 @@ void R_CalcBones( mdsHeader_t *header, const refEntity_t *refent, int *boneList,
 
 				// 1st multiply with the bone->matrix
 				// 2nd translation for rotation relative to bone around torso parent offset
-				VectorSubtract( bonePtr->translation, torsoParentOffset, t );
+				t = bonePtr->translation - torsoParentOffset;
 				Matrix4FromAxisPlusTranslation( bonePtr->matrix, t, m1 );
 				// 3rd scaled rotation
 				// 4th translate back to torso parent offset
@@ -1150,9 +1146,9 @@ void R_CalcBones( mdsHeader_t *header, const refEntity_t *refent, int *boneList,
 				memcpy( bonePtr->matrix, tmpAxis, sizeof( tmpAxis ) );
 
 				// rotate the translation around the torsoParent
-				VectorSubtract( bonePtr->translation, torsoParentOffset, t );
+				t = bonePtr->translation - torsoParentOffset;
 				LocalScaledMatrixTransformVector( t, thisBoneInfo->torsoWeight, torsoAxis, bonePtr->translation );
-				VectorAdd( bonePtr->translation, torsoParentOffset, bonePtr->translation );
+				bonePtr->translation = bonePtr->translation + torsoParentOffset;
 
 			}
 		}
@@ -1198,7 +1194,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 	// calculate LOD
 	//
 	// TODO: lerp the radius and origin
-	VectorAdd( refent->origin, frame->localOrigin, vec );
+	vec = refent->origin + frame->localOrigin;
 	lodRadius = frame->radius;
 	lodScale = R_CalcMDSLod( refent, vec, lodRadius, header->lodBias, header->lodScale );
 
@@ -1207,8 +1203,8 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 
 //----(SA)	modification to allow dead skeletal bodies to go below minlod (experiment)
 	if ( refent->reFlags & REFLAG_DEAD_LOD ) {
-		if ( lodScale < 0.35 ) {   // allow dead to lod down to 35% (even if below surf->minLod) (%35 is arbitrary and probably not good generally.  worked for the blackguard/infantry as a test though)
-			lodScale = 0.35;
+		if ( lodScale < 0.35f ) {   // allow dead to lod down to 35% (even if below surf->minLod) (%35 is arbitrary and probably not good generally.  worked for the blackguard/infantry as a test though)
+			lodScale = 0.35f;
 		}
 		render_count = (int)( (float) surface->numVerts * lodScale );
 
@@ -1306,12 +1302,11 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 	//
 	numVerts = surface->numVerts;
 	v = ( mdsVertex_t * )( (byte *)surface + surface->ofsVerts );
-	tempVert = ( float * )( tess.xyz + baseVertex );
-	tempNormal = ( float * )( tess.normal + baseVertex );
-	for ( j = 0; j < render_count; j++, tempVert += 4, tempNormal += 4 ) {
+	for ( j = 0; j < render_count; j++ ) {
 		mdsWeight_t *w;
 
-		VectorClear( tempVert );
+		tempVert.Zero();
+		tempNormal.Zero();
 
 		w = v->weights;
 		for ( k = 0 ; k < v->numWeights ; k++, w++ ) {
@@ -1319,6 +1314,8 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 			LocalAddScaledMatrixTransformVectorTranslate( w->offset, w->boneWeight, bone->matrix, bone->translation, tempVert );
 		}
 		LocalMatrixTransformVector( v->normal, bones[v->weights[0].boneIndex].matrix, tempNormal );
+		tess.xyz[baseVertex + j].ToVec3() = tempVert;
+		tess.normal[baseVertex + j].ToVec3() = tempNormal;
 
 		tess.texCoords[baseVertex + j][0][0] = v->texCoords[0];
 		tess.texCoords[baseVertex + j][0][1] = v->texCoords[1];
@@ -1339,12 +1336,12 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 				qglLineWidth( 1 );
 				qglBegin( GL_LINES );
 				for ( j = 0; j < 3; j++ ) {
-					VectorClear( vec );
+					vec.Zero();
 					vec[j] = 1;
-					qglColor3fv( vec );
-					qglVertex3fv( bonePtr->translation );
-					VectorMA( bonePtr->translation, 5, bonePtr->matrix[j], vec );
-					qglVertex3fv( vec );
+					qglColor3fv( vec.ToFloatPtr() );
+					qglVertex3fv( bonePtr->translation.ToFloatPtr() );
+					vec = bonePtr->translation + bonePtr->matrix[j] * 5;
+					qglVertex3fv( vec.ToFloatPtr() );
 				}
 				qglEnd();
 
@@ -1352,9 +1349,9 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 				if ( validBones[boneInfo[*boneRefs].parent] ) {
 					qglLineWidth( 2 );
 					qglBegin( GL_LINES );
-					qglColor3f( .6,.6,.6 );
-					qglVertex3fv( bonePtr->translation );
-					qglVertex3fv( bones[boneInfo[*boneRefs].parent].translation );
+					qglColor3f( .6f, .6f, .6f );
+					qglVertex3fv( bonePtr->translation.ToFloatPtr() );
+					qglVertex3fv( bones[boneInfo[*boneRefs].parent].translation.ToFloatPtr() );
 					qglEnd();
 				}
 
@@ -1366,24 +1363,21 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 			int render_indexes = ( tess.numIndexes - oldIndexes );
 
 			// show mesh edges
-			tempVert = ( float * )( tess.xyz + baseVertex );
-			tempNormal = ( float * )( tess.normal + baseVertex );
-
 			GL_Bind( tr.whiteImage );
 			qglLineWidth( 1 );
 			qglBegin( GL_LINES );
-			qglColor3f( .0,.0,.8 );
+			qglColor3f( .0f, .0f, .8f );
 
 			pIndexes = &tess.indexes[oldIndexes];
 			for ( j = 0; j < render_indexes / 3; j++, pIndexes += 3 ) {
-				qglVertex3fv( tempVert + 4 * pIndexes[0] );
-				qglVertex3fv( tempVert + 4 * pIndexes[1] );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[0]].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[1]].ToFloatPtr() );
 
-				qglVertex3fv( tempVert + 4 * pIndexes[1] );
-				qglVertex3fv( tempVert + 4 * pIndexes[2] );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[1]].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[2]].ToFloatPtr() );
 
-				qglVertex3fv( tempVert + 4 * pIndexes[2] );
-				qglVertex3fv( tempVert + 4 * pIndexes[0] );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[2]].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[0]].ToFloatPtr() );
 			}
 
 			qglEnd();
@@ -1483,7 +1477,7 @@ int R_GetBoneTag( orientation_t *outTag, mdsHeader_t *mds, int startTagIndex, co
 	// now extract the orientation for the bone that represents our tag
 
 	memcpy( outTag->axis, bones[ pTag->boneIndex ].matrix, sizeof( outTag->axis ) );
-	VectorCopy( bones[ pTag->boneIndex ].translation, outTag->origin );
+	outTag->origin = bones[ pTag->boneIndex ].translation;
 
 	return i;
 }

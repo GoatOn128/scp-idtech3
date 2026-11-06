@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "tr_renderprog.h"
 #include <cmath>
@@ -155,8 +157,8 @@ static qboolean R_LoadScreenPrograms( void ) {
 #undef RP_LOAD
 	const char *names[SCREEN_PROGRAM_COUNT] = { "particles", "decals" };
 	for ( int i = 0; i < SCREEN_PROGRAM_COUNT; i++ ) {
-		GLuint vertex = R_CompileScreenShader( RP_VERTEX_SHADER, va( "renderprogs/%s.vert", names[i] ) );
-		GLuint fragment = R_CompileScreenShader( RP_FRAGMENT_SHADER, va( "renderprogs/%s.frag", names[i] ) );
+		GLuint vertex = R_CompileScreenShader( RP_VERTEX_SHADER, idStr::FormatString( "renderprogs/%s.vert", names[i] ) );
+		GLuint fragment = R_CompileScreenShader( RP_FRAGMENT_SHADER, idStr::FormatString( "renderprogs/%s.frag", names[i] ) );
 		if ( !vertex || !fragment ) {
 			if ( vertex ) { rpDeleteShader( vertex ); }
 			if ( fragment ) { rpDeleteShader( fragment ); }
@@ -221,9 +223,9 @@ qboolean RB_ScreenEntityVisible( const refEntity_t *entity ) {
 	if ( !r_drawentities->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ) { return qfalse; }
 	if ( ( entity->renderfx & RF_FIRST_PERSON ) && backEnd.viewParms.isPortal ) { return qfalse; }
 	if ( ( entity->renderfx & RF_THIRD_PERSON ) && !backEnd.viewParms.isPortal ) { return qfalse; }
-	if ( !std::isfinite( entity->radius ) || entity->radius <= 0 || !entity->shaderRGBA[3] ) { return qfalse; }
+	if ( !idMath::IsFinite( entity->radius ) || entity->radius <= 0 || !entity->shaderRGBA[3] ) { return qfalse; }
 	for ( int i = 0; i < 3; i++ ) {
-		if ( !std::isfinite( entity->origin[i] ) ) { return qfalse; }
+		if ( !idMath::IsFinite( entity->origin[i] ) ) { return qfalse; }
 	}
 	return qtrue;
 }
@@ -320,7 +322,7 @@ qboolean RB_BeginScreenPass( screenProgram_t kind ) {
 	rpUniform4f( screenProgram->viewport, view->viewportX, view->viewportY, view->viewportWidth, view->viewportHeight );
 	rpUniform2f( screenProgram->depthSize, screenDepthWidth, screenDepthHeight );
 	rpUniformMatrix4fv( screenProgram->inverseViewProjection, 1, GL_FALSE, inverse );
-	rpUniform3fv( screenProgram->viewOrigin, 1, view->orent.origin );
+	rpUniform3fv( screenProgram->viewOrigin, 1, view->orent.origin.ToFloatPtr() );
 	rpUniform2f( screenProgram->projection, view->projectionMatrix[10], view->projectionMatrix[14] );
 	return qtrue;
 }
@@ -340,11 +342,11 @@ void RB_ScreenSoftness( float value ) {
 	rpUniform1f( screenProgram->softness, value );
 }
 
-void RB_ScreenDecalProjection( const vec3_t origin, const vec3_t right, const vec3_t up, const vec3_t normal ) {
-	rpUniform3fv( screenProgram->origin, 1, origin );
-	rpUniform3fv( screenProgram->right, 1, right );
-	rpUniform3fv( screenProgram->up, 1, up );
-	rpUniform3fv( screenProgram->normal, 1, normal );
+void RB_ScreenDecalProjection( const idVec3 &origin, const idVec3 &right, const idVec3 &up, const idVec3 &normal ) {
+	rpUniform3fv( screenProgram->origin, 1, origin.ToFloatPtr() );
+	rpUniform3fv( screenProgram->right, 1, right.ToFloatPtr() );
+	rpUniform3fv( screenProgram->up, 1, up.ToFloatPtr() );
+	rpUniform3fv( screenProgram->normal, 1, normal.ToFloatPtr() );
 }
 
 void RB_BindScreenMaterial( const refEntity_t *entity ) {

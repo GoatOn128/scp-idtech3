@@ -48,9 +48,9 @@ If you have questions concerning this license or the applicable additional terms
 //a bot goal
 typedef struct bot_goal_s
 {
-	vec3_t origin;              //origin of the goal
+	idVec3 origin;              //origin of the goal
 	int areanum;                //area number of the goal
-	vec3_t mins, maxs;          //mins and maxs of the goal
+	idVec3 mins, maxs;          //mins and maxs of the goal
 	int entitynum;              //number of the goal entity
 	int number;                 //goal number
 	int flags;                  //goal flags
@@ -79,14 +79,14 @@ void BotGoalName( int number, char *name, int size );
 int BotGetTopGoal( int goalstate, bot_goal_t *goal );
 int BotGetSecondGoal( int goalstate, bot_goal_t *goal );
 //choose the best long term goal item for the bot
-int BotChooseLTGItem( int goalstate, vec3_t origin, int *inventory, int travelflags );
+int BotChooseLTGItem( int goalstate, const idVec3 &origin, int *inventory, int travelflags );
 //choose the best nearby goal item for the bot
-int BotChooseNBGItem( int goalstate, vec3_t origin, int *inventory, int travelflags,
+int BotChooseNBGItem( int goalstate, const idVec3 &origin, int *inventory, int travelflags,
 					  bot_goal_t *ltg, float maxtime );
 //returns true if the bot touches the goal
-int BotTouchingGoal( vec3_t origin, bot_goal_t *goal );
+int BotTouchingGoal( const idVec3 &origin, bot_goal_t *goal );
 //returns true if the goal should be visible but isn't
-int BotItemGoalInVisButNotVisible( int viewer, vec3_t eye, vec3_t viewangles, bot_goal_t *goal );
+int BotItemGoalInVisButNotVisible( int viewer, const idVec3 &eye, const idVec3 &viewangles, bot_goal_t *goal );
 //get some info about a level item
 int BotGetLevelItemGoal( int index, char *classname, bot_goal_t *goal );
 //get the next camp spot in the map

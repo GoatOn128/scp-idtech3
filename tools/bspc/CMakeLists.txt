@@ -7,7 +7,8 @@ set(BSPC_SOURCES
 add_executable(bspc ${BSPC_SOURCES})
 
 target_include_directories(bspc PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_SOURCE_DIR}/gamedll/game")
-target_link_libraries(bspc PRIVATE recast detour)
+target_link_libraries(bspc PRIVATE recast detour idlib)
 target_compile_features(bspc PRIVATE cxx_std_17)
 target_compile_definitions(bspc PRIVATE NOMINMAX)
 configure_target(bspc)
+target_precompile_headers(bspc PRIVATE "${CMAKE_SOURCE_DIR}/tools/precompiled.h")

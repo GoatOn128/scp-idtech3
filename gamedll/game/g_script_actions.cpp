@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 // Tab Size:		4 (real tabs)
 //===========================================================================
 
+#include "../precompiled.h"
+
 #include "../game/g_local.h"
 #include "../../engine/qcommon/q_shared.h"
 
@@ -57,15 +59,16 @@ G_ScriptAction_GotoMarker
 ===============
 */
 qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
-	char    *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	gentity_t *target;
-	vec3_t vec;
+	idVec3 vec;
 	float speed, dist;
 	qboolean wait = qfalse, turntotarget = qfalse;
 	int trType;
 	int duration, i;
-	vec3_t diff;
-	vec3_t angles;
+	idVec3 diff;
+	idVec3 angles;
 
 	if ( params && ( ent->scriptStatus.scriptFlags & SCFL_GOING_TO_MARKER ) ) {
 		// we can't process a new movement until the last one has finished
@@ -78,21 +81,21 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 
 			// set the angles at the destination
 			BG_EvaluateTrajectory( &ent->s.apos, ent->s.apos.trTime + ent->s.apos.trDuration, ent->s.angles );
-			VectorCopy( ent->s.angles, ent->s.apos.trBase );
-			VectorCopy( ent->s.angles, ent->r.currentAngles );
+			ent->s.apos.trBase = ent->s.angles;
+			ent->r.currentAngles = ent->s.angles;
 			ent->s.apos.trTime = level.time;
 			ent->s.apos.trDuration = 0;
 			ent->s.apos.trType = TR_STATIONARY;
-			VectorClear( ent->s.apos.trDelta );
+			ent->s.apos.trDelta.Zero();
 
 			// stop moving
 			BG_EvaluateTrajectory( &ent->s.pos, level.time, ent->s.origin );
-			VectorCopy( ent->s.origin, ent->s.pos.trBase );
-			VectorCopy( ent->s.origin, ent->r.currentOrigin );
+			ent->s.pos.trBase = ent->s.origin;
+			ent->r.currentOrigin = ent->s.origin;
 			ent->s.pos.trTime = level.time;
 			ent->s.pos.trDuration = 0;
 			ent->s.pos.trType = TR_STATIONARY;
-			VectorClear( ent->s.pos.trDelta );
+			ent->s.pos.trDelta.Zero();
 
 			script_linkentity( ent );
 
@@ -100,39 +103,39 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 		}
 	} else {    // we have just started this command
 
-		pString = params;
-		token = COM_ParseExt( &pString, qfalse );
+		lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+		lexer.ReadTokenOnLine( &token );
 		if ( !token[0] ) {
 			G_Error( "G_Scripting: gotomarker must have an targetname\n" );
 		}
 
 		// find the entity with the given "targetname"
-		target = G_Find( NULL, FOFS( targetname ), token );
+		target = G_Find( NULL, FOFS( targetname ), token.c_str() );
 
 		if ( !target ) {
-			G_Error( "G_Scripting: can't find entity with \"targetname\" = \"%s\"\n", token );
+			G_Error( "G_Scripting: can't find entity with \"targetname\" = \"%s\"\n", token.c_str() );
 		}
 
-		VectorSubtract( target->r.currentOrigin, ent->r.currentOrigin, vec );
+		vec = target->r.currentOrigin - ent->r.currentOrigin;
 
-		token = COM_ParseExt( &pString, qfalse );
+		lexer.ReadTokenOnLine( &token );
 		if ( !token[0] ) {
 			G_Error( "G_Scripting: gotomarker must have a speed\n" );
 		}
 
-		speed = atof( token );
+		speed = atof( token.c_str() );
 		trType = TR_LINEAR_STOP;
 
 		while ( token[0] ) {
-			token = COM_ParseExt( &pString, qfalse );
+			lexer.ReadTokenOnLine( &token );
 			if ( token[0] ) {
-				if ( !Q_stricmp( token, "accel" ) ) {
+				if ( !idStr::Icmp( token.c_str(), "accel" ) ) {
 					trType = TR_ACCELERATE;
-				} else if ( !Q_stricmp( token, "deccel" ) )      {
+				} else if ( !idStr::Icmp( token.c_str(), "deccel" ) )      {
 					trType = TR_DECCELERATE;
-				} else if ( !Q_stricmp( token, "wait" ) )      {
+				} else if ( !idStr::Icmp( token.c_str(), "wait" ) )      {
 					wait = qtrue;
-				} else if ( !Q_stricmp( token, "turntotarget" ) )      {
+				} else if ( !idStr::Icmp( token.c_str(), "turntotarget" ) )      {
 					turntotarget = qtrue;
 				}
 			}
@@ -141,11 +144,11 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 		// start the movement
 		if ( ent->s.eType == ET_MOVER ) {
 
-			VectorCopy( vec, ent->movedir );
-			VectorCopy( ent->r.currentOrigin, ent->pos1 );
-			VectorCopy( target->r.currentOrigin, ent->pos2 );
+			ent->movedir = vec;
+			ent->pos1 = ent->r.currentOrigin;
+			ent->pos2 = target->r.currentOrigin;
 			ent->speed = speed;
-			dist = VectorDistance( ent->pos1, ent->pos2 );
+			dist = ( ent->pos1 - ent->pos2 ).Length();
 			// setup the movement with the new parameters
 			InitMover( ent );
 
@@ -160,7 +163,7 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 
 			if ( turntotarget ) {
 				duration = ent->s.pos.trDuration;
-				VectorCopy( target->s.angles, angles );
+				angles = target->s.angles;
 
 				for ( i = 0; i < 3; i++ ) {
 					diff[i] = AI_AngleDifference( angles[i], ent->s.angles[i] );
@@ -169,11 +172,11 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 					while ( diff[i] < -180 )
 						diff[i] += 360;
 				}
-				VectorCopy( ent->s.angles, ent->s.apos.trBase );
+				ent->s.apos.trBase = ent->s.angles;
 				if ( duration ) {
-					VectorScale( diff, 1000.0 / (float)duration, ent->s.apos.trDelta );
+					ent->s.apos.trDelta = diff * ( 1000.0 / (float)duration );
 				} else {
-					VectorClear( ent->s.apos.trDelta );
+					ent->s.apos.trDelta.Zero();
 				}
 				ent->s.apos.trDuration = duration;
 				ent->s.apos.trTime = level.time;
@@ -188,14 +191,14 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 			// calculate the trajectory
 			ent->s.pos.trType = TR_LINEAR_STOP;
 			ent->s.pos.trTime = level.time;
-			VectorCopy( ent->r.currentOrigin, ent->s.pos.trBase );
-			dist = VectorNormalize( vec );
-			VectorScale( vec, speed, ent->s.pos.trDelta );
+			ent->s.pos.trBase = ent->r.currentOrigin;
+			dist = vec.Normalize();
+			ent->s.pos.trDelta = vec * speed;
 			ent->s.pos.trDuration = 1000 * ( dist / speed );
 
 			if ( turntotarget ) {
 				duration = ent->s.pos.trDuration;
-				VectorCopy( target->s.angles, angles );
+				angles = target->s.angles;
 
 				for ( i = 0; i < 3; i++ ) {
 					diff[i] = AI_AngleDifference( angles[i], ent->s.angles[i] );
@@ -204,11 +207,11 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 					while ( diff[i] < -180 )
 						diff[i] += 360;
 				}
-				VectorCopy( ent->s.angles, ent->s.apos.trBase );
+				ent->s.apos.trBase = ent->s.angles;
 				if ( duration ) {
-					VectorScale( diff, 1000.0 / (float)duration, ent->s.apos.trDelta );
+					ent->s.apos.trDelta = diff * ( 1000.0 / (float)duration );
 				} else {
-					VectorClear( ent->s.apos.trDelta );
+					ent->s.apos.trDelta.Zero();
 				}
 				ent->s.apos.trDuration = duration;
 				ent->s.apos.trTime = level.time;
@@ -224,7 +227,7 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 
 				frac = (float)( ( ( ent->s.pos.trDuration / 50 ) * 50 + 50 ) - ent->s.pos.trDuration ) / (float)( ent->s.pos.trDuration );
 				if ( frac < 1 ) {
-					VectorScale( ent->s.pos.trDelta, 1.0 / ( 1.0 + frac ), ent->s.pos.trDelta );
+					ent->s.pos.trDelta = ent->s.pos.trDelta * ( 1.0 / ( 1.0 + frac ) );
 					ent->s.pos.trDuration = ( ent->s.pos.trDuration / 50 ) * 50 + 50;
 				}
 			}
@@ -251,16 +254,17 @@ G_ScriptAction_Wait
 =================
 */
 qboolean G_ScriptAction_Wait( gentity_t *ent, char *params ) {
-	char    *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int duration;
 
 	// get the duration
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: wait must have a duration\n" );
 	}
-	duration = atoi( token );
+	duration = atoi( token.c_str() );
 
 	return ( ent->scriptStatus.scriptStackChangeTime + duration < level.time );
 }
@@ -276,19 +280,21 @@ G_ScriptAction_Trigger
 */
 qboolean G_ScriptAction_Trigger( gentity_t *ent, char *params ) {
 	gentity_t *trent;
-	char *pString, name[MAX_QPATH], trigger[MAX_QPATH], *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
+	char name[MAX_QPATH], trigger[MAX_QPATH];
 	int oldId;
 
 	// get the cast name
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
-	Q_strncpyz( name, token, sizeof( name ) );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadTokenOnLine( &token );
+	idStr::Copynz( name, token.c_str(), sizeof( name ) );
 	if ( !name[0] ) {
 		G_Error( "G_Scripting: trigger must have a name and an identifier\n" );
 	}
 
-	token = COM_ParseExt( &pString, qfalse );
-	Q_strncpyz( trigger, token, sizeof( trigger ) );
+	lexer.ReadTokenOnLine( &token );
+	idStr::Copynz( trigger, token.c_str(), sizeof( trigger ) );
 	if ( !trigger[0] ) {
 		G_Error( "G_Scripting: trigger must have a name and an identifier\n" );
 	}
@@ -325,19 +331,20 @@ G_ScriptAction_PlaySound
 ================
 */
 qboolean G_ScriptAction_PlaySound( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char sound[MAX_QPATH];
 
 	if ( !params ) {
 		G_Error( "G_Scripting: syntax error\n\nplaysound <soundname OR scriptname>\n" );
 	}
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
-	Q_strncpyz( sound, token, sizeof( sound ) );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadTokenOnLine( &token );
+	idStr::Copynz( sound, token.c_str(), sizeof( sound ) );
 
-	token = COM_ParseExt( &pString, qfalse );
-	if ( !token[0] || Q_strcasecmp( token, "looping" ) ) {
+	lexer.ReadTokenOnLine( &token );
+	if ( !token[0] || idStr::Icmp( token.c_str(), "looping" ) ) {
 		G_AddEvent( ent, EV_GENERAL_SOUND, G_SoundIndex( sound ) );
 	} else {    // looping channel
 		ent->s.loopSound = G_SoundIndex( sound );
@@ -354,23 +361,24 @@ AICast_ScriptAction_MusicStart
 ==================
 */
 qboolean G_ScriptAction_MusicStart( gentity_t *ent, char *params ) {
-	char    *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cvarName[MAX_QPATH];
 	int fadeupTime = 0;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: syntax: mu_start <musicfile> <fadeuptime>" );
 	}
-	Q_strncpyz( cvarName, token, sizeof( cvarName ) );
+	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
-		fadeupTime = atoi( token );
+		fadeupTime = atoi( token.c_str() );
 	}
 
-	trap_SendServerCommand( -1, va( "mu_start %s %d", cvarName, fadeupTime ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "mu_start %s %d", cvarName, fadeupTime ) );
 
 	return qtrue;
 }
@@ -382,18 +390,19 @@ AICast_ScriptAction_MusicPlay
 ==================
 */
 qboolean G_ScriptAction_MusicPlay( gentity_t *ent, char *params ) {
-	char    *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cvarName[MAX_QPATH];
 	int fadeupTime = 0;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: syntax: mu_play <musicfile> [fadeup time]" );
 	}
-	Q_strncpyz( cvarName, token, sizeof( cvarName ) );
+	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
-	trap_SendServerCommand( -1, va( "mu_play %s %d", cvarName, fadeupTime ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "mu_play %s %d", cvarName, fadeupTime ) );
 
 	return qtrue;
 }
@@ -405,16 +414,17 @@ AICast_ScriptAction_MusicStop
 ==================
 */
 qboolean G_ScriptAction_MusicStop( gentity_t *ent, char *params ) {
-	char    *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int fadeoutTime = 0;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
-		fadeoutTime = atoi( token );
+		fadeoutTime = atoi( token.c_str() );
 	}
 
-	trap_SendServerCommand( -1, va( "mu_stop %i\n", fadeoutTime ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "mu_stop %i\n", fadeoutTime ) );
 
 	return qtrue;
 }
@@ -426,24 +436,25 @@ AICast_ScriptAction_MusicFade
 ==================
 */
 qboolean G_ScriptAction_MusicFade( gentity_t *ent, char *params ) {
-	char    *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	float targetvol;
 	int fadetime;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: syntax: mu_fade <targetvol> <fadetime>" );
 	}
-	targetvol = atof( token );
+	targetvol = atof( token.c_str() );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: syntax: mu_fade <targetvol> <fadetime>" );
 	}
-	fadetime = atoi( token );
+	fadetime = atoi( token.c_str() );
 
-	trap_SendServerCommand( -1, va( "mu_fade %f %i\n", targetvol, fadetime ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "mu_fade %f %i\n", targetvol, fadetime ) );
 
 	return qtrue;
 }
@@ -455,15 +466,16 @@ AICast_ScriptAction_MusicQueue
 ==================
 */
 qboolean G_ScriptAction_MusicQueue( gentity_t *ent, char *params ) {
-	char    *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cvarName[MAX_QPATH];
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: syntax: mu_queue <musicfile>" );
 	}
-	Q_strncpyz( cvarName, token, sizeof( cvarName ) );
+	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
 	trap_SetConfigstring( CS_MUSIC_QUEUE, cvarName );
 
@@ -482,7 +494,9 @@ G_ScriptAction_PlayAnim
 =================
 */
 qboolean G_ScriptAction_PlayAnim( gentity_t *ent, char *params ) {
-	char *pString, *token, tokens[2][MAX_QPATH];
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
+	char tokens[2][MAX_QPATH];
 	int i, endtime = 0; // TTimo: init
 	qboolean looping = qfalse, forever = qfalse;
 	int startframe, endframe, idealframe;
@@ -493,15 +507,15 @@ qboolean G_ScriptAction_PlayAnim( gentity_t *ent, char *params ) {
 		ent->scriptStatus.scriptFlags &= ~SCFL_ANIMATING;
 	}
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
 
 	for ( i = 0; i < 2; i++ ) {
-		token = COM_ParseExt( &pString, qfalse );
-		if ( !token || !token[0] ) {
+		lexer.ReadTokenOnLine( &token );
+		if ( !token[0] ) {
 			G_Printf( "G_Scripting: syntax error\n\nplayanim <startframe> <endframe> [LOOPING <duration>]\n" );
 			return qtrue;
 		} else {
-			Q_strncpyz( tokens[i], token, sizeof( tokens[i] ) );
+			idStr::Copynz( tokens[i], token.c_str(), sizeof( tokens[i] ) );
 		}
 	}
 
@@ -509,40 +523,40 @@ qboolean G_ScriptAction_PlayAnim( gentity_t *ent, char *params ) {
 	endframe = atoi( tokens[1] );
 
 	// check for optional parameters
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
-		if ( !Q_strcasecmp( token, "looping" ) ) {
+		if ( !idStr::Icmp( token.c_str(), "looping" ) ) {
 			looping = qtrue;
 
-			token = COM_ParseExt( &pString, qfalse );
-			if ( !token || !token[0] ) {
+			lexer.ReadTokenOnLine( &token );
+			if ( !token[0] ) {
 				G_Printf( "G_Scripting: syntax error\n\nplayanim <startframe> <endframe> [LOOPING <duration>]\n" );
 				return qtrue;
 			}
-			if ( !Q_strcasecmp( token, "untilreachmarker" ) ) {
+			if ( !idStr::Icmp( token.c_str(), "untilreachmarker" ) ) {
 				if ( level.time < ent->s.pos.trTime + ent->s.pos.trDuration ) {
 					endtime = level.time + 100;
 				} else {
 					endtime = 0;
 				}
-			} else if ( !Q_strcasecmp( token, "forever" ) ) {
+			} else if ( !idStr::Icmp( token.c_str(), "forever" ) ) {
 				ent->scriptStatus.animatingParams = params;
 				ent->scriptStatus.scriptFlags |= SCFL_ANIMATING;
 				endtime = level.time + 100;     // we don't care when it ends, since we are going forever!
 				forever = qtrue;
 			} else {
-				endtime = ent->scriptStatus.scriptStackChangeTime + atoi( token );
+				endtime = ent->scriptStatus.scriptStackChangeTime + atoi( token.c_str() );
 			}
 
-			token = COM_ParseExt( &pString, qfalse );
+			lexer.ReadTokenOnLine( &token );
 		}
 
-		if ( token[0] && !Q_strcasecmp( token, "rate" ) ) {
-			token = COM_ParseExt( &pString, qfalse );
+		if ( token[0] && !idStr::Icmp( token.c_str(), "rate" ) ) {
+			lexer.ReadTokenOnLine( &token );
 			if ( !token[0] ) {
 				G_Error( "G_Scripting: playanim has RATE parameter without an actual rate specified" );
 			}
-			rate = atoi( token );
+			rate = atoi( token.c_str() );
 		}
 
 		if ( !looping ) {
@@ -635,102 +649,104 @@ G_ScriptAction_Accum
 =================
 */
 qboolean G_ScriptAction_Accum( gentity_t *ent, char *params ) {
-	char *pString, *token, lastToken[MAX_QPATH];
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
+	char lastToken[MAX_QPATH];
 	int bufferIndex;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: accum without a buffer index\n" );
 	}
 
-	bufferIndex = atoi( token );
+	bufferIndex = atoi( token.c_str() );
 	if ( bufferIndex >= G_MAX_SCRIPT_ACCUM_BUFFERS ) {
 		G_Error( "G_Scripting: accum buffer is outside range (0 - %i)\n", G_MAX_SCRIPT_ACCUM_BUFFERS );
 	}
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "G_Scripting: accum without a command\n" );
 	}
 
-	Q_strncpyz( lastToken, token, sizeof( lastToken ) );
-	token = COM_ParseExt( &pString, qfalse );
+	idStr::Copynz( lastToken, token.c_str(), sizeof( lastToken ) );
+	lexer.ReadTokenOnLine( &token );
 
-	if ( !Q_stricmp( lastToken, "inc" ) ) {
+	if ( !idStr::Icmp( lastToken, "inc" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		ent->scriptAccumBuffer[bufferIndex] += atoi( token );
-	} else if ( !Q_stricmp( lastToken, "abort_if_less_than" ) ) {
+		ent->scriptAccumBuffer[bufferIndex] += atoi( token.c_str() );
+	} else if ( !idStr::Icmp( lastToken, "abort_if_less_than" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( ent->scriptAccumBuffer[bufferIndex] < atoi( token ) ) {
+		if ( ent->scriptAccumBuffer[bufferIndex] < atoi( token.c_str() ) ) {
 			// abort the current script
 			ent->scriptStatus.scriptStackHead = ent->scriptEvents[ent->scriptStatus.scriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "abort_if_greater_than" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "abort_if_greater_than" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( ent->scriptAccumBuffer[bufferIndex] > atoi( token ) ) {
+		if ( ent->scriptAccumBuffer[bufferIndex] > atoi( token.c_str() ) ) {
 			// abort the current script
 			ent->scriptStatus.scriptStackHead = ent->scriptEvents[ent->scriptStatus.scriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "abort_if_not_equal" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "abort_if_not_equal" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( ent->scriptAccumBuffer[bufferIndex] != atoi( token ) ) {
+		if ( ent->scriptAccumBuffer[bufferIndex] != atoi( token.c_str() ) ) {
 			// abort the current script
 			ent->scriptStatus.scriptStackHead = ent->scriptEvents[ent->scriptStatus.scriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "abort_if_equal" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "abort_if_equal" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( ent->scriptAccumBuffer[bufferIndex] == atoi( token ) ) {
+		if ( ent->scriptAccumBuffer[bufferIndex] == atoi( token.c_str() ) ) {
 			// abort the current script
 			ent->scriptStatus.scriptStackHead = ent->scriptEvents[ent->scriptStatus.scriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "bitset" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "bitset" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		ent->scriptAccumBuffer[bufferIndex] |= ( 1 << atoi( token ) );
-	} else if ( !Q_stricmp( lastToken, "bitreset" ) ) {
+		ent->scriptAccumBuffer[bufferIndex] |= ( 1 << atoi( token.c_str() ) );
+	} else if ( !idStr::Icmp( lastToken, "bitreset" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		ent->scriptAccumBuffer[bufferIndex] &= ~( 1 << atoi( token ) );
-	} else if ( !Q_stricmp( lastToken, "abort_if_bitset" ) ) {
+		ent->scriptAccumBuffer[bufferIndex] &= ~( 1 << atoi( token.c_str() ) );
+	} else if ( !idStr::Icmp( lastToken, "abort_if_bitset" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( ent->scriptAccumBuffer[bufferIndex] & ( 1 << atoi( token ) ) ) {
+		if ( ent->scriptAccumBuffer[bufferIndex] & ( 1 << atoi( token.c_str() ) ) ) {
 			// abort the current script
 			ent->scriptStatus.scriptStackHead = ent->scriptEvents[ent->scriptStatus.scriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "abort_if_not_bitset" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "abort_if_not_bitset" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		if ( !( ent->scriptAccumBuffer[bufferIndex] & ( 1 << atoi( token ) ) ) ) {
+		if ( !( ent->scriptAccumBuffer[bufferIndex] & ( 1 << atoi( token.c_str() ) ) ) ) {
 			// abort the current script
 			ent->scriptStatus.scriptStackHead = ent->scriptEvents[ent->scriptStatus.scriptEventIndex].stack.numItems;
 		}
-	} else if ( !Q_stricmp( lastToken, "set" ) ) {
+	} else if ( !idStr::Icmp( lastToken, "set" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		ent->scriptAccumBuffer[bufferIndex] = atoi( token );
-	} else if ( !Q_stricmp( lastToken, "random" ) ) {
+		ent->scriptAccumBuffer[bufferIndex] = atoi( token.c_str() );
+	} else if ( !idStr::Icmp( lastToken, "random" ) ) {
 		if ( !token[0] ) {
 			G_Error( "Scripting: accum %s requires a parameter\n", lastToken );
 		}
-		ent->scriptAccumBuffer[bufferIndex] = rand() % atoi( token );
+		ent->scriptAccumBuffer[bufferIndex] = rand() % atoi( token.c_str() );
 	} else {
 		G_Error( "Scripting: accum: \"%s\": unknown command\n", params );
 	}
@@ -746,36 +762,37 @@ G_ScriptAction_MissionFailed
 =================
 */
 qboolean G_ScriptAction_MissionFailed( gentity_t *ent, char *params ) {
-	char    *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int time = 6, mof = 0;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
 
-	token = COM_ParseExt( &pString, qfalse );   // time
-	if ( token && token[0] ) {
-		time = atoi( token );
+	lexer.ReadTokenOnLine( &token );   // time
+	if ( token[0] ) {
+		time = atoi( token.c_str() );
 	}
 
-	token = COM_ParseExt( &pString, qfalse );   // mof (means of failure)
-	if ( token && token[0] ) {
-		mof = atoi( token );
+	lexer.ReadTokenOnLine( &token );   // mof (means of failure)
+	if ( token[0] ) {
+		mof = atoi( token.c_str() );
 	}
 
 	// play mission fail music
 	trap_SendServerCommand( -1, "mu_play sound/music/l_failed_1.wav 0\n" );
 	trap_SetConfigstring( CS_MUSIC_QUEUE, "" );  // clear queue so it'll be quiet after hit
 
-	trap_SendServerCommand( -1, va( "snd_fade 0 %d", time * 1000 ) );   //----(SA)	added
+	trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 0 %d", time * 1000 ) );   //----(SA)	added
 
 	if ( mof < 0 ) {
 		mof = 0;
 	}
-	trap_SendServerCommand( -1, va( "cp missionfail%d", mof ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "cp missionfail%d", mof ) );
 
 	// reload the current savegame, after a delay
-	trap_SetConfigstring( CS_SCREENFADE, va( "1 %i %i", level.time + 250, time * 1000 ) );
+	trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i %i", level.time + 250, time * 1000 ) );
 //	reloading = RELOAD_FAILED;
-	trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_FAILED ) );
+	trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_FAILED ) );
 
 	level.reloadDelayTime = level.time + 1000 + time * 1000;
 
@@ -793,11 +810,12 @@ qboolean G_ScriptAction_MissionSuccess( gentity_t *ent, char *params ) {
 	gentity_t   *player;
 	vmCvar_t cvar;
 	int lvl;
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: missionsuccess requires a mission_level identifier\n" );
 	}
@@ -808,7 +826,7 @@ qboolean G_ScriptAction_MissionSuccess( gentity_t *ent, char *params ) {
 		return qfalse;  // hold the script here
 
 	}
-	lvl = atoi( token );
+	lvl = atoi( token.c_str() );
 
 // if you've already got it, just return.  don't need to set 'yougotmail'
 	if ( player->missionObjectives & ( 1 << ( lvl - 1 ) ) ) {
@@ -818,14 +836,14 @@ qboolean G_ScriptAction_MissionSuccess( gentity_t *ent, char *params ) {
 	player->missionObjectives |= ( 1 << ( lvl - 1 ) );  // make this bitwise
 
 	//set g_objective<n> cvar
-	trap_Cvar_Register( &cvar, va( "g_objective%i", lvl ), "1", CVAR_ROM );
+	trap_Cvar_Register( &cvar, idStr::FormatString( "g_objective%i", lvl ), "1", CVAR_ROM );
 	// set it to make sure
-	trap_Cvar_Set( va( "g_objective%i", lvl ), "1" );
+	trap_Cvar_Set( idStr::FormatString( "g_objective%i", lvl ), "1" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
-		if ( Q_strcasecmp( token,"nodisplay" ) ) {   // unknown command
-			G_Error( "AI Scripting: missionsuccess with unknown parameter: %s\n", token );
+		if ( idStr::Icmp( token.c_str(),"nodisplay" ) ) {   // unknown command
+			G_Error( "AI Scripting: missionsuccess with unknown parameter: %s\n", token.c_str() );
 		}
 	} else {    // show on-screen information
 		trap_Cvar_Set( "cg_youGotMail", "2" ); // set flag to draw icon
@@ -865,10 +883,11 @@ G_ScriptAction_FaceAngles
 =================
 */
 qboolean G_ScriptAction_FaceAngles( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int duration, i;
-	vec3_t diff;
-	vec3_t angles;
+	idVec3 diff;
+	idVec3 angles;
 	int trType = TR_LINEAR_STOP;
 
 	if ( !params || !params[0] ) {
@@ -876,31 +895,31 @@ qboolean G_ScriptAction_FaceAngles( gentity_t *ent, char *params ) {
 	}
 
 	if ( ent->scriptStatus.scriptStackChangeTime == level.time ) {
-		pString = params;
+		lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
 		for ( i = 0; i < 3; i++ ) {
-			token = COM_Parse( &pString );
-			if ( !token || !token[0] ) {
+			lexer.ReadToken( &token );
+			if ( !token[0] ) {
 				G_Error( "G_Scripting: syntax: faceangles <pitch> <yaw> <roll> <duration/GOTOTIME>\n" );
 			}
-			angles[i] = atoi( token );
+			angles[i] = atoi( token.c_str() );
 		}
 
-		token = COM_Parse( &pString );
-		if ( !token || !token[0] ) {
+		lexer.ReadToken( &token );
+		if ( !token[0] ) {
 			G_Error( "G_Scripting: faceangles requires a <pitch> <yaw> <roll> <duration/GOTOTIME>\n" );
 		}
-		if ( !Q_strcasecmp( token, "gototime" ) ) {
+		if ( !idStr::Icmp( token.c_str(), "gototime" ) ) {
 			duration = ent->s.pos.trDuration;
 		} else {
-			duration = atoi( token );
+			duration = atoi( token.c_str() );
 		}
 
-		token = COM_Parse( &pString );
-		if ( token && token[0] ) {
-			if ( !Q_strcasecmp( token, "accel" ) ) {
+		lexer.ReadToken( &token );
+		if ( token[0] ) {
+			if ( !idStr::Icmp( token.c_str(), "accel" ) ) {
 				trType = TR_ACCELERATE;
 			}
-			if ( !Q_strcasecmp( token, "deccel" ) ) {
+			if ( !idStr::Icmp( token.c_str(), "deccel" ) ) {
 				trType = TR_DECCELERATE;
 			}
 		}
@@ -913,11 +932,11 @@ qboolean G_ScriptAction_FaceAngles( gentity_t *ent, char *params ) {
 				diff[i] += 360;
 		}
 
-		VectorCopy( ent->s.angles, ent->s.apos.trBase );
+		ent->s.apos.trBase = ent->s.angles;
 		if ( duration ) {
-			VectorScale( diff, 1000.0 / (float)duration, ent->s.apos.trDelta );
+			ent->s.apos.trDelta = diff * ( 1000.0 / (float)duration );
 		} else {
-			VectorClear( ent->s.apos.trDelta );
+			ent->s.apos.trDelta.Zero();
 		}
 		ent->s.apos.trDuration = duration;
 		ent->s.apos.trTime = level.time;
@@ -934,12 +953,12 @@ qboolean G_ScriptAction_FaceAngles( gentity_t *ent, char *params ) {
 	} else if ( ent->s.apos.trTime + ent->s.apos.trDuration <= level.time ) {
 		// finished turning
 		BG_EvaluateTrajectory( &ent->s.apos, ent->s.apos.trTime + ent->s.apos.trDuration, ent->s.angles );
-		VectorCopy( ent->s.angles, ent->s.apos.trBase );
-		VectorCopy( ent->s.angles, ent->r.currentAngles );
+		ent->s.apos.trBase = ent->s.angles;
+		ent->r.currentAngles = ent->s.angles;
 		ent->s.apos.trTime = level.time;
 		ent->s.apos.trDuration = 0;
 		ent->s.apos.trType = TR_STATIONARY;
-		VectorClear( ent->s.apos.trDelta );
+		ent->s.apos.trDelta.Zero();
 
 		script_linkentity( ent );
 
@@ -977,31 +996,32 @@ G_ScriptAction_TagConnect
 ===================
 */
 qboolean G_ScriptAction_TagConnect( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	gentity_t *parent;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_TagConnect: syntax: attachtotag <targetname> <tagname>\n" );
 	}
 
-	parent = G_Find( NULL, FOFS( targetname ), token );
+	parent = G_Find( NULL, FOFS( targetname ), token.c_str() );
 	if ( !parent ) {
-		parent = G_Find( NULL, FOFS( scriptName ), token );
+		parent = G_Find( NULL, FOFS( scriptName ), token.c_str() );
 		if ( !parent ) {
-			G_Error( "G_ScriptAction_TagConnect: unable to find entity with targetname \"%s\"", token );
+			G_Error( "G_ScriptAction_TagConnect: unable to find entity with targetname \"%s\"", token.c_str() );
 		}
 	}
 
-	token = COM_Parse( &pString );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_TagConnect: syntax: attachtotag <targetname> <tagname>\n" );
 	}
 
 	ent->tagParent = parent;
-	ent->tagName = (char *) G_Alloc( strlen( token ) + 1 );
-	Q_strncpyz( ent->tagName, token, strlen( token ) + 1 );
+	ent->tagName = (char *) G_Alloc( strlen( token.c_str() ) + 1 );
+	idStr::Copynz( ent->tagName, token.c_str(), strlen( token.c_str() ) + 1 );
 
 	G_ProcessTagConnect( ent, qtrue );
 
@@ -1023,21 +1043,21 @@ qboolean G_ScriptAction_Halt( gentity_t *ent, char *params ) {
 
 		// stop the angles
 		BG_EvaluateTrajectory( &ent->s.apos, level.time, ent->s.angles );
-		VectorCopy( ent->s.angles, ent->s.apos.trBase );
-		VectorCopy( ent->s.angles, ent->r.currentAngles );
+		ent->s.apos.trBase = ent->s.angles;
+		ent->r.currentAngles = ent->s.angles;
 		ent->s.apos.trTime = level.time;
 		ent->s.apos.trDuration = 0;
 		ent->s.apos.trType = TR_STATIONARY;
-		VectorClear( ent->s.apos.trDelta );
+		ent->s.apos.trDelta.Zero();
 
 		// stop moving
 		BG_EvaluateTrajectory( &ent->s.pos, level.time, ent->s.origin );
-		VectorCopy( ent->s.origin, ent->s.pos.trBase );
-		VectorCopy( ent->s.origin, ent->r.currentOrigin );
+		ent->s.pos.trBase = ent->s.origin;
+		ent->r.currentOrigin = ent->s.origin;
 		ent->s.pos.trTime = level.time;
 		ent->s.pos.trDuration = 0;
 		ent->s.pos.trType = TR_STATIONARY;
-		VectorClear( ent->s.pos.trDelta );
+		ent->s.pos.trDelta.Zero();
 
 		script_linkentity( ent );
 
@@ -1069,11 +1089,12 @@ G_ScriptAction_StartCam
 ===================
 */
 qboolean G_ScriptAction_StartCam( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	gentity_t *player;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_Cam: filename parameter required\n" );
 	}
@@ -1086,7 +1107,7 @@ qboolean G_ScriptAction_StartCam( gentity_t *ent, char *params ) {
 	if ( !player ) {
 		G_Error( "player not found, perhaps you should give them more time to spawn in" );
 	}
-	trap_SendServerCommand( player->s.number, va( "startCam %s", token ) );
+	trap_SendServerCommand( player->s.number, idStr::FormatString( "startCam %s", token.c_str() ) );
 
 	return qtrue;
 }
@@ -1123,12 +1144,13 @@ G_ScriptAction_MapDescription
 ===================
 */
 qboolean G_ScriptAction_MapDescription( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 
-	trap_SetConfigstring( CS_MULTI_MAPDESC, token );
+	trap_SetConfigstring( CS_MULTI_MAPDESC, token.c_str() );
 
 	return qtrue;
 }
@@ -1141,15 +1163,16 @@ G_ScriptAction_AxisRespawntime
 ===================
 */
 qboolean G_ScriptAction_AxisRespawntime( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_AxisRespawntime: time parameter required\n" );
 	}
 
-	trap_Cvar_Set( "g_redlimbotime", va( "%s000", token ) );
+	trap_Cvar_Set( "g_redlimbotime", idStr::FormatString( "%s000", token.c_str() ) );
 
 	return qtrue;
 }
@@ -1162,15 +1185,16 @@ G_ScriptAction_AlliedRespawntime
 ===================
 */
 qboolean G_ScriptAction_AlliedRespawntime( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_AlliedRespawntime: time parameter required\n" );
 	}
 
-	trap_Cvar_Set( "g_bluelimbotime", va( "%s000", token ) );
+	trap_Cvar_Set( "g_bluelimbotime", idStr::FormatString( "%s000", token.c_str() ) );
 
 	return qtrue;
 }
@@ -1183,25 +1207,26 @@ G_ScriptAction_NumberofObjectives
 ===================
 */
 qboolean G_ScriptAction_NumberofObjectives( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cs[MAX_STRING_CHARS];
 
 	int num;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_NumberofObjectives: number parameter required\n" );
 	}
 
-	num = atoi( token );
+	num = atoi( token.c_str() );
 	if ( num < 1 || num > MAX_OBJECTIVES ) {
 		G_Error( "G_ScriptAction_NumberofObjectives: Invalid number of objectives\n" );
 	}
 
 	trap_GetConfigstring( CS_MULTI_INFO, cs, sizeof( cs ) );
 
-	Info_SetValueForKey( cs, "numobjectives", token );
+	Info_SetValueForKey( cs, "numobjectives", token.c_str() );
 
 	trap_SetConfigstring( CS_MULTI_INFO, cs );
 
@@ -1216,23 +1241,24 @@ G_ScriptAction_ObjectiveAxisDesc
 ===================
 */
 qboolean G_ScriptAction_ObjectiveAxisDesc( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cs[MAX_STRING_CHARS];
 
 	int num, cs_obj = CS_MULTI_OBJECTIVE1;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_ObjectiveAxisDesc: number parameter required\n" );
 	}
 
-	num = atoi( token );
+	num = atoi( token.c_str() );
 	if ( num < 1 || num > MAX_OBJECTIVES ) {
 		G_Error( "G_ScriptAction_ObjectiveAxisDesc: Invalid objective number\n" );
 	}
 
-	token = COM_Parse( &pString );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_ObjectiveAxisDesc: description parameter required\n" );
 	}
@@ -1242,7 +1268,7 @@ qboolean G_ScriptAction_ObjectiveAxisDesc( gentity_t *ent, char *params ) {
 
 	trap_GetConfigstring( cs_obj, cs, sizeof( cs ) );
 
-	Info_SetValueForKey( cs, "axis_desc", token );
+	Info_SetValueForKey( cs, "axis_desc", token.c_str() );
 
 	trap_SetConfigstring( cs_obj, cs );
 
@@ -1257,23 +1283,24 @@ G_ScriptAction_ObjectiveAlliedDesc
 ===================
 */
 qboolean G_ScriptAction_ObjectiveAlliedDesc( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cs[MAX_STRING_CHARS];
 
 	int num, cs_obj = CS_MULTI_OBJECTIVE1;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_ObjectiveAlliedDesc: number parameter required\n" );
 	}
 
-	num = atoi( token );
+	num = atoi( token.c_str() );
 	if ( num < 1 || num > MAX_OBJECTIVES ) {
 		G_Error( "G_ScriptAction_ObjectiveAlliedDesc: Invalid objective number\n" );
 	}
 
-	token = COM_Parse( &pString );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_ObjectiveAlliedDesc: description parameter required\n" );
 	}
@@ -1283,7 +1310,7 @@ qboolean G_ScriptAction_ObjectiveAlliedDesc( gentity_t *ent, char *params ) {
 
 	trap_GetConfigstring( cs_obj, cs, sizeof( cs ) );
 
-	Info_SetValueForKey( cs, "allied_desc", token );
+	Info_SetValueForKey( cs, "allied_desc", token.c_str() );
 
 	trap_SetConfigstring( cs_obj, cs );
 
@@ -1300,25 +1327,26 @@ G_ScriptAction_SetWinner
 ===================
 */
 qboolean G_ScriptAction_SetWinner( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cs[MAX_STRING_CHARS];
 
 	int num;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_SetWinner: number parameter required\n" );
 	}
 
-	num = atoi( token );
+	num = atoi( token.c_str() );
 	if ( num < -1 || num > 1 ) {
 		G_Error( "G_ScriptAction_SetWinner: Invalid team number\n" );
 	}
 
 	trap_GetConfigstring( CS_MULTI_INFO, cs, sizeof( cs ) );
 
-	Info_SetValueForKey( cs, "winner", token );
+	Info_SetValueForKey( cs, "winner", token.c_str() );
 
 	trap_SetConfigstring( CS_MULTI_INFO, cs );
 
@@ -1335,28 +1363,29 @@ G_ScriptAction_SetObjectiveStatus
 ===================
 */
 qboolean G_ScriptAction_SetObjectiveStatus( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cs[MAX_STRING_CHARS];
 
 	int num, status, cs_obj = CS_MULTI_OBJECTIVE1;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_SetObjectiveStatus: number parameter required\n" );
 	}
 
-	num = atoi( token );
+	num = atoi( token.c_str() );
 	if ( num < 1 || num > MAX_OBJECTIVES ) {
 		G_Error( "G_ScriptAction_SetObjectiveStatus: Invalid objective number\n" );
 	}
 
-	token = COM_Parse( &pString );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_SetObjectiveStatus: status parameter required\n" );
 	}
 
-	status = atoi( token );
+	status = atoi( token.c_str() );
 	if ( status < -1 || status > 1 ) {
 		G_Error( "G_ScriptAction_SetObjectiveStatus: Invalid status number\n" );
 	}
@@ -1366,7 +1395,7 @@ qboolean G_ScriptAction_SetObjectiveStatus( gentity_t *ent, char *params ) {
 
 	trap_GetConfigstring( cs_obj, cs, sizeof( cs ) );
 
-	Info_SetValueForKey( cs, "status", token );
+	Info_SetValueForKey( cs, "status", token.c_str() );
 
 	trap_SetConfigstring( cs_obj, cs );
 
@@ -1381,15 +1410,16 @@ G_ScriptAction_Announce
 ===================
 */
 qboolean G_ScriptAction_Announce( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_Announce: statement parameter required\n" );
 	}
 
-	trap_SendServerCommand( -1, va( "cp \"%s\"", token ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "cp \"%s\"", token.c_str() ) );
 
 	return qtrue;
 }
@@ -1418,15 +1448,16 @@ G_ScriptAction_SetRoundTimelimit
 ===================
 */
 qboolean G_ScriptAction_SetRoundTimelimit( gentity_t *ent, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
-	pString = params;
-	token = COM_Parse( &pString );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "g_script_actions" );
+	lexer.ReadToken( &token );
 	if ( !token[0] ) {
 		G_Error( "G_ScriptAction_SetRoundTimelimit: number parameter required\n" );
 	}
 
-	trap_Cvar_Set( "timelimit", token );
+	trap_Cvar_Set( "timelimit", token.c_str() );
 
 	return qtrue;
 }
@@ -1455,21 +1486,21 @@ qboolean G_ScriptAction_BackupScript( gentity_t *ent, char *params ) {
 
 			// set the angles at the destination
 			BG_EvaluateTrajectory( &ent->s.apos, level.time, ent->s.angles );
-			VectorCopy( ent->s.angles, ent->s.apos.trBase );
-			VectorCopy( ent->s.angles, ent->r.currentAngles );
+			ent->s.apos.trBase = ent->s.angles;
+			ent->r.currentAngles = ent->s.angles;
 			ent->s.apos.trTime = level.time;
 			ent->s.apos.trDuration = 0;
 			ent->s.apos.trType = TR_STATIONARY;
-			VectorClear( ent->s.apos.trDelta );
+			ent->s.apos.trDelta.Zero();
 
 			// stop moving
 			BG_EvaluateTrajectory( &ent->s.pos, level.time, ent->s.origin );
-			VectorCopy( ent->s.origin, ent->s.pos.trBase );
-			VectorCopy( ent->s.origin, ent->r.currentOrigin );
+			ent->s.pos.trBase = ent->s.origin;
+			ent->r.currentOrigin = ent->s.origin;
 			ent->s.pos.trTime = level.time;
 			ent->s.pos.trDuration = 0;
 			ent->s.pos.trType = TR_STATIONARY;
-			VectorClear( ent->s.pos.trDelta );
+			ent->s.pos.trDelta.Zero();
 
 			script_linkentity( ent );
 		}

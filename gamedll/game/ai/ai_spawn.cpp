@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -80,7 +82,7 @@ void AIChar_spawn( gentity_t *ent ) {
 		//weaponInfo.startingWeapons[(aiCharDefaults->weapons[i] / 32)] |= ( 1 << aiCharDefaults->weapons[i] );
 		//weaponInfo.startingWeapons[0] |= ( 1 << aiCharDefaults->weapons[i] );
 
-		COM_BitSet( weaponInfo.startingWeapons, aiCharDefaults->weapons[i] );
+		idBitField::Set( weaponInfo.startingWeapons, aiCharDefaults->weapons[i] );
 		if ( aiCharDefaults->weapons[i] ==
 			 WP_GRENADE_LAUNCHER ) { // give them a bunch of grenades, but not an unlimited supply
 			weaponInfo.startingAmmo[BG_FindAmmoForWeapon( aiCharDefaults->weapons[i] )] = 6;
@@ -195,7 +197,7 @@ void AIChar_spawn( gentity_t *ent ) {
 		cs->aiFlags |= AIFL_DIVE_ANIM;
 	}
 	// HACK
-	if ( ent->aiName && !Q_stricmp( ent->aiName, "deathshead" ) ) {
+	if ( ent->aiName && !idStr::Icmp( ent->aiName, "deathshead" ) ) {
 		cs->aiFlags |= AIFL_NO_FLAME_DAMAGE;
 	}
 	//
@@ -205,9 +207,9 @@ void AIChar_spawn( gentity_t *ent ) {
 	}
 	// set these values now so scripting system isn't relying on a Think having been run prior to running a script
 	//origin of the cast
-	VectorCopy( ent->client->ps.origin, cs->clientState->origin );
+	cs->clientState->origin = ent->client->ps.origin;
 	//velocity of the cast
-	VectorCopy( ent->client->ps.velocity, cs->clientState->velocity );
+	cs->clientState->velocity = ent->client->ps.velocity;
 	//playerstate
 	cs->clientState->cur_ps = ent->client->ps;
 	//

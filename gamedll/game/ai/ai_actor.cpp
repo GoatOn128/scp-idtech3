@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -66,7 +68,7 @@ void AICast_Think( int client, float thinktime ) {
 	ent->client->ps.eFlags &= ~( EF_NOSWINGANGLES | EF_MONSTER_EFFECT | EF_MONSTER_EFFECT2 | EF_MONSTER_EFFECT3 );
 	// conditional flags
 	if ( ent->aiCharacter == AICHAR_ZOMBIE ) {
-		if ( COM_BitCheck( ent->client->ps.weapons, WP_MONSTER_ATTACK1 ) ) {
+		if ( idBitField::Test( ent->client->ps.weapons, WP_MONSTER_ATTACK1 ) ) {
 			cs->aiFlags |= AIFL_NO_FLAME_DAMAGE;
 			SET_FLAMING_ZOMBIE( ent->s, 1 );
 		} else {
@@ -81,9 +83,9 @@ void AICast_Think( int client, float thinktime ) {
 	//ent->r.svFlags |= SVF_BROADCAST;
 	ent->client->ps.eFlags &= ~EF_FORCE_END_FRAME;
 	//origin of the cast
-	VectorCopy( ent->client->ps.origin, cs->clientState->origin );
+	cs->clientState->origin = ent->client->ps.origin;
 	//eye coordinates of the cast
-	VectorCopy( ent->client->ps.origin, cs->clientState->eye );
+	cs->clientState->eye = ent->client->ps.origin;
 	cs->clientState->eye[2] += ent->client->ps.viewheight;
 	//get the area the cast is in
 	cs->clientState->areanum = AI_PointAreaNum( cs->clientState->origin );
@@ -104,7 +106,7 @@ void AICast_Think( int client, float thinktime ) {
 		}
 		//
 		if ( cs->rebirthTime && cs->rebirthTime < level.time ) {
-			vec3_t mins, maxs;
+			idVec3 mins, maxs;
 			int touch[10], numTouch;
 			float oldmaxZ;
 
@@ -113,8 +115,8 @@ void AICast_Think( int client, float thinktime ) {
 			// make sure the area is clear
 			AIChar_SetBBox( ent, cs, qfalse );
 
-			VectorAdd( ent->r.currentOrigin, ent->r.mins, mins );
-			VectorAdd( ent->r.currentOrigin, ent->r.maxs, maxs );
+			mins = ent->r.currentOrigin + ent->r.mins;
+			maxs = ent->r.currentOrigin + ent->r.maxs;
 			trap_UnlinkEntity( ent );
 
 			numTouch = trap_EntitiesInBox( mins, maxs, touch, 10 );
@@ -270,22 +272,22 @@ void AICast_Think( int client, float thinktime ) {
 	// HACK for village2, if they are stuck, find a good position (there is a friendly guy placed inside a table)
 	{
 		trace_t tr;
-		vec3_t org;
+		idVec3 org;
 		trap_Trace( &tr, cs->clientState->cur_ps.origin, cs->clientState->cur_ps.mins, cs->clientState->cur_ps.maxs, cs->clientState->cur_ps.origin, cs->entityNum, CONTENTS_SOLID );
 		while ( tr.startsolid ) {
-			VectorCopy( cs->clientState->cur_ps.origin, org );
-			org[0] += 96 * crandom();
-			org[1] += 96 * crandom();
-			org[2] += 16 * crandom();
+			org = cs->clientState->cur_ps.origin;
+			org[0] += 96 * gameRandom.CRandomFloat();
+			org[1] += 96 * gameRandom.CRandomFloat();
+			org[2] += 16 * gameRandom.CRandomFloat();
 			trap_Trace( &tr, org, cs->clientState->cur_ps.mins, cs->clientState->cur_ps.maxs, org, cs->entityNum, CONTENTS_SOLID );
 			G_SetOrigin( &g_entities[cs->entityNum], org );
-			VectorCopy( org, g_entities[cs->entityNum].client->ps.origin );
+			g_entities[cs->entityNum].client->ps.origin = org;
 		}
 	}
 #endif
 	//add the delta angles to the cast's current view angles
 	for ( i = 0; i < 3; i++ ) {
-		cs->viewangles[i] = AngleMod( cs->viewangles[i] + SHORT2ANGLE( cs->clientState->cur_ps.delta_angles[i] ) );
+		cs->viewangles[i] = idMath::AngleNormalize360( cs->viewangles[i] + SHORT2ANGLE( cs->clientState->cur_ps.delta_angles[i] ) );
 	}
 	//
 	//increase the local time of the cast
@@ -321,7 +323,7 @@ void AICast_Think( int client, float thinktime ) {
 	//}
 	//
 	// if we don't have ammo for the current weapon, get rid of it
-	if ( !( COM_BitCheck( cs->clientState->cur_ps.weapons, cs->weaponNum ) ) ||
+	if ( !( idBitField::Test( cs->clientState->cur_ps.weapons, cs->weaponNum ) ) ||
 		 !AICast_GotEnoughAmmoForWeapon( cs, cs->weaponNum ) ) {
 		// select a weapon
 		AICast_ChooseWeapon( cs, qfalse );
@@ -379,7 +381,7 @@ void AICast_Think( int client, float thinktime ) {
 	//
 	//subtract the delta angles
 	for ( i = 0; i < 3; i++ ) {
-		cs->viewangles[i] = AngleMod( cs->viewangles[i] - SHORT2ANGLE( cs->clientState->cur_ps.delta_angles[i] ) );
+		cs->viewangles[i] = idMath::AngleNormalize360( cs->viewangles[i] - SHORT2ANGLE( cs->clientState->cur_ps.delta_angles[i] ) );
 	}
 }
 
@@ -392,7 +394,7 @@ void AICast_QueryThink( cast_state_t *cs ) {
 	gentity_t *ent;
 	qboolean visible;
 	cast_state_t *ocs;
-	vec3_t vec;
+	idVec3 vec;
 
 	ent = &g_entities[cs->entityNum];
 	ocs = AICast_GetCastState( cs->enemyNum );
@@ -401,9 +403,12 @@ void AICast_QueryThink( cast_state_t *cs ) {
 	cs->attackcrouch_time = 0;
 
 	// look at where we last (thought we) saw them
-	VectorSubtract( cs->perception.vislist[cs->enemyNum].visible_pos, cs->clientState->origin, vec );
-	VectorNormalize( vec );
-	vectoangles( vec, cs->ideal_viewangles );
+	vec = cs->perception.vislist[cs->enemyNum].visible_pos - cs->clientState->origin;
+	vec.Normalize();
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 
 	// are they visible now?
 	visible = AICast_VisibleFromPos( cs->clientState->origin, cs->entityNum, g_entities[cs->enemyNum].r.currentOrigin,

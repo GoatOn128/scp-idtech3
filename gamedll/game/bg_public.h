@@ -1,3 +1,5 @@
+#pragma once
+
 /*
 ===========================================================================
 
@@ -293,7 +295,7 @@ typedef struct {
 	int numtouch;
 	int touchents[MAXTOUCH];
 
-	vec3_t mins, maxs;              // bounding box size
+	idVec3 mins, maxs;              // bounding box size
 
 	int watertype;
 	int waterlevel;
@@ -306,12 +308,12 @@ typedef struct {
 
 	// callbacks to test the world
 	// these will be different functions during game and cgame
-	void ( *trace )( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask );
-	int ( *pointcontents )( const vec3_t point, int passEntityNum );
+	void ( *trace )( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentMask );
+	int ( *pointcontents )( const idVec3 &point, int passEntityNum );
 } pmove_t;
 
 // if a full pmove isn't done on the client, you can just update the angles
-void PM_UpdateViewAngles( playerState_t * ps, usercmd_t * cmd, void( trace ) ( trace_t * results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentMask ) );
+void PM_UpdateViewAngles( playerState_t * ps, usercmd_t * cmd, void( trace ) ( trace_t * results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentMask ) );
 int Pmove( pmove_t *pmove );
 
 //===================================================================================
@@ -1410,9 +1412,9 @@ typedef enum {
 
 
 
-void    BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, vec3_t result );
-void    BG_EvaluateTrajectoryDelta( const trajectory_t *tr, int atTime, vec3_t result );
-void    BG_GetMarkDir( const vec3_t dir, const vec3_t normal, vec3_t out );
+void    BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, idVec3 &result );
+void    BG_EvaluateTrajectoryDelta( const trajectory_t *tr, int atTime, idVec3 &result );
+void    BG_GetMarkDir( const idVec3 &dir, const idVec3 &normal, idVec3 &out );
 
 void    BG_AddPredictableEventToPlayerstate( int newEvent, int eventParm, playerState_t *ps );
 
@@ -1425,7 +1427,7 @@ qboolean    BG_PlayerTouchesItem( playerState_t *ps, entityState_t *item, int at
 qboolean    BG_PlayerSeesItem( playerState_t *ps, entityState_t *item, int atTime );
 
 //----(SA)	removed PM_ammoNeeded 11/27/00
-void PM_ClipVelocity( vec3_t in, vec3_t normal, vec3_t out, float overbounce );
+void PM_ClipVelocity( const idVec3 &in, const idVec3 &normal, idVec3 &out, float overbounce );
 
 #define ARENAS_PER_TIER     4
 #define MAX_ARENAS          64
@@ -1641,7 +1643,7 @@ typedef struct
 	// parsed from the start of the cfg file
 	gender_t gender;
 	footstep_t footsteps;
-	vec3_t headOffset;
+	idVec3 headOffset;
 	int version;
 	qboolean isSkeletal;
 
@@ -1672,7 +1674,7 @@ typedef struct
 	// pointers to functions from the owning module
 	//
 	int ( *soundIndex )( const char *name );
-	void ( *playSound )( int soundIndex, vec3_t org, int clientNum );
+	void ( *playSound )( int soundIndex, const idVec3 *org, int clientNum );
 } animScriptData_t;
 
 //------------------------------------------------------------------
@@ -1731,7 +1733,7 @@ int BG_AnimScriptAnimation( playerState_t *ps, aistateEnum_t state, scriptAnimMo
 int BG_AnimScriptCannedAnimation( playerState_t *ps, aistateEnum_t state );
 int BG_AnimScriptStateChange( playerState_t *ps, aistateEnum_t newState, aistateEnum_t oldState );
 int BG_AnimScriptEvent( playerState_t *ps, scriptAnimEventTypes_t event, qboolean isContinue, qboolean force );
-int BG_IndexForString( char *token, animStringItem_t *strings, qboolean allowFail );
+int BG_IndexForString( const char *token, animStringItem_t *strings, qboolean allowFail );
 int BG_PlayAnimName( playerState_t *ps, char *animName, animBodyPart_t bodyPart, qboolean setTimer, qboolean isContinue, qboolean force );
 qboolean BG_ValidAnimScript( int clientNum );
 char *BG_GetAnimString( int client, int anim );
@@ -1739,7 +1741,7 @@ void BG_UpdateConditionValue( int client, int condition, int value, qboolean che
 int BG_GetConditionValue( int client, int condition, qboolean checkConversion );
 int BG_GetAnimScriptAnimation( int client, aistateEnum_t state, scriptAnimMoveTypes_t movetype );
 void BG_AnimUpdatePlayerStateConditions( pmove_t *pmove );
-int BG_AnimationIndexForString( char *string, int client );
+int BG_AnimationIndexForString( const char *string, int client );
 animation_t *BG_AnimationForString( char *string, animModelInfo_t *modelInfo );
 animation_t *BG_GetAnimationForIndex( int client, int index );
 int BG_GetAnimScriptEvent( playerState_t *ps, scriptAnimEventTypes_t event );

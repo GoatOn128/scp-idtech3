@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -31,7 +33,7 @@ AIFunc_BattleRoll()
 */
 char *AIFunc_BattleRoll( cast_state_t *cs ) {
 	gclient_t *client = &level.clients[cs->entityNum];
-	vec3_t dir;
+	idVec3 dir;
 	//
 	// record the time
 	cs->lastRollMove = level.time;
@@ -56,14 +58,14 @@ char *AIFunc_BattleRoll( cast_state_t *cs ) {
 	// all characters so far only move during the first second of animation
 	if ( cs->thinkFuncChangeTime > level.time - 1000 ) {
 		// just move in the direction of our ideal_viewangles
-		AngleVectors( cs->ideal_viewangles, dir, NULL, NULL );
+		idAngles( cs->ideal_viewangles ).ToVectors( &dir, NULL, NULL );
 		trap_EA_Move( cs->entityNum, dir, 300 );
 		// we are crouching, move a little faster than normal
 		cs->speedScale = 1.5;
 	} else if ( cs->combat.takeCoverTime > level.time ) {
 		//
 		// if we are taking Cover, use this position, if it's bad, we'll just look for a better spot once we're done here
-		VectorCopy( cs->clientState->origin, cs->combat.takeCoverPos );
+		cs->combat.takeCoverPos = cs->clientState->origin;
 	} else if ( cs->enemyNum >= 0 ) {
 		//
 		// start turning towards our enemy
@@ -78,7 +80,7 @@ char *AIFunc_BattleRoll( cast_state_t *cs ) {
 AIFunc_BattleRollStart()
 =============
 */
-char *AIFunc_BattleRollStart( cast_state_t *cs, vec3_t vec ) {
+char *AIFunc_BattleRollStart( cast_state_t *cs, const idVec3 &vec ) {
 	int duration;
 	//	gclient_t *client = &level.clients[cs->entityNum];
 	//
@@ -86,7 +88,10 @@ char *AIFunc_BattleRollStart( cast_state_t *cs, vec3_t vec ) {
 	cs->previousState = cs->currentState;
 	//
 	// face the direction of movement
-	vectoangles( vec, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 	// do the roll
 	duration = BG_AnimScriptEvent( &g_entities[cs->entityNum].client->ps, ANIM_ET_ROLL, qfalse, qtrue );
 	//
@@ -118,7 +123,7 @@ char *AIFunc_BattleRollStart( cast_state_t *cs, vec3_t vec ) {
 AIFunc_BattleDiveStart()
 =============
 */
-char *AIFunc_BattleDiveStart( cast_state_t *cs, vec3_t vec ) {
+char *AIFunc_BattleDiveStart( cast_state_t *cs, const idVec3 &vec ) {
 	int duration;
 	//	gclient_t *client = &level.clients[cs->entityNum];
 	//
@@ -126,7 +131,10 @@ char *AIFunc_BattleDiveStart( cast_state_t *cs, vec3_t vec ) {
 	cs->previousState = cs->currentState;
 	//
 	// face the direction of movement
-	vectoangles( vec, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 	// force crouching anim
 	BG_UpdateConditionValue( cs->entityNum, ANIM_COND_CROUCHING, qtrue, qfalse );
 	// do the roll
@@ -158,7 +166,7 @@ AIFunc_FlipMove()
 */
 char *AIFunc_FlipMove( cast_state_t *cs ) {
 	gclient_t *client = &level.clients[cs->entityNum];
-	vec3_t dir;
+	idVec3 dir;
 	//
 	if ( !client->ps.torsoTimer ) {
 		cs->attackcrouch_time = 0;
@@ -169,7 +177,7 @@ char *AIFunc_FlipMove( cast_state_t *cs ) {
 	}
 	//
 	// just move in the direction of our ideal_viewangles
-	AngleVectors( cs->ideal_viewangles, dir, NULL, NULL );
+	idAngles( cs->ideal_viewangles ).ToVectors( &dir, NULL, NULL );
 	trap_EA_Move( cs->entityNum, dir, 400 );
 	// if we are crouching, move a little faster than normal
 	if ( cs->attackcrouch_time > level.time ) {
@@ -184,7 +192,7 @@ char *AIFunc_FlipMove( cast_state_t *cs ) {
 AIFunc_FlipMoveStart()
 =============
 */
-char *AIFunc_FlipMoveStart( cast_state_t *cs, vec3_t vec ) {
+char *AIFunc_FlipMoveStart( cast_state_t *cs, const idVec3 &vec ) {
 	int duration;
 	//	gclient_t *client = &level.clients[cs->entityNum];
 	//
@@ -194,7 +202,10 @@ char *AIFunc_FlipMoveStart( cast_state_t *cs, vec3_t vec ) {
 	// record the time
 	cs->lastRollMove = level.time;
 	// face the direction of movement
-	vectoangles( vec, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 	cs->combat.noAttackTime = level.time + 1200;
 	// do the roll
 	duration = BG_AnimScriptEvent( &g_entities[cs->entityNum].client->ps, ANIM_ET_ROLL, qfalse, qfalse );

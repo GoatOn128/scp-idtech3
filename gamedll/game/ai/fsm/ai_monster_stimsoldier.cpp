@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 //=================================================================================
@@ -49,8 +51,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 
 char *AIFunc_StimSoldierFlight( cast_state_t *cs ) {
 	gentity_t *ent;
-	vec3_t vec;
-	static vec3_t up = { 0, 0, 1 };
+	idVec3 vec;
+	static idVec3 up( 0, 0, 1 );
 	//
 	ent = &g_entities[cs->entityNum];
 	cs->combat.weaponFireTimes[WP_MONSTER_ATTACK1] = level.time;
@@ -98,7 +100,7 @@ char *AIFunc_StimSoldierFlight( cast_state_t *cs ) {
 		if ( cs->thinkFuncChangeTime > level.time - STIMSOLDIER_FLYJUMP_DURATION * 0.9 ) {
 			trap_EA_Move( cs->entityNum, up, 300 );
 			//trap_EA_Jump(cs->entityNum);
-			VectorCopy( cs->clientState->origin, cs->ability.stimFlyAttackPos );
+			cs->ability.stimFlyAttackPos = cs->clientState->origin;
 		} else {
 			// attack them
 			//
@@ -112,7 +114,7 @@ char *AIFunc_StimSoldierFlight( cast_state_t *cs ) {
 		}
 	} else {
 		// still on ground, so move forward to account for stepping animation
-		AngleVectors( cs->viewangles, vec, NULL, NULL );
+		idAngles( cs->viewangles ).ToVectors( &vec, NULL, NULL );
 		trap_EA_Move( cs->entityNum, vec, 300 );
 	}
 	//
@@ -125,8 +127,7 @@ char *AIFunc_StimSoldierFlight( cast_state_t *cs ) {
 
 char *AIFunc_StimSoldierFlightStart( cast_state_t *cs ) {
 	gentity_t *ent;
-	//static vec3_t mins={-96,-96,0}, maxs={96,96,72};
-	vec3_t pos, dir;
+	idVec3 pos, dir;
 	trace_t tr;
 	//
 	cs->combat.weaponFireTimes[cs->weaponNum] = level.time;
@@ -135,8 +136,8 @@ char *AIFunc_StimSoldierFlightStart( cast_state_t *cs ) {
 	// face them
 	AICast_AimAtEnemy( cs );
 	// first, check if this is a good place to start the flying attack
-	AngleVectors( cs->ideal_viewangles, dir, NULL, NULL );
-	VectorMA( cs->clientState->origin, 300, dir, pos );
+	idAngles( cs->ideal_viewangles ).ToVectors( &dir, NULL, NULL );
+	pos = cs->clientState->origin + dir * 300;
 	pos[2] += 128;
 	trap_Trace( &tr, cs->clientState->origin, cs->clientState->cur_ps.mins, cs->clientState->cur_ps.maxs, pos,
 				cs->entityNum, ent->clipmask );
@@ -145,9 +146,9 @@ char *AIFunc_StimSoldierFlightStart( cast_state_t *cs ) {
 	}
 	// check we can attack them from there
 	// select our special weapon (rocket launcher or tesla)
-	if ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_PANZERFAUST ) ) {
+	if ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_PANZERFAUST ) ) {
 		cs->weaponNum = WP_PANZERFAUST;
-	} else if ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_TESLA ) ) {
+	} else if ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_TESLA ) ) {
 		cs->weaponNum = WP_TESLA;
 	} else { // no weapon?
 		G_Error( "stim soldier tried special jump attack without a tesla or rocket launcher\n" );
@@ -198,7 +199,7 @@ static qboolean AI_StimRocketAbilityAvailable( cast_state_t *cs, int weaponNum )
 	int delay = -1;
 	float dist = -1;
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 	switch ( weaponNum ) {
 	case WP_MONSTER_ATTACK1: {
@@ -236,7 +237,7 @@ static qboolean AI_StimTeslaAbilityAvailable( cast_state_t *cs, int weaponNum ) 
 	int delay = -1;
 	float dist = -1;
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 	switch ( weaponNum ) {
 	case WP_MONSTER_ATTACK1: {

@@ -22,7 +22,11 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
+
+static idRandom aiRandom;
 
 /*QUAKED ai_marker (1 0.5 0) (-18 -18 -24) (18 18 48) NODROP
 AI marker
@@ -37,11 +41,11 @@ NODROP means dont drop it to the ground
 SP_ai_marker
 ============
 */
-extern vec3_t playerMins, playerMaxs;
+extern idVec3 playerMins, playerMaxs;
 void SP_ai_marker( gentity_t *ent ) {
-	vec3_t dest;
+	idVec3 dest;
 	trace_t tr;
-	vec3_t checkMins, checkMaxs;
+	idVec3 checkMins, checkMaxs;
 
 	if ( g_gametype.integer != GT_SINGLE_PLAYER ) {
 		G_FreeEntity( ent );
@@ -49,10 +53,10 @@ void SP_ai_marker( gentity_t *ent ) {
 	}
 
 	//----(SA)	move the bounding box for the check in 1 unit on each side so they can butt up against a wall and not startsolid
-	VectorCopy( playerMins, checkMins );
+	checkMins = playerMins;
 	checkMins[0] += 1;
 	checkMins[1] += 1;
-	VectorCopy( playerMaxs, checkMaxs );
+	checkMaxs = playerMaxs;
 	checkMaxs[0] -= 1;
 	checkMaxs[1] -= 1;
 	//----(SA)	end
@@ -60,7 +64,7 @@ void SP_ai_marker( gentity_t *ent ) {
 	if ( !( ent->spawnflags & 1 ) ) {
 		// drop to floor
 		ent->r.currentOrigin[2] += 1.0; // fixes QErad -> engine bug?
-		VectorSet( dest, ent->r.currentOrigin[0], ent->r.currentOrigin[1], ent->r.currentOrigin[2] - 4096 );
+		dest.Set( ent->r.currentOrigin[0], ent->r.currentOrigin[1], ent->r.currentOrigin[2] - 4096 );
 		trap_Trace( &tr, ent->r.currentOrigin, checkMins, checkMaxs, dest, ent->s.number,
 					MASK_PLAYERSOLID | CONTENTS_MONSTERCLIP );
 
@@ -139,7 +143,7 @@ void AICast_trigger_trigger( gentity_t *ent, gentity_t *activator ) {
 
 	if ( ent->wait > 0 ) {
 		ent->think = AICast_trigger_wait;
-		ent->nextthink = level.time + ( ent->wait + ent->random * crandom() ) * 1000;
+		ent->nextthink = level.time + ( ent->wait + ent->random * aiRandom.CRandomFloat() ) * 1000;
 	} else {
 		// we can't just remove (self) here, because this is a touch function
 		// called while looping through area links...

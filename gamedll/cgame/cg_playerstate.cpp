@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
 // following another player or playing back a demo, it will be checked
 // when the snapshot transitions like all the other entities
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 
 /*
@@ -116,8 +118,8 @@ void CG_DamageFeedback( int yawByte, int pitchByte, int damage ) {
 	float kick;
 	int health;
 	float scale;
-	vec3_t dir;
-	vec3_t angles;
+	idVec3 dir;
+	idVec3 angles;
 	float dist;
 	float yaw, pitch;
 	int slot;
@@ -170,17 +172,17 @@ void CG_DamageFeedback( int yawByte, int pitchByte, int damage ) {
 		angles[YAW] = yaw;
 		angles[ROLL] = 0;
 
-		AngleVectors( angles, dir, NULL, NULL );
-		VectorSubtract( vec3_origin, dir, dir );
+		idAngles( angles ).ToVectors( &dir, NULL, NULL );
+		dir = vec3_origin - dir;
 
-		front = DotProduct( dir, cg.refdef.viewaxis[0] );
-		left = DotProduct( dir, cg.refdef.viewaxis[1] );
-		up = DotProduct( dir, cg.refdef.viewaxis[2] );
+		front = dir * cg.refdef.viewaxis[0];
+		left = dir * cg.refdef.viewaxis[1];
+		up = dir * cg.refdef.viewaxis[2];
 
 		dir[0] = front;
 		dir[1] = left;
 		dir[2] = 0;
-		dist = VectorLength( dir );
+		dist = dir.Length();
 		if ( dist < 0.1 ) {
 			dist = 0.1;
 		}
@@ -192,8 +194,8 @@ void CG_DamageFeedback( int yawByte, int pitchByte, int damage ) {
 		if ( front <= 0.1 ) {
 			front = 0.1;
 		}
-		vd->damageX = crandom() * 0.3 + - left / front;
-		vd->damageY = crandom() * 0.3 + up / dist;
+		vd->damageX = ( 2.0 * ( cgRandom.RandomInt() / ( float )RAND_MAX ) - 1.0 ) * 0.3 + -left / front;
+		vd->damageY = ( 2.0 * ( cgRandom.RandomInt() / ( float )RAND_MAX ) - 1.0 ) * 0.3 + up / dist;
 	}
 
 	// clamp the position

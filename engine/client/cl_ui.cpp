@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "client.h"
 
 #include "../game/botlib.h"
@@ -47,9 +49,9 @@ GetClientState
 static void GetClientState( uiClientState_t *state ) {
 	state->connectPacketCount = clc.connectPacketCount;
 	state->connState = cls.state;
-	Q_strncpyz( state->servername, cls.servername, sizeof( state->servername ) );
-	Q_strncpyz( state->updateInfoString, cls.updateInfoString, sizeof( state->updateInfoString ) );
-	Q_strncpyz( state->messageString, clc.serverMessage, sizeof( state->messageString ) );
+	idStr::Copynz( state->servername, cls.servername, sizeof( state->servername ) );
+	idStr::Copynz( state->updateInfoString, cls.updateInfoString, sizeof( state->updateInfoString ) );
+	idStr::Copynz( state->messageString, clc.serverMessage, sizeof( state->messageString ) );
 	state->clientNum = cl.snap.ps.clientNum;
 }
 
@@ -191,7 +193,7 @@ static int LAN_AddServer( int source, const char *name, const char *address ) {
 		}
 		if ( i >= *count ) {
 			servers[*count].adr = adr;
-			Q_strncpyz( servers[*count].hostName, name, sizeof( servers[*count].hostName ) );
+			idStr::Copynz( servers[*count].hostName, name, sizeof( servers[*count].hostName ) );
 			servers[*count].visible = qtrue;
 			( *count )++;
 			return 1;
@@ -235,7 +237,7 @@ static void LAN_RemoveServer( int source, const char *addr ) {
 			if ( NET_CompareAdr( comp, servers[i].adr ) ) {
 				int j = i;
 				while ( j < *count - 1 ) {
-					Com_Memcpy( &servers[j], &servers[j + 1], sizeof( servers[j] ) );
+					memcpy( &servers[j], &servers[j + 1], sizeof( servers[j] ) );
 					j++;
 				}
 				( *count )--;
@@ -278,25 +280,25 @@ static void LAN_GetServerAddressString( int source, int n, char *buf, int buflen
 	switch ( source ) {
 	case AS_LOCAL:
 		if ( n >= 0 && n < MAX_OTHER_SERVERS ) {
-			Q_strncpyz( buf, NET_AdrToString( cls.localServers[n].adr ), buflen );
+			idStr::Copynz( buf, NET_AdrToString( cls.localServers[n].adr ), buflen );
 			return;
 		}
 		break;
 	case AS_MPLAYER:
 		if ( n >= 0 && n < MAX_OTHER_SERVERS ) {
-			Q_strncpyz( buf, NET_AdrToString( cls.mplayerServers[n].adr ), buflen );
+			idStr::Copynz( buf, NET_AdrToString( cls.mplayerServers[n].adr ), buflen );
 			return;
 		}
 		break;
 	case AS_GLOBAL:
 		if ( n >= 0 && n < MAX_GLOBAL_SERVERS ) {
-			Q_strncpyz( buf, NET_AdrToString( cls.globalServers[n].adr ), buflen );
+			idStr::Copynz( buf, NET_AdrToString( cls.globalServers[n].adr ), buflen );
 			return;
 		}
 		break;
 	case AS_FAVORITES:
 		if ( n >= 0 && n < MAX_OTHER_SERVERS ) {
-			Q_strncpyz( buf, NET_AdrToString( cls.favoriteServers[n].adr ), buflen );
+			idStr::Copynz( buf, NET_AdrToString( cls.favoriteServers[n].adr ), buflen );
 			return;
 		}
 		break;
@@ -339,17 +341,17 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen ) {
 		buf[0] = '\0';
 		Info_SetValueForKey( info, "hostname", server->hostName );
 		Info_SetValueForKey( info, "mapname", server->mapName );
-		Info_SetValueForKey( info, "clients", va( "%i",server->clients ) );
-		Info_SetValueForKey( info, "sv_maxclients", va( "%i",server->maxClients ) );
-		Info_SetValueForKey( info, "ping", va( "%i",server->ping ) );
-		Info_SetValueForKey( info, "minping", va( "%i",server->minPing ) );
-		Info_SetValueForKey( info, "maxping", va( "%i",server->maxPing ) );
+		Info_SetValueForKey( info, "clients", idStr::FormatString( "%i",server->clients ) );
+		Info_SetValueForKey( info, "sv_maxclients", idStr::FormatString( "%i",server->maxClients ) );
+		Info_SetValueForKey( info, "ping", idStr::FormatString( "%i",server->ping ) );
+		Info_SetValueForKey( info, "minping", idStr::FormatString( "%i",server->minPing ) );
+		Info_SetValueForKey( info, "maxping", idStr::FormatString( "%i",server->maxPing ) );
 		Info_SetValueForKey( info, "game", server->game );
-		Info_SetValueForKey( info, "gametype", va( "%i",server->gameType ) );
-		Info_SetValueForKey( info, "nettype", va( "%i",server->netType ) );
+		Info_SetValueForKey( info, "gametype", idStr::FormatString( "%i",server->gameType ) );
+		Info_SetValueForKey( info, "nettype", idStr::FormatString( "%i",server->netType ) );
 		Info_SetValueForKey( info, "addr", NET_AdrToString( server->adr ) );
-		Info_SetValueForKey( info, "sv_allowAnonymous", va( "%i", server->allowAnonymous ) );
-		Q_strncpyz( buf, info, buflen );
+		Info_SetValueForKey( info, "sv_allowAnonymous", idStr::FormatString( "%i", server->allowAnonymous ) );
+		idStr::Copynz( buf, info, buflen );
 	} else {
 		if ( buf ) {
 			buf[0] = '\0';
@@ -441,11 +443,11 @@ static int LAN_CompareServers( int source, int sortKey, int sortDir, int s1, int
 	res = 0;
 	switch ( sortKey ) {
 	case SORT_HOST:
-		res = Q_stricmp( server1->hostName, server2->hostName );
+		res = idStr::Icmp( server1->hostName, server2->hostName );
 		break;
 
 	case SORT_MAP:
-		res = Q_stricmp( server1->mapName, server2->mapName );
+		res = idStr::Icmp( server1->mapName, server2->mapName );
 		break;
 	case SORT_CLIENTS:
 		if ( server1->clients < server2->clients ) {
@@ -654,9 +656,9 @@ static void GetClipboardData( char *buf, int buflen ) {
 		return;
 	}
 
-	Q_strncpyz( buf, cbd, buflen );
+	idStr::Copynz( buf, cbd, buflen );
 
-	Z_Free( cbd );
+	Mem_Free( cbd );
 }
 
 /*
@@ -665,7 +667,7 @@ Key_KeynumToStringBuf
 ====================
 */
 static void Key_KeynumToStringBuf( int keynum, char *buf, int buflen ) {
-	Q_strncpyz( buf, Key_KeynumToString( keynum, qtrue ), buflen );
+	idStr::Copynz( buf, Key_KeynumToString( keynum, qtrue ), buflen );
 }
 
 /*
@@ -678,7 +680,7 @@ static void Key_GetBindingBuf( int keynum, char *buf, int buflen ) {
 
 	value = Key_GetBinding( keynum );
 	if ( value ) {
-		Q_strncpyz( buf, value, buflen );
+		idStr::Copynz( buf, value, buflen );
 	} else {
 		*buf = 0;
 	}
@@ -762,7 +764,7 @@ static int GetConfigString( int index, char *buf, int size ) {
 		return qfalse;
 	}
 
-	Q_strncpyz( buf, cl.gameState.stringData + offset, size );
+	idStr::Copynz( buf, cl.gameState.stringData + offset, size );
 
 	return qtrue;
 }
@@ -879,11 +881,11 @@ static uiImport_t CL_CreateUIImports() {
 		return;
 		// Ridah
 	};
-	imports.RE_AddLightToScene = []( const vec3_t org, float intensity, float r, float g, float b, int overdraw ) -> void {
+	imports.RE_AddLightToScene = []( const idVec3 &org, float intensity, float r, float g, float b, int overdraw ) -> void {
 		re.AddLightToScene( org, intensity, r, g, b, overdraw );
 		return;
 	};
-	imports.RE_AddCoronaToScene = []( const vec3_t org, float r, float g, float b, float scale, int id, int flags ) -> void {
+	imports.RE_AddCoronaToScene = []( const idVec3 &org, float r, float g, float b, float scale, int id, int flags ) -> void {
 		re.AddCoronaToScene( org, r, g, b, scale, id, flags );
 		return;
 	};
@@ -899,7 +901,7 @@ static uiImport_t CL_CreateUIImports() {
 		re.DrawStretchPic( x, y, w, h, s1, t1, s2, t2, hShader );
 		return;
 	};
-	imports.RE_ModelBounds = []( clipHandle_t model, vec3_t mins, vec3_t maxs ) -> void {
+	imports.RE_ModelBounds = []( clipHandle_t model, idVec3 &mins, idVec3 &maxs ) -> void {
 		re.ModelBounds( model, mins, maxs );
 		return;
 	};
@@ -1048,7 +1050,8 @@ static uiImport_t CL_CreateUIImports() {
 		return;
 	};
 	imports.Hunk_MemoryRemaining = []( void ) -> int {
-		return Hunk_MemoryRemaining();
+		// the hunk is gone, the idlib heap tracks its own usage
+		return 0;
 	};
 	imports.CLUI_GetCDKey = []( char *buf, int buflen ) -> void {
 		CLUI_GetCDKey( buf, buflen );
@@ -1057,21 +1060,6 @@ static uiImport_t CL_CreateUIImports() {
 	imports.CLUI_SetCDKey = []( char *buf ) -> void {
 		CLUI_SetCDKey( buf );
 		return;
-	};
-	imports.PC_AddGlobalDefine = []( char *define ) -> int {
-		return botlib_export->PC_AddGlobalDefine( define );
-	};
-	imports.PC_LoadSourceHandle = []( const char *filename ) -> int {
-		return botlib_export->PC_LoadSourceHandle( filename );
-	};
-	imports.PC_FreeSourceHandle = []( int handle ) -> int {
-		return botlib_export->PC_FreeSourceHandle( handle );
-	};
-	imports.PC_ReadTokenHandle = []( int handle, pc_token_t *pc_token ) -> int {
-		return botlib_export->PC_ReadTokenHandle( handle, pc_token );
-	};
-	imports.PC_SourceFileAndLine = []( int handle, char *filename, int *line ) -> int {
-		return botlib_export->PC_SourceFileAndLine( handle, filename, line );
 	};
 	imports.S_StopBackgroundTrack = []( void ) -> void {
 		S_StopBackgroundTrack();

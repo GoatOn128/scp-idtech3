@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cl_parse.c  -- parse a message received from the server
 
+#include "../precompiled.h"
+
 #include "client.h"
 
 char *svc_strings[256] = {
@@ -42,9 +44,9 @@ char *svc_strings[256] = {
 	"svc_snapshot"
 };
 
-void SHOWNET( msg_t *msg, char *s ) {
+void SHOWNET( idBitMsg *msg, char *s ) {
 	if ( cl_shownet->integer >= 2 ) {
-		Com_Printf( "%3i %3i:%s\n", msg->readcount - 1, msg->cursize, s );
+		Com_Printf( "%3i %3i:%s\n", msg->GetReadCount() - 1, msg->GetSize(), s );
 	}
 }
 
@@ -65,7 +67,7 @@ Parses deltas from the given base and adds the resulting entity
 to the current frame
 ==================
 */
-void CL_DeltaEntity( msg_t *msg, clSnapshot_t *frame, int newnum, entityState_t *old,
+void CL_DeltaEntity( idBitMsg *msg, clSnapshot_t *frame, int newnum, entityState_t *old,
 					 qboolean unchanged ) {
 	entityState_t   *state;
 
@@ -76,7 +78,7 @@ void CL_DeltaEntity( msg_t *msg, clSnapshot_t *frame, int newnum, entityState_t 
 	if ( unchanged ) {
 		*state = *old;
 	} else {
-		MSG_ReadDeltaEntity( msg, old, state, newnum );
+		NetMsg_ReadDeltaEntity( msg, old, state, newnum );
 	}
 
 	if ( state->number == ( MAX_GENTITIES - 1 ) ) {
@@ -92,7 +94,7 @@ CL_ParsePacketEntities
 
 ==================
 */
-void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapshot_t *newframe ) {
+void CL_ParsePacketEntities( idBitMsg *msg, clSnapshot_t *oldframe, clSnapshot_t *newframe ) {
 	int newnum;
 	entityState_t   *oldstate;
 	int oldindex, oldnum;
@@ -117,20 +119,20 @@ void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapshot_t *n
 
 	while ( 1 ) {
 		// read the entity index number
-		newnum = MSG_ReadBits( msg, GENTITYNUM_BITS );
+		newnum = msg->ReadBits( GENTITYNUM_BITS );
 
 		if ( newnum == ( MAX_GENTITIES - 1 ) ) {
 			break;
 		}
 
-		if ( msg->readcount > msg->cursize ) {
+		if ( msg->GetReadCount() > msg->GetSize() ) {
 			Com_Error( ERR_DROP,"CL_ParsePacketEntities: end of message" );
 		}
 
 		while ( oldnum < newnum ) {
 			// one or more entities from the old packet are unchanged
 			if ( cl_shownet->integer == 3 ) {
-				Com_Printf( "%3i:  unchanged: %i\n", msg->readcount, oldnum );
+				Com_Printf( "%3i:  unchanged: %i\n", msg->GetReadCount(), oldnum );
 			}
 			CL_DeltaEntity( msg, newframe, oldnum, oldstate, qtrue );
 
@@ -147,7 +149,7 @@ void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapshot_t *n
 		if ( oldnum == newnum ) {
 			// delta from previous state
 			if ( cl_shownet->integer == 3 ) {
-				Com_Printf( "%3i:  delta: %i\n", msg->readcount, newnum );
+				Com_Printf( "%3i:  delta: %i\n", msg->GetReadCount(), newnum );
 			}
 			CL_DeltaEntity( msg, newframe, newnum, oldstate, qfalse );
 
@@ -166,7 +168,7 @@ void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapshot_t *n
 		if ( oldnum > newnum ) {
 			// delta from baseline
 			if ( cl_shownet->integer == 3 ) {
-				Com_Printf( "%3i:  baseline: %i\n", msg->readcount, newnum );
+				Com_Printf( "%3i:  baseline: %i\n", msg->GetReadCount(), newnum );
 			}
 			CL_DeltaEntity( msg, newframe, newnum, &cl.entityBaselines[newnum], qfalse );
 			continue;
@@ -178,7 +180,7 @@ void CL_ParsePacketEntities( msg_t *msg, clSnapshot_t *oldframe, clSnapshot_t *n
 	while ( oldnum != 99999 ) {
 		// one or more entities from the old packet are unchanged
 		if ( cl_shownet->integer == 3 ) {
-			Com_Printf( "%3i:  unchanged: %i\n", msg->readcount, oldnum );
+			Com_Printf( "%3i:  unchanged: %i\n", msg->GetReadCount(), oldnum );
 		}
 		CL_DeltaEntity( msg, newframe, oldnum, oldstate, qtrue );
 
@@ -204,7 +206,7 @@ cl.snap and saved in cl.snapshots[].  If the snapshot is invalid
 for any reason, no changes to the state will be made at all.
 ================
 */
-void CL_ParseSnapshot( msg_t *msg ) {
+void CL_ParseSnapshot( idBitMsg *msg ) {
 	int len;
 	clSnapshot_t    *old;
 	clSnapshot_t newSnap;
@@ -214,7 +216,7 @@ void CL_ParseSnapshot( msg_t *msg ) {
 
 	// get the reliable sequence acknowledge number
 	// NOTE: now sent with all server to client messages
-	//clc.reliableAcknowledge = MSG_ReadLong( msg );
+	//clc.reliableAcknowledge = msg->ReadLong( );
 
 	// read in the new snapshot to a temporary buffer
 	// we will only copy to cl.snap if it is valid
@@ -224,17 +226,17 @@ void CL_ParseSnapshot( msg_t *msg ) {
 	// message before we got to svc_snapshot
 	newSnap.serverCommandNum = clc.serverCommandSequence;
 
-	newSnap.serverTime = MSG_ReadLong( msg );
+	newSnap.serverTime = msg->ReadLong( );
 
 	newSnap.messageNum = clc.serverMessageSequence;
 
-	deltaNum = MSG_ReadByte( msg );
+	deltaNum = msg->ReadByte( );
 	if ( !deltaNum ) {
 		newSnap.deltaNum = -1;
 	} else {
 		newSnap.deltaNum = newSnap.messageNum - deltaNum;
 	}
-	newSnap.snapFlags = MSG_ReadByte( msg );
+	newSnap.snapFlags = msg->ReadByte( );
 
 	// If the frame is delta compressed from data that we
 	// no longer have available, we must suck up the rest of
@@ -261,15 +263,15 @@ void CL_ParseSnapshot( msg_t *msg ) {
 	}
 
 	// read areamask
-	len = MSG_ReadByte( msg );
-	MSG_ReadData( msg, &newSnap.areamask, len );
+	len = msg->ReadByte( );
+	msg->ReadData( &newSnap.areamask, len );
 
 	// read playerinfo
 	SHOWNET( msg, "playerstate" );
 	if ( old ) {
-		MSG_ReadDeltaPlayerstate( msg, &old->ps, &newSnap.ps );
+		NetMsg_ReadDeltaPlayerstate( msg, &old->ps, &newSnap.ps );
 	} else {
-		MSG_ReadDeltaPlayerstate( msg, NULL, &newSnap.ps );
+		NetMsg_ReadDeltaPlayerstate( msg, NULL, &newSnap.ps );
 	}
 
 	// read packet entities
@@ -378,7 +380,7 @@ void CL_SystemInfoChanged( void ) {
 CL_ParseGamestate
 ==================
 */
-void CL_ParseGamestate( msg_t *msg ) {
+void CL_ParseGamestate( idBitMsg *msg ) {
 	int i;
 	entityState_t   *es;
 	int newnum;
@@ -394,12 +396,12 @@ void CL_ParseGamestate( msg_t *msg ) {
 	CL_ClearState();
 
 	// a gamestate always marks a server command sequence
-	clc.serverCommandSequence = MSG_ReadLong( msg );
+	clc.serverCommandSequence = msg->ReadLong( );
 
 	// parse all the configstrings and baselines
 	cl.gameState.dataCount = 1; // leave a 0 at the beginning for uninitialized configstrings
 	while ( 1 ) {
-		cmd = MSG_ReadByte( msg );
+		cmd = msg->ReadByte( );
 
 		if ( cmd == svc_EOF ) {
 			break;
@@ -408,11 +410,11 @@ void CL_ParseGamestate( msg_t *msg ) {
 		if ( cmd == svc_configstring ) {
 			int len;
 
-			i = MSG_ReadShort( msg );
+			i = msg->ReadShort( );
 			if ( i < 0 || i >= MAX_CONFIGSTRINGS ) {
 				Com_Error( ERR_DROP, "configstring > MAX_CONFIGSTRINGS" );
 			}
-			s = MSG_ReadBigString( msg );
+			s = msg->ReadString( );
 			len = strlen( s );
 
 			if ( len + 1 + cl.gameState.dataCount > MAX_GAMESTATE_CHARS ) {
@@ -424,21 +426,21 @@ void CL_ParseGamestate( msg_t *msg ) {
 			memcpy( cl.gameState.stringData + cl.gameState.dataCount, s, len + 1 );
 			cl.gameState.dataCount += len + 1;
 		} else if ( cmd == svc_baseline ) {
-			newnum = MSG_ReadBits( msg, GENTITYNUM_BITS );
+			newnum = msg->ReadBits( GENTITYNUM_BITS );
 			if ( newnum < 0 || newnum >= MAX_GENTITIES ) {
 				Com_Error( ERR_DROP, "Baseline number out of range: %i", newnum );
 			}
 			memset( &nullstate, 0, sizeof( nullstate ) );
 			es = &cl.entityBaselines[ newnum ];
-			MSG_ReadDeltaEntity( msg, &nullstate, es, newnum );
+			NetMsg_ReadDeltaEntity( msg, &nullstate, es, newnum );
 		} else {
 			Com_Error( ERR_DROP, "CL_ParseGamestate: bad command byte" );
 		}
 	}
 
-	clc.clientNum = MSG_ReadLong( msg );
+	clc.clientNum = msg->ReadLong( );
 	// read the checksum feed
-	clc.checksumFeed = MSG_ReadLong( msg );
+	clc.checksumFeed = msg->ReadLong( );
 
 	// parse serverId and other cvars
 	CL_SystemInfoChanged();
@@ -469,29 +471,29 @@ CL_ParseDownload
 A download message has been received from the server
 =====================
 */
-void CL_ParseDownload( msg_t *msg ) {
+void CL_ParseDownload( idBitMsg *msg ) {
 	int size;
 	unsigned char data[MAX_MSGLEN];
 	int block;
 
 	// read the data
-	block = MSG_ReadShort( msg );
+	block = msg->ReadShort( );
 
 	if ( !block ) {
 		// block zero is special, contains file size
-		clc.downloadSize = MSG_ReadLong( msg );
+		clc.downloadSize = msg->ReadLong( );
 
 		Cvar_SetValue( "cl_downloadSize", clc.downloadSize );
 
 		if ( clc.downloadSize < 0 ) {
-			Com_Error( ERR_DROP, MSG_ReadString( msg ) );
+			Com_Error( ERR_DROP, msg->ReadString( ) );
 			return;
 		}
 	}
 
-	size = MSG_ReadShort( msg );
+	size = msg->ReadShort( );
 	if ( size > 0 ) {
-		MSG_ReadData( msg, data, size );
+		msg->ReadData( data, size );
 	}
 
 	if ( clc.downloadBlock != block ) {
@@ -521,7 +523,7 @@ void CL_ParseDownload( msg_t *msg ) {
 		FS_Write( data, size, clc.download );
 	}
 
-	CL_AddReliableCommand( va( "nextdl %d", clc.downloadBlock ) );
+	CL_AddReliableCommand( idStr::FormatString( "nextdl %d", clc.downloadBlock ) );
 	clc.downloadBlock++;
 
 	clc.downloadCount += size;
@@ -561,13 +563,13 @@ Command strings are just saved off until cgame asks for them
 when it transitions a snapshot
 =====================
 */
-void CL_ParseCommandString( msg_t *msg ) {
+void CL_ParseCommandString( idBitMsg *msg ) {
 	char    *s;
 	int seq;
 	int index;
 
-	seq = MSG_ReadLong( msg );
-	s = MSG_ReadString( msg );
+	seq = msg->ReadLong( );
+	s = msg->ReadString( );
 
 	// see if we have already executed stored it off
 	if ( clc.serverCommandSequence >= seq ) {
@@ -576,7 +578,7 @@ void CL_ParseCommandString( msg_t *msg ) {
 	clc.serverCommandSequence = seq;
 
 	index = seq & ( MAX_RELIABLE_COMMANDS - 1 );
-	Q_strncpyz( clc.serverCommands[ index ], s, sizeof( clc.serverCommands[ index ] ) );
+	idStr::Copynz( clc.serverCommands[ index ], s, sizeof( clc.serverCommands[ index ] ) );
 }
 
 
@@ -585,22 +587,22 @@ void CL_ParseCommandString( msg_t *msg ) {
 CL_ParseServerMessage
 =====================
 */
-void CL_ParseServerMessage( msg_t *msg ) {
+void CL_ParseServerMessage( idBitMsg *msg ) {
 	int cmd;
-	msg_t msgback;
+	idBitMsg msgback;
 
 	msgback = *msg;
 
 	if ( cl_shownet->integer == 1 ) {
-		Com_Printf( "%i ",msg->cursize );
+		Com_Printf( "%i ",msg->GetSize() );
 	} else if ( cl_shownet->integer >= 2 ) {
 		Com_Printf( "------------------\n" );
 	}
 
-	MSG_Bitstream( msg );
+	msg->SetOOB( false );
 
 	// get the reliable sequence acknowledge number
-	clc.reliableAcknowledge = MSG_ReadLong( msg );
+	clc.reliableAcknowledge = msg->ReadLong( );
 	//
 	if ( clc.reliableAcknowledge < clc.reliableSequence - MAX_RELIABLE_COMMANDS ) {
 		clc.reliableAcknowledge = clc.reliableSequence;
@@ -610,12 +612,12 @@ void CL_ParseServerMessage( msg_t *msg ) {
 	// parse the message
 	//
 	while ( 1 ) {
-		if ( msg->readcount > msg->cursize ) {
+		if ( msg->GetReadCount() > msg->GetSize() ) {
 			Com_Error( ERR_DROP,"CL_ParseServerMessage: read past end of server message" );
 			break;
 		}
 
-		cmd = MSG_ReadByte( msg );
+		cmd = msg->ReadByte( );
 
 		if ( cmd == svc_EOF ) {
 			SHOWNET( msg, "END OF MESSAGE" );
@@ -624,7 +626,7 @@ void CL_ParseServerMessage( msg_t *msg ) {
 
 		if ( cl_shownet->integer >= 2 ) {
 			if ( !svc_strings[cmd] ) {
-				Com_Printf( "%3i:BAD CMD %i\n", msg->readcount - 1, cmd );
+				Com_Printf( "%3i:BAD CMD %i\n", msg->GetReadCount() - 1, cmd );
 			} else {
 				SHOWNET( msg, svc_strings[cmd] );
 			}

@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
 
 	User interface building blocks and support functions.
 **********************************************************************/
+#include "../precompiled.h"
+
 #include "ui_local.h"
 
 uiStatic_t uis;
@@ -49,7 +51,7 @@ void QDECL Com_Error( int level, const char *error, ... ) {
 	vsnprintf( text, sizeof( text ), error, argptr );
 	va_end( argptr );
 
-	trap_Error( va( "%s", text ) );
+	trap_Error( idStr::FormatString( "%s", text ) );
 }
 
 void QDECL Com_Printf( const char *msg, ... ) {
@@ -60,7 +62,7 @@ void QDECL Com_Printf( const char *msg, ... ) {
 	vsnprintf( text, sizeof( text ), msg, argptr );
 	va_end( argptr );
 
-	trap_Print( va( "%s", text ) );
+	trap_Print( idStr::FormatString( "%s", text ) );
 }
 
 #endif
@@ -124,37 +126,37 @@ char *UI_Cvar_VariableString( const char *var_name ) {
 
 #ifdef MISSIONPACK
 void UI_SetBestScores( postGameInfo_t *newInfo, qboolean postGame ) {
-	trap_Cvar_Set( "ui_scoreAccuracy",     va( "%i%%", newInfo->accuracy ) );
-	trap_Cvar_Set( "ui_scoreImpressives", va( "%i", newInfo->impressives ) );
-	trap_Cvar_Set( "ui_scoreExcellents",  va( "%i", newInfo->excellents ) );
-	trap_Cvar_Set( "ui_scoreDefends",             va( "%i", newInfo->defends ) );
-	trap_Cvar_Set( "ui_scoreAssists",             va( "%i", newInfo->assists ) );
-	trap_Cvar_Set( "ui_scoreGauntlets",       va( "%i", newInfo->gauntlets ) );
-	trap_Cvar_Set( "ui_scoreScore",               va( "%i", newInfo->score ) );
-	trap_Cvar_Set( "ui_scorePerfect",         va( "%i", newInfo->perfects ) );
-	trap_Cvar_Set( "ui_scoreTeam",                    va( "%i to %i", newInfo->redScore, newInfo->blueScore ) );
-	trap_Cvar_Set( "ui_scoreBase",                    va( "%i", newInfo->baseScore ) );
-	trap_Cvar_Set( "ui_scoreTimeBonus",       va( "%i", newInfo->timeBonus ) );
-	trap_Cvar_Set( "ui_scoreSkillBonus",      va( "%i", newInfo->skillBonus ) );
-	trap_Cvar_Set( "ui_scoreShutoutBonus",    va( "%i", newInfo->shutoutBonus ) );
-	trap_Cvar_Set( "ui_scoreTime",                    va( "%02i:%02i", newInfo->time / 60, newInfo->time % 60 ) );
-	trap_Cvar_Set( "ui_scoreCaptures",        va( "%i", newInfo->captures ) );
+	trap_Cvar_Set( "ui_scoreAccuracy",     idStr::FormatString( "%i%%", newInfo->accuracy ) );
+	trap_Cvar_Set( "ui_scoreImpressives", idStr::FormatString( "%i", newInfo->impressives ) );
+	trap_Cvar_Set( "ui_scoreExcellents",  idStr::FormatString( "%i", newInfo->excellents ) );
+	trap_Cvar_Set( "ui_scoreDefends",             idStr::FormatString( "%i", newInfo->defends ) );
+	trap_Cvar_Set( "ui_scoreAssists",             idStr::FormatString( "%i", newInfo->assists ) );
+	trap_Cvar_Set( "ui_scoreGauntlets",       idStr::FormatString( "%i", newInfo->gauntlets ) );
+	trap_Cvar_Set( "ui_scoreScore",               idStr::FormatString( "%i", newInfo->score ) );
+	trap_Cvar_Set( "ui_scorePerfect",         idStr::FormatString( "%i", newInfo->perfects ) );
+	trap_Cvar_Set( "ui_scoreTeam",                    idStr::FormatString( "%i to %i", newInfo->redScore, newInfo->blueScore ) );
+	trap_Cvar_Set( "ui_scoreBase",                    idStr::FormatString( "%i", newInfo->baseScore ) );
+	trap_Cvar_Set( "ui_scoreTimeBonus",       idStr::FormatString( "%i", newInfo->timeBonus ) );
+	trap_Cvar_Set( "ui_scoreSkillBonus",      idStr::FormatString( "%i", newInfo->skillBonus ) );
+	trap_Cvar_Set( "ui_scoreShutoutBonus",    idStr::FormatString( "%i", newInfo->shutoutBonus ) );
+	trap_Cvar_Set( "ui_scoreTime",                    idStr::FormatString( "%02i:%02i", newInfo->time / 60, newInfo->time % 60 ) );
+	trap_Cvar_Set( "ui_scoreCaptures",        idStr::FormatString( "%i", newInfo->captures ) );
 	if ( postGame ) {
-		trap_Cvar_Set( "ui_scoreAccuracy2",     va( "%i%%", newInfo->accuracy ) );
-		trap_Cvar_Set( "ui_scoreImpressives2",    va( "%i", newInfo->impressives ) );
-		trap_Cvar_Set( "ui_scoreExcellents2",     va( "%i", newInfo->excellents ) );
-		trap_Cvar_Set( "ui_scoreDefends2",            va( "%i", newInfo->defends ) );
-		trap_Cvar_Set( "ui_scoreAssists2",            va( "%i", newInfo->assists ) );
-		trap_Cvar_Set( "ui_scoreGauntlets2",      va( "%i", newInfo->gauntlets ) );
-		trap_Cvar_Set( "ui_scoreScore2",              va( "%i", newInfo->score ) );
-		trap_Cvar_Set( "ui_scorePerfect2",            va( "%i", newInfo->perfects ) );
-		trap_Cvar_Set( "ui_scoreTeam2",                   va( "%i to %i", newInfo->redScore, newInfo->blueScore ) );
-		trap_Cvar_Set( "ui_scoreBase2",                   va( "%i", newInfo->baseScore ) );
-		trap_Cvar_Set( "ui_scoreTimeBonus2",      va( "%i", newInfo->timeBonus ) );
-		trap_Cvar_Set( "ui_scoreSkillBonus2",     va( "%i", newInfo->skillBonus ) );
-		trap_Cvar_Set( "ui_scoreShutoutBonus2",   va( "%i", newInfo->shutoutBonus ) );
-		trap_Cvar_Set( "ui_scoreTime2",                   va( "%02i:%02i", newInfo->time / 60, newInfo->time % 60 ) );
-		trap_Cvar_Set( "ui_scoreCaptures2",       va( "%i", newInfo->captures ) );
+		trap_Cvar_Set( "ui_scoreAccuracy2",     idStr::FormatString( "%i%%", newInfo->accuracy ) );
+		trap_Cvar_Set( "ui_scoreImpressives2",    idStr::FormatString( "%i", newInfo->impressives ) );
+		trap_Cvar_Set( "ui_scoreExcellents2",     idStr::FormatString( "%i", newInfo->excellents ) );
+		trap_Cvar_Set( "ui_scoreDefends2",            idStr::FormatString( "%i", newInfo->defends ) );
+		trap_Cvar_Set( "ui_scoreAssists2",            idStr::FormatString( "%i", newInfo->assists ) );
+		trap_Cvar_Set( "ui_scoreGauntlets2",      idStr::FormatString( "%i", newInfo->gauntlets ) );
+		trap_Cvar_Set( "ui_scoreScore2",              idStr::FormatString( "%i", newInfo->score ) );
+		trap_Cvar_Set( "ui_scorePerfect2",            idStr::FormatString( "%i", newInfo->perfects ) );
+		trap_Cvar_Set( "ui_scoreTeam2",                   idStr::FormatString( "%i to %i", newInfo->redScore, newInfo->blueScore ) );
+		trap_Cvar_Set( "ui_scoreBase2",                   idStr::FormatString( "%i", newInfo->baseScore ) );
+		trap_Cvar_Set( "ui_scoreTimeBonus2",      idStr::FormatString( "%i", newInfo->timeBonus ) );
+		trap_Cvar_Set( "ui_scoreSkillBonus2",     idStr::FormatString( "%i", newInfo->skillBonus ) );
+		trap_Cvar_Set( "ui_scoreShutoutBonus2",   idStr::FormatString( "%i", newInfo->shutoutBonus ) );
+		trap_Cvar_Set( "ui_scoreTime2",                   idStr::FormatString( "%02i:%02i", newInfo->time / 60, newInfo->time % 60 ) );
+		trap_Cvar_Set( "ui_scoreCaptures2",       idStr::FormatString( "%i", newInfo->captures ) );
 	}
 }
 #endif  // #ifdef MISSIONPACK
@@ -207,7 +209,7 @@ void UI_ClearScores() {
 		gameFile = gameList;
 		for ( i = 0; i < count; i++ ) {
 			len = strlen( gameFile );
-			if ( trap_FS_FOpenFile( va( "games/%s",gameFile ), &f, FS_WRITE ) >= 0 ) {
+			if ( trap_FS_FOpenFile( idStr::FormatString( "games/%s",gameFile ), &f, FS_WRITE ) >= 0 ) {
 				trap_FS_Write( &size, sizeof( int ), f );
 				trap_FS_Write( &newInfo, size, f );
 				trap_FS_FCloseFile( f );
@@ -244,7 +246,7 @@ static void UI_CalcPostGameStats() {
 	qboolean newHigh = qfalse;
 
 	trap_GetConfigString( CS_SERVERINFO, info, sizeof( info ) );
-	Q_strncpyz( map, Info_ValueForKey( info, "mapname" ), sizeof( map ) );
+	idStr::Copynz( map, Info_ValueForKey( info, "mapname" ), sizeof( map ) );
 	game = atoi( Info_ValueForKey( info, "g_gametype" ) );
 
 	// compose file name
@@ -346,48 +348,48 @@ qboolean UI_ConsoleCommand( int realTime ) {
 	// ensure minimum menu data is available
 	//Menu_Cache();
 
-	if ( Q_stricmp( cmd, "ui_test" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "ui_test" ) == 0 ) {
 		UI_ShowPostGame( qtrue );
 	}
 
-	if ( Q_stricmp( cmd, "ui_report" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "ui_report" ) == 0 ) {
 		UI_Report();
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "ui_load" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "ui_load" ) == 0 ) {
 		UI_Load();
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "remapShader" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "remapShader" ) == 0 ) {
 		if ( trap_Argc() == 4 ) {
 			char shader1[MAX_QPATH];
 			char shader2[MAX_QPATH];
-			Q_strncpyz( shader1, UI_Argv( 1 ), sizeof( shader1 ) );
-			Q_strncpyz( shader2, UI_Argv( 2 ), sizeof( shader2 ) );
+			idStr::Copynz( shader1, UI_Argv( 1 ), sizeof( shader1 ) );
+			idStr::Copynz( shader2, UI_Argv( 2 ), sizeof( shader2 ) );
 			trap_R_RemapShader( shader1, shader2, UI_Argv( 3 ) );
 			return qtrue;
 		}
 	}
 
-	if ( Q_stricmp( cmd, "postgame" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "postgame" ) == 0 ) {
 		UI_CalcPostGameStats();
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "ui_cache" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "ui_cache" ) == 0 ) {
 		UI_Cache_f();
 		return qtrue;
 	}
 
-	if ( Q_stricmp( cmd, "ui_teamOrders" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "ui_teamOrders" ) == 0 ) {
 		//UI_TeamOrdersMenu_f();
 		return qtrue;
 	}
 
 
-	if ( Q_stricmp( cmd, "ui_cdkey" ) == 0 ) {
+	if ( idStr::Icmp( cmd, "ui_cdkey" ) == 0 ) {
 		//UI_CDKeyMenu_f();
 		return qtrue;
 	}
@@ -469,8 +471,8 @@ UI_FillRect
 Coordinates are 640*480 virtual values
 =================
 */
-void UI_FillRect( float x, float y, float width, float height, const float *color ) {
-	trap_R_SetColor( color );
+void UI_FillRect( float x, float y, float width, float height, const idVec4 &color ) {
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	UI_AdjustFrom640( &x, &y, &width, &height );
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 0, 0, uiInfo.uiDC.whiteShader );
@@ -496,8 +498,8 @@ UI_DrawRect
 Coordinates are 640*480 virtual values
 =================
 */
-void UI_DrawRect( float x, float y, float width, float height, const float *color ) {
-	trap_R_SetColor( color );
+void UI_DrawRect( float x, float y, float width, float height, const idVec4 &color ) {
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	UI_DrawTopBottom( x, y, width, height );
 	UI_DrawSides( x, y, width, height );

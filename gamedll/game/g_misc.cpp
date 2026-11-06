@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 extern void AimAtTarget( gentity_t * self );
@@ -116,7 +118,7 @@ TELEPORTERS
 
 =================================================================================
 */
-void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
+void TeleportPlayer( gentity_t *player, idVec3 &origin, idVec3 &angles ) {
 	gentity_t   *tent;
 
 	// use temp events at source and destination to prevent the effect
@@ -132,7 +134,7 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 	// unlink to make sure it can't possibly interfere with G_KillBox
 	trap_UnlinkEntity( player );
 
-	VectorCopy( origin, player->client->ps.origin );
+	player->client->ps.origin = origin;
 	player->client->ps.origin[2] += 1;
 
 	// spit the player out
@@ -156,7 +158,7 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 	BG_PlayerStateToEntityState( &player->client->ps, &player->s, qtrue );
 
 	// use the precise origin for linking
-	VectorCopy( player->client->ps.origin, player->r.currentOrigin );
+	player->r.currentOrigin = player->client->ps.origin;
 
 	if ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) {
 		trap_LinkEntity( player );
@@ -282,7 +284,7 @@ grabber_pain
 	pain func for the grabber entity (not triggers)
 ==============
 */
-void grabber_pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point ) {
+void grabber_pain( gentity_t *ent, gentity_t *attacker, int damage, idVec3 &point ) {
 	G_AddEvent( ent, EV_GENERAL_SOUND, ent->sound2to1 ); // sound2to1 is the 'pain' sound
 }
 
@@ -300,12 +302,12 @@ void grabber_wake( gentity_t *ent ) {
 	parent = ent->parent;
 
 	// change the 'a' trigger to the 'b' trigger for grabber attacking
-	VectorCopy( parent->s.origin, ent->r.mins );
-	VectorCopy( parent->s.origin, ent->r.maxs );
+	ent->r.mins = parent->s.origin;
+	ent->r.maxs = parent->s.origin;
 
 	if ( 1 ) {     // temp fast trigger
-		VectorAdd( ent->r.mins, tv( -( ent->random ), -( ent->random ), -( ent->random ) ), ent->r.mins );
-		VectorAdd( ent->r.maxs, tv( ent->random, ent->random, ent->random ), ent->r.maxs );
+		ent->r.mins = ent->r.mins + idVec3( -( ent->random ), -( ent->random ), -( ent->random ) );
+		ent->r.maxs = ent->r.maxs + idVec3( ent->random, ent->random, ent->random );
 	}
 
 	ent->touch = grabber_close;
@@ -406,7 +408,7 @@ void SP_misc_grabber_trap( gentity_t *ent ) {
 	ent->sound2to1      = G_SoundIndex( "models/misc/grabber/grabber_pain.wav" );
 
 	G_SetOrigin( ent, ent->s.origin );
-	VectorCopy( ent->s.angles, ent->s.apos.trBase );
+	ent->s.apos.trBase = ent->s.angles;
 	ent->s.apos.trBase[YAW] -= 90;  // adjust for model rotation
 
 
@@ -422,14 +424,14 @@ void SP_misc_grabber_trap( gentity_t *ent ) {
 
 	ent->use        = grabber_use;  // allow 'waking' from trigger
 
-	VectorSet( ent->r.mins, -12, -12, 0 );   // target area for shooting it after it wakes
-	VectorSet( ent->r.maxs, 12, 12, 48 );
+	ent->r.mins.Set( -12, -12, 0 );   // target area for shooting it after it wakes
+	ent->r.maxs.Set( 12, 12, 48 );
 
 	// create the 'a' trigger for waking up the grabber
 	trig = ent->enemy = G_Spawn();
 
-	VectorCopy( ent->s.origin, trig->r.mins );
-	VectorCopy( ent->s.origin, trig->r.maxs );
+	trig->r.mins = ent->s.origin;
+	trig->r.maxs = ent->s.origin;
 
 	// store attack range in 'duration'
 	G_SpawnInt( "range", "64", &range );
@@ -443,8 +445,8 @@ void SP_misc_grabber_trap( gentity_t *ent ) {
 
 	// just make an even trigger box around the ent (do properly sized/oriented trigger after it's working)
 	if ( 1 ) {     // temp fast trigger
-		VectorAdd( trig->r.mins, tv( -( trig->count ), -( trig->count ), -( trig->count ) ), trig->r.mins );
-		VectorAdd( trig->r.maxs, tv( trig->count, trig->count, trig->count ), trig->r.maxs );
+		trig->r.mins = trig->r.mins + idVec3( -( trig->count ), -( trig->count ), -( trig->count ) );
+		trig->r.maxs = trig->r.maxs + idVec3( trig->count, trig->count, trig->count );
 	}
 
 	trig->parent        = ent;
@@ -463,7 +465,7 @@ void use_spotlight( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 	} else
 	{
 		tent = G_PickTarget( ent->target );
-		VectorCopy( tent->s.origin, ent->s.origin2 );
+		ent->s.origin2 = tent->s.origin;
 
 		ent->active = 0;
 		trap_LinkEntity( ent );
@@ -501,8 +503,8 @@ void spotlight_finish_spawning( gentity_t *ent ) {
 	ent->clipmask       = CONTENTS_SOLID;
 	ent->r.contents     = CONTENTS_SOLID;
 
-	VectorSet( ent->r.mins, -10, -10, -10 );
-	VectorSet( ent->r.maxs, 10, 10, 10 );
+	ent->r.mins.Set( -10, -10, -10 );
+	ent->r.maxs.Set( 10, 10, 10 );
 }
 
 
@@ -565,8 +567,8 @@ ORIENT_LOD - if flagged, the entity will yaw towards the player when the LOD swi
 */
 void SP_misc_gamemodel( gentity_t *ent ) {
 
-	float scale[3] = {1,1,1};
-	vec3_t scalevec;
+	idVec3 scale( 1, 1, 1 );
+	idVec3 scalevec;
 	int trunksize, trunkheight;
 
 	ent->s.eType        = ET_GAMEMODEL;
@@ -579,7 +581,7 @@ void SP_misc_gamemodel( gentity_t *ent ) {
 
 	// look for axis specific scaling
 	if ( G_SpawnVector( "modelscale_vec", "1 1 1", &scalevec[0] ) ) {
-		VectorCopy( scalevec, scale );
+		scale = scalevec;
 	}
 
 	G_SpawnInt( "trunk", "0", &trunksize );
@@ -596,15 +598,15 @@ void SP_misc_gamemodel( gentity_t *ent ) {
 		ent->r.svFlags |= SVF_CAPSULE;
 
 		rad = (float)trunksize / 2.0f;
-		VectorSet( ent->r.mins, -rad, -rad, 0 );
-		VectorSet( ent->r.maxs, rad, rad, trunkheight );
+		ent->r.mins.Set( -rad, -rad, 0 );
+		ent->r.maxs.Set( rad, rad, trunkheight );
 	}
 
 	// scale is stored in 'angles2'
-	VectorCopy( scale, ent->s.angles2 );
+	ent->s.angles2 = scale;
 
 	G_SetOrigin( ent, ent->s.origin );
-	VectorCopy( ent->s.angles, ent->s.apos.trBase );
+	ent->s.apos.trBase = ent->s.angles;
 
 	if ( ent->spawnflags & 1 ) {
 		ent->s.apos.trType = (trType_t)1; // misc_gamemodels (since they have no movement) will use type = 0 for static models, type = 1 for auto-aligning models
@@ -686,7 +688,7 @@ void SP_misc_light_surface( gentity_t *ent ) {
 //===========================================================
 
 void locateCamera( gentity_t *ent ) {
-	vec3_t dir;
+	idVec3 dir;
 	gentity_t   *target;
 	gentity_t   *owner;
 
@@ -708,13 +710,13 @@ void locateCamera( gentity_t *ent ) {
 	// clientNum holds the rotate offset
 	ent->s.clientNum = owner->s.clientNum;
 
-	VectorCopy( owner->s.origin, ent->s.origin2 );
+	ent->s.origin2 = owner->s.origin;
 
 	// see if the portal_camera has a target
 	target = G_PickTarget( owner->target );
 	if ( target ) {
-		VectorSubtract( target->s.origin, owner->s.origin, dir );
-		VectorNormalize( dir );
+		dir = target->s.origin - owner->s.origin;
+		dir.Normalize();
 	} else {
 		G_SetMovedir( owner->s.angles, dir );
 	}
@@ -727,15 +729,15 @@ The portal surface nearest this entity will show a view from the targeted misc_p
 This must be within 64 world units of the surface!
 */
 void SP_misc_portal_surface( gentity_t *ent ) {
-	VectorClear( ent->r.mins );
-	VectorClear( ent->r.maxs );
+	ent->r.mins.Zero();
+	ent->r.maxs.Zero();
 	trap_LinkEntity( ent );
 
 	ent->r.svFlags = SVF_PORTAL;
 	ent->s.eType = ET_PORTAL;
 
 	if ( !ent->target ) {
-		VectorCopy( ent->s.origin, ent->s.origin2 );
+		ent->s.origin2 = ent->s.origin;
 	} else {
 		ent->think = locateCamera;
 		ent->nextthink = level.time + 100;
@@ -749,8 +751,8 @@ The target for a misc_portal_director.  You can set either angles or target anot
 void SP_misc_portal_camera( gentity_t *ent ) {
 	float roll;
 
-	VectorClear( ent->r.mins );
-	VectorClear( ent->r.maxs );
+	ent->r.mins.Zero();
+	ent->r.maxs.Zero();
 	trap_LinkEntity( ent );
 
 	G_SpawnFloat( "roll", "0", &roll );
@@ -767,42 +769,42 @@ void SP_misc_portal_camera( gentity_t *ent ) {
 */
 
 void Use_Shooter( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
-	vec3_t dir;
+	idVec3 dir;
 	float deg;
-	vec3_t up, right;
+	idVec3 up, right;
 
 	// see if we have a target
 	if ( ent->enemy ) {
-		VectorSubtract( ent->enemy->r.currentOrigin, ent->s.origin, dir );
+		dir = ent->enemy->r.currentOrigin - ent->s.origin;
 		if ( ent->s.weapon != WP_SNIPER ) {
-			VectorNormalize( dir );
+			dir.Normalize();
 		}
 	} else {
-		VectorCopy( ent->movedir, dir );
+		dir = ent->movedir;
 	}
 
 	if ( ent->s.weapon == WP_MORTAR ) {
 		AimAtTarget( ent );   // store in ent->s.origin2 the direction/force needed to pass through the target
-		VectorCopy( ent->s.origin2, dir );
+		dir = ent->s.origin2;
 	}
 
 	if ( ent->s.weapon != WP_SNIPER ) {
 		// randomize a bit
-		PerpendicularVector( up, dir );
-		CrossProduct( up, dir, right );
+		up.PerpendicularVector( dir );
+		right = up.Cross( dir );
 
-		deg = crandom() * ent->random;
-		VectorMA( dir, deg, up, dir );
+		deg = gameRandom.CRandomFloat() * ent->random;
+		dir = dir + up * deg;
 
-		deg = crandom() * ent->random;
-		VectorMA( dir, deg, right, dir );
+		deg = gameRandom.CRandomFloat() * ent->random;
+		dir = dir + right * deg;
 
-		VectorNormalize( dir );
+		dir.Normalize();
 	}
 
 	switch ( ent->s.weapon ) {
 	case WP_GRENADE_LAUNCHER:
-		VectorScale( dir, 700, dir );                 //----(SA)	had to add this as fire_grenade now expects a non-normalized direction vector
+		dir = dir * 700;                 //----(SA)	had to add this as fire_grenade now expects a non-normalized direction vector
 		fire_grenade( ent, ent->s.origin, dir, WP_GRENADE_LAUNCHER );
 		break;
 	case WP_PANZERFAUST:
@@ -821,7 +823,7 @@ void Use_Shooter( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 
 	case WP_MORTAR:
 		AimAtTarget( ent );   // store in ent->s.origin2 the direction/force needed to pass through the target
-		VectorScale( dir, VectorLength( ent->s.origin2 ), dir );
+		dir = dir * ent->s.origin2.Length();
 		fire_mortar( ent, ent->s.origin, dir );
 		break;
 
@@ -910,7 +912,7 @@ void use_shooter_tesla( gentity_t *ent, gentity_t *other, gentity_t *activator )
 	} else
 	{
 		tent = G_PickTarget( ent->target );
-		VectorCopy( tent->s.origin, ent->s.origin2 );
+		ent->s.origin2 = tent->s.origin;
 
 		ent->active = 0;
 		trap_LinkEntity( ent );
@@ -942,7 +944,7 @@ void shooter_tesla_finish_spawning( gentity_t *ent ) {
 		return;
 	}
 
-	VectorCopy( tent->s.origin, ent->s.origin2 );
+	ent->s.origin2 = tent->s.origin;
 
 	if ( ent->spawnflags & 1 ) {   // START_ON
 		ent->active = 0;
@@ -1076,7 +1078,7 @@ void SP_shooter_sniper( gentity_t *ent ) {
 void brush_activate_sniper( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 	gentity_t *sniper;
 	float dist;
-	vec3_t vec;
+	idVec3 vec;
 	gentity_t *player;
 
 	player = AICast_FindEntityForName( "player" );
@@ -1102,10 +1104,10 @@ void brush_activate_sniper( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 					sniper->count = 1;
 					sniper->wait = level.time + sniper->delay;
 					// record enemypos pos
-					VectorCopy( ent->enemy->r.currentOrigin, ent->pos1 );
+					ent->pos1 = ent->enemy->r.currentOrigin;
 				} else if ( sniper->count == 1 )     {
-					VectorSubtract( ent->enemy->r.currentOrigin, ent->pos1, vec );
-					dist = VectorLength( vec );
+					vec = ent->enemy->r.currentOrigin - ent->pos1;
+					dist = vec.Length();
 					if ( dist < sniper->radius ) {
 						// ok the enemy is still inside the radius take a shot
 						sniper->enemy = other;
@@ -1133,11 +1135,11 @@ void brush_activate_sniper( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 }
 
 void sniper_brush_init( gentity_t *ent ) {
-	vec3_t center;
+	idVec3 center;
 
 	if ( !ent->target ) {
-		VectorSubtract( ent->r.maxs, ent->r.mins, center );
-		VectorScale( center, 0.5, center );
+		center = ent->r.maxs - ent->r.mins;
+		center = center * 0.5;
 
 		G_Printf( "sniper_brush at %s without a target\n", vtos( center ) );
 	}
@@ -1250,7 +1252,7 @@ dlight_finish_spawning
 ==============
 */
 void dlight_finish_spawning( gentity_t *ent ) {
-	G_FindConfigstringIndex( va( "%i %s %i %i %i", ent->s.number, ent->dl_stylestring, ent->health, ent->soundLoop, ent->dl_atten ), CS_DLIGHTS, MAX_DLIGHT_CONFIGSTRINGS, qtrue );
+	G_FindConfigstringIndex( idStr::FormatString( "%i %s %i %i %i", ent->s.number, ent->dl_stylestring, ent->health, ent->soundLoop, ent->dl_atten ), CS_DLIGHTS, MAX_DLIGHT_CONFIGSTRINGS, qtrue );
 }
 
 static int dlightstarttime = 0;
@@ -1476,10 +1478,10 @@ void snowInPVS( gentity_t *ent ) {
 
 void snow_think( gentity_t *ent ) {
 	trace_t tr;
-	vec3_t dest;
+	idVec3 dest;
 	int turb;
 
-	VectorCopy( ent->s.origin, dest );
+	dest = ent->s.origin;
 
 	if ( ent->spawnflags & 2 ) { // bubble
 		dest[2] += 8192;
@@ -1487,7 +1489,7 @@ void snow_think( gentity_t *ent ) {
 		dest[2] -= 8192;
 	}
 
-	trap_Trace( &tr, ent->s.origin, NULL, NULL, dest, ent->s.number, MASK_SHOT );
+	trap_Trace( &tr, ent->s.origin, vec3_origin, vec3_origin, dest, ent->s.number, MASK_SHOT );
 
 	if ( ent->spawnflags & 1 ) {
 		turb = 1;
@@ -1495,22 +1497,22 @@ void snow_think( gentity_t *ent ) {
 		turb = 0;
 	}
 
-	if ( !Q_stricmp( ent->classname, "misc_snow256" ) ) {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW256, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
-	} else if ( !Q_stricmp( ent->classname, "misc_snow128" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW128, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
-	} else if ( !Q_stricmp( ent->classname, "misc_snow64" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW64, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
-	} else if ( !Q_stricmp( ent->classname, "misc_snow32" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW32, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
-	} else if ( !Q_stricmp( ent->classname, "misc_bubbles8" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE8, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
-	} else if ( !Q_stricmp( ent->classname, "misc_bubbles16" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE16, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
-	} else if ( !Q_stricmp( ent->classname, "misc_bubbles32" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE32, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
-	} else if ( !Q_stricmp( ent->classname, "misc_bubbles64" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE64, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+	if ( !idStr::Icmp( ent->classname, "misc_snow256" ) ) {
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW256, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+	} else if ( !idStr::Icmp( ent->classname, "misc_snow128" ) )       {
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW128, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+	} else if ( !idStr::Icmp( ent->classname, "misc_snow64" ) )       {
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW64, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+	} else if ( !idStr::Icmp( ent->classname, "misc_snow32" ) )       {
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW32, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+	} else if ( !idStr::Icmp( ent->classname, "misc_bubbles8" ) )       {
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE8, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+	} else if ( !idStr::Icmp( ent->classname, "misc_bubbles16" ) )       {
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE16, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+	} else if ( !idStr::Icmp( ent->classname, "misc_bubbles32" ) )       {
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE32, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+	} else if ( !idStr::Icmp( ent->classname, "misc_bubbles64" ) )       {
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE64, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	}
 
 	ent->think = snowInPVS;
@@ -1558,21 +1560,21 @@ void SP_Bubbles( gentity_t *ent ) {
 	ent->spawnflags |= 2;
 }
 
-static vec3_t forward, right, up;
-static vec3_t muzzle;
+static idVec3 forward, right, up;
+static idVec3 muzzle;
 
-void flakPuff( vec3_t origin, qboolean sky ) {
+void flakPuff( idVec3 &origin, qboolean sky ) {
 	gentity_t *tent;
-	vec3_t point;
+	idVec3 point;
 
-	VectorCopy( origin, point );
+	point = origin;
 	if ( sky ) {
-		VectorMA( point, -256, forward, point );
+		point = point + forward * -256;
 	}
 
 	point[2] += 16; // raise puff off the ground some
 	tent = G_TempEntity( point, EV_SMOKE );
-	VectorCopy( point, tent->s.origin );
+	tent->s.origin = point;
 	tent->s.time = 2000;
 	tent->s.time2 = 1000;
 	tent->s.density = 0;
@@ -1583,26 +1585,26 @@ void flakPuff( vec3_t origin, qboolean sky ) {
 
 int muzzleflashmodel;
 
-void mg42_muzzleflash( gentity_t *ent, vec3_t muzzlepos ) {  // cheezy, but lets me use this routine for finding the muzzle point for firing the actual bullet
+void mg42_muzzleflash( gentity_t *ent, idVec3 *muzzlepos ) {  // cheezy, but lets me use this routine for finding the muzzle point for firing the actual bullet
 
-	vec3_t fwd;
-	vec3_t point;
+	idVec3 fwd;
+	idVec3 point;
 	gentity_t   *flash;
 
 	flash = G_Spawn();
 
 	if ( flash ) {
-		VectorCopy( ent->s.pos.trBase, flash->s.origin );
-		VectorCopy( ent->s.apos.trBase, flash->s.angles );
+		flash->s.origin = ent->s.pos.trBase;
+		flash->s.angles = ent->s.apos.trBase;
 		G_SetAngle( flash, ent->s.apos.trBase );
 		G_SetOrigin( flash, ent->s.pos.trBase );
 
-		VectorCopy( flash->s.origin, point );
-		AngleVectors( flash->s.angles, fwd, NULL, NULL );
-		VectorMA( point, 40, fwd, point );
+		point = flash->s.origin;
+		idAngles( flash->s.angles ).ToVectors( &fwd, NULL, NULL );
+		point = point + fwd * 40;
 
 		if ( muzzlepos ) {
-			VectorCopy( point, muzzlepos );
+			*muzzlepos = point;
 		}
 
 		G_SetOrigin( flash, point );
@@ -1629,7 +1631,7 @@ Fire_Lead
 //----(SA)	added 'activator' so the bits that used to expect 'ent' to be the gun still work
 void Fire_Lead( gentity_t *ent, gentity_t *activator, float spread, int damage ) {
 	trace_t tr;
-	vec3_t end, lead_muzzle, mg42_muzzle;
+	idVec3 end, lead_muzzle, mg42_muzzle;
 	float r;
 	float u;
 	gentity_t       *tent;
@@ -1638,27 +1640,27 @@ void Fire_Lead( gentity_t *ent, gentity_t *activator, float spread, int damage )
 	//qboolean	isflak = qfalse;
 
 	// 'muzzle' is bogus for mg42.  adjust for it
-	if ( !Q_stricmp( ent->classname, "misc_mg42" ) ) {
-		mg42_muzzleflash( ent, mg42_muzzle );    // get current position for mg42 muzzle flash/bullet origin
-		VectorCopy( mg42_muzzle, lead_muzzle );
+	if ( !idStr::Icmp( ent->classname, "misc_mg42" ) ) {
+		mg42_muzzleflash( ent, &mg42_muzzle );    // get current position for mg42 muzzle flash/bullet origin
+		lead_muzzle = mg42_muzzle;
 	} else {
-		VectorCopy( muzzle, lead_muzzle );
+		lead_muzzle = muzzle;
 	}
 
-	r = crandom() * spread;
-	u = crandom() * spread;
-	VectorMA( lead_muzzle, 8192, forward, end );
-	VectorMA( end, r, right, end );
-	VectorMA( end, u, up, end );
+	r = gameRandom.CRandomFloat() * spread;
+	u = gameRandom.CRandomFloat() * spread;
+	end = lead_muzzle + forward * 8192;
+	end = end + right * r;
+	end = end + up * u;
 
-	trap_Trace( &tr, lead_muzzle, NULL, NULL, end, ent->s.number, MASK_SHOT );
+	trap_Trace( &tr, lead_muzzle, vec3_origin, vec3_origin, end, ent->s.number, MASK_SHOT );
 
 	if ( g_gametype.integer == GT_SINGLE_PLAYER ) {
 		AICast_ProcessBullet( activator, lead_muzzle, tr.endpos );
 	}
 
 	if ( tr.surfaceFlags & SURF_NOIMPACT ) {
-		if ( !Q_stricmp( ent->classname, "misc_flak" ) ) {
+		if ( !idStr::Icmp( ent->classname, "misc_flak" ) ) {
 			if ( ent->count == 1 ) {
 				G_AddEvent( ent, EV_FLAKGUN1, 0 );
 			} else if ( ent->count == 2 ) {
@@ -1694,15 +1696,15 @@ void Fire_Lead( gentity_t *ent, gentity_t *activator, float spread, int damage )
 
 	} else {
 		// Ridah, bullet impact should reflect off surface
-		vec3_t reflect;
+		idVec3 reflect;
 		float dot;
 
-		if ( !Q_stricmp( ent->classname, "misc_mg42" ) ) {
+		if ( !idStr::Icmp( ent->classname, "misc_mg42" ) ) {
 			tent = G_TempEntity( tr.endpos, EV_BULLET_HIT_WALL );
 
-			dot = DotProduct( forward, tr.plane.normal );
-			VectorMA( forward, -2 * dot, tr.plane.normal, reflect );
-			VectorNormalize( reflect );
+			dot = ( forward * tr.plane.normal );
+			reflect = forward + tr.plane.normal * -2 * dot;
+			reflect.Normalize();
 
 			tent->s.eventParm = DirToByte( reflect );
 			tent->s.otherEntityNum = ent->s.number;
@@ -1716,9 +1718,9 @@ void Fire_Lead( gentity_t *ent, gentity_t *activator, float spread, int damage )
 				  damage, 0, MOD_MACHINEGUN );
 	}
 
-	if ( !Q_stricmp( ent->classname, "misc_mg42" ) ) {
+	if ( !idStr::Icmp( ent->classname, "misc_mg42" ) ) {
 		G_AddEvent( ent, EV_FIRE_WEAPON_MG42, 0 );
-	} else if ( !Q_stricmp( ent->classname, "misc_flak" ) ) {
+	} else if ( !idStr::Icmp( ent->classname, "misc_flak" ) ) {
 		if ( ent->count == 1 ) {
 			G_AddEvent( ent, EV_FLAKGUN1, 0 );
 		} else if ( ent->count == 2 ) {
@@ -1736,7 +1738,7 @@ void Fire_Lead( gentity_t *ent, gentity_t *activator, float spread, int damage )
 
 float AI_AngleDifference( float ang1, float ang2 );
 
-void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, vec3_t dang ) {
+void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, idVec3 &dang ) {
 
 // NOTE: use this value, and THEN the cl_input.c scales to tweak the feel
 #define MG42_YAWSPEED       300.0   // degrees per second
@@ -1749,10 +1751,10 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, vec3_t dang ) {
 	clamped = qfalse;
 
 	if ( other ) {
-		VectorCopy( self->TargetAngles, dang );
+		dang = self->TargetAngles;
 		yawspeed = MG42_YAWSPEED;
 	} else {    // go back to start position
-		VectorCopy( self->s.angles, dang );
+		dang = self->s.angles;
 		yawspeed = MG42_IDLEYAWSPEED;
 	}
 
@@ -1787,14 +1789,14 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, vec3_t dang ) {
 
 //	G_Printf ("dang[0] = %5.2f\n", dang[0]);
 
-	if ( !Q_stricmp( self->classname, "misc_mg42" ) || !( self->active ) ) {
+	if ( !idStr::Icmp( self->classname, "misc_mg42" ) || !( self->active ) ) {
 		diff = AI_AngleDifference( dang[YAW], self->s.angles[YAW] );
 		if ( fabs( diff ) > self->harc ) {
 			clamped = qtrue;
 			if ( diff > 0 ) {
-				dang[YAW] = AngleMod( self->s.angles[YAW] + self->harc );
+				dang[YAW] = idMath::AngleNormalize360( self->s.angles[YAW] + self->harc );
 			} else {
-				dang[YAW] = AngleMod( self->s.angles[YAW] - self->harc );
+				dang[YAW] = idMath::AngleNormalize360( self->s.angles[YAW] - self->harc );
 			}
 		}
 
@@ -1805,9 +1807,9 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, vec3_t dang ) {
 			if ( fabs( diff ) > ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) ) {
 				clamped = qtrue;
 				if ( diff > 0 ) {
-					dang[i] = AngleMod( self->r.currentAngles[i] + ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) );
+					dang[i] = idMath::AngleNormalize360( self->r.currentAngles[i] + ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) );
 				} else {
-					dang[i] = AngleMod( self->r.currentAngles[i] - ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) );
+					dang[i] = idMath::AngleNormalize360( self->r.currentAngles[i] - ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) );
 				}
 			}
 		}
@@ -1825,9 +1827,9 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, vec3_t dang ) {
 		clamped = qtrue;
 
 		if ( diff > 0 ) {
-			dang[YAW] = AngleMod( self->s.angles[YAW] + self->harc );
+			dang[YAW] = idMath::AngleNormalize360( self->s.angles[YAW] + self->harc );
 		} else {
-			dang[YAW] = AngleMod( self->s.angles[YAW] - self->harc );
+			dang[YAW] = idMath::AngleNormalize360( self->s.angles[YAW] - self->harc );
 		}
 
 //		G_Printf ("dang %5.2f ang %5.2f diff %5.2f\n", dang[YAW], self->s.angles[YAW], diff);
@@ -1863,23 +1865,23 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, vec3_t dang ) {
 // NOTE: this only effects the external view of the user, when using the mg42, the
 // view position is set on the client-side to keep it firm behind the gun with
 // interpolation
-void clamp_playerbehindgun( gentity_t *self, gentity_t *other, vec3_t dang ) {
-	vec3_t fwd, rgt, upv;
-	vec3_t point;
+void clamp_playerbehindgun( gentity_t *self, gentity_t *other, idVec3 &dang ) {
+	idVec3 fwd, rgt, upv;
+	idVec3 point;
 
 
-	AngleVectors( self->s.apos.trBase, fwd, rgt, upv );
-	VectorMA( self->r.currentOrigin, -36, fwd, point );
+	idAngles( self->s.apos.trBase ).ToVectors( &fwd, &rgt, &upv );
+	point = self->r.currentOrigin + fwd * -36;
 
 	point[2] = other->r.currentOrigin[2];
 	trap_UnlinkEntity( other );
-	VectorCopy( point, other->client->ps.origin );
+	other->client->ps.origin = point;
 
 	// save results of pmove
 	BG_PlayerStateToEntityState( &other->client->ps, &other->s, qtrue );
 
 	// use the precise origin for linking
-	VectorCopy( other->client->ps.origin, other->r.currentOrigin );
+	other->r.currentOrigin = other->client->ps.origin;
 
 	trap_LinkEntity( other );
 }
@@ -1893,7 +1895,7 @@ void clamp_playerbehindgun( gentity_t *self, gentity_t *other, vec3_t dang ) {
 #define FLAK_DAMAGE 36
 
 void mg42_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
-	vec3_t dang;
+	idVec3 dang;
 	int i;
 
 	if ( !self->active ) {
@@ -1905,7 +1907,7 @@ void mg42_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 			dang[i] = SHORT2ANGLE( other->client->pers.cmd.angles[i] );
 
 		// the gun should go to our current angles next time it thinks
-		VectorCopy( dang, self->TargetAngles );
+		self->TargetAngles = dang;
 		//VectorCopy( other->client->ps.viewangles, self->TargetAngles );
 
 		// now tell the client to lock the view in the direction of the gun
@@ -1921,24 +1923,24 @@ void mg42_touch( gentity_t *self, gentity_t *other, trace_t *trace ) {
 		}
 
 		// clamp the mg42 to fire arc
-		VectorCopy( other->client->ps.viewangles, self->TargetAngles );
+		self->TargetAngles = other->client->ps.viewangles;
 
 		clamp_hweapontofirearc( self, other, dang );
 
 		// clamp player behind the gun
 		clamp_playerbehindgun( self, other, dang );
 
-		VectorCopy( dang, self->TargetAngles );
+		self->TargetAngles = dang;
 	}
 }
 
 void mg42_track( gentity_t *self, gentity_t *other ) {
-	vec3_t dang;
+	idVec3 dang;
 	int i;
 	qboolean validshot = qfalse;
 	qboolean is_flak = qfalse;
 
-	if ( !Q_stricmp( self->classname, "misc_flak" ) ) {
+	if ( !idStr::Icmp( self->classname, "misc_flak" ) ) {
 		is_flak = qtrue;
 	}
 
@@ -1954,14 +1956,14 @@ void mg42_track( gentity_t *self, gentity_t *other ) {
 				other->client->ps.gunfx = 1;
 			} else
 			{
-				AngleVectors( self->s.apos.trBase, forward, right, up );
-				VectorCopy( self->s.pos.trBase, muzzle );
+				idAngles( self->s.apos.trBase ).ToVectors( &forward, &right, &up );
+				muzzle = self->s.pos.trBase;
 
-				if ( !Q_stricmp( self->classname, "misc_mg42" ) ) {
-					VectorMA( muzzle, 16, forward, muzzle );
-					VectorMA( muzzle, 16, up, muzzle );
+				if ( !idStr::Icmp( self->classname, "misc_mg42" ) ) {
+					muzzle = muzzle + forward * 16;
+					muzzle = muzzle + up * 16;
 					validshot = qtrue;
-				} else if ( !Q_stricmp( self->classname, "misc_flak" ) )       {
+				} else if ( !idStr::Icmp( self->classname, "misc_flak" ) )       {
 					if ( self->delay < level.time ) {
 						self->delay = level.time + 250;
 
@@ -1973,21 +1975,21 @@ void mg42_track( gentity_t *self, gentity_t *other ) {
 
 						// guns 1 and 2 were switched
 						if ( self->count == 2 ) {
-							VectorMA( muzzle, 72, forward, muzzle );
-							VectorMA( muzzle, 31, up, muzzle );
-							VectorMA( muzzle, 22, right, muzzle );
+							muzzle = muzzle + forward * 72;
+							muzzle = muzzle + up * 31;
+							muzzle = muzzle + right * 22;
 						} else if ( self->count == 1 )     {
-							VectorMA( muzzle, 72, forward, muzzle );
-							VectorMA( muzzle, 31, up, muzzle );
-							VectorMA( muzzle, -22, right, muzzle );
+							muzzle = muzzle + forward * 72;
+							muzzle = muzzle + up * 31;
+							muzzle = muzzle + right * -22;
 						} else if ( self->count == 3 )     {
-							VectorMA( muzzle, 72, forward, muzzle );
-							VectorMA( muzzle, 10, up, muzzle );
-							VectorMA( muzzle, 22, right, muzzle );
+							muzzle = muzzle + forward * 72;
+							muzzle = muzzle + up * 10;
+							muzzle = muzzle + right * 22;
 						} else if ( self->count == 4 )     {
-							VectorMA( muzzle, 72, forward, muzzle );
-							VectorMA( muzzle, 10, up, muzzle );
-							VectorMA( muzzle, -22, right, muzzle );
+							muzzle = muzzle + forward * 72;
+							muzzle = muzzle + up * 10;
+							muzzle = muzzle + right * -22;
 						}
 
 						validshot = qtrue;
@@ -1995,7 +1997,7 @@ void mg42_track( gentity_t *self, gentity_t *other ) {
 					}
 				}
 				// snap to integer coordinates for more efficient network bandwidth usage
-				SnapVector( muzzle );
+				muzzle.Snap();
 
 				if ( validshot ) {
 					if ( !( other->r.svFlags & SVF_CASTAI ) ) {
@@ -2026,12 +2028,12 @@ void mg42_track( gentity_t *self, gentity_t *other ) {
 		}
 
 		// move to the position over the next frame
-		VectorCopy( self->TargetAngles, dang );
-		VectorSubtract( dang, self->s.apos.trBase, self->s.apos.trDelta );
+		dang = self->TargetAngles;
+		self->s.apos.trDelta = dang - self->s.apos.trBase;
 		for ( i = 0; i < 3; i++ ) {
-			self->s.apos.trDelta[i] = AngleNormalize180( self->s.apos.trDelta[i] );
+			self->s.apos.trDelta[i] = idMath::AngleNormalize180( self->s.apos.trDelta[i] );
 		}
-		VectorScale( self->s.apos.trDelta, 1000 / 50, self->s.apos.trDelta );
+		self->s.apos.trDelta = self->s.apos.trDelta * 1000 / 50;
 		self->s.apos.trTime = level.time;
 		self->s.apos.trDuration = 50;
 	}
@@ -2086,19 +2088,19 @@ void Flak_Animate( gentity_t *ent ) {
 
 #define USEMG42_DISTANCE 46
 void mg42_think( gentity_t *self ) {
-	vec3_t vec;
+	idVec3 vec;
 	gentity_t   *owner;
 	int i;
 	float len;
 	float usedist;
 	qboolean is_flak = qfalse;
 
-	if ( !Q_stricmp( self->classname, "misc_flak" ) ) {
+	if ( !idStr::Icmp( self->classname, "misc_flak" ) ) {
 		is_flak = qtrue;
 		Flak_Animate( self );
 	}
 
-	VectorClear( vec );
+	vec.Zero();
 
 	owner = &g_entities[self->r.ownerNum];
 
@@ -2106,8 +2108,8 @@ void mg42_think( gentity_t *self ) {
 	BG_EvaluateTrajectory( &self->s.apos, level.time, self->s.apos.trBase );
 
 	if ( owner->client ) {
-		VectorSubtract( self->r.currentOrigin, owner->r.currentOrigin, vec );
-		len = VectorLength( vec );
+		vec = self->r.currentOrigin - owner->r.currentOrigin;
+		len = vec.Length();
 
 		if ( owner->r.svFlags & SVF_CASTAI ) {
 			usedist = USEMG42_DISTANCE;
@@ -2137,7 +2139,7 @@ void mg42_think( gentity_t *self ) {
 			if (owner->r.svFlags & SVF_CASTAI)
 			{
 				gentity_t *player;
-				vec3_t	temp;
+				idVec3	temp;
 
 				player = AICast_FindEntityForName ("player");
 
@@ -2173,11 +2175,11 @@ void mg42_think( gentity_t *self ) {
 	// slowly rotate back to position
 	//clamp_hweapontofirearc( self, NULL, vec );
 	// move to the position over the next frame
-	VectorSubtract( self->s.angles, self->s.apos.trBase, self->s.apos.trDelta );
+	self->s.apos.trDelta = self->s.angles - self->s.apos.trBase;
 	for ( i = 0; i < 3; i++ ) {
-		self->s.apos.trDelta[i] = AngleNormalize180( self->s.apos.trDelta[i] );
+		self->s.apos.trDelta[i] = idMath::AngleNormalize180( self->s.apos.trDelta[i] );
 	}
-	VectorScale( self->s.apos.trDelta, 400 / 50, self->s.apos.trDelta );
+	self->s.apos.trDelta = self->s.apos.trDelta * 400 / 50;
 	self->s.apos.trTime = level.time;
 	self->s.apos.trDuration = 50;
 
@@ -2185,7 +2187,7 @@ void mg42_think( gentity_t *self ) {
 
 	// only let them go when it's pointing forward
 	if ( owner->client ) {
-		if ( fabs( AngleNormalize180( self->s.angles[YAW] - self->s.apos.trBase[YAW] ) ) > 10 ) {
+		if ( fabs( idMath::AngleNormalize180( self->s.angles[YAW] - self->s.apos.trBase[YAW] ) ) > 10 ) {
 			BG_EvaluateTrajectory( &self->s.apos, self->nextthink, owner->client->ps.viewangles );
 			return; // still waiting
 		}
@@ -2279,7 +2281,7 @@ mg42_spawn
 */
 void mg42_spawn( gentity_t *ent ) {
 	gentity_t *base, *gun;
-	vec3_t offset;
+	idVec3 offset;
 
 	ent->soundPos3 = G_SoundIndex( "sound/weapons/mg42/mg42_death.wav" );   // die sound
 
@@ -2297,18 +2299,18 @@ void mg42_spawn( gentity_t *ent ) {
 			base->s.modelindex = G_ModelIndex( "models/mapobjects/weapons/mg42b.md3" );
 		}
 
-		VectorSet( base->r.mins, -8, -8, -8 );
-		VectorSet( base->r.maxs, 8, 8, 48 );
-		VectorCopy( ent->s.origin, offset );
+		base->r.mins.Set( -8, -8, -8 );
+		base->r.maxs.Set( 8, 8, 48 );
+		offset = ent->s.origin;
 		offset[2] -= 24;
 		G_SetOrigin( base, offset );
 		base->s.apos.trType = TR_STATIONARY;
 		base->s.apos.trTime = 0;
 		base->s.apos.trDuration = 0;
 		base->s.dmgFlags = HINT_MG42;   // identify this for cursorhints
-		VectorCopy( ent->s.angles, base->s.angles );
-		VectorCopy( base->s.angles, base->s.apos.trBase );
-		VectorCopy( base->s.angles, base->s.apos.trDelta );
+		base->s.angles = ent->s.angles;
+		base->s.apos.trBase = base->s.angles;
+		base->s.apos.trDelta = base->s.angles;
 		base->health = ent->health;
 		base->target = ent->target; //----(SA)	added so mounting mg42 can trigger targets
 		base->takedamage = qtrue;
@@ -2330,18 +2332,18 @@ void mg42_spawn( gentity_t *ent ) {
 
 	gun->touch = mg42_touch;
 	gun->s.modelindex = G_ModelIndex( "models/mapobjects/weapons/mg42a.md3" );
-	VectorCopy( ent->s.origin, offset );
+	offset = ent->s.origin;
 	offset[2] += 24;
 	G_SetOrigin( gun, offset );
-	VectorSet( gun->r.mins, -24, -24, -8 );
-	VectorSet( gun->r.maxs, 24, 24, 48 );
+	gun->r.mins.Set( -24, -24, -8 );
+	gun->r.maxs.Set( 24, 24, 48 );
 	gun->s.apos.trTime = 0;
 	gun->s.apos.trDuration = 0;
-	VectorCopy( ent->s.angles, gun->s.angles );
-	VectorCopy( gun->s.angles, gun->s.apos.trBase );
-	VectorCopy( gun->s.angles, gun->s.apos.trDelta );
+	gun->s.angles = ent->s.angles;
+	gun->s.apos.trBase = gun->s.angles;
+	gun->s.apos.trDelta = gun->s.angles;
 
-	VectorCopy( ent->s.angles, gun->s.angles2 );
+	gun->s.angles2 = ent->s.angles;
 
 	gun->think = mg42_think;
 	gun->nextthink = level.time + FRAMETIME;
@@ -2443,7 +2445,7 @@ void SP_mg42( gentity_t *self ) {
 
 void flak_spawn( gentity_t *ent ) {
 	gentity_t *gun;
-	vec3_t offset;
+	idVec3 offset;
 
 	gun = G_Spawn();
 	gun->classname = "misc_flak";
@@ -2453,15 +2455,15 @@ void flak_spawn( gentity_t *ent ) {
 	gun->s.eType = ET_GENERAL;
 	gun->touch = mg42_touch;
 	gun->s.modelindex = G_ModelIndex( "models/mapobjects/weapons/flak_a.md3" );
-	VectorCopy( ent->s.origin, offset );
+	offset = ent->s.origin;
 	G_SetOrigin( gun, offset );
-	VectorSet( gun->r.mins, -24, -24, -8 );
-	VectorSet( gun->r.maxs, 24, 24, 48 );
+	gun->r.mins.Set( -24, -24, -8 );
+	gun->r.maxs.Set( 24, 24, 48 );
 	gun->s.apos.trTime = 0;
 	gun->s.apos.trDuration = 0;
-	VectorCopy( ent->s.angles, gun->s.angles );
-	VectorCopy( gun->s.angles, gun->s.apos.trBase );
-	VectorCopy( gun->s.angles, gun->s.apos.trDelta );
+	gun->s.angles = ent->s.angles;
+	gun->s.apos.trBase = gun->s.angles;
+	gun->s.apos.trDelta = gun->s.angles;
 	gun->think = mg42_think;
 	gun->nextthink = level.time + FRAMETIME;
 	gun->s.number = gun - g_entities;
@@ -2629,10 +2631,10 @@ void SP_misc_tagemitter( gentity_t *ent ) {
 
 	ent->target_ent = G_Spawn();    // spawn the emitter
 	ent->target_ent->tagName = (char *) G_Alloc( strlen( tagName ) + 1 );
-	Q_strncpyz( ent->target_ent->tagName, tagName, strlen( tagName ) + 1 );
+	idStr::Copynz( ent->target_ent->tagName, tagName, strlen( tagName ) + 1 );
 
 	ent->tagName = (char *) G_Alloc( strlen( tagName ) + 1 );
-	Q_strncpyz( ent->tagName, tagName, strlen( tagName ) + 1 );
+	idStr::Copynz( ent->tagName, tagName, strlen( tagName ) + 1 );
 
 }
 

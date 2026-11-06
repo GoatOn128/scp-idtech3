@@ -44,6 +44,8 @@ If you have questions concerning this license or the applicable additional terms
 // The UI scripting scale of 1.0 equals a 48 point font, glyphScale keeps
 // that convention for any point size requested.
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "../qcommon/qcommon.h"
 
@@ -102,8 +104,8 @@ void WriteTGA( char *filename, byte *data, int width, int height ) {
 	byte    *buffer;
 	int i, c;
 
-	buffer = (byte *) ri.Hunk_AllocateTempMemory( width * height * 4 + 18 );
-	Com_Memset( buffer, 0, 18 );
+	buffer = (byte *) Mem_ClearedAlloc( width * height * 4 + 18, TAG_IDLIB );
+	memset( buffer, 0, 18 );
 	buffer[2] = 2;      // uncompressed type
 	buffer[12] = width & 255;
 	buffer[13] = width >> 8;
@@ -123,7 +125,7 @@ void WriteTGA( char *filename, byte *data, int width, int height ) {
 
 	ri.FS_WriteFile( filename, buffer, c );
 
-	ri.Hunk_FreeTempMemory( buffer );
+	Mem_Free( buffer );
 }
 
 /*
@@ -152,7 +154,7 @@ static qhandle_t R_FontPageToShader( byte *out, int imageNumber, int pointSize, 
 	}
 	maxScale = max > 0 ? 255.0f / max : 0.0f;
 
-	imageBuff = (byte *) ri.Hunk_AllocateTempMemory( 256 * 256 * 4 );
+	imageBuff = (byte *) Mem_ClearedAlloc( 256 * 256 * 4, TAG_IDLIB );
 	left = 0;
 	for ( k = 0; k < 256 * 256; k++ ) {
 		imageBuff[left++] = 255;
@@ -169,8 +171,8 @@ static qhandle_t R_FontPageToShader( byte *out, int imageNumber, int pointSize, 
 	image = R_CreateImage( name, imageBuff, 256, 256, qfalse, qfalse, GL_CLAMP );
 	h = RE_RegisterShaderFromImage( name, LIGHTMAP_2D, image, qfalse );
 
-	ri.Hunk_FreeTempMemory( imageBuff );
-	Com_Memset( out, 0, 256 * 256 );
+	Mem_Free( imageBuff );
+	memset( out, 0, 256 * 256 );
 
 	return h;
 }
@@ -205,7 +207,7 @@ void RE_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font ) {
 
 	Com_sprintf( name, sizeof( name ), "fonts/fontImage_%i.dat", pointSize );
 	for ( i = 0; i < registeredFontCount; i++ ) {
-		if ( Q_stricmp( name, registeredFont[i].name ) == 0 ) {
+		if ( idStr::Icmp( name, registeredFont[i].name ) == 0 ) {
 			memcpy( font, &registeredFont[i], sizeof( fontInfo_t ) );
 			return;
 		}
@@ -235,7 +237,7 @@ void RE_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font ) {
 		font->glyphScale = readFloat();
 		memcpy( font->name, &fdFile[fdOffset], MAX_QPATH );
 
-		Q_strncpyz( font->name, name, sizeof( font->name ) );
+		idStr::Copynz( font->name, name, sizeof( font->name ) );
 		for ( i = GLYPH_START; i < GLYPH_END; i++ ) {
 			font->glyphs[i].glyph = RE_RegisterShaderNoMip( font->glyphs[i].shaderName );
 		}
@@ -261,8 +263,8 @@ void RE_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font ) {
 	scale = stbtt_ScaleForMappingEmToPixels( &ttfont, (float)pointSize );
 
 	// glyphs are packed into 256x256 coverage pages, one shader per page
-	out = (byte *) ri.Hunk_AllocateTempMemory( 256 * 256 );
-	Com_Memset( out, 0, 256 * 256 );
+	out = (byte *) Mem_ClearedAlloc( 256 * 256, TAG_IDLIB );
+	memset( out, 0, 256 * 256 );
 
 	xOut = 0;
 	yOut = 0;
@@ -301,7 +303,7 @@ void RE_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font ) {
 			h = R_FontPageToShader( out, imageNumber++, pointSize, name, sizeof( name ) );
 			for ( j = lastStart; j < i; j++ ) {
 				font->glyphs[j].glyph = h;
-				Q_strncpyz( font->glyphs[j].shaderName, name, sizeof( font->glyphs[j].shaderName ) );
+				idStr::Copynz( font->glyphs[j].shaderName, name, sizeof( font->glyphs[j].shaderName ) );
 			}
 			lastStart = i;
 			xOut = 0;
@@ -309,7 +311,7 @@ void RE_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font ) {
 			rowHeight = 0;
 		}
 
-		Com_Memset( glyph, 0, sizeof( glyphInfo_t ) );
+		memset( glyph, 0, sizeof( glyphInfo_t ) );
 		glyph->height = height;
 		glyph->top = -y0 + 1;
 		glyph->bottom = y1;
@@ -332,14 +334,14 @@ void RE_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font ) {
 	h = R_FontPageToShader( out, imageNumber++, pointSize, name, sizeof( name ) );
 	for ( j = lastStart; j <= GLYPH_END; j++ ) {
 		font->glyphs[j].glyph = h;
-		Q_strncpyz( font->glyphs[j].shaderName, name, sizeof( font->glyphs[j].shaderName ) );
+		idStr::Copynz( font->glyphs[j].shaderName, name, sizeof( font->glyphs[j].shaderName ) );
 	}
 
 	// store the font under the name the prerendered data would use so the
 	// registered font dedup above works for runtime rendered fonts too
 	font->glyphScale = glyphScale;
 	Com_sprintf( name, sizeof( name ), "fonts/fontImage_%i.dat", pointSize );
-	Q_strncpyz( font->name, name, sizeof( font->name ) );
+	idStr::Copynz( font->name, name, sizeof( font->name ) );
 
 	memcpy( &registeredFont[registeredFontCount], font, sizeof( fontInfo_t ) );
 	registeredFontCount++;
@@ -348,7 +350,7 @@ void RE_RegisterFont( const char *fontName, int pointSize, fontInfo_t *font ) {
 		ri.FS_WriteFile( name, font, sizeof( fontInfo_t ) );
 	}
 
-	ri.Hunk_FreeTempMemory( out );
+	Mem_Free( out );
 	ri.FS_FreeFile( faceData );
 }
 

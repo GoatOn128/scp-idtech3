@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "../ui/ui_shared.h"
 
@@ -106,16 +108,16 @@ void CG_CheckOrderPending() {
 
 		if ( cg_currentSelectedPlayer.integer == numSortedTeamPlayers ) {
 			// to everyone
-			trap_SendConsoleCommand( va( "cmd vsay_team %s\n", p2 ) );
+			trap_SendConsoleCommand( idStr::FormatString( "cmd vsay_team %s\n", p2 ) );
 		} else {
 			// for the player self
 			if ( sortedTeamPlayers[cg_currentSelectedPlayer.integer] == cg.snap->ps.clientNum && p1 ) {
-				trap_SendConsoleCommand( va( "teamtask %i\n", cgs.currentOrder ) );
+				trap_SendConsoleCommand( idStr::FormatString( "teamtask %i\n", cgs.currentOrder ) );
 				//trap_SendConsoleCommand(va("cmd say_team %s\n", p2));
-				trap_SendConsoleCommand( va( "cmd vsay_team %s\n", p1 ) );
+				trap_SendConsoleCommand( idStr::FormatString( "cmd vsay_team %s\n", p1 ) );
 			} else if ( p2 ) {
 				//trap_SendConsoleCommand(va("cmd say_team %s, %s\n", ci->name,p));
-				trap_SendConsoleCommand( va( "cmd vtell %d %s\n", sortedTeamPlayers[cg_currentSelectedPlayer.integer], p2 ) );
+				trap_SendConsoleCommand( idStr::FormatString( "cmd vtell %d %s\n", sortedTeamPlayers[cg_currentSelectedPlayer.integer], p2 ) );
 			}
 		}
 		if ( b ) {
@@ -131,7 +133,7 @@ static void CG_SetSelectedPlayerName() {
 		clientInfo_t *ci = cgs.clientinfo + sortedTeamPlayers[cg_currentSelectedPlayer.integer];
 		if ( ci ) {
 			trap_Cvar_Set( "cg_selectedPlayerName", ci->name );
-			trap_Cvar_Set( "cg_selectedPlayer", va( "%d", sortedTeamPlayers[cg_currentSelectedPlayer.integer] ) );
+			trap_Cvar_Set( "cg_selectedPlayer", idStr::FormatString( "%d", sortedTeamPlayers[cg_currentSelectedPlayer.integer] ) );
 //			cgs.currentOrder = ci->teamTask;
 		}
 	} else {
@@ -172,8 +174,8 @@ static void CG_DrawPlayerArmorIcon( rectDef_t *rect, qboolean draw2D ) {
 #ifdef MISSIONPACK
 	centity_t   *cent;
 	playerState_t   *ps;
-	vec3_t angles;
-	vec3_t origin;
+	idVec3 angles;
+	idVec3 origin;
 
 	if ( cg_drawStatus.integer == 0 ) {
 		return;
@@ -185,7 +187,7 @@ static void CG_DrawPlayerArmorIcon( rectDef_t *rect, qboolean draw2D ) {
 	if ( draw2D || !cg_draw3dIcons.integer && cg_drawIcons.integer ) {
 		CG_DrawPic( rect->x, rect->y + rect->h / 2 + 1, rect->w, rect->h, cgs.media.armorIcon );
 	} else if ( cg_draw3dIcons.integer ) {
-		VectorClear( angles );
+		angles.Zero();
 		origin[0] = 90;
 		origin[1] = 0;
 		origin[2] = -10;
@@ -196,7 +198,7 @@ static void CG_DrawPlayerArmorIcon( rectDef_t *rect, qboolean draw2D ) {
 #endif
 }
 
-static void CG_DrawPlayerArmorValue( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawPlayerArmorValue( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	char num[16];
 	int value;
 	centity_t   *cent;
@@ -209,7 +211,7 @@ static void CG_DrawPlayerArmorValue( rectDef_t *rect, int font, float scale, vec
 
 
 	if ( shader ) {
-		trap_R_SetColor( color );
+		trap_R_SetColor( color.ToFloatPtr() );
 		CG_DrawPic( rect->x, rect->y, rect->w, rect->h, shader );
 		trap_R_SetColor( NULL );
 	} else {
@@ -389,8 +391,8 @@ CG_DrawPlayerAmmoIcon
 static void CG_DrawPlayerAmmoIcon( rectDef_t *rect, qboolean draw2D ) {
 	centity_t   *cent;
 	playerState_t   *ps;
-	vec3_t angles;
-	vec3_t origin;
+	idVec3 angles;
+	idVec3 origin;
 
 	cent = &cg_entities[cg.snap->ps.clientNum];
 	ps = &cg.snap->ps;
@@ -404,11 +406,11 @@ static void CG_DrawPlayerAmmoIcon( rectDef_t *rect, qboolean draw2D ) {
 		}
 	} else if ( cg_draw3dIcons.integer ) {
 		if ( cent->currentState.weapon && cg_weapons[ cent->currentState.weapon ].ammoModel ) {
-			VectorClear( angles );
+			angles.Zero();
 			origin[0] = 70;
 			origin[1] = 0;
 			origin[2] = 0;
-			angles[YAW] = 90 + 20 * sin( cg.time / 1000.0 );
+			angles[YAW] = 90 + 20 * idMath::Sin( cg.time / 1000.0 );
 			CG_Draw3DModel( rect->x, rect->y, rect->w, rect->h, cg_weapons[ cent->currentState.weapon ].ammoModel, 0, origin, angles );
 		}
 	}
@@ -433,7 +435,7 @@ CG_DrawCursorHints
 extern void CG_DrawExitStats( void );
 
 static void CG_DrawCursorhint( rectDef_t *rect ) {
-	float       *color;
+	idVec4      *color;
 	qhandle_t icon, icon2 = 0;
 	float scale, halfscale;
 	qboolean redbar = qfalse;
@@ -502,7 +504,7 @@ static void CG_DrawCursorhint( rectDef_t *rect ) {
 	}
 
 	if ( cg_cursorHints.integer == 3 ) {
-		color[3] *= 0.5 + 0.5 * sin( (float)cg.time / 150.0 );
+		(*color)[3] *= 0.5 + 0.5 * idMath::Sin( (float)cg.time / 150.0 );
 	}
 
 
@@ -513,14 +515,14 @@ static void CG_DrawCursorhint( rectDef_t *rect ) {
 		if ( cg_cursorHints.integer == 2 ) {
 			scale = (float)( ( cg.cursorHintTime ) % 1000 ) / 100.0f; // one way size pulse
 		} else {
-			scale = CURSORHINT_SCALE * ( 0.5 + 0.5 * sin( (float)cg.time / 150.0 ) ); // sin pulse
+			scale = CURSORHINT_SCALE * ( 0.5 + 0.5 * idMath::Sin( (float)cg.time / 150.0 ) ); // sin pulse
 
 		}
 		halfscale = scale * 0.5f;
 	}
 
 	// set color and draw the hint
-	trap_R_SetColor( color );
+	trap_R_SetColor( color->ToFloatPtr() );
 	CG_DrawPic( rect->x - halfscale, rect->y - halfscale, rect->w + scale, rect->h + scale, icon );
 
 	if ( icon2 ) {
@@ -532,11 +534,11 @@ static void CG_DrawCursorhint( rectDef_t *rect ) {
 	// draw status bar under the cursor hint
 	if ( cg.cursorHintValue && ( !( cg.time - cg.cursorHintTime ) ) ) {    // don't fade bar out w/ hint icon
 		if ( redbar ) {
-			Vector4Set( color, 1, 0, 0, 0.5f );
+			color->Set(1, 0, 0, 0.5f);
 		} else {
-			Vector4Set( color, 0, 0, 1, 0.5f );
+			color->Set(0, 0, 1, 0.5f);
 		}
-		CG_FilledBar( rect->x, rect->y + rect->h + 4, rect->w, 8, color, NULL, NULL, (float)cg.cursorHintValue / 255.0f, 0 );
+		CG_FilledBar( rect->x, rect->y + rect->h + 4, rect->w, 8, *color, NULL, NULL, (float)cg.cursorHintValue / 255.0f, 0 );
 	}
 
 }
@@ -575,7 +577,7 @@ CG_DrawPlayerAmmoValue
 	1 - clip
 ==============
 */
-static void CG_DrawPlayerAmmoValue( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle, int type ) {
+static void CG_DrawPlayerAmmoValue( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle, int type ) {
 	char num[16];
 	int value, value2 = 0;
 	centity_t   *cent;
@@ -635,7 +637,7 @@ static void CG_DrawPlayerAmmoValue( rectDef_t *rect, int font, float scale, vec4
 
 	if ( value > -1 ) {
 		if ( shader ) {
-			trap_R_SetColor( color );
+			trap_R_SetColor( color.ToFloatPtr() );
 			CG_DrawPic( rect->x, rect->y, rect->w, rect->h, shader );
 			trap_R_SetColor( NULL );
 		} else {
@@ -656,12 +658,12 @@ static void CG_DrawPlayerAmmoValue( rectDef_t *rect, int font, float scale, vec4
 
 
 static void CG_DrawPlayerHead( rectDef_t *rect, qboolean draw2D ) {
-	vec3_t angles;
+	idVec3 angles;
 	float size, stretch;
 	float frac;
 	float x = rect->x;
 
-	VectorClear( angles );
+	angles.Zero();
 
 	if ( cg.damageTime && cg.time - cg.damageTime < DAMAGE_TIME ) {
 		frac = (float)( cg.time - cg.damageTime ) / DAMAGE_TIME;
@@ -673,21 +675,21 @@ static void CG_DrawPlayerHead( rectDef_t *rect, qboolean draw2D ) {
 
 		cg.headStartYaw = 180 + cg.damageX * 45;
 
-		cg.headEndYaw = 180 + 20 * cos( crandom() * M_PI );
-		cg.headEndPitch = 5 * cos( crandom() * M_PI );
+		cg.headEndYaw = 180 + 20 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
+		cg.headEndPitch = 5 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
 
 		cg.headStartTime = cg.time;
-		cg.headEndTime = cg.time + 100 + random() * 2000;
+		cg.headEndTime = cg.time + 100 + cgRandom.RandomFloat() * 2000;
 	} else {
 		if ( cg.time >= cg.headEndTime ) {
 			// select a new head angle
 			cg.headStartYaw = cg.headEndYaw;
 			cg.headStartPitch = cg.headEndPitch;
 			cg.headStartTime = cg.headEndTime;
-			cg.headEndTime = cg.time + 100 + random() * 2000;
+			cg.headEndTime = cg.time + 100 + cgRandom.RandomFloat() * 2000;
 
-			cg.headEndYaw = 180 + 20 * cos( crandom() * M_PI );
-			cg.headEndPitch = 5 * cos( crandom() * M_PI );
+			cg.headEndYaw = 180 + 20 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
+			cg.headEndPitch = 5 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
 		}
 
 		size = rect->w * 1.25;
@@ -706,7 +708,7 @@ static void CG_DrawPlayerHead( rectDef_t *rect, qboolean draw2D ) {
 	CG_DrawHead( x, rect->y, rect->w, rect->h, cg.snap->ps.clientNum, angles );
 }
 
-static void CG_DrawSelectedPlayerHealth( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawSelectedPlayerHealth( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	clientInfo_t *ci;
 	int value;
 	char num[16];
@@ -714,7 +716,7 @@ static void CG_DrawSelectedPlayerHealth( rectDef_t *rect, int font, float scale,
 	ci = cgs.clientinfo + sortedTeamPlayers[CG_GetSelectedPlayer()];
 	if ( ci ) {
 		if ( shader ) {
-			trap_R_SetColor( color );
+			trap_R_SetColor( color.ToFloatPtr() );
 			CG_DrawPic( rect->x, rect->y, rect->w, rect->h, shader );
 			trap_R_SetColor( NULL );
 		} else {
@@ -725,7 +727,7 @@ static void CG_DrawSelectedPlayerHealth( rectDef_t *rect, int font, float scale,
 	}
 }
 
-static void CG_DrawSelectedPlayerArmor( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawSelectedPlayerArmor( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	clientInfo_t *ci;
 	int value;
 	char num[16];
@@ -734,7 +736,7 @@ static void CG_DrawSelectedPlayerArmor( rectDef_t *rect, int font, float scale, 
 	if ( ci ) {
 		if ( ci->armor > 0 ) {
 			if ( shader ) {
-				trap_R_SetColor( color );
+				trap_R_SetColor( color.ToFloatPtr() );
 				CG_DrawPic( rect->x, rect->y, rect->w, rect->h, shader );
 				trap_R_SetColor( NULL );
 			} else {
@@ -812,7 +814,7 @@ static void CG_DrawPlayerStatus( rectDef_t *rect ) {
 }
 
 
-static void CG_DrawSelectedPlayerName( rectDef_t *rect, int font, float scale, vec4_t color, qboolean voice, int textStyle ) {
+static void CG_DrawSelectedPlayerName( rectDef_t *rect, int font, float scale, idVec4 color, qboolean voice, int textStyle ) {
 	clientInfo_t *ci;
 
 //	ci = cgs.clientinfo + ((voice) ? cgs.currentVoiceClient : sortedTeamPlayers[CG_GetSelectedPlayer()]);
@@ -822,7 +824,7 @@ static void CG_DrawSelectedPlayerName( rectDef_t *rect, int font, float scale, v
 	}
 }
 
-static void CG_DrawSelectedPlayerLocation( rectDef_t *rect, int font, float scale, vec4_t color, int textStyle ) {
+static void CG_DrawSelectedPlayerLocation( rectDef_t *rect, int font, float scale, idVec4 color, int textStyle ) {
 	clientInfo_t *ci;
 	ci = cgs.clientinfo + sortedTeamPlayers[CG_GetSelectedPlayer()];
 	if ( ci ) {
@@ -835,7 +837,7 @@ static void CG_DrawSelectedPlayerLocation( rectDef_t *rect, int font, float scal
 	}
 }
 
-static void CG_DrawPlayerLocation( rectDef_t *rect, int font, float scale, vec4_t color, int textStyle  ) {
+static void CG_DrawPlayerLocation( rectDef_t *rect, int font, float scale, idVec4 color, int textStyle  ) {
 	clientInfo_t *ci = &cgs.clientinfo[cg.snap->ps.clientNum];
 	if ( ci ) {
 		const char *p = CG_ConfigString( CS_LOCATIONS + ci->location );
@@ -861,12 +863,12 @@ static void CG_DrawSelectedPlayerWeapon( rectDef_t *rect ) {
 	}
 }
 
-static void CG_DrawPlayerScore( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawPlayerScore( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	char num[16];
 	int value = cg.snap->ps.persistant[PERS_SCORE];
 
 	if ( shader ) {
-		trap_R_SetColor( color );
+		trap_R_SetColor( color.ToFloatPtr() );
 		CG_DrawPic( rect->x, rect->y, rect->w, rect->h, shader );
 		trap_R_SetColor( NULL );
 	} else {
@@ -953,7 +955,7 @@ void flubfoo() {
 
 static void CG_DrawPlayerItem( rectDef_t *rect, int font, float scale, qboolean draw2D ) {
 	int value;
-	vec3_t origin, angles;
+	idVec3 origin, angles;
 
 	value = cg.snap->ps.stats[STAT_HOLDABLE_ITEM];
 
@@ -964,7 +966,7 @@ static void CG_DrawPlayerItem( rectDef_t *rect, int font, float scale, qboolean 
 			CG_RegisterItemVisuals( value );
 			CG_DrawPic( rect->x, rect->y, rect->w, rect->h, cg_items[ value ].icons[0] );
 		} else {
-			VectorClear( angles );
+			angles.Zero();
 			origin[0] = 90;
 			origin[1] = 0;
 			origin[2] = -10;
@@ -1005,8 +1007,8 @@ static void CG_DrawSelectedPlayerHead( rectDef_t *rect, qboolean draw2D, qboolea
 	clipHandle_t cm;
 	clientInfo_t    *ci;
 	float len;
-	vec3_t origin;
-	vec3_t mins, maxs, angles;
+	idVec3 origin;
+	idVec3 mins, maxs, angles;
 
 
 //	ci = cgs.clientinfo + ((voice) ? cgs.currentVoiceClient : sortedTeamPlayers[CG_GetSelectedPlayer()]);
@@ -1031,7 +1033,7 @@ static void CG_DrawSelectedPlayerHead( rectDef_t *rect, qboolean draw2D, qboolea
 			origin[0] = len / 0.268;    // len / tan( fov/2 )
 
 			// allow per-model tweaking
-			VectorAdd( origin, ci->modelInfo->headOffset, origin );
+			origin = origin + ci->modelInfo->headOffset;
 
 			angles[PITCH] = 0;
 			angles[YAW] = 180;
@@ -1051,7 +1053,7 @@ static void CG_DrawSelectedPlayerHead( rectDef_t *rect, qboolean draw2D, qboolea
 }
 
 
-static void CG_DrawPlayerHealth( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawPlayerHealth( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	playerState_t   *ps;
 	int value;
 	char num[16];
@@ -1061,7 +1063,7 @@ static void CG_DrawPlayerHealth( rectDef_t *rect, int font, float scale, vec4_t 
 	value = ps->stats[STAT_HEALTH];
 
 	if ( shader ) {
-		trap_R_SetColor( color );
+		trap_R_SetColor( color.ToFloatPtr() );
 		CG_DrawPic( rect->x, rect->y, rect->w, rect->h, shader );
 		trap_R_SetColor( NULL );
 	} else {
@@ -1072,7 +1074,7 @@ static void CG_DrawPlayerHealth( rectDef_t *rect, int font, float scale, vec4_t 
 }
 
 
-static void CG_DrawRedScore( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawRedScore( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	int value;
 	char num[16];
 	if ( cgs.scores1 == SCORE_NOT_PRESENT ) {
@@ -1084,7 +1086,7 @@ static void CG_DrawRedScore( rectDef_t *rect, int font, float scale, vec4_t colo
 	CG_Text_Paint( rect->x + rect->w - value, rect->y + rect->h, font, scale, color, num, 0, 0, textStyle );
 }
 
-static void CG_DrawBlueScore( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawBlueScore( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	int value;
 	char num[16];
 
@@ -1098,19 +1100,19 @@ static void CG_DrawBlueScore( rectDef_t *rect, int font, float scale, vec4_t col
 }
 
 // FIXME: team name support
-static void CG_DrawRedName( rectDef_t *rect, int font, float scale, vec4_t color, int textStyle ) {
+static void CG_DrawRedName( rectDef_t *rect, int font, float scale, idVec4 color, int textStyle ) {
 #ifdef MISSIONPACK
 	CG_Text_Paint( rect->x, rect->y + rect->h, font, scale, color, cg_redTeamName.string, 0, 0, textStyle );
 #endif  // #ifdef MISSIONPACK
 }
 
-static void CG_DrawBlueName( rectDef_t *rect, int font, float scale, vec4_t color, int textStyle ) {
+static void CG_DrawBlueName( rectDef_t *rect, int font, float scale, idVec4 color, int textStyle ) {
 #ifdef MISSIONPACK
 	CG_Text_Paint( rect->x, rect->y + rect->h, font, scale, color, cg_blueTeamName.string, 0, 0, textStyle );
 #endif  // #ifdef MISSIONPACK
 }
 
-static void CG_DrawBlueFlagName( rectDef_t *rect, int font, float scale, vec4_t color, int textStyle ) {
+static void CG_DrawBlueFlagName( rectDef_t *rect, int font, float scale, idVec4 color, int textStyle ) {
 #ifdef MISSIONPACK
 	int i;
 	for ( i = 0 ; i < cgs.maxclients ; i++ ) {
@@ -1126,8 +1128,8 @@ static void CG_DrawBlueFlagStatus( rectDef_t *rect, qhandle_t shader ) {
 #ifdef MISSIONPACK
 	if ( cgs.gametype != GT_CTF && cgs.gametype != GT_1FCTF ) {
 		if ( cgs.gametype == GT_HARVESTER ) {
-			vec4_t color = {0, 0, 1, 1};
-			trap_R_SetColor( color );
+			idVec4 color = {0, 0, 1, 1};
+			trap_R_SetColor( color.ToFloatPtr() );
 			CG_DrawPic( rect->x, rect->y, rect->w, rect->h, cgs.media.blueCubeIcon );
 			trap_R_SetColor( NULL );
 		}
@@ -1138,8 +1140,8 @@ static void CG_DrawBlueFlagStatus( rectDef_t *rect, qhandle_t shader ) {
 	} else {
 		gitem_t *item = BG_FindItemForPowerup( PW_BLUEFLAG );
 		if ( item ) {
-			vec4_t color = {0, 0, 1, 1};
-			trap_R_SetColor( color );
+			idVec4 color = {0, 0, 1, 1};
+			trap_R_SetColor( color.ToFloatPtr() );
 			if ( cgs.blueflag >= 0 && cgs.blueflag <= 2 ) {
 				CG_DrawPic( rect->x, rect->y, rect->w, rect->h, cgs.media.flagShaders[cgs.blueflag] );
 			} else {
@@ -1156,9 +1158,9 @@ static void CG_DrawBlueFlagHead( rectDef_t *rect ) {
 	int i;
 	for ( i = 0 ; i < cgs.maxclients ; i++ ) {
 		if ( cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team == TEAM_RED  && cgs.clientinfo[i].powerups & ( 1 << PW_BLUEFLAG ) ) {
-			vec3_t angles;
-			VectorClear( angles );
-			angles[YAW] = 180 + 20 * sin( cg.time / 650.0 );;
+			idVec3 angles;
+			angles.Zero();
+			angles[YAW] = 180 + 20 * idMath::Sin( cg.time / 650.0 );;
 			CG_DrawHead( rect->x, rect->y, rect->w, rect->h, 0,angles );
 			return;
 		}
@@ -1166,7 +1168,7 @@ static void CG_DrawBlueFlagHead( rectDef_t *rect ) {
 #endif  // #ifdef MISSIONPACK
 }
 
-static void CG_DrawRedFlagName( rectDef_t *rect, int font, float scale, vec4_t color, int textStyle ) {
+static void CG_DrawRedFlagName( rectDef_t *rect, int font, float scale, idVec4 color, int textStyle ) {
 #ifdef MISSIONPACK
 	int i;
 	for ( i = 0 ; i < cgs.maxclients ; i++ ) {
@@ -1182,8 +1184,8 @@ static void CG_DrawRedFlagStatus( rectDef_t *rect, qhandle_t shader ) {
 #ifdef MISSIONPACK
 	if ( cgs.gametype != GT_CTF && cgs.gametype != GT_1FCTF ) {
 		if ( cgs.gametype == GT_HARVESTER ) {
-			vec4_t color = {1, 0, 0, 1};
-			trap_R_SetColor( color );
+			idVec4 color = {1, 0, 0, 1};
+			trap_R_SetColor( color.ToFloatPtr() );
 			CG_DrawPic( rect->x, rect->y, rect->w, rect->h, cgs.media.redCubeIcon );
 			trap_R_SetColor( NULL );
 		}
@@ -1194,8 +1196,8 @@ static void CG_DrawRedFlagStatus( rectDef_t *rect, qhandle_t shader ) {
 	} else {
 		gitem_t *item = BG_FindItemForPowerup( PW_REDFLAG );
 		if ( item ) {
-			vec4_t color = {1, 0, 0, 1};
-			trap_R_SetColor( color );
+			idVec4 color = {1, 0, 0, 1};
+			trap_R_SetColor( color.ToFloatPtr() );
 			if ( cgs.redflag >= 0 && cgs.redflag <= 2 ) {
 				CG_DrawPic( rect->x, rect->y, rect->w, rect->h, cgs.media.flagShaders[cgs.redflag] );
 			} else {
@@ -1212,9 +1214,9 @@ static void CG_DrawRedFlagHead( rectDef_t *rect ) {
 	int i;
 	for ( i = 0 ; i < cgs.maxclients ; i++ ) {
 		if ( cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team == TEAM_BLUE  && cgs.clientinfo[i].powerups & ( 1 << PW_REDFLAG ) ) {
-			vec3_t angles;
-			VectorClear( angles );
-			angles[YAW] = 180 + 20 * sin( cg.time / 650.0 );;
+			idVec3 angles;
+			angles.Zero();
+			angles[YAW] = 180 + 20 * idMath::Sin( cg.time / 650.0 );;
 			CG_DrawHead( rect->x, rect->y, rect->w, rect->h, 0,angles );
 			return;
 		}
@@ -1222,10 +1224,10 @@ static void CG_DrawRedFlagHead( rectDef_t *rect ) {
 #endif  // #ifdef MISSIONPACK
 }
 
-static void CG_HarvesterSkulls( rectDef_t *rect, int font, float scale, vec4_t color, qboolean force2D, int textStyle ) {
+static void CG_HarvesterSkulls( rectDef_t *rect, int font, float scale, idVec4 color, qboolean force2D, int textStyle ) {
 #ifdef MISSIONPACK
 	char num[16];
-	vec3_t origin, angles;
+	idVec3 origin, angles;
 	qhandle_t handle;
 	int value = cg.snap->ps.generic1;
 
@@ -1243,7 +1245,7 @@ static void CG_HarvesterSkulls( rectDef_t *rect, int font, float scale, vec4_t c
 
 	if ( cg_drawIcons.integer ) {
 		if ( !force2D && cg_draw3dIcons.integer ) {
-			VectorClear( angles );
+			angles.Zero();
 			origin[0] = 90;
 			origin[1] = 0;
 			origin[2] = -10;
@@ -1274,7 +1276,7 @@ static void CG_OneFlagStatus( rectDef_t *rect ) {
 		gitem_t *item = BG_FindItemForPowerup( PW_NEUTRALFLAG );
 		if ( item ) {
 			if ( cgs.flagStatus >= 0 && cgs.flagStatus <= 4 ) {
-				vec4_t color = {1, 1, 1, 1};
+				idVec4 color = {1, 1, 1, 1};
 				int index = 0;
 				if ( cgs.flagStatus == FLAG_TAKEN_RED ) {
 					color[1] = color[2] = 0;
@@ -1285,7 +1287,7 @@ static void CG_OneFlagStatus( rectDef_t *rect ) {
 				} else if ( cgs.flagStatus == FLAG_DROPPED ) {
 					index = 2;
 				}
-				trap_R_SetColor( color );
+				trap_R_SetColor( color.ToFloatPtr() );
 				CG_DrawPic( rect->x, rect->y, rect->w, rect->h, cgs.media.flagShaders[index] );
 			}
 		}
@@ -1307,19 +1309,19 @@ static void CG_DrawCTFPowerUp( rectDef_t *rect ) {
 
 
 
-static void CG_DrawTeamColor( rectDef_t *rect, vec4_t color ) {
+static void CG_DrawTeamColor( rectDef_t *rect, idVec4 color ) {
 	CG_DrawTeamBackground( rect->x, rect->y, rect->w, rect->h, color[3], cg.snap->ps.persistant[PERS_TEAM] );
 }
 
 
-static void CG_DrawAreaHoldable( rectDef_t *rect, int align, float spacing, int font, float scale, vec4_t color ) {
+static void CG_DrawAreaHoldable( rectDef_t *rect, int align, float spacing, int font, float scale, idVec4 color ) {
 }
 
-static void CG_DrawAreaWeapons( rectDef_t *rect, int align, float spacing, int font, float scale, vec4_t color ) {
+static void CG_DrawAreaWeapons( rectDef_t *rect, int align, float spacing, int font, float scale, idVec4 color ) {
 }
 
 
-static void CG_DrawAreaPowerUp( rectDef_t *rect, int align, float spacing, int font, float scale, vec4_t color ) {
+static void CG_DrawAreaPowerUp( rectDef_t *rect, int align, float spacing, int font, float scale, idVec4 color ) {
 	char num[16];
 	int sorted[MAX_POWERUPS];
 	int sortedTime[MAX_POWERUPS];
@@ -1381,12 +1383,12 @@ static void CG_DrawAreaPowerUp( rectDef_t *rect, int align, float spacing, int f
 			if ( t - cg.time >= POWERUP_BLINKS * POWERUP_BLINK_TIME ) {
 				trap_R_SetColor( NULL );
 			} else {
-				vec4_t modulate;
+				idVec4 modulate;
 
 				f = (float)( t - cg.time ) / POWERUP_BLINK_TIME;
 				f -= (int)f;
 				modulate[0] = modulate[1] = modulate[2] = modulate[3] = f;
-				trap_R_SetColor( modulate );
+				trap_R_SetColor( modulate.ToFloatPtr() );
 			}
 
 			CG_DrawPic( r2.x, r2.y, r2.w * .75, r2.h, trap_R_RegisterShader( item->icon ) );
@@ -1703,28 +1705,28 @@ static void CG_DrawPlayerHasFlag( rectDef_t *rect, qboolean force2D ) {
 #endif  // #ifdef MISSIONPACK
 }
 
-static void CG_DrawAreaSystemChat( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader ) {
+static void CG_DrawAreaSystemChat( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader ) {
 	CG_Text_Paint( rect->x, rect->y + rect->h, font, scale, color, systemChat, 0, 0, 0 );
 }
 
-static void CG_DrawAreaTeamChat( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader ) {
+static void CG_DrawAreaTeamChat( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader ) {
 	CG_Text_Paint( rect->x, rect->y + rect->h, font, scale, color,teamChat1, 0, 0, 0 );
 }
 
-static void CG_DrawAreaChat( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader ) {
+static void CG_DrawAreaChat( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader ) {
 	CG_Text_Paint( rect->x, rect->y + rect->h, font, scale, color, teamChat2, 0, 0, 0 );
 }
 
-const char *CG_GetKillerText() {
-	const char *s = "";
+idStr CG_GetKillerText() {
+	idStr s;
 	if ( cg.killerName[0] ) {
-		s = va( "Fragged by %s", cg.killerName );
+		s = idStr::FormatString( "Fragged by %s", cg.killerName );
 	}
 	return s;
 }
 
 
-static void CG_DrawKiller( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawKiller( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	// fragged by ... line
 	if ( cg.killerName[0] ) {
 		int x = rect->x + rect->w / 2;
@@ -1734,42 +1736,42 @@ static void CG_DrawKiller( rectDef_t *rect, int font, float scale, vec4_t color,
 }
 
 
-static void CG_DrawCapFragLimit( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawCapFragLimit( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	int limit = ( cgs.gametype >= GT_CTF ) ? cgs.capturelimit : cgs.fraglimit;
-	CG_Text_Paint( rect->x, rect->y, font, scale, color, va( "%2i", limit ),0, 0, textStyle );
+	CG_Text_Paint( rect->x, rect->y, font, scale, color, idStr::FormatString( "%2i", limit ),0, 0, textStyle );
 }
 
-static void CG_Draw1stPlace( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_Draw1stPlace( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	if ( cgs.scores1 != SCORE_NOT_PRESENT ) {
-		CG_Text_Paint( rect->x, rect->y, font, scale, color, va( "%2i", cgs.scores1 ),0, 0, textStyle );
+		CG_Text_Paint( rect->x, rect->y, font, scale, color, idStr::FormatString( "%2i", cgs.scores1 ),0, 0, textStyle );
 	}
 }
 
-static void CG_Draw2ndPlace( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_Draw2ndPlace( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	if ( cgs.scores2 != SCORE_NOT_PRESENT ) {
-		CG_Text_Paint( rect->x, rect->y, font, scale, color, va( "%2i", cgs.scores2 ),0, 0, textStyle );
+		CG_Text_Paint( rect->x, rect->y, font, scale, color, idStr::FormatString( "%2i", cgs.scores2 ),0, 0, textStyle );
 	}
 }
 
-const char *CG_GetGameStatusText() {
-	const char *s = "";
+idStr CG_GetGameStatusText() {
+	idStr s;
 	if ( cgs.gametype < GT_TEAM ) {
 		if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
-			s = va( "%s place with %i",CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),cg.snap->ps.persistant[PERS_SCORE] );
+			s = idStr::FormatString( "%s place with %i",CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),cg.snap->ps.persistant[PERS_SCORE] );
 		}
 	} else {
 		if ( cg.teamScores[0] == cg.teamScores[1] ) {
-			s = va( "Teams are tied at %i", cg.teamScores[0] );
+			s = idStr::FormatString( "Teams are tied at %i", cg.teamScores[0] );
 		} else if ( cg.teamScores[0] >= cg.teamScores[1] ) {
-			s = va( "Red leads Blue, %i to %i", cg.teamScores[0], cg.teamScores[1] );
+			s = idStr::FormatString( "Red leads Blue, %i to %i", cg.teamScores[0], cg.teamScores[1] );
 		} else {
-			s = va( "Blue leads Red, %i to %i", cg.teamScores[1], cg.teamScores[0] );
+			s = idStr::FormatString( "Blue leads Red, %i to %i", cg.teamScores[1], cg.teamScores[0] );
 		}
 	}
 	return s;
 }
 
-static void CG_DrawGameStatus( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawGameStatus( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	CG_Text_Paint( rect->x, rect->y + rect->h, font, scale, color, CG_GetGameStatusText(), 0, 0, textStyle );
 }
 
@@ -1791,13 +1793,13 @@ const char *CG_GameTypeString() {
 	}
 	return "";
 }
-static void CG_DrawGameType( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+static void CG_DrawGameType( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	CG_Text_Paint( rect->x, rect->y + rect->h, font, scale, color, CG_GameTypeString(), 0, 0, textStyle );
 }
 
-static void CG_Text_Paint_Limit( float *maxX, float x, float y, int font, float scale, vec4_t color, const char* text, float adjust, int limit ) {
+static void CG_Text_Paint_Limit( float *maxX, float x, float y, int font, float scale, idVec4 color, const char* text, float adjust, int limit ) {
 	int len, count;
-	vec4_t newColor;
+	idVec4 newColor;
 	glyphInfo_t *glyph;
 	if ( text ) {
 		const char *s = text;
@@ -1820,7 +1822,7 @@ static void CG_Text_Paint_Limit( float *maxX, float x, float y, int font, float 
 		}
 
 		useScale = scale * fnt->glyphScale;
-		trap_R_SetColor( color );
+		trap_R_SetColor( color.ToFloatPtr() );
 		len = strlen( text );
 		if ( limit > 0 && len > limit ) {
 			len = limit;
@@ -1828,10 +1830,14 @@ static void CG_Text_Paint_Limit( float *maxX, float x, float y, int font, float 
 		count = 0;
 		while ( s && *s && count < len ) {
 			glyph = &fnt->glyphs[*s];
-			if ( Q_IsColorString( s ) ) {
-				memcpy( newColor, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( newColor ) );
+			if ( idStr::IsColor( s ) ) {
+				newColor = idVec4(
+					g_color_table[ColorIndex( *( s + 1 ) )][0],
+					g_color_table[ColorIndex( *( s + 1 ) )][1],
+					g_color_table[ColorIndex( *( s + 1 ) )][2],
+					g_color_table[ColorIndex( *( s + 1 ) )][3] );
 				newColor[3] = color[3];
-				trap_R_SetColor( newColor );
+				trap_R_SetColor( newColor.ToFloatPtr() );
 				s += 2;
 				continue;
 			} else {
@@ -1864,13 +1870,13 @@ static void CG_Text_Paint_Limit( float *maxX, float x, float y, int font, float 
 
 #define PIC_WIDTH 12
 
-void CG_DrawNewTeamInfo( rectDef_t *rect, float text_x, float text_y, int font, float scale, vec4_t color, qhandle_t shader ) {
+void CG_DrawNewTeamInfo( rectDef_t *rect, float text_x, float text_y, int font, float scale, idVec4 color, qhandle_t shader ) {
 #ifdef MISSIONPACK
 	int xx;
 	float y;
 	int i, j, len, count;
 	const char *p;
-	vec4_t hcolor;
+	idVec4 hcolor;
 	float pwidth, lwidth, maxx, leftOver;
 	clientInfo_t *ci;
 	gitem_t *item;
@@ -1987,7 +1993,7 @@ void CG_DrawNewTeamInfo( rectDef_t *rect, float text_x, float text_y, int font, 
 }
 
 
-void CG_DrawTeamSpectators( rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader ) {
+void CG_DrawTeamSpectators( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader ) {
 	if ( cg.spectatorLen ) {
 		float maxX;
 
@@ -2046,10 +2052,10 @@ void CG_DrawTeamSpectators( rectDef_t *rect, int font, float scale, vec4_t color
 
 
 
-void CG_DrawMedal( int ownerDraw, rectDef_t *rect, int font, float scale, vec4_t color, qhandle_t shader ) {
+void CG_DrawMedal( int ownerDraw, rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader ) {
 	score_t *score = &cg.scores[cg.selectedScore];
 	float value = 0;
-	char *text = NULL;
+	idStr text;
 	color[3] = 0.25;
 
 	switch ( ownerDraw ) {
@@ -2082,12 +2088,12 @@ void CG_DrawMedal( int ownerDraw, rectDef_t *rect, int font, float scale, vec4_t
 	if ( value > 0 ) {
 		if ( ownerDraw != CG_PERFECT ) {
 			if ( ownerDraw == CG_ACCURACY ) {
-				text = va( "%i%%", (int)value );
+				text = idStr::FormatString( "%i%%", (int)value );
 				if ( value > 50 ) {
 					color[3] = 1.0;
 				}
 			} else {
-				text = va( "%i", (int)value );
+				text = idStr::FormatString( "%i", (int)value );
 				color[3] = 1.0;
 			}
 		} else {
@@ -2098,10 +2104,10 @@ void CG_DrawMedal( int ownerDraw, rectDef_t *rect, int font, float scale, vec4_t
 		}
 	}
 
-	trap_R_SetColor( color );
+	trap_R_SetColor( color.ToFloatPtr() );
 	CG_DrawPic( rect->x, rect->y, rect->w, rect->h, shader );
 
-	if ( text ) {
+	if ( text.Length() > 0 ) {
 		color[3] = 1.0;
 		value = CG_Text_Width( text, font, scale, 0 );
 		CG_Text_Paint( rect->x + ( rect->w - value ) / 2, rect->y + rect->h + 10, font, scale, color, text, 0, 0, 0 );
@@ -2119,8 +2125,8 @@ CG_DrawWeapStability
 	probably only drawn for scoped weapons
 ==============
 */
-void CG_DrawWeapStability( rectDef_t *rect, vec4_t color, int align ) {
-	vec4_t goodColor = {0, 1, 0, 0.5f}, badColor = {1, 0, 0, 0.5f};
+void CG_DrawWeapStability( rectDef_t *rect, idVec4 color, int align ) {
+	idVec4 goodColor( 0, 1, 0, 0.5f ), badColor( 1, 0, 0, 0.5f );
 
 	if ( !cg_drawSpreadScale.integer ) {
 		return;
@@ -2135,7 +2141,7 @@ void CG_DrawWeapStability( rectDef_t *rect, vec4_t color, int align ) {
 		return;
 	}
 
-	CG_FilledBar( rect->x, rect->y, rect->w, rect->h, goodColor, badColor, NULL, (float)cg.snap->ps.aimSpreadScale / 255.0f, 2 | 4 | 256 ); // flags (BAR_CENTER|BAR_VERT|BAR_LERP_COLOR)
+	CG_FilledBar( rect->x, rect->y, rect->w, rect->h, goodColor, &badColor, NULL, (float)cg.snap->ps.aimSpreadScale / 255.0f, 2 | 4 | 256 ); // flags (BAR_CENTER|BAR_VERT|BAR_LERP_COLOR)
 }
 
 
@@ -2145,7 +2151,7 @@ CG_DrawWeapHeat
 ==============
 */
 void CG_DrawWeapHeat( rectDef_t *rect, int align ) {
-	vec4_t color = {1, 0, 0, 0.2f}, color2 = {1, 0, 0, 0.5f};
+	idVec4 color( 1, 0, 0, 0.2f ), color2( 1, 0, 0, 0.5f );
 	int flags = 0;
 
 	if ( !( cg.snap->ps.curWeapHeat ) ) {
@@ -2161,7 +2167,7 @@ void CG_DrawWeapHeat( rectDef_t *rect, int align ) {
 //	flags|=32;		// BAR_BGSPACING_X0Y5	- different style
 
 	flags |= 256;     // BAR_COLOR_LERP
-	CG_FilledBar( rect->x, rect->y, rect->w, rect->h, color, color2, NULL, (float)cg.snap->ps.curWeapHeat / 255.0f, flags );
+	CG_FilledBar( rect->x, rect->y, rect->w, rect->h, color, &color2, NULL, (float)cg.snap->ps.curWeapHeat / 255.0f, flags );
 }
 
 
@@ -2171,9 +2177,9 @@ CG_DrawFatigue
 ==============
 */
 
-static void CG_DrawFatigue( rectDef_t *rect, vec4_t color, int align ) {
-	//	vec4_t	color = {0, 1, 0, 1}, color2 = {1, 0, 0, 1};
-	vec4_t colorBonus = {1, 1, 0, 0.45f};   // yellow (a little more solid for the 'bonus' stamina)
+static void CG_DrawFatigue( rectDef_t *rect, idVec4 color, int align ) {
+	//	idVec4	color = {0, 1, 0, 1}, color2 = {1, 0, 0, 1};
+	idVec4 colorBonus( 1, 1, 0, 0.45f );   // yellow (a little more solid for the 'bonus' stamina)
 	float barFrac;  //, omBarFrac;
 	int flags = 0;
 	float chargeTime;       // DHM - Nerve
@@ -2226,7 +2232,7 @@ static void CG_DrawFatigue( rectDef_t *rect, vec4_t color, int align ) {
 CG_OwnerDraw
 ==============
 */
-void CG_OwnerDraw( float x, float y, float w, float h, float text_x, float text_y, int ownerDraw, int ownerDrawFlags, int align, float special, int font, float scale, vec4_t color, qhandle_t shader, int textStyle ) {
+void CG_OwnerDraw( float x, float y, float w, float h, float text_x, float text_y, int ownerDraw, int ownerDrawFlags, int align, float special, int font, float scale, const idVec4 &color, qhandle_t shader, int textStyle ) {
 	rectDef_t rect;
 
 	if ( cg_drawStatus.integer == 0 ) {
@@ -2563,7 +2569,7 @@ void CG_KeyEvent( int key, qboolean down ) {
 int CG_ClientNumFromName( const char *p ) {
 	int i;
 	for ( i = 0; i < cgs.maxclients; i++ ) {
-		if ( cgs.clientinfo[i].infoValid && Q_stricmp( cgs.clientinfo[i].name, p ) == 0 ) {
+		if ( cgs.clientinfo[i].infoValid && idStr::Icmp( cgs.clientinfo[i].name, p ) == 0 ) {
 			return i;
 		}
 	}
@@ -2576,11 +2582,11 @@ void CG_ShowResponseHead() {
 	cg.voiceTime = cg.time;
 }
 
-void CG_RunMenuScript( char **args ) {
+void CG_RunMenuScript( idLexer *args ) {
 }
 
 
-void CG_GetTeamColor( vec4_t *color ) {
+void CG_GetTeamColor( idVec4 *color ) {
 	if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_RED ) {
 		( *color )[0] = 1;
 		( *color )[3] = .25f;

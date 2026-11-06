@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // Copyright (C) 1999-2000 Id Software, Inc.
 //
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 // Native module bindings supplied through the typed game import table.
@@ -152,24 +154,24 @@ void trap_SetBrushModel( gentity_t *ent, const char *name ) {
 	gameImports->SV_SetBrushModel( ent, name );
 }
 
-void trap_Trace( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask ) {
+void trap_Trace( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask ) {
 	gameImports->SV_Trace( results, start, mins, maxs, end, passEntityNum, contentmask );
 }
 
-void trap_TraceCapsule( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask ) {
+void trap_TraceCapsule( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask ) {
 	gameImports->SV_TraceCapsule( results, start, mins, maxs, end, passEntityNum, contentmask );
 }
 
-int trap_PointContents( const vec3_t point, int passEntityNum ) {
+int trap_PointContents( const idVec3 &point, int passEntityNum ) {
 	return gameImports->SV_PointContents( point, passEntityNum );
 }
 
 
-qboolean trap_InPVS( const vec3_t p1, const vec3_t p2 ) {
+qboolean trap_InPVS( const idVec3 &p1, const idVec3 &p2 ) {
 	return gameImports->SV_inPVS( p1, p2 );
 }
 
-qboolean trap_InPVSIgnorePortals( const vec3_t p1, const vec3_t p2 ) {
+qboolean trap_InPVSIgnorePortals( const idVec3 &p1, const idVec3 &p2 ) {
 	return gameImports->SV_inPVSIgnorePortals( p1, p2 );
 }
 
@@ -190,15 +192,15 @@ void trap_UnlinkEntity( gentity_t *ent ) {
 }
 
 
-int trap_EntitiesInBox( const vec3_t mins, const vec3_t maxs, int *list, int maxcount ) {
+int trap_EntitiesInBox( const idVec3 &mins, const idVec3 &maxs, int *list, int maxcount ) {
 	return gameImports->SV_AreaEntities( mins, maxs, list, maxcount );
 }
 
-qboolean trap_EntityContact( const vec3_t mins, const vec3_t maxs, const gentity_t *ent ) {
+qboolean trap_EntityContact( const idVec3 &mins, const idVec3 &maxs, const gentity_t *ent ) {
 	return gameImports->SV_EntityContact( mins, maxs, ent );
 }
 
-qboolean trap_EntityContactCapsule( const vec3_t mins, const vec3_t maxs, const gentity_t *ent ) {
+qboolean trap_EntityContactCapsule( const idVec3 &mins, const idVec3 &maxs, const gentity_t *ent ) {
 	return gameImports->SV_EntityContactCapsule( mins, maxs, ent );
 }
 
@@ -218,7 +220,7 @@ qboolean trap_GetEntityToken( char *buffer, int bufferSize ) {
 	return gameImports->SV_GetEntityToken( buffer, bufferSize );
 }
 
-int trap_DebugPolygonCreate( int color, int numPoints, vec3_t *points ) {
+int trap_DebugPolygonCreate( int color, int numPoints, idVec3 *points ) {
 	return gameImports->BotImport_DebugPolygonCreate( color, numPoints, points );
 }
 
@@ -230,7 +232,7 @@ int trap_RealTime( qtime_t *qtime ) {
 	return gameImports->Com_RealTime( qtime );
 }
 
-void trap_SnapVector( float *v ) {
+void trap_SnapVector( idVec3 &v ) {
 	gameImports->Sys_SnapVector( v );
 }
 
@@ -255,8 +257,8 @@ int trap_BotLibVarGet( char *var_name, char *value, int size ) {
 	return gameImports->BotLibVarGet( var_name, value, size );
 }
 
-int trap_BotLibDefine( char *string ) {
-	return gameImports->PC_AddGlobalDefine( string );
+int trap_BotLibDefine( const char *string ) {
+	return gameImports->BotLibDefine( string );
 }
 
 int trap_BotLibStartFrame( float time ) {
@@ -271,7 +273,7 @@ int trap_BotLibUpdateEntity( int ent, struct bot_entitystate_s *bue ) {
 	return gameImports->BotLibUpdateEntity( ent, bue );
 }
 
-int trap_BotLibTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 ) {
+int trap_BotLibTest( int parm0, char *parm1, idVec3 &parm2, idVec3 &parm3 ) {
 	return gameImports->Test( parm0, parm1, parm2, parm3 );
 }
 
@@ -295,7 +297,7 @@ int trap_AAS_Initialized( void ) {
 	return gameImports->AAS_Initialized(  );
 }
 
-void trap_AAS_PresenceTypeBoundingBox( int presencetype, vec3_t mins, vec3_t maxs ) {
+void trap_AAS_PresenceTypeBoundingBox( int presencetype, idVec3 &mins, idVec3 &maxs ) {
 	gameImports->AAS_PresenceTypeBoundingBox( presencetype, mins, maxs );
 }
 
@@ -309,15 +311,15 @@ void trap_AAS_SetCurrentWorld( int index ) {
 }
 // done.
 
-int trap_AAS_PointAreaNum( vec3_t point ) {
+int trap_AAS_PointAreaNum( const idVec3 &point ) {
 	return gameImports->AAS_PointAreaNum( point );
 }
 
-int trap_AAS_TraceAreas( vec3_t start, vec3_t end, int *areas, vec3_t *points, int maxareas ) {
+int trap_AAS_TraceAreas( const idVec3 &start, idVec3 &end, int *areas, idVec3 *points, int maxareas ) {
 	return gameImports->AAS_TraceAreas( start, end, areas, points, maxareas );
 }
 
-int trap_AAS_PointContents( vec3_t point ) {
+int trap_AAS_PointContents( idVec3 &point ) {
 	return gameImports->AAS_PointContents( point );
 }
 
@@ -329,7 +331,7 @@ int trap_AAS_ValueForBSPEpairKey( int ent, char *key, char *value, int size ) {
 	return gameImports->AAS_ValueForBSPEpairKey( ent, key, value, size );
 }
 
-int trap_AAS_VectorForBSPEpairKey( int ent, char *key, vec3_t v ) {
+int trap_AAS_VectorForBSPEpairKey( int ent, char *key, idVec3 &v ) {
 	return gameImports->AAS_VectorForBSPEpairKey( ent, key, v );
 }
 
@@ -345,24 +347,24 @@ int trap_AAS_AreaReachability( int areanum ) {
 	return gameImports->AAS_AreaReachability( areanum );
 }
 
-int trap_AAS_AreaTravelTimeToGoalArea( int areanum, vec3_t origin, int goalareanum, int travelflags ) {
+int trap_AAS_AreaTravelTimeToGoalArea( int areanum, idVec3 &origin, int goalareanum, int travelflags ) {
 	return gameImports->AAS_AreaTravelTimeToGoalArea( areanum, origin, goalareanum, travelflags );
 }
 
-int trap_AAS_Swimming( vec3_t origin ) {
+int trap_AAS_Swimming( idVec3 &origin ) {
 	return gameImports->AAS_Swimming( origin );
 }
 
-int trap_AAS_PredictClientMovement( struct aas_clientmove_s *move, int entnum, vec3_t origin, int presencetype, int onground, vec3_t velocity, vec3_t cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize ) {
+int trap_AAS_PredictClientMovement( struct aas_clientmove_s *move, int entnum, idVec3 &origin, int presencetype, int onground, idVec3 &velocity, idVec3 &cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize ) {
 	return gameImports->AAS_PredictClientMovement( move, entnum, origin, presencetype, onground, velocity, cmdmove, cmdframes, maxframes, frametime, stopevent, stopareanum, visualize );
 }
 
 // Ridah, route-tables
-void trap_AAS_RT_ShowRoute( vec3_t srcpos, int srcnum, int destnum ) {
+void trap_AAS_RT_ShowRoute( const idVec3 &srcpos, int srcnum, int destnum ) {
 	gameImports->AAS_RT_ShowRoute( srcpos, srcnum, destnum );
 }
 
-qboolean trap_AAS_RT_GetHidePos( vec3_t srcpos, int srcnum, int srcarea, vec3_t destpos, int destnum, int destarea, vec3_t returnPos ) {
+qboolean trap_AAS_RT_GetHidePos( const idVec3 &srcpos, int srcnum, int srcarea, const idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos ) {
 	return gameImports->AAS_RT_GetHidePos( srcpos, srcnum, srcarea, destpos, destnum, destarea, returnPos );
 }
 
@@ -370,11 +372,11 @@ int trap_AAS_FindAttackSpotWithinRange( int srcnum, int rangenum, int enemynum, 
 	return gameImports->AAS_FindAttackSpotWithinRange( srcnum, rangenum, enemynum, rangedist, travelflags, outpos );
 }
 
-qboolean trap_AAS_GetRouteFirstVisPos( vec3_t srcpos, vec3_t destpos, int travelflags, vec3_t retpos ) {
+qboolean trap_AAS_GetRouteFirstVisPos( idVec3 &srcpos, idVec3 &destpos, int travelflags, idVec3 &retpos ) {
 	return gameImports->AAS_GetRouteFirstVisPos( srcpos, destpos, travelflags, retpos );
 }
 
-void trap_AAS_SetAASBlockingEntity( vec3_t absmin, vec3_t absmax, qboolean blocking ) {
+void trap_AAS_SetAASBlockingEntity( idVec3 &absmin, idVec3 &absmax, qboolean blocking ) {
 	gameImports->AAS_SetAASBlockingEntity( absmin, absmax, blocking );
 }
 // done.
@@ -471,11 +473,11 @@ void trap_EA_MoveRight( int client ) {
 	gameImports->EA_MoveRight( client );
 }
 
-void trap_EA_Move( int client, vec3_t dir, float speed ) {
+void trap_EA_Move( int client, idVec3 &dir, float speed ) {
 	gameImports->EA_Move( client, dir, speed );
 }
 
-void trap_EA_View( int client, vec3_t viewangles ) {
+void trap_EA_View( int client, idVec3 &viewangles ) {
 	gameImports->EA_View( client, viewangles );
 }
 
@@ -643,19 +645,19 @@ int trap_BotGetSecondGoal( int goalstate, struct bot_goal_s *goal ) {
 	return gameImports->BotGetSecondGoal( goalstate, goal );
 }
 
-int trap_BotChooseLTGItem( int goalstate, vec3_t origin, int *inventory, int travelflags ) {
+int trap_BotChooseLTGItem( int goalstate, idVec3 &origin, int *inventory, int travelflags ) {
 	return gameImports->BotChooseLTGItem( goalstate, origin, inventory, travelflags );
 }
 
-int trap_BotChooseNBGItem( int goalstate, vec3_t origin, int *inventory, int travelflags, struct bot_goal_s *ltg, float maxtime ) {
+int trap_BotChooseNBGItem( int goalstate, idVec3 &origin, int *inventory, int travelflags, struct bot_goal_s *ltg, float maxtime ) {
 	return gameImports->BotChooseNBGItem( goalstate, origin, inventory, travelflags, ltg, maxtime );
 }
 
-int trap_BotTouchingGoal( vec3_t origin, struct bot_goal_s *goal ) {
+int trap_BotTouchingGoal( idVec3 &origin, struct bot_goal_s *goal ) {
 	return gameImports->BotTouchingGoal( origin, goal );
 }
 
-int trap_BotItemGoalInVisButNotVisible( int viewer, vec3_t eye, vec3_t viewangles, struct bot_goal_s *goal ) {
+int trap_BotItemGoalInVisButNotVisible( int viewer, idVec3 &eye, idVec3 &viewangles, struct bot_goal_s *goal ) {
 	return gameImports->BotItemGoalInVisButNotVisible( viewer, eye, viewangles, goal );
 }
 
@@ -719,7 +721,7 @@ void trap_BotMoveToGoal( struct bot_moveresult_s *result, int movestate, struct 
 	gameImports->BotMoveToGoal( result, movestate, goal, travelflags );
 }
 
-int trap_BotMoveInDirection( int movestate, vec3_t dir, float speed, int type ) {
+int trap_BotMoveInDirection( int movestate, idVec3 &dir, float speed, int type ) {
 	return gameImports->BotMoveInDirection( movestate, dir, speed, type );
 }
 
@@ -731,15 +733,15 @@ void trap_BotResetLastAvoidReach( int movestate ) {
 	gameImports->BotResetLastAvoidReach( movestate );
 }
 
-int trap_BotReachabilityArea( vec3_t origin, int testground ) {
+int trap_BotReachabilityArea( idVec3 &origin, int testground ) {
 	return gameImports->BotReachabilityArea( origin, testground );
 }
 
-int trap_BotMovementViewTarget( int movestate, struct bot_goal_s *goal, int travelflags, float lookahead, vec3_t target ) {
+int trap_BotMovementViewTarget( int movestate, struct bot_goal_s *goal, int travelflags, float lookahead, idVec3 &target ) {
 	return gameImports->BotMovementViewTarget( movestate, goal, travelflags, lookahead, target );
 }
 
-int trap_BotPredictVisiblePosition( vec3_t origin, int areanum, struct bot_goal_s *goal, int travelflags, vec3_t target ) {
+int trap_BotPredictVisiblePosition( idVec3 &origin, int areanum, struct bot_goal_s *goal, int travelflags, idVec3 &target ) {
 	return gameImports->BotPredictVisiblePosition( origin, areanum, goal, travelflags, target );
 }
 

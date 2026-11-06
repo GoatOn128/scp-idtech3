@@ -27,7 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // cg_drawtools.c -- helper functions called by cg_draw, cg_scoreboard, cg_info, etc
+#include "../precompiled.h"
+
 #include "cg_local.h"
+
+idVec4 colorWhite( 1, 1, 1, 1 );
+idVec4 colorBlack( 0, 0, 0, 1 );
 
 /*
 ================
@@ -70,8 +75,8 @@ CG_FillRect
 Coordinates are 640*480 virtual values
 =================
 */
-void CG_FillRect( float x, float y, float width, float height, const float *color ) {
-	trap_R_SetColor( color );
+void CG_FillRect( float x, float y, float width, float height, const idVec4 &color ) {
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	CG_AdjustFrom640( &x, &y, &width, &height );
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 0, 1, cgs.media.whiteShader );
@@ -84,11 +89,11 @@ void CG_FillRect( float x, float y, float width, float height, const float *colo
 CG_FillRectGradient
 ==============
 */
-void CG_FillRectGradient( float x, float y, float width, float height, const float *color, const float *gradcolor, int gradientType ) {
-	trap_R_SetColor( color );
+void CG_FillRectGradient( float x, float y, float width, float height, const idVec4 &color, const idVec4 &gradcolor, int gradientType ) {
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	CG_AdjustFrom640( &x, &y, &width, &height );
-	trap_R_DrawStretchPicGradient( x, y, width, height, 0, 0, 0, 0, cgs.media.whiteShader, gradcolor, gradientType );
+	trap_R_DrawStretchPicGradient( x, y, width, height, 0, 0, 0, 0, cgs.media.whiteShader, gradcolor.ToFloatPtr(), gradientType );
 
 	trap_R_SetColor( NULL );
 }
@@ -127,16 +132,16 @@ flags:
 
 #define BAR_BORDERSIZE 2
 
-void CG_FilledBar( float x, float y, float w, float h, const float *startColorIn, float *endColor, const float *bgColor, float frac, int flags ) {
-	vec4_t backgroundcolor = {1, 1, 1, 0.25f}, colorAtPos;  // colorAtPos is the lerped color if necessary
-	vec4_t startColor;
+void CG_FilledBar( float x, float y, float w, float h, const idVec4 &startColorIn, idVec4 *endColor, const idVec4 *bgColor, float frac, int flags ) {
+	idVec4 backgroundcolor( 1, 1, 1, 0.25f ), colorAtPos;  // colorAtPos is the lerped color if necessary
+	idVec4 startColor;
 
 	int indent = BAR_BORDERSIZE;
 
-	VectorCopy4( startColorIn, startColor );
+	startColor = startColorIn;
 
-	if ( ( flags & BAR_BG ) && bgColor ) { // BAR_BG set, and color specified, use specified bg color
-		Vector4Copy( bgColor, backgroundcolor );
+	if ( ( flags & BAR_BG ) && bgColor ) { // BAR_BG set, use the specified bg color
+		backgroundcolor = *bgColor;
 	}
 
 	// hud alpha
@@ -145,13 +150,11 @@ void CG_FilledBar( float x, float y, float w, float h, const float *startColorIn
 		if ( endColor ) {
 			endColor[3] *= cg_hudAlpha.value;
 		}
-		if ( backgroundcolor ) {
-			backgroundcolor[3] *= cg_hudAlpha.value;
-		}
+		backgroundcolor[3] *= cg_hudAlpha.value;
 	}
 
 	if ( flags & BAR_LERP_COLOR ) {
-		Vector4Average( startColor, endColor, frac, colorAtPos );
+		colorAtPos = Lerp( startColor, *endColor, frac );
 	}
 
 	// background
@@ -219,9 +222,9 @@ CG_HorizontalPercentBar
 =================
 */
 void CG_HorizontalPercentBar( float x, float y, float width, float height, float percent ) {
-	vec4_t bgcolor = {0.5f, 0.5f, 0.5f, 0.3f},
-		   color = {1.0f, 1.0f, 1.0f, 0.3f};
-	CG_FilledBar( x, y, width, height, color, NULL, bgcolor, percent, BAR_BG | BAR_NOHUDALPHA );
+	idVec4 bgcolor( 0.5f, 0.5f, 0.5f, 0.3f ),
+		   color = idVec4( 1.0f, 1.0f, 1.0f, 0.3f );
+	CG_FilledBar( x, y, width, height, color, NULL, &bgcolor, percent, BAR_BG | BAR_NOHUDALPHA );
 }
 
 
@@ -253,13 +256,13 @@ UI_DrawRect
 Coordinates are 640*480 virtual values
 =================
 */
-void CG_DrawRect( float x, float y, float width, float height, float size, const float *color ) {
-	vec4_t hudAlphaColor;
+void CG_DrawRect( float x, float y, float width, float height, float size, const idVec4 &color ) {
+	idVec4 hudAlphaColor;
 
-	Vector4Copy( color, hudAlphaColor );
+	hudAlphaColor = color;
 	hudAlphaColor[3] *= cg_hudAlpha.value;
 
-	trap_R_SetColor( hudAlphaColor );
+	trap_R_SetColor( hudAlphaColor.ToFloatPtr() );
 
 	CG_DrawTopBottom( x, y, width, height, size );
 	CG_DrawSides( x, y, width, height, size );
@@ -370,9 +373,9 @@ to a fixed color.
 Coordinates are at 640 by 480 virtual resolution
 ==================
 */
-void CG_DrawStringExt( int x, int y, const char *string, const float *setColor,
+void CG_DrawStringExt( int x, int y, const char *string, const idVec4 &setColor,
 					   qboolean forceColor, qboolean shadow, int charWidth, int charHeight, int maxChars ) {
-	vec4_t color;
+	idVec4 color;
 	const char *s;
 	int xx;
 	int cnt;
@@ -385,12 +388,12 @@ void CG_DrawStringExt( int x, int y, const char *string, const float *setColor,
 	if ( shadow ) {
 		color[0] = color[1] = color[2] = 0;
 		color[3] = setColor[3];
-		trap_R_SetColor( color );
+		trap_R_SetColor( color.ToFloatPtr() );
 		s = string;
 		xx = x;
 		cnt = 0;
 		while ( *s && cnt < maxChars ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			}
@@ -405,13 +408,16 @@ void CG_DrawStringExt( int x, int y, const char *string, const float *setColor,
 	s = string;
 	xx = x;
 	cnt = 0;
-	trap_R_SetColor( setColor );
+	trap_R_SetColor( setColor.ToFloatPtr() );
 	while ( *s && cnt < maxChars ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			if ( !forceColor ) {
-				memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
+				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
+						   g_color_table[ColorIndex( *( s + 1 ) )][1],
+						   g_color_table[ColorIndex( *( s + 1 ) )][2],
+						   g_color_table[ColorIndex( *( s + 1 ) )][3] );
 				color[3] = setColor[3];
-				trap_R_SetColor( color );
+				trap_R_SetColor( color.ToFloatPtr() );
 			}
 			s += 2;
 			continue;
@@ -433,9 +439,9 @@ to a fixed color.
 Coordinates are at 640 by 480 virtual resolution
 ==================
 */
-void CG_DrawStringExt2( int x, int y, const char *string, const float *setColor,
+void CG_DrawStringExt2( int x, int y, const char *string, const idVec4 &setColor,
 						qboolean forceColor, qboolean shadow, int charWidth, int charHeight, int maxChars ) {
-	vec4_t color;
+	idVec4 color;
 	const char *s;
 	int xx;
 	int cnt;
@@ -448,12 +454,12 @@ void CG_DrawStringExt2( int x, int y, const char *string, const float *setColor,
 	if ( shadow ) {
 		color[0] = color[1] = color[2] = 0;
 		color[3] = setColor[3];
-		trap_R_SetColor( color );
+		trap_R_SetColor( color.ToFloatPtr() );
 		s = string;
 		xx = x;
 		cnt = 0;
 		while ( *s && cnt < maxChars ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			}
@@ -468,13 +474,16 @@ void CG_DrawStringExt2( int x, int y, const char *string, const float *setColor,
 	s = string;
 	xx = x;
 	cnt = 0;
-	trap_R_SetColor( setColor );
+	trap_R_SetColor( setColor.ToFloatPtr() );
 	while ( *s && cnt < maxChars ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			if ( !forceColor ) {
-				memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
+				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
+						   g_color_table[ColorIndex( *( s + 1 ) )][1],
+						   g_color_table[ColorIndex( *( s + 1 ) )][2],
+						   g_color_table[ColorIndex( *( s + 1 ) )][3] );
 				color[3] = setColor[3];
-				trap_R_SetColor( color );
+				trap_R_SetColor( color.ToFloatPtr() );
 			}
 			s += 2;
 			continue;
@@ -496,9 +505,9 @@ to a fixed color.
 Coordinates are at 640 by 480 virtual resolution
 ==================
 */
-void CG_DrawStringExt3( int x, int y, const char *string, const float *setColor,
+void CG_DrawStringExt3( int x, int y, const char *string, const idVec4 &setColor,
 						qboolean forceColor, qboolean shadow, int charWidth, int charHeight, int maxChars ) {
-	vec4_t color;
+	idVec4 color;
 	const char *s;
 	int xx;
 	int cnt;
@@ -524,12 +533,12 @@ void CG_DrawStringExt3( int x, int y, const char *string, const float *setColor,
 	if ( shadow ) {
 		color[0] = color[1] = color[2] = 0;
 		color[3] = setColor[3];
-		trap_R_SetColor( color );
+		trap_R_SetColor( color.ToFloatPtr() );
 		s = string;
 		xx = x;
 		cnt = 0;
 		while ( *s && cnt < maxChars ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			}
@@ -544,13 +553,16 @@ void CG_DrawStringExt3( int x, int y, const char *string, const float *setColor,
 	s = string;
 	xx = x;
 	cnt = 0;
-	trap_R_SetColor( setColor );
+	trap_R_SetColor( setColor.ToFloatPtr() );
 	while ( *s && cnt < maxChars ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			if ( !forceColor ) {
-				memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
+				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
+						   g_color_table[ColorIndex( *( s + 1 ) )][1],
+						   g_color_table[ColorIndex( *( s + 1 ) )][2],
+						   g_color_table[ColorIndex( *( s + 1 ) )][3] );
 				color[3] = setColor[3];
-				trap_R_SetColor( color );
+				trap_R_SetColor( color.ToFloatPtr() );
 			}
 			s += 2;
 			continue;
@@ -575,7 +587,7 @@ Coordinates are at 640 by 480 virtual resolution
 */
 /*void CG_DrawStringExt2( int x, int y, const char *string, const float *setColor,
 		qboolean forceColor, qboolean shadow, int charWidth, int charHeight, int maxChars ) {
-	vec4_t		color;
+	idVec4		color;
 	const char	*s;
 	int			xx;
 	int			cnt;
@@ -587,12 +599,12 @@ Coordinates are at 640 by 480 virtual resolution
 	if (shadow) {
 		color[0] = color[1] = color[2] = 0;
 		color[3] = setColor[3];
-		trap_R_SetColor( color );
+		trap_R_SetColor( color.ToFloatPtr() );
 		s = string;
 		xx = x;
 		cnt = 0;
 		while ( *s && cnt < maxChars) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			}
@@ -607,13 +619,13 @@ Coordinates are at 640 by 480 virtual resolution
 	s = string;
 	xx = x;
 	cnt = 0;
-	trap_R_SetColor( setColor );
+	trap_R_SetColor( setColor.ToFloatPtr() );
 	while ( *s && cnt < maxChars) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			if ( !forceColor ) {
 				memcpy( color, g_color_table[ColorIndex(*(s+1))], sizeof( color ) );
 				color[3] = setColor[3];
-				trap_R_SetColor( color );
+				trap_R_SetColor( color.ToFloatPtr() );
 			}
 			s += 2;
 			continue;
@@ -627,7 +639,7 @@ Coordinates are at 640 by 480 virtual resolution
 }*/
 
 void CG_DrawBigString( int x, int y, const char *s, float alpha ) {
-	float color[4];
+	idVec4 color;
 
 	color[0] = color[1] = color[2] = 1.0;
 	color[3] = alpha;
@@ -635,7 +647,7 @@ void CG_DrawBigString( int x, int y, const char *s, float alpha ) {
 	CG_DrawStringExt2( x, y, s, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 }
 
-void CG_DrawBigStringColor( int x, int y, const char *s, vec4_t color ) {
+void CG_DrawBigStringColor( int x, int y, const char *s, const idVec4 &color ) {
 	//CG_DrawStringExt( x, y, s, color, qtrue, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 	CG_DrawStringExt2( x, y, s, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 }
@@ -643,27 +655,27 @@ void CG_DrawBigStringColor( int x, int y, const char *s, vec4_t color ) {
 
 // JOSEPH 4-25-00
 void CG_DrawBigString2( int x, int y, const char *s, float alpha ) {
-	float color[4];
+	idVec4 color;
 
 	color[0] = color[1] = color[2] = 1.0;
 	color[3] = alpha;
 	CG_DrawStringExt3( x, y, s, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 }
 
-void CG_DrawBigStringColor2( int x, int y, const char *s, vec4_t color ) {
+void CG_DrawBigStringColor2( int x, int y, const char *s, const idVec4 &color ) {
 	CG_DrawStringExt3( x, y, s, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 }
 // END JOSEPH
 
 void CG_DrawSmallString( int x, int y, const char *s, float alpha ) {
-	float color[4];
+	idVec4 color;
 
 	color[0] = color[1] = color[2] = 1.0;
 	color[3] = alpha;
 	CG_DrawStringExt( x, y, s, color, qfalse, qfalse, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 }
 
-void CG_DrawSmallStringColor( int x, int y, const char *s, vec4_t color ) {
+void CG_DrawSmallStringColor( int x, int y, const char *s, const idVec4 &color ) {
 	CG_DrawStringExt( x, y, s, color, qtrue, qfalse, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 }
 
@@ -679,7 +691,7 @@ int CG_DrawStrlen( const char *str ) {
 	int count = 0;
 
 	while ( *s ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			s += 2;
 		} else {
 			count++;
@@ -753,8 +765,8 @@ void CG_TileClear( void ) {
 CG_FadeColor
 ================
 */
-float *CG_FadeColor( int startMsec, int totalMsec ) {
-	static vec4_t color;
+idVec4 *CG_FadeColor( int startMsec, int totalMsec ) {
+	static idVec4 color;
 	int t;
 
 	if ( startMsec == 0 ) {
@@ -775,7 +787,7 @@ float *CG_FadeColor( int startMsec, int totalMsec ) {
 	}
 	color[0] = color[1] = color[2] = 1;
 
-	return color;
+	return &color;
 }
 
 
@@ -784,21 +796,21 @@ float *CG_FadeColor( int startMsec, int totalMsec ) {
 CG_TeamColor
 ================
 */
-float *CG_TeamColor( int team ) {
-	static vec4_t red = {1, 0.2, 0.2, 1};
-	static vec4_t blue = {0.2, 0.2, 1, 1};
-	static vec4_t other = {1, 1, 1, 1};
-	static vec4_t spectator = {0.7, 0.7, 0.7, 1};
+idVec4 *CG_TeamColor( int team ) {
+	static idVec4 red( 1, 0.2, 0.2, 1 );
+	static idVec4 blue( 0.2, 0.2, 1, 1 );
+	static idVec4 other( 1, 1, 1, 1 );
+	static idVec4 spectator( 0.7, 0.7, 0.7, 1 );
 
 	switch ( team ) {
 	case TEAM_RED:
-		return red;
+		return &red;
 	case TEAM_BLUE:
-		return blue;
+		return &blue;
 	case TEAM_SPECTATOR:
-		return spectator;
+		return &spectator;
 	default:
-		return other;
+		return &other;
 	}
 }
 
@@ -808,14 +820,14 @@ float *CG_TeamColor( int team ) {
 CG_GetColorForHealth
 =================
 */
-void CG_GetColorForHealth( int health, int armor, vec4_t hcolor ) {
+void CG_GetColorForHealth( int health, int armor, idVec4 &hcolor ) {
 	int count;
 	int max;
 
 	// calculate the total points of damage that can
 	// be sustained at the current health / armor level
 	if ( health <= 0 ) {
-		VectorClear( hcolor );  // black
+		hcolor.Zero();  // black
 		hcolor[3] = 1;
 		return;
 	}
@@ -851,7 +863,7 @@ void CG_GetColorForHealth( int health, int armor, vec4_t hcolor ) {
 CG_ColorForHealth
 =================
 */
-void CG_ColorForHealth( vec4_t hcolor ) {
+void CG_ColorForHealth( idVec4 &hcolor ) {
 	int health;
 	int count;
 	int max;
@@ -860,7 +872,7 @@ void CG_ColorForHealth( vec4_t hcolor ) {
 	// be sustained at the current health / armor level
 	health = cg.snap->ps.stats[STAT_HEALTH];
 	if ( health <= 0 ) {
-		VectorClear( hcolor );  // black
+		hcolor.Zero();  // black
 		hcolor[3] = 1;
 		return;
 	}
@@ -1051,7 +1063,7 @@ static int propMapB[26][3] = {
 UI_DrawBannerString
 =================
 */
-static void UI_DrawBannerString2( int x, int y, const char* str, vec4_t color ) {
+static void UI_DrawBannerString2( int x, int y, const char* str, idVec4 &color ) {
 	const char* s;
 	unsigned char ch;
 	float ax;
@@ -1064,7 +1076,7 @@ static void UI_DrawBannerString2( int x, int y, const char* str, vec4_t color ) 
 	float fheight;
 
 	// draw the colored text
-	trap_R_SetColor( color );
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	ax = x * cgs.screenXScale + cgs.screenXBias;
 	ay = y * cgs.screenXScale;
@@ -1075,7 +1087,7 @@ static void UI_DrawBannerString2( int x, int y, const char* str, vec4_t color ) 
 		ch = *s & 127;
 		if ( ch == ' ' ) {
 			ax += ( (float)PROPB_SPACE_WIDTH + (float)PROPB_GAP_WIDTH ) * cgs.screenXScale;
-		} else if ( Q_isupper( ch ) )     {
+		} else if ( idStr::CharIsUpper( ch ) )     {
 			ch -= 'A';
 			fcol = (float)propMapB[ch][0] / 256.0f;
 			frow = (float)propMapB[ch][1] / 256.0f;
@@ -1092,11 +1104,11 @@ static void UI_DrawBannerString2( int x, int y, const char* str, vec4_t color ) 
 	trap_R_SetColor( NULL );
 }
 
-void UI_DrawBannerString( int x, int y, const char* str, int style, vec4_t color ) {
+void UI_DrawBannerString( int x, int y, const char* str, int style, idVec4 &color ) {
 	const char *    s;
 	int ch;
 	int width;
-	vec4_t drawcolor;
+	idVec4 drawcolor;
 
 	// find the width of the drawn text
 	s = str;
@@ -1158,7 +1170,7 @@ int UI_ProportionalStringWidth( const char* str ) {
 	return width;
 }
 
-static void UI_DrawProportionalString2( int x, int y, const char* str, vec4_t color, float sizeScale, qhandle_t charset ) {
+static void UI_DrawProportionalString2( int x, int y, const char* str, idVec4 &color, float sizeScale, qhandle_t charset ) {
 	const char* s;
 	unsigned char ch;
 	float ax;
@@ -1171,7 +1183,7 @@ static void UI_DrawProportionalString2( int x, int y, const char* str, vec4_t co
 	float fheight;
 
 	// draw the colored text
-	trap_R_SetColor( color );
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	ax = x * cgs.screenXScale + cgs.screenXBias;
 	ay = y * cgs.screenXScale;
@@ -1223,8 +1235,8 @@ float UI_ProportionalSizeScale( int style ) {
 UI_DrawProportionalString
 =================
 */
-void UI_DrawProportionalString( int x, int y, const char* str, int style, vec4_t color ) {
-	vec4_t drawcolor;
+void UI_DrawProportionalString( int x, int y, const char* str, int style, idVec4 &color ) {
+	idVec4 drawcolor;
 	int width;
 	float sizeScale;
 
@@ -1272,7 +1284,7 @@ void UI_DrawProportionalString( int x, int y, const char* str, int style, vec4_t
 		drawcolor[0] = color[0];
 		drawcolor[1] = color[1];
 		drawcolor[2] = color[2];
-		drawcolor[3] = 0.5 + 0.5 * sin( cg.time / PULSE_DIVISOR );
+		drawcolor[3] = 0.5 + 0.5 * idMath::Sin( cg.time / PULSE_DIVISOR );
 		UI_DrawProportionalString2( x, y, str, drawcolor, sizeScale, cgs.media.charsetPropGlow );
 		return;
 	}
@@ -1280,9 +1292,6 @@ void UI_DrawProportionalString( int x, int y, const char* str, int style, vec4_t
 
 	UI_DrawProportionalString2( x, y, str, color, sizeScale, cgs.media.charsetProp );
 }
-
-
-
 
 
 

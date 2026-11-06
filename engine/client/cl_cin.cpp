@@ -44,6 +44,8 @@ If you have questions concerning this license or the applicable additional terms
 // if some more coding needs to be done.
 
 
+#include "../precompiled.h"
+
 #include "client.h"
 //#include "snd_local.h"
 
@@ -1087,7 +1089,7 @@ static void readQuadInfo( byte *qData ) {
 
 	cinTable[currentHandle].xsize    = qData[0] + qData[1] * 256;
 	cinTable[currentHandle].ysize    = qData[2] + qData[3] * 256;
-	cinTable[currentHandle].maxsize  = qData[4] + qData[5] * 256;
+	cinTable[currentHandle].GetMaxSize()  = qData[4] + qData[5] * 256;
 	cinTable[currentHandle].minsize  = qData[6] + qData[7] * 256;
 
 	cinTable[currentHandle].CIN_HEIGHT = cinTable[currentHandle].ysize;
@@ -1265,7 +1267,7 @@ redump:
 			cinTable[currentHandle].buf =   cin.linbuf;
 		}
 		if ( cinTable[currentHandle].numQuads == 0 ) {          // first frame
-			Com_Memcpy( cin.linbuf + cinTable[currentHandle].screenDelta, cin.linbuf, cinTable[currentHandle].samplesPerLine * cinTable[currentHandle].ysize );
+			memcpy( cin.linbuf + cinTable[currentHandle].screenDelta, cin.linbuf, cinTable[currentHandle].samplesPerLine * cinTable[currentHandle].ysize );
 		}
 		cinTable[currentHandle].numQuads++;
 		cinTable[currentHandle].dirty = qtrue;
@@ -1433,7 +1435,7 @@ static void RoQShutdown( void ) {
 		// the time it was referenced
 		s = Cvar_VariableString( "nextmap" );
 		if ( s[0] ) {
-			Cbuf_ExecuteText( EXEC_APPEND, va( "%s\n", s ) );
+			Cbuf_ExecuteText( EXEC_APPEND, idStr::FormatString( "%s\n", s ) );
 			Cvar_Set( "nextmap", "" );
 		}
 		CL_handle = -1;
@@ -1591,7 +1593,7 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 
 	if ( !( systemBits & CIN_system ) ) {
 		for ( i = 0 ; i < MAX_VIDEO_HANDLES ; i++ ) {
-			if ( !Q_stricmp( cinTable[i].fileName, name ) ) {
+			if ( !idStr::Icmp( cinTable[i].fileName, name ) ) {
 				return i;
 			}
 		}
@@ -1599,7 +1601,7 @@ int CIN_PlayCinematic( const char *arg, int x, int y, int w, int h, int systemBi
 
 	Com_DPrintf( "SCR_PlayCinematic( %s )\n", arg );
 
-	Com_Memset( &cin, 0, sizeof( cinematics_t ) );
+	memset( &cin, 0, sizeof( cinematics_t ) );
 	currentHandle = CIN_HandleForVideo();
 
 	cin.currentHandle = currentHandle;
@@ -1738,7 +1740,7 @@ void CIN_DrawCinematic( int handle ) {
 		}
 
 		buf3 = (int*)buf;
-		buf2 = (int *) Hunk_AllocateTempMemory( 256 * 256 * 4 );
+		buf2 = (int *) Mem_ClearedAlloc( 256 * 256 * 4, TAG_IDLIB );
 		if ( xm == 2 && ym == 2 ) {
 			byte *bc2, *bc3;
 			int ic, iiy;
@@ -1778,7 +1780,7 @@ void CIN_DrawCinematic( int handle ) {
 		}
 		re.DrawStretchRaw( x, y, w, h, 256, 256, (byte *)buf2, handle, qtrue );
 		cinTable[handle].dirty = qfalse;
-		Hunk_FreeTempMemory( buf2 );
+		Mem_Free( buf2 );
 		return;
 	}
 
@@ -1805,7 +1807,7 @@ void CL_PlayCinematic_f( void ) {
 	s = Cmd_Argv( 2 );
 
 	holdatend = qfalse;
-	if ( ( s && s[0] == '1' ) || Q_stricmp( arg,"demoend.roq" ) == 0 || Q_stricmp( arg,"end.roq" ) == 0 ) {
+	if ( ( s && s[0] == '1' ) || idStr::Icmp( arg, "demoend.roq" ) == 0 || idStr::Icmp( arg, "end.roq" ) == 0 ) {
 		bits |= CIN_hold;
 	}
 	if ( s && s[0] == '2' ) {

@@ -29,13 +29,13 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 
 float AICast_WeaponRange( cast_state_t *cs, int weaponnum );
 qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHitWorld );
-qboolean AICast_CheckAttackAtPos( int entnum, int enemy, vec3_t pos, qboolean ducking, qboolean allowHitWorld );
+qboolean AICast_CheckAttackAtPos( int entnum, int enemy, const idVec3 &pos, qboolean ducking, qboolean allowHitWorld );
 qboolean AICast_CheckAttack( cast_state_t *cs, int enemy, qboolean allowHitWorld );
 float AICast_WeaponWantScale( cast_state_t *cs, int weapon );
 qboolean AICast_GotEnoughAmmoForWeapon( cast_state_t *cs, int weapon );
 qboolean AICast_WeaponUsable( cast_state_t *cs, int weaponNum );
 void AICast_ChooseWeapon( cast_state_t *cs, qboolean battleFunc );
-void AICast_WeaponSway( cast_state_t *cs, vec3_t ofs );
+void AICast_WeaponSway( cast_state_t *cs, idVec3 &ofs );
 qboolean AICast_AimAtEnemy( cast_state_t *cs );
 qboolean AICast_CanMoveWhileFiringWeapon( int weaponnum );
 qboolean AICast_RandomTriggerRelease( cast_state_t *cs );

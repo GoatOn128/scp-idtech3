@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -32,13 +34,13 @@ AIFunc_BattleAmbush()
 char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 	bot_moveresult_t *moveresult;
 	ai_client_state_t *bs;
-	vec3_t destorg, vec;
+	idVec3 destorg, vec;
 	float dist, moveDist;
 	int enemies[MAX_CLIENTS], numEnemies, i;
 	qboolean shouldAttack, idleYaw;
 	aicast_predictmove_t move;
 	int *ammo;
-	vec3_t dir;
+	idVec3 dir;
 	//	gclient_t	*client = &level.clients[cs->entityNum];
 	//
 	// do we need to avoid a danger?
@@ -76,16 +78,15 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 		cs->attackcrouch_time = level.time + 2000;
 	}
 	//
-	VectorCopy( cs->combat.takeCoverPos, destorg );
-	VectorSubtract( destorg, cs->clientState->origin, vec );
+	destorg = cs->combat.takeCoverPos;
+	vec = destorg - cs->clientState->origin;
 	vec[2] *= 0.2;
-	dist = VectorLength( vec );
+	dist = vec.Length();
 	//
 	// update the chase marker
 	if ( cs->perception.vislist[cs->enemyNum].chase_marker_count > 0 ) {
-		VectorCopy( cs->perception.vislist[cs->enemyNum]
-						.chase_marker[cs->perception.vislist[cs->enemyNum].chase_marker_count - 1],
-					cs->navigation.combatGoalOrigin );
+		cs->navigation.combatGoalOrigin = cs->perception.vislist[cs->enemyNum]
+						.chase_marker[cs->perception.vislist[cs->enemyNum].chase_marker_count - 1];
 	}
 	//
 	// look for things we should attack
@@ -114,7 +115,7 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 				// if (we can get them from here) or (they can get us, AND we have stopped going to our ambush spot)
 				if ( ( AICast_EntityVisible( cs, enemies[i], qfalse ) &&
 					   AICast_CheckAttack( cs, enemies[i], qfalse ) ) ||
-					 ( ( VectorLength( cs->combat.takeCoverPos ) < 1 || dist <= 8 ) &&
+					 ( ( cs->combat.takeCoverPos.Length() < 1 || dist <= 8 ) &&
 					   ( AICast_EntityVisible( AICast_GetCastState( enemies[i] ), cs->entityNum, qfalse ) ||
 						 AICast_CheckAttack( AICast_GetCastState( enemies[i] ), cs->entityNum, qfalse ) ||
 						 AICast_EntityVisible( AICast_GetCastState( enemies[i] ), cs->entityNum, qtrue ) ) ) ) {
@@ -159,7 +160,7 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 	memset( &move, 0, sizeof( move ) );
 	//
 	// are we close enough to the goal?
-	if ( VectorLength( cs->combat.takeCoverPos ) > 1 && dist > 8 &&
+	if ( cs->combat.takeCoverPos.Length() > 1 && dist > 8 &&
 		 ( cs->navigation.obstructingTime < level.time ) /*&& !shouldAttack*/ ) {
 		const float simTime = 0.8;
 		float enemyDist;
@@ -174,13 +175,13 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 				//reset the avoid reach, otherwise bot is stuck in current area
 				trap_BotResetAvoidReach( bs->ms );
 				// couldn't get there, so stop trying to get there
-				VectorClear( cs->combat.takeCoverPos );
+				cs->combat.takeCoverPos.Zero();
 				dist = 0;
 			}
 			//
 			if ( moveresult->blocked ) {
 				// abort the TakeCover
-				VectorClear( cs->combat.takeCoverPos );
+				cs->combat.takeCoverPos.Zero();
 				dist = 0;
 			}
 		}
@@ -188,16 +189,16 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 		// NOTE: this is also used by hidepos prediction (below)
 		// if we are going to bump into something soon, abort it
 		AICast_PredictMovement( cs, 1, simTime, &move, &cs->lastucmd, -1 );
-		enemyDist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
-		VectorSubtract( move.endpos, cs->clientState->origin, vec );
-		moveDist = VectorNormalize( vec );
+		enemyDist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
+		vec = move.endpos - cs->clientState->origin;
+		moveDist = vec.Normalize();
 		//
 		if ( ( move.numtouch && move.touchents[0] < aicast_maxclients ) // hit something
 			 // or moved closer to the enemy
 			 || ( ( enemyDist < 128 ) &&
-				  ( ( enemyDist - 1 ) > ( Distance( move.endpos, g_entities[cs->enemyNum].s.pos.trBase ) ) ) ) ) {
+				  ( ( enemyDist - 1 ) > ( ( move.endpos - g_entities[cs->enemyNum].s.pos.trBase ).Length() ) ) ) ) {
 			// abort the manouver
-			VectorClear( cs->combat.takeCoverPos );
+			cs->combat.takeCoverPos.Zero();
 			dist = 0;
 		}
 		//
@@ -212,7 +213,7 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 														  cs->enemyNum, qfalse ) ) {
 				// abort the manouver, reached a good spot
 				cs->aiFlags |= AIFL_MISCFLAG1;
-				VectorCopy( cs->clientState->origin, cs->combat.takeCoverPos );
+				cs->combat.takeCoverPos = cs->clientState->origin;
 			}
 		}
 
@@ -228,7 +229,7 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 		}
 		// do we need to go to our leader?
 		else if ( cs->leaderNum >= 0 &&
-				  Distance( cs->clientState->origin, g_entities[cs->leaderNum].r.currentOrigin ) > MAX_LEADER_DIST ) {
+				  ( cs->clientState->origin - g_entities[cs->leaderNum].r.currentOrigin ).Length() > MAX_LEADER_DIST ) {
 			// wait until we've been hiding for long enough
 			if ( level.time > cs->combat.takeCoverTime ) {
 				return AIFunc_ChaseGoalStart( cs, cs->leaderNum, AICAST_LEADERDIST_MAX, qtrue );
@@ -240,27 +241,36 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 		}
 	}
 	//
-	if ( !( cs->aiFlags & AIFL_WALKFORWARD ) || !VectorLength( cs->clientState->cur_ps.velocity ) ) {
+	if ( !( cs->aiFlags & AIFL_WALKFORWARD ) || !cs->clientState->cur_ps.velocity.Length() ) {
 		idleYaw = qtrue;
 		// if we know who we are hiding from, face them (hack, so they dont face stupid directions)
 		if ( cs->enemyNum >= 0 ) {
-			VectorSubtract( g_entities[cs->enemyNum].s.pos.trBase, cs->clientState->origin, dir );
-			vectoangles( dir, cs->ideal_viewangles );
+			dir = g_entities[cs->enemyNum].s.pos.trBase - cs->clientState->origin;
+			{
+				const idAngles convertedAngles = dir.ToAngles();
+				cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+			}
 			idleYaw = qfalse;
 		} else if ( cs->lastEnemy >= 0 ) {
-			VectorSubtract( g_entities[cs->lastEnemy].s.pos.trBase, cs->clientState->origin, dir );
-			vectoangles( dir, cs->ideal_viewangles );
+			dir = g_entities[cs->lastEnemy].s.pos.trBase - cs->clientState->origin;
+			{
+				const idAngles convertedAngles = dir.ToAngles();
+				cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+			}
 			idleYaw = qfalse;
 		}
 		// if we can see the place we are hiding from, look at it
 		if ( idleYaw && AICast_VisibleFromPos( cs->clientState->origin, cs->entityNum, cs->navigation.combatGoalOrigin,
 											   cs->lastEnemy, qfalse ) ) {
 			// face the position we are retreating from
-			VectorSubtract( cs->navigation.combatGoalOrigin, cs->clientState->origin, dir );
+			dir = cs->navigation.combatGoalOrigin - cs->clientState->origin;
 			dir[2] = 0;
-			if ( VectorNormalize( dir ) > 4 ) {
+			if ( dir.Normalize() > 4 ) {
 				idleYaw = qfalse;
-				vectoangles( dir, cs->ideal_viewangles );
+				{
+					const idAngles convertedAngles = dir.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 			}
 		}
 		//
@@ -280,22 +290,22 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 
 					cs->idleYaw = AICast_GetRandomViewAngle( cs, 512 );
 
-					if ( fabs( AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] ) ) < 45 ) {
+					if ( fabs( idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] ) ) < 45 ) {
 						cs->nextIdleAngleChange = level.time + 1000 + rand() % 2500;
 					} else { // do really fast
 						cs->nextIdleAngleChange = level.time + 500;
 					}
 
 					// adjust with time
-					cs->idleYawChange = AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
+					cs->idleYawChange = idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
 					/// ((float)(cs->nextIdleAngleChange - level.time) / 1000.0);
 
 					cs->ideal_viewangles[PITCH] = 0;
 				}
 			} else if ( cs->idleYawChange ) {
-				cs->idleYawChange = AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
+				cs->idleYawChange = idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
 				cs->ideal_viewangles[YAW] =
-					AngleMod( cs->ideal_viewangles[YAW] + ( cs->idleYawChange * cs->clientState->thinktime ) );
+					idMath::AngleNormalize360( cs->ideal_viewangles[YAW] + ( cs->idleYawChange * cs->clientState->thinktime ) );
 			}
 		}
 	}
@@ -353,7 +363,7 @@ AIFunc_BattleTakeCover()
 char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 	bot_moveresult_t *moveresult;
 	ai_client_state_t *bs;
-	vec3_t destorg, vec;
+	idVec3 destorg, vec;
 	float dist, moveDist;
 	int enemies[MAX_CLIENTS], numEnemies, i;
 	qboolean shouldAttack;
@@ -385,13 +395,13 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 		return AIFunc_IdleStart( cs );
 	}
 	//
-	if ( VectorLength( cs->combat.takeCoverPos ) < 1 ) {
+	if ( cs->combat.takeCoverPos.Length() < 1 ) {
 		dist = 0;
 	} else {
-		VectorCopy( cs->combat.takeCoverPos, destorg );
-		VectorSubtract( destorg, cs->clientState->origin, vec );
+		destorg = cs->combat.takeCoverPos;
+		vec = destorg - cs->clientState->origin;
 		vec[2] *= 0.2;
-		dist = VectorLength( vec );
+		dist = vec.Length();
 	}
 	//
 	// look for things we should attack
@@ -466,10 +476,10 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 				// shit!! umm.. try and fire?
 				return AIFunc_BattleStart( cs );
 			} else { // recalc distance
-				VectorCopy( cs->combat.takeCoverPos, destorg );
-				VectorSubtract( destorg, cs->clientState->origin, vec );
+				destorg = cs->combat.takeCoverPos;
+				vec = destorg - cs->clientState->origin;
 				vec[2] *= 0.2;
-				dist = VectorLength( vec );
+				dist = vec.Length();
 			}
 		} else if ( dist < 8 ) {
 			// if they can see us, find a better spot
@@ -480,10 +490,10 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 					// shit!! umm.. try and fire?
 					return AIFunc_BattleStart( cs );
 				} else { // recalc distance
-					VectorCopy( cs->combat.takeCoverPos, destorg );
-					VectorSubtract( destorg, cs->clientState->origin, vec );
+					destorg = cs->combat.takeCoverPos;
+					vec = destorg - cs->clientState->origin;
 					vec[2] *= 0.2;
-					dist = VectorLength( vec );
+					dist = vec.Length();
 				}
 			}
 		}
@@ -500,7 +510,7 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 	memset( &move, 0, sizeof( move ) );
 	//
 	// are we close enough to the goal?
-	if ( VectorLength( cs->combat.takeCoverPos ) > 1 && dist > 8 ) {
+	if ( cs->combat.takeCoverPos.Length() > 1 && dist > 8 ) {
 		const float simTime = 1.5;
 		float enemyDist;
 		//
@@ -514,29 +524,29 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 				//reset the avoid reach, otherwise bot is stuck in current area
 				trap_BotResetAvoidReach( bs->ms );
 				// couldn't get there, so stop trying to get there
-				VectorClear( cs->combat.takeCoverPos );
+				cs->combat.takeCoverPos.Zero();
 				dist = 0;
 			}
 			//
 			if ( moveresult->blocked ) {
 				// abort the TakeCover
-				VectorClear( cs->combat.takeCoverPos );
+				cs->combat.takeCoverPos.Zero();
 				dist = 0;
 			}
 		}
 		//
 		// if we are going to bump into something soon, abort it
 		AICast_PredictMovement( cs, 1, simTime, &move, &cs->lastucmd, -1 );
-		enemyDist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
-		VectorSubtract( move.endpos, cs->clientState->origin, vec );
-		moveDist = VectorNormalize( vec );
+		enemyDist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
+		vec = move.endpos - cs->clientState->origin;
+		moveDist = vec.Normalize();
 		//
 		if ( ( move.numtouch && move.touchents[0] < aicast_maxclients ) // hit something
 			 // or moved closer to the enemy
 			 || ( ( enemyDist < 128 ) &&
-				  ( ( enemyDist - 1 ) > ( Distance( move.endpos, g_entities[cs->enemyNum].s.pos.trBase ) ) ) ) ) {
+				  ( ( enemyDist - 1 ) > ( ( move.endpos - g_entities[cs->enemyNum].s.pos.trBase ).Length() ) ) ) ) {
 			// abort the manouver
-			VectorClear( cs->combat.takeCoverPos );
+			cs->combat.takeCoverPos.Zero();
 			dist = 0;
 		}
 		//
@@ -547,7 +557,7 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 					move.groundEntityNum == ENTITYNUM_WORLD ) &&
 				  ( shouldAttack && !AICast_VisibleFromPos( g_entities[cs->enemyNum].s.pos.trBase, cs->enemyNum,
 															move.endpos, cs->entityNum, qfalse ) ) ) {
-			VectorClear( cs->combat.takeCoverPos ); // stay there when done rolling
+			cs->combat.takeCoverPos.Zero(); // stay there when done rolling
 			return AIFunc_BattleDiveStart( cs, vec );
 		}
 		//
@@ -563,7 +573,7 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 			 !AICast_VisibleFromPos( cs->perception.vislist[cs->enemyNum].real_visible_pos, cs->enemyNum,
 									 cs->clientState->origin, cs->entityNum, qfalse ) &&
 			 trap_AAS_PointAreaNum( move.endpos ) ) { // make sure the endpos is in a valid area
-			VectorCopy( move.endpos, cs->combat.takeCoverPos );
+			cs->combat.takeCoverPos = move.endpos;
 			dist = 0;
 			cs->aiFlags |= AIFL_MISCFLAG1; // dont do this again
 		}
@@ -599,7 +609,7 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 		//
 		// check for a movement we should be making
 		if ( cs->navigation.obstructingTime > level.time ) {
-			VectorClear( cs->combat.takeCoverPos );
+			cs->combat.takeCoverPos.Zero();
 			AICast_MoveToPos( cs, cs->navigation.obstructingPos, -1 );
 		}
 		// if we have some enemies that we can attack immediately (without going anywhere to chase them)
@@ -626,7 +636,7 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 		}
 		// do we need to go to our leader?
 		else if ( cs->leaderNum >= 0 &&
-				  Distance( cs->clientState->origin, g_entities[cs->leaderNum].r.currentOrigin ) > MAX_LEADER_DIST ) {
+				  ( cs->clientState->origin - g_entities[cs->leaderNum].r.currentOrigin ).Length() > MAX_LEADER_DIST ) {
 			// wait until we've been hiding for long enough
 			if ( level.time > cs->combat.takeCoverTime ) {
 				return AIFunc_ChaseGoalStart( cs, cs->leaderNum, AICAST_LEADERDIST_MAX, qtrue );
@@ -641,16 +651,17 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 	//
 	// if we should be attacking something on our way
 	if ( shouldAttack ) {
-		vec3_t cvec, cdir;
+		idVec3 cvec, cdir;
 		float adist;
 		//
 		// if they are close, and we're heading for them, we should abort this manouver
-		VectorSubtract( g_entities[cs->enemyNum].client->ps.origin, bs->origin, cvec );
-		if ( ( adist = VectorNormalize( cvec ) ) < 256 ) {
-			VectorCopy( bs->velocity, cvec );
+		cvec = g_entities[cs->enemyNum].client->ps.origin - bs->origin;
+		if ( ( adist = cvec.Normalize() ) < 256 ) {
+			cvec = bs->velocity;
 			cvec[2] = 0;
-			if ( VectorNormalize2( cvec, cdir ) > 20 ) { // we are moving
-				if ( DotProduct( cdir, cvec ) > 0.4 ) {
+			cdir = cvec;
+			if ( cdir.Normalize() > 20 ) { // we are moving
+				if ( ( cdir * cvec ) > 0.4 ) {
 					// abort
 					return AIFunc_BattleStart( cs );
 				}
@@ -681,12 +692,15 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 			AICast_AimAtEnemy( cs );
 		} else if ( cs->lastEnemy >= 0 ) {
 			// if we are not moving, face them
-			if ( VectorLength( cs->clientState->cur_ps.velocity ) < 50 ) {
-				vec3_t dir;
+			if ( cs->clientState->cur_ps.velocity.Length() < 50 ) {
+				idVec3 dir;
 				//
-				VectorSubtract( cs->perception.vislist[cs->lastEnemy].visible_pos, cs->clientState->origin, dir );
-				VectorNormalize( dir );
-				vectoangles( dir, cs->ideal_viewangles );
+				dir = cs->perception.vislist[cs->lastEnemy].visible_pos - cs->clientState->origin;
+				dir.Normalize();
+				{
+					const idAngles convertedAngles = dir.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 			}
 		} else if ( !cs->crouchHideFlag ) { // no enemy, and no need to crouch, so stop crouching
 			//if (cs->attackcrouch_time > level.time + 1000) {

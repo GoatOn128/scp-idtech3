@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 qboolean    G_SpawnString( const char *key, const char *defaultString, char **out ) {
@@ -784,10 +786,10 @@ void G_ParseField( const char *key, const char *value, gentity_t *ent ) {
 	field_t *f;
 	byte    *b;
 	float v;
-	vec3_t vec;
+	idVec3 vec;
 
 	for ( f = fields ; f->name ; f++ ) {
-		if ( !Q_stricmp( f->name, key ) ) {
+		if ( !idStr::Icmp( f->name, key ) ) {
 			// found it
 			b = (byte *)ent;
 
@@ -867,8 +869,8 @@ void G_SpawnGEntityFromSpawnVars( void ) {
 	}
 
 	// move editor origin to pos
-	VectorCopy( ent->s.origin, ent->s.pos.trBase );
-	VectorCopy( ent->s.origin, ent->r.currentOrigin );
+	ent->s.pos.trBase = ent->s.origin;
+	ent->r.currentOrigin = ent->s.origin;
 
 	// if we didn't get a classname, don't bother spawning anything
 	if ( !G_CallSpawn( ent ) ) {
@@ -973,14 +975,14 @@ void SP_worldspawn( void ) {
 	gitem_t *item; // JPW NERVE
 
 	G_SpawnString( "classname", "", &s );
-	if ( Q_stricmp( s, "worldspawn" ) ) {
+	if ( idStr::Icmp( s, "worldspawn" ) ) {
 		G_Error( "SP_worldspawn: The first entity isn't 'worldspawn'" );
 	}
 
 	// make some data visible to connecting client
 	trap_SetConfigstring( CS_GAME_VERSION, GAME_VERSION );
 
-	trap_SetConfigstring( CS_LEVEL_START_TIME, va( "%i", level.startTime ) );
+	trap_SetConfigstring( CS_LEVEL_START_TIME, idStr::FormatString( "%i", level.startTime ) );
 
 	G_SpawnString( "music", "", &s );
 	trap_SetConfigstring( CS_MUSIC, s );

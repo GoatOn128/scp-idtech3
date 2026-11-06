@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 
@@ -42,7 +44,7 @@ int hflakWeaponSnd;
 int notebookModel;
 int propellerModel;
 
-vec3_t ejectBrassCasingOrigin;
+idVec3 ejectBrassCasingOrigin;
 
 //----(SA)
 // forward decs
@@ -92,9 +94,9 @@ CG_MachineGunEjectBrassNew
 static void CG_MachineGunEjectBrassNew( centity_t *cent ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
-	vec3_t velocity, xvelocity;
+	idVec3 velocity, xvelocity;
 	float waterScale = 1.0f;
-	vec3_t v[3];
+	idVec3 v[3];
 
 	if ( cg_brassTime.integer <= 0 ) {
 		return;
@@ -104,21 +106,21 @@ static void CG_MachineGunEjectBrassNew( centity_t *cent ) {
 	re = &le->refEntity;
 
 	velocity[0] = CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_x" );
-	velocity[1] = -CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_y" ) + CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_y_2" ) * crandom();
-	velocity[2] = CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_z" ) + CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_z_2" ) * crandom();
+	velocity[1] = -CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_y" ) + CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_y_2" ) * cgRandom.CRandomFloat();
+	velocity[2] = CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_z" ) + CG_FxInt( "wolf/controller_machinegunejectbrassnew", "velocity_z_2" ) * cgRandom.CRandomFloat();
 
 	le->leType = LE_FRAGMENT;
 	le->startTime = cg.time;
-	le->endTime = le->startTime + cg_brassTime.integer + ( cg_brassTime.integer / CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_endTime" ) ) * random();
+	le->endTime = le->startTime + cg_brassTime.integer + ( cg_brassTime.integer / CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_endTime" ) ) * cgRandom.RandomFloat();
 
 	le->pos.trType = TR_GRAVITY;
-	le->pos.trTime = cg.time - ( rand() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_pos_trTime" ) );
+	le->pos.trTime = cg.time - ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_pos_trTime" ) );
 
-	AnglesToAxis( cent->lerpAngles, v );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &v[0], &v[1], &v[2] );
 
-	VectorCopy( ejectBrassCasingOrigin, re->origin );
+	re->origin = ejectBrassCasingOrigin;
 
-	VectorCopy( re->origin, le->pos.trBase );
+	le->pos.trBase = re->origin;
 
 	if ( CG_PointContents( re->origin, -1 ) & ( CONTENTS_WATER | CONTENTS_SLIME ) ) { //----(SA)	modified since slime is no longer deadly
 //	if ( CG_PointContents( re->origin, -1 ) & CONTENTS_WATER ) {
@@ -128,18 +130,20 @@ static void CG_MachineGunEjectBrassNew( centity_t *cent ) {
 	xvelocity[0] = velocity[0] * v[0][0] + velocity[1] * v[1][0] + velocity[2] * v[2][0];
 	xvelocity[1] = velocity[0] * v[0][1] + velocity[1] * v[1][1] + velocity[2] * v[2][1];
 	xvelocity[2] = velocity[0] * v[0][2] + velocity[1] * v[1][2] + velocity[2] * v[2][2];
-	VectorScale( xvelocity, waterScale, le->pos.trDelta );
+	le->pos.trDelta = xvelocity * (waterScale);
 
-	AxisCopy( axisDefault, re->axis );
+	re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 	re->hModel = CG_FxModel( "wolf/controller_machinegunejectbrassnew", "smallgunBrassModel" );
 
 	le->bounceFactor = CG_FxValue( "wolf/controller_machinegunejectbrassnew", "le_bounceFactor" ) * waterScale;
 
 	le->angles.trType = TR_LINEAR;
 	le->angles.trTime = cg.time;
-	le->angles.trBase[0] = rand() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trBase_x" );
-	le->angles.trBase[1] = rand() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trBase_y" );
-	le->angles.trBase[2] = rand() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trBase_z" );
+	le->angles.trBase[0] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trBase_x" );
+	le->angles.trBase[1] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trBase_y" );
+	le->angles.trBase[2] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trBase_z" );
 	le->angles.trDelta[0] = CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trDelta_x" );
 	le->angles.trDelta[1] = CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trDelta_y" );
 	le->angles.trDelta[2] = CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_angles_trDelta_z" );
@@ -149,8 +153,8 @@ static void CG_MachineGunEjectBrassNew( centity_t *cent ) {
 
 	{
 		int contents;
-		vec3_t end;
-		VectorCopy( cent->lerpOrigin, end );
+		idVec3 end;
+		end = cent->lerpOrigin;
 		end[2] -= CG_FxInt( "wolf/controller_machinegunejectbrassnew", "end_z" );
 		contents = trap_CM_PointContents( end, 0 );
 		if ( contents & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) ) {
@@ -172,10 +176,10 @@ CG_MachineGunEjectBrass
 static void CG_MachineGunEjectBrass( centity_t *cent ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
-	vec3_t velocity, xvelocity;
-	vec3_t offset, xoffset;
+	idVec3 velocity, xvelocity;
+	idVec3 offset, xoffset;
 	float waterScale = 1.0f;
-	vec3_t v[3];
+	idVec3 v[3];
 
 	if ( cg_brassTime.integer <= 0 ) {
 		return;
@@ -191,17 +195,17 @@ static void CG_MachineGunEjectBrass( centity_t *cent ) {
 
 	// velocity[0] = 0;
 	velocity[0] = CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_x" ); // Maxx Kaufman offset value
-	velocity[1] = -CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_y" ) + CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_y_2" ) * crandom();
-	velocity[2] = CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_z" ) + CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_z_2" ) * crandom();
+	velocity[1] = -CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_y" ) + CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_y_2" ) * cgRandom.CRandomFloat();
+	velocity[2] = CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_z" ) + CG_FxInt( "wolf/controller_machinegunejectbrass", "velocity_z_2" ) * cgRandom.CRandomFloat();
 
 	le->leType = LE_FRAGMENT;
 	le->startTime = cg.time;
-	le->endTime = le->startTime + cg_brassTime.integer + ( cg_brassTime.integer / CG_FxInt( "wolf/controller_machinegunejectbrass", "le_endTime" ) ) * random();
+	le->endTime = le->startTime + cg_brassTime.integer + ( cg_brassTime.integer / CG_FxInt( "wolf/controller_machinegunejectbrass", "le_endTime" ) ) * cgRandom.RandomFloat();
 
 	le->pos.trType = TR_GRAVITY;
-	le->pos.trTime = cg.time - ( rand() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_pos_trTime" ) );
+	le->pos.trTime = cg.time - ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_pos_trTime" ) );
 
-	AnglesToAxis( cent->lerpAngles, v );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &v[0], &v[1], &v[2] );
 
 	if ( cg.snap->ps.persistant[PERS_HWEAPON_USE] ) {
 		offset[0] = CG_FxInt( "wolf/controller_machinegunejectbrass", "offset_x" );
@@ -216,7 +220,7 @@ static void CG_MachineGunEjectBrass( centity_t *cent ) {
 		offset[1] = -CG_FxInt( "wolf/controller_machinegunejectbrass", "offset_y_3" );
 		offset[2] = CG_FxInt( "wolf/controller_machinegunejectbrass", "offset_z_3" );
 	} else {
-		VectorClear( offset );
+		offset.Zero();
 	}
 
 
@@ -224,9 +228,9 @@ static void CG_MachineGunEjectBrass( centity_t *cent ) {
 	xoffset[0] = offset[0] * v[0][0] + offset[1] * v[1][0] + offset[2] * v[2][0];
 	xoffset[1] = offset[0] * v[0][1] + offset[1] * v[1][1] + offset[2] * v[2][1];
 	xoffset[2] = offset[0] * v[0][2] + offset[1] * v[1][2] + offset[2] * v[2][2];
-	VectorAdd( cent->lerpOrigin, xoffset, re->origin );
+	re->origin = cent->lerpOrigin + xoffset;
 
-	VectorCopy( re->origin, le->pos.trBase );
+	le->pos.trBase = re->origin;
 
 	if ( CG_PointContents( re->origin, -1 ) & ( CONTENTS_WATER | CONTENTS_SLIME ) ) { //----(SA)	modified since slime is no longer deadly
 //	if ( CG_PointContents( re->origin, -1 ) & CONTENTS_WATER ) {
@@ -236,18 +240,20 @@ static void CG_MachineGunEjectBrass( centity_t *cent ) {
 	xvelocity[0] = velocity[0] * v[0][0] + velocity[1] * v[1][0] + velocity[2] * v[2][0];
 	xvelocity[1] = velocity[0] * v[0][1] + velocity[1] * v[1][1] + velocity[2] * v[2][1];
 	xvelocity[2] = velocity[0] * v[0][2] + velocity[1] * v[1][2] + velocity[2] * v[2][2];
-	VectorScale( xvelocity, waterScale, le->pos.trDelta );
+	le->pos.trDelta = xvelocity * (waterScale);
 
-	AxisCopy( axisDefault, re->axis );
+	re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 	re->hModel = CG_FxModel( "wolf/controller_machinegunejectbrass", "machinegunBrassModel" );
 
 	le->bounceFactor = CG_FxValue( "wolf/controller_machinegunejectbrass", "le_bounceFactor" ) * waterScale;
 
 	le->angles.trType = TR_LINEAR;
 	le->angles.trTime = cg.time;
-	le->angles.trBase[0] = rand() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trBase_x" );
-	le->angles.trBase[1] = rand() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trBase_y" );
-	le->angles.trBase[2] = rand() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trBase_z" );
+	le->angles.trBase[0] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trBase_x" );
+	le->angles.trBase[1] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trBase_y" );
+	le->angles.trBase[2] = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trBase_z" );
 	le->angles.trDelta[0] = CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trDelta_x" );
 	le->angles.trDelta[1] = CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trDelta_y" );
 	le->angles.trDelta[2] = CG_FxInt( "wolf/controller_machinegunejectbrass", "le_angles_trDelta_z" );
@@ -256,8 +262,8 @@ static void CG_MachineGunEjectBrass( centity_t *cent ) {
 
 	{
 		int contents;
-		vec3_t end;
-		VectorCopy( cent->lerpOrigin, end );
+		idVec3 end;
+		end = cent->lerpOrigin;
 		end[2] -= CG_FxInt( "wolf/controller_machinegunejectbrass", "end_z" );
 		contents = trap_CM_PointContents( end, 0 );
 		if ( contents & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) ) {
@@ -281,17 +287,17 @@ CG_PanzerFaustEjectBrass
 static void CG_PanzerFaustEjectBrass( centity_t *cent ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
-	vec3_t velocity, xvelocity;
-	vec3_t offset, xoffset;
+	idVec3 velocity, xvelocity;
+	idVec3 offset, xoffset;
 	float waterScale = 1.0f;
-	vec3_t v[3];
+	idVec3 v[3];
 
 	le = CG_FxSpawnModel( "wolf/controller_panzerfaustejectbrass" );
 	re = &le->refEntity;
 
 //	velocity[0] = 16;
-//	velocity[1] = -50 + 40 * crandom();
-//	velocity[2] = 100 + 50 * crandom();
+//	velocity[1] = -50 + 40 * cgRandom.CRandomFloat();
+//	velocity[2] = 100 + 50 * cgRandom.CRandomFloat();
 
 	velocity[0] = CG_FxInt( "wolf/controller_panzerfaustejectbrass", "velocity_x" );
 	velocity[1] = -CG_FxInt( "wolf/controller_panzerfaustejectbrass", "velocity_y" );
@@ -300,13 +306,13 @@ static void CG_PanzerFaustEjectBrass( centity_t *cent ) {
 	le->leType = LE_FRAGMENT;
 	le->startTime = cg.time;
 //	le->startTime = cg.time + 2000;
-	le->endTime = le->startTime + ( cg_brassTime.integer * CG_FxInt( "wolf/controller_panzerfaustejectbrass", "le_endTime" ) ) + ( cg_brassTime.integer * random() );
+	le->endTime = le->startTime + ( cg_brassTime.integer * CG_FxInt( "wolf/controller_panzerfaustejectbrass", "le_endTime" ) ) + ( cg_brassTime.integer * cgRandom.RandomFloat() );
 
 	le->pos.trType = TR_GRAVITY;
-	le->pos.trTime = cg.time - ( rand() & CG_FxInt( "wolf/controller_panzerfaustejectbrass", "le_pos_trTime" ) );
+	le->pos.trTime = cg.time - ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_panzerfaustejectbrass", "le_pos_trTime" ) );
 //	le->pos.trTime = cg.time - 2000;
 
-	AnglesToAxis( cent->lerpAngles, v );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &v[0], &v[1], &v[2] );
 
 //	offset[0] = 12;
 //	offset[1] = -4;
@@ -319,9 +325,9 @@ static void CG_PanzerFaustEjectBrass( centity_t *cent ) {
 	xoffset[0] = offset[0] * v[0][0] + offset[1] * v[1][0] + offset[2] * v[2][0];
 	xoffset[1] = offset[0] * v[0][1] + offset[1] * v[1][1] + offset[2] * v[2][1];
 	xoffset[2] = offset[0] * v[0][2] + offset[1] * v[1][2] + offset[2] * v[2][2];
-	VectorAdd( cent->lerpOrigin, xoffset, re->origin );
+	re->origin = cent->lerpOrigin + xoffset;
 
-	VectorCopy( re->origin, le->pos.trBase );
+	le->pos.trBase = re->origin;
 
 	if ( CG_PointContents( re->origin, -1 ) & ( CONTENTS_WATER | CONTENTS_SLIME ) ) {
 		waterScale = 0.10;
@@ -330,9 +336,11 @@ static void CG_PanzerFaustEjectBrass( centity_t *cent ) {
 	xvelocity[0] = velocity[0] * v[0][0] + velocity[1] * v[1][0] + velocity[2] * v[2][0];
 	xvelocity[1] = velocity[0] * v[0][1] + velocity[1] * v[1][1] + velocity[2] * v[2][1];
 	xvelocity[2] = velocity[0] * v[0][2] + velocity[1] * v[1][2] + velocity[2] * v[2][2];
-	VectorScale( xvelocity, waterScale, le->pos.trDelta );
+	le->pos.trDelta = xvelocity * (waterScale);
 
-	AxisCopy( axisDefault, re->axis );
+	re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 
 	// (SA) make it bigger
 	le->sizeScale = CG_FxValue( "wolf/controller_panzerfaustejectbrass", "le_sizeScale" );
@@ -343,9 +351,9 @@ static void CG_PanzerFaustEjectBrass( centity_t *cent ) {
 
 	le->angles.trType = TR_LINEAR;
 	le->angles.trTime = cg.time;
-//	le->angles.trBase[0] = rand()&31;
-//	le->angles.trBase[1] = rand()&31;
-//	le->angles.trBase[2] = rand()&31;
+//	le->angles.trBase[0] = cgRandom.RandomInt()&31;
+//	le->angles.trBase[1] = cgRandom.RandomInt()&31;
+//	le->angles.trBase[2] = cgRandom.RandomInt()&31;
 	le->angles.trBase[0] = CG_FxInt( "wolf/controller_panzerfaustejectbrass", "le_angles_trBase_x" );
 	le->angles.trBase[1] = cent->currentState.apos.trBase[1];   // rotate to match the player
 	le->angles.trBase[2] = CG_FxInt( "wolf/controller_panzerfaustejectbrass", "le_angles_trBase_z" );
@@ -370,7 +378,7 @@ CG_SpearTrail
 */
 void CG_SpearTrail( centity_t *ent, const weaponInfo_t *wi ) {
 	int contents, lastContents;
-	vec3_t origin, lastPos;
+	idVec3 origin, lastPos;
 	entityState_t   *es;
 
 	es = &ent->currentState;
@@ -398,7 +406,7 @@ CG_PyroSmokeTrail
 */
 void CG_PyroSmokeTrail( centity_t *ent, const weaponInfo_t *wi ) {
 	int step;
-	vec3_t origin, lastPos, dir;
+	idVec3 origin, lastPos, dir;
 	int contents;
 	int lastContents, startTime;
 	entityState_t   *es;
@@ -406,7 +414,7 @@ void CG_PyroSmokeTrail( centity_t *ent, const weaponInfo_t *wi ) {
 	static float grounddir = CG_FxInt( "wolf/controller_pyrosmoketrail", "grounddir" );
 
 	if ( grounddir == CG_FxInt( "wolf/controller_pyrosmoketrail", "tuning" ) ) { // pick a wind direction -- cheap trick because it can be different
-		grounddir = crandom(); // on different clients, but it's all smoke and mirrors anyway
+		grounddir = cgRandom.CRandomFloat(); // on different clients, but it's all smoke and mirrors anyway
 
 	}
 	step = CG_FxInt( "wolf/controller_pyrosmoketrail", "step" );
@@ -435,28 +443,28 @@ void CG_PyroSmokeTrail( centity_t *ent, const weaponInfo_t *wi ) {
 		//VectorCopy (ent->lerpOrigin, lastPos);
 
 		if ( ent->currentState.density ) { // corkscrew effect
-			vec3_t right;
-			vec3_t angles;
-			VectorCopy( ent->currentState.apos.trBase, angles );
+			idVec3 right;
+			idVec3 angles;
+			angles = ent->currentState.apos.trBase;
 			angles[ROLL] += cg.time % CG_FxInt( "wolf/controller_pyrosmoketrail", "angles_ROLL_" );
-			AngleVectors( angles, NULL, right, NULL );
-			VectorMA( lastPos, ent->currentState.density, right, lastPos );
+			idAngles(angles).ToVectors(NULL, &(right), NULL);
+			lastPos = lastPos + right * (ent->currentState.density);
 		}
 
-		dir[0] = crandom() * CG_FxInt( "wolf/controller_pyrosmoketrail", "dir_x" ); // compute offset from flare base
-		dir[1] = crandom() * CG_FxInt( "wolf/controller_pyrosmoketrail", "dir_y" );
+		dir[0] = cgRandom.CRandomFloat() * CG_FxInt( "wolf/controller_pyrosmoketrail", "dir_x" ); // compute offset from flare base
+		dir[1] = cgRandom.CRandomFloat() * CG_FxInt( "wolf/controller_pyrosmoketrail", "dir_y" );
 		dir[2] = 0;
-		VectorAdd( lastPos,dir,origin ); // store in origin
+		origin = lastPos + dir; // store in origin
 
 
-		dir[0] = random() * 0.25;
+		dir[0] = cgRandom.RandomFloat() * 0.25;
 		dir[1] = grounddir; // simulate a little wind so it looks natural
-		dir[2] = random(); // one direction (so smoke goes side-like)
-		VectorNormalize( dir );
-		VectorScale( dir,CG_FxInt( "wolf/controller_pyrosmoketrail", "tuning_2" ),dir ); // was 75
+		dir[2] = cgRandom.RandomFloat(); // one direction (so smoke goes side-like)
+		(dir).Normalize();
+		dir = dir * (CG_FxInt( "wolf/controller_pyrosmoketrail", "tuning_2" )); // was 75
 
 		FxParameters parameters;
-		VectorCopy( dir, parameters.velocity );
+		parameters.velocity = dir;
 		CG_FxPlayParameters( ent->currentState.otherEntityNum2 ? "wolf/pyro_red" : "wolf/pyro_blue",
 			origin, vec3_origin, parameters );
 	}
@@ -472,7 +480,7 @@ CG_RocketTrail
 */
 void CG_RocketTrail( centity_t *ent, const weaponInfo_t *wi ) {
 	int step;
-	vec3_t origin, lastPos;
+	idVec3 origin, lastPos;
 	int contents;
 	int lastContents, startTime;
 	entityState_t   *es;
@@ -520,15 +528,15 @@ void CG_RocketTrail( centity_t *ent, const weaponInfo_t *wi ) {
 
 		BG_EvaluateTrajectory( &es->pos, t, lastPos );
 
-		rnd = random();
+		rnd = cgRandom.RandomFloat();
 		if ( ent->currentState.eType == ET_FLAMEBARREL ) {
-			if ( ( rand() % CG_FxInt( "wolf/controller_rockettrail", "tuning_2" ) ) > CG_FxInt( "wolf/controller_rockettrail", "tuning_3" ) ) {
+			if ( ( cgRandom.RandomInt() % CG_FxInt( "wolf/controller_rockettrail", "tuning_2" ) ) > CG_FxInt( "wolf/controller_rockettrail", "tuning_3" ) ) {
 				CG_ParticleExplosion( "twiltb2", lastPos, vec3_origin, CG_FxInt( "wolf/controller_rockettrail", "tuning_4" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_5" ) ), CG_FxInt( "wolf/controller_rockettrail", "tuning_6" ), CG_FxInt( "wolf/controller_rockettrail", "tuning_7" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_8" ) ) ); // fire
 
 			}
 			CG_ParticleExplosion( "blacksmokeanim", lastPos, vec3_origin, CG_FxInt( "wolf/controller_rockettrail", "tuning_9" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_10" ) ), CG_FxInt( "wolf/controller_rockettrail", "tuning_11" ), CG_FxInt( "wolf/controller_rockettrail", "tuning_12" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_13" ) ) );    // smoke
 		} else if ( ent->currentState.eType == ET_FP_PARTS )     {
-			if ( ( rand() % CG_FxInt( "wolf/controller_rockettrail", "tuning_14" ) ) > CG_FxInt( "wolf/controller_rockettrail", "tuning_15" ) ) {
+			if ( ( cgRandom.RandomInt() % CG_FxInt( "wolf/controller_rockettrail", "tuning_14" ) ) > CG_FxInt( "wolf/controller_rockettrail", "tuning_15" ) ) {
 				CG_ParticleExplosion( "twiltb2", lastPos, vec3_origin, CG_FxInt( "wolf/controller_rockettrail", "tuning_16" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_17" ) ), CG_FxInt( "wolf/controller_rockettrail", "tuning_18" ), CG_FxInt( "wolf/controller_rockettrail", "tuning_19" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_20" ) ) ); // fire
 
 			}
@@ -536,7 +544,7 @@ void CG_RocketTrail( centity_t *ent, const weaponInfo_t *wi ) {
 		} else if ( ent->currentState.eType == ET_RAMJET )     {
 			int duration;
 
-			VectorCopy( ent->lerpOrigin, lastPos );
+			lastPos = ent->lerpOrigin;
 			duration = CG_FxInt( "wolf/controller_rockettrail", "duration" );
 			CG_ParticleExplosion( "twiltb2", lastPos, vec3_origin, duration + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_26" ) ), CG_FxInt( "wolf/controller_rockettrail", "tuning_27" ), CG_FxInt( "wolf/controller_rockettrail", "tuning_28" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_29" ) ) ); // fire
 			CG_ParticleExplosion( "blacksmokeanim", lastPos, vec3_origin, CG_FxInt( "wolf/controller_rockettrail", "tuning_30" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_31" ) ), CG_FxInt( "wolf/controller_rockettrail", "tuning_32" ), CG_FxInt( "wolf/controller_rockettrail", "tuning_33" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_34" ) ) );    // smoke
@@ -548,12 +556,12 @@ void CG_RocketTrail( centity_t *ent, const weaponInfo_t *wi ) {
 			//VectorCopy (ent->lerpOrigin, lastPos);
 
 			if ( ent->currentState.density ) { // corkscrew effect
-				vec3_t right;
-				vec3_t angles;
-				VectorCopy( ent->currentState.apos.trBase, angles );
+				idVec3 right;
+				idVec3 angles;
+				angles = ent->currentState.apos.trBase;
 				angles[ROLL] += cg.time % CG_FxInt( "wolf/controller_rockettrail", "angles_ROLL_" );
-				AngleVectors( angles, NULL, right, NULL );
-				VectorMA( lastPos, ent->currentState.density, right, lastPos );
+				idAngles(angles).ToVectors(NULL, &(right), NULL);
+				lastPos = lastPos + right * (ent->currentState.density);
 			}
 
 			duration = ent->currentState.angles[0];
@@ -574,7 +582,7 @@ void CG_RocketTrail( centity_t *ent, const weaponInfo_t *wi ) {
 
 			CG_ParticleExplosion( "twiltb2", lastPos, vec3_origin, duration + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_35" ) ), sizeStart, sizeEnd + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_36" ) ) );   // fire
 
-			if ( ent->currentState.eType == ET_FIRE_COLUMN_SMOKE && ( rand() % CG_FxInt( "wolf/controller_rockettrail", "tuning_37" ) ) > CG_FxInt( "wolf/controller_rockettrail", "tuning_38" ) ) {
+			if ( ent->currentState.eType == ET_FIRE_COLUMN_SMOKE && ( cgRandom.RandomInt() % CG_FxInt( "wolf/controller_rockettrail", "tuning_37" ) ) > CG_FxInt( "wolf/controller_rockettrail", "tuning_38" ) ) {
 				CG_ParticleExplosion( "blacksmokeanim", lastPos, vec3_origin, CG_FxInt( "wolf/controller_rockettrail", "tuning_39" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_40" ) ), CG_FxInt( "wolf/controller_rockettrail", "tuning_41" ), CG_FxInt( "wolf/controller_rockettrail", "tuning_42" ) + (int)( rnd * CG_FxInt( "wolf/controller_rockettrail", "tuning_43" ) ) );    // smoke
 			}
 		} else
@@ -596,7 +604,7 @@ CG_GrenadeTrail
 */
 static void CG_GrenadeTrail( centity_t *ent, const weaponInfo_t *wi ) {
 	int step;
-	vec3_t origin, lastPos;
+	idVec3 origin, lastPos;
 	int contents;
 	int lastContents, startTime;
 	entityState_t   *es;
@@ -658,7 +666,7 @@ CG_RailTrail
 	SA: re-inserted this as a debug mechanism for bullets
 ==========================
 */
-void CG_RailTrail2( clientInfo_t *ci, vec3_t start, vec3_t end ) {
+void CG_RailTrail2( clientInfo_t *ci, const idVec3 &start, const idVec3 &end ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
 
@@ -674,8 +682,8 @@ void CG_RailTrail2( clientInfo_t *ci, vec3_t start, vec3_t end ) {
 	re->reType = RT_RAIL_CORE;
 	re->customShader = CG_FxMaterial( "wolf/controller_railtrail2", "railCoreShader" );
 
-	VectorCopy( start, re->origin );
-	VectorCopy( end, re->oldorigin );
+	re->origin = start;
+	re->oldorigin = end;
 
 //	// still allow different colors so we can tell AI shots from player shots, etc.
 	if ( ci ) {
@@ -689,18 +697,20 @@ void CG_RailTrail2( clientInfo_t *ci, vec3_t start, vec3_t end ) {
 	}
 	le->color[3] = CG_FxValue( "wolf/controller_railtrail2", "le_color_a" );
 
-	AxisClear( re->axis );
+	re->axis[0] = idVec3( 1.0f, 0.0f, 0.0f );
+	re->axis[1] = idVec3( 0.0f, 1.0f, 0.0f );
+	re->axis[2] = idVec3( 0.0f, 0.0f, 1.0f );
 }
 
-//void CG_RailTrailBox( clientInfo_t *ci, vec3_t start, vec3_t end) {
+//void CG_RailTrailBox( clientInfo_t *ci, idVec3 start, idVec3 end) {
 /*
 ==============
 CG_RailTrail
 	modified so we could draw boxes for debugging as well
 ==============
 */
-void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end, int type ) {  //----(SA)	added 'type'
-	vec3_t diff, v1, v2, v3, v4, v5, v6;
+void CG_RailTrail( clientInfo_t *ci, const idVec3 &start, const idVec3 &end, int type ) {  //----(SA)	added 'type'
+	idVec3 diff, v1, v2, v3, v4, v5, v6;
 
 	if ( !type ) { // just a line
 		CG_RailTrail2( ci, start, end );
@@ -709,11 +719,11 @@ void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end, int type ) {  //-
 
 	// type '1' (box)
 
-	VectorSubtract( start, end, diff );
+	diff = start - end;
 
-	VectorCopy( start, v1 );
-	VectorCopy( start, v2 );
-	VectorCopy( start, v3 );
+	v1 = start;
+	v2 = start;
+	v3 = start;
 	v1[0] -= diff[0];
 	v2[1] -= diff[1];
 	v3[2] -= diff[2];
@@ -721,9 +731,9 @@ void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end, int type ) {  //-
 	CG_RailTrail2( ci, start, v2 );
 	CG_RailTrail2( ci, start, v3 );
 
-	VectorCopy( end, v4 );
-	VectorCopy( end, v5 );
-	VectorCopy( end, v6 );
+	v4 = end;
+	v5 = end;
+	v6 = end;
 	v4[0] += diff[0];
 	v5[1] += diff[1];
 	v6[2] += diff[2];
@@ -752,11 +762,9 @@ CG_ParseWeaponConfig
 ======================
 */
 static qboolean CG_ParseWeaponConfig( const char *filename, weaponInfo_t *wi ) {
-	char        *text_p, *prev;
 	int len;
 	int i;
 	float fps;
-	char        *token;
 	qboolean newfmt = qfalse;       //----(SA)
 	char text[20000];
 	fileHandle_t f;
@@ -776,57 +784,51 @@ static qboolean CG_ParseWeaponConfig( const char *filename, weaponInfo_t *wi ) {
 	text[len] = 0;
 	trap_FS_FCloseFile( f );
 
-	// parse the text
-	text_p = text;
+	idLexer lexer( text, len, filename );
+	idToken token;
 
 	// read optional parameters
 	while ( 1 ) {
-		prev = text_p;  // so we can unget
-		token = COM_Parse( &text_p );
-		if ( !token ) {                     // get the variable
+		if ( !lexer.ReadToken( &token ) ) {                     // get the variable
 			break;
 		}
-		if ( !Q_stricmp( token, "whatever_variable" ) ) {
-			token = COM_Parse( &text_p );   // get the value
-			if ( !token ) {
+		if ( !idStr::Icmp( token.c_str(), "whatever_variable" ) ) {
+			if ( !lexer.ReadToken( &token ) ) {   // get the value
 				break;
 			}
 			continue;
 		}
 
-		if ( !Q_stricmp( token, "newfmt" ) ) {
+		if ( !idStr::Icmp( token.c_str(), "newfmt" ) ) {
 			newfmt = qtrue;
 			continue;
 		}
 
 		// if it is a number, start parsing animations
-		if ( Q_isnumeric( token[0] ) ) {
-			text_p = prev;  // unget the token
+		if ( idStr::CharIsNumeric( token[0] ) ) {
+			lexer.UnreadToken( &token );
 			break;
 		}
-		Com_Printf( "unknown token in weapon cfg '%s' is %s\n", token, filename );
+		Com_Printf( "unknown token in weapon cfg '%s' is %s\n", token.c_str(), filename );
 	}
 
 
 	for ( i = 0 ; i < MAX_WP_ANIMATIONS  ; i++ ) {
 
-		token = COM_Parse( &text_p );   // first frame
-		if ( !token ) {
+		if ( !lexer.ReadToken( &token ) ) {   // first frame
 			break;
 		}
-		wi->weapAnimations[i].firstFrame = atoi( token );
+		wi->weapAnimations[i].firstFrame = atoi( token.c_str() );
 
-		token = COM_Parse( &text_p );   // length
-		if ( !token ) {
+		if ( !lexer.ReadToken( &token ) ) {   // length
 			break;
 		}
-		wi->weapAnimations[i].numFrames = atoi( token );
+		wi->weapAnimations[i].numFrames = atoi( token.c_str() );
 
-		token = COM_Parse( &text_p );   // fps
-		if ( !token ) {
+		if ( !lexer.ReadToken( &token ) ) {   // fps
 			break;
 		}
-		fps = atof( token );
+		fps = atof( token.c_str() );
 		if ( fps == 0 ) {
 			fps = 1;
 		}
@@ -834,11 +836,10 @@ static qboolean CG_ParseWeaponConfig( const char *filename, weaponInfo_t *wi ) {
 		wi->weapAnimations[i].frameLerp = 1000 / fps;
 		wi->weapAnimations[i].initialLerp = 1000 / fps;
 
-		token = COM_Parse( &text_p );   // looping frames
-		if ( !token ) {
+		if ( !lexer.ReadToken( &token ) ) {   // looping frames
 			break;
 		}
-		wi->weapAnimations[i].loopFrames = atoi( token );
+		wi->weapAnimations[i].loopFrames = atoi( token.c_str() );
 		if ( wi->weapAnimations[i].loopFrames > wi->weapAnimations[i].numFrames ) {
 			wi->weapAnimations[i].loopFrames = wi->weapAnimations[i].numFrames;
 		} else if ( wi->weapAnimations[i].loopFrames < 0 ) {
@@ -851,25 +852,22 @@ static qboolean CG_ParseWeaponConfig( const char *filename, weaponInfo_t *wi ) {
 		wi->weapAnimations[i].moveSpeed = 0;
 
 		if ( newfmt ) {
-			token = COM_Parse( &text_p );   // barrel anim bits
-			if ( !token ) {
+			if ( !lexer.ReadToken( &token ) ) {   // barrel anim bits
 				break;
 			}
-			wi->weapAnimations[i].moveSpeed = atoi( token );
+			wi->weapAnimations[i].moveSpeed = atoi( token.c_str() );
 
-			token = COM_Parse( &text_p );   // animated weapon
-			if ( !token ) {
+			if ( !lexer.ReadToken( &token ) ) {   // animated weapon
 				break;
 			}
-			if ( atoi( token ) ) {
+			if ( atoi( token.c_str() ) ) {
 				wi->weapAnimations[i].moveSpeed |= ( 1 << W_MAX_PARTS );    // set the bit one higher than can be set by the barrel bits
 
 			}
-			token = COM_Parse( &text_p );   // barrel hide bits (so objects can be flagged to not be drawn during all sequences (a reloading hand that comes in from off screen for that one animation for example)
-			if ( !token ) {
+			if ( !lexer.ReadToken( &token ) ) {   // barrel hide bits (so objects can be flagged to not be drawn during all sequences (a reloading hand that comes in from off screen for that one animation for example)
 				break;
 			}
-			wi->weapAnimations[i].moveSpeed |= ( ( atoi( token ) ) << 8 ); // use 2nd byte for draw bits
+			wi->weapAnimations[i].moveSpeed |= ( ( atoi( token.c_str() ) ) << 8 ); // use 2nd byte for draw bits
 		}
 
 	}
@@ -894,8 +892,8 @@ The server says this item is used on this level
 void CG_RegisterWeapon( int weaponNum ) {
 	weaponInfo_t    *weaponInfo;
 	gitem_t         *item, *ammo;
-	char path[MAX_QPATH], comppath[MAX_QPATH];
-	vec3_t mins, maxs;
+	idStr path, comppath;
+	idVec3 mins, maxs;
 	int i;
 
 	weaponInfo = &cg_weapons[weaponNum];
@@ -966,9 +964,10 @@ void CG_RegisterWeapon( int weaponNum ) {
 	// load weapon config
 //----(SA)	modified.  use first person model for finding weapon config name, not third
 	if ( item->world_model[W_FP_MODEL] ) {
-		COM_StripFilename( item->world_model[W_FP_MODEL], path );
-		if ( !CG_ParseWeaponConfig( va( "%sweapon.cfg", path ), weaponInfo ) ) {
-			CG_Error( "Couldn't register weapon %i (%s) (failed to parse weapon.cfg)", weaponNum, path );
+		path = item->world_model[W_FP_MODEL];
+		path.StripFilename();
+		if ( !CG_ParseWeaponConfig( idStr::FormatString( "%sweapon.cfg", path.c_str() ), weaponInfo ) ) {
+			CG_Error( "Couldn't register weapon %i (%s) (failed to parse weapon.cfg)", weaponNum, path.c_str() );
 		}
 	}
 //----(SA)	end
@@ -981,7 +980,7 @@ void CG_RegisterWeapon( int weaponNum ) {
 	}
 
 	weaponInfo->weaponIcon[0] = trap_R_RegisterShader( item->icon );
-	weaponInfo->weaponIcon[1] = trap_R_RegisterShader( va( "%s_select", item->icon ) );    // get the 'selected' icon as well
+	weaponInfo->weaponIcon[1] = trap_R_RegisterShader( idStr::FormatString( "%s_select", item->icon ) );    // get the 'selected' icon as well
 
 	// JOSEPH 4-17-00
 	weaponInfo->ammoIcon = trap_R_RegisterShader( item->ammoicon );
@@ -997,14 +996,14 @@ void CG_RegisterWeapon( int weaponNum ) {
 	}
 
 	if ( item->world_model[W_FP_MODEL] ) {
-		strcpy( comppath, item->world_model[W_FP_MODEL] );  // first try the fp view weap
+		comppath = item->world_model[W_FP_MODEL];  // first try the fp view weap
 	} else if ( item->world_model[W_TP_MODEL] )                                                                {
-		strcpy( comppath, item->world_model[W_TP_MODEL] );  // not there, use the standard view hand
+		comppath = item->world_model[W_TP_MODEL];  // not there, use the standard view hand
 
 	}
-	if ( ( !comppath || !cg_drawFPGun.integer ) &&     // then if it didn't find the 1st person one or you are set to not use one
+	if ( ( comppath.IsEmpty() || !cg_drawFPGun.integer ) &&     // then if it didn't find the 1st person one or you are set to not use one
 		 item->world_model[W_TP_MODEL] ) {
-		strcpy( comppath, item->world_model[W_TP_MODEL] );  // use the standard view hand
+		comppath = item->world_model[W_TP_MODEL];  // use the standard view hand
 
 	}
 	for ( i = W_TP_MODEL; i < W_NUM_TYPES; i++ )
@@ -1012,41 +1011,41 @@ void CG_RegisterWeapon( int weaponNum ) {
 		int j;
 
 		if ( !item->world_model[i] ) {
-			strcpy( path, comppath );
+			path = comppath;
 		} else {
-			strcpy( path, item->world_model[i] );
+			path = item->world_model[i];
 		}
 
-		COM_StripExtension( path, path );
-		strcat( path, "_flash.md3" );
-		weaponInfo->flashModel[i] = trap_R_RegisterModel( path );
+		path.StripFileExtension();
+		path += "_flash.md3";
+		weaponInfo->flashModel[i] = trap_R_RegisterModel( path.c_str() );
 
 
 		for ( j = 0; j < W_MAX_PARTS; j++ ) {
 			if ( !item->world_model[i] ) {
-				strcpy( path, comppath );
+				path = comppath;
 			} else {
-				strcpy( path, item->world_model[i] );
+				path = item->world_model[i];
 			}
-			COM_StripExtension( path, path );
+			path.StripFileExtension();
 			if ( j == W_PART_1 ) {
-				strcat( path, "_barrel.md3" );
+				path += "_barrel.md3";
 			} else {
-				strcat( path, va( "_barrel%d.md3", j + 1 ) );
+				path += idStr::FormatString( "_barrel%d.md3", j + 1 );
 			}
-			weaponInfo->wpPartModels[i][j] = trap_R_RegisterModel( path );
+			weaponInfo->wpPartModels[i][j] = trap_R_RegisterModel( path.c_str() );
 		}
 
 		// used for spinning belt on venom
 		if ( i == W_FP_MODEL ) {
 			if ( !item->world_model[2] ) {
-				strcpy( path, comppath );
+				path = comppath;
 			} else {
-				strcpy( path, item->world_model[2] );
+				path = item->world_model[2];
 			}
-			COM_StripExtension( path, path );
-			strcat( path, "_barrel6b.md3" );
-			weaponInfo->wpPartModels[i][W_PART_7] = trap_R_RegisterModel( path );
+			path.StripFileExtension();
+			path += "_barrel6b.md3";
+			weaponInfo->wpPartModels[i][W_PART_7] = trap_R_RegisterModel( path.c_str() );
 		}
 	}
 
@@ -1055,23 +1054,23 @@ void CG_RegisterWeapon( int weaponNum ) {
 	if ( weaponNum == WP_MAUSER || weaponNum == WP_GARAND ) {
 
 		if ( !item->world_model[W_FP_MODEL] ) {
-			strcpy( path, comppath );
+			path = comppath;
 		} else {
-			strcpy( path, item->world_model[W_FP_MODEL] );
+			path = item->world_model[W_FP_MODEL];
 		}
-		COM_StripExtension( path, path );
-		strcat( path, "_scope.md3" );
-		weaponInfo->modModel[0] = trap_R_RegisterModel( path );
+		path.StripFileExtension();
+		path += "_scope.md3";
+		weaponInfo->modModel[0] = trap_R_RegisterModel( path.c_str() );
 	}
 
 	if ( !item->world_model[W_FP_MODEL] ) {
-		strcpy( path, comppath );
+		path = comppath;
 	} else {
-		strcpy( path, item->world_model[W_FP_MODEL] );
+		path = item->world_model[W_FP_MODEL];
 	}
-	COM_StripExtension( path, path );
-	strcat( path, "_hand.md3" );
-	weaponInfo->handsModel = trap_R_RegisterModel( path );
+	path.StripFileExtension();
+	path += "_hand.md3";
+	weaponInfo->handsModel = trap_R_RegisterModel( path.c_str() );
 
 	if ( !weaponInfo->handsModel ) {
 		weaponInfo->handsModel = trap_R_RegisterModel( "models/weapons2/shotgun/shotgun_hand.md3" );
@@ -1080,13 +1079,13 @@ void CG_RegisterWeapon( int weaponNum ) {
 
 //----(SA)	weapon pickup 'stand'
 	if ( !item->world_model[W_TP_MODEL] ) {
-		strcpy( path, comppath );
+		path = comppath;
 	} else {
-		strcpy( path, item->world_model[W_TP_MODEL] );
+		path = item->world_model[W_TP_MODEL];
 	}
-	COM_StripExtension( path, path );
-	strcat( path, "_stand.md3" );
-	weaponInfo->standModel = trap_R_RegisterModel( path );
+	path.StripFileExtension();
+	path += "_stand.md3";
+	weaponInfo->standModel = trap_R_RegisterModel( path.c_str() );
 //----(SA)	end
 
 	switch ( weaponNum ) {
@@ -1343,7 +1342,7 @@ void CG_RegisterItemVisuals( int itemNum ) {
 	if ( item->giType == IT_HOLDABLE ) {
 		// (SA) register alternate icons (since holdables can have multiple uses, they might have different icons to represent how many uses are left)
 		for ( i = 1; i < MAX_ITEM_ICONS; i++ )
-			itemInfo->icons[i] = trap_R_RegisterShader( va( "%s%i", item->icon, i + 1 ) );
+			itemInfo->icons[i] = trap_R_RegisterShader( idStr::FormatString( "%s%i", item->icon, i + 1 ) );
 	}
 
 	if ( item->giType == IT_WEAPON ) {
@@ -1621,17 +1620,17 @@ static void CG_WeaponAnimation( playerState_t *ps, weaponInfo_t *weapon, int *we
 CG_CalculateWeaponPosition
 ==============
 */
-static void CG_CalculateWeaponPosition( vec3_t origin, vec3_t angles ) {
+static void CG_CalculateWeaponPosition( idVec3 origin, idVec3 angles ) {
 	float scale;
 	int delta;
 	float fracsin, leanscale;
 
-	VectorCopy( cg.refdef.vieworg, origin );
-	VectorCopy( cg.refdefViewAngles, angles );
+	origin = cg.refdef.vieworg;
+	angles = cg.refdefViewAngles;
 
 	// adjust 'lean' into weapon
 	if ( cg.predictedPlayerState.leanf != 0 ) {
-		vec3_t right, up;
+		idVec3 right, up;
 
 		leanscale = 1.0f;
 
@@ -1661,16 +1660,16 @@ static void CG_CalculateWeaponPosition( vec3_t origin, vec3_t angles ) {
 
 		// reverse the roll on the weapon so it stays relatively level
 		angles[ROLL] -= cg.predictedPlayerState.leanf / ( leanscale * 2.0f );
-		AngleVectors( angles, NULL, right, up );
-		VectorMA( origin, angles[ROLL], right, origin );
+		idAngles(angles).ToVectors(NULL, &(right), &(up));
+		origin = origin + right * (angles[ROLL]);
 
 		// pitch the gun down a bit to show that firing is not allowed when leaning
-		angles[PITCH] += ( fabs( cg.predictedPlayerState.leanf ) / 2.0f );
+		angles[PITCH] += ( idMath::Fabs( cg.predictedPlayerState.leanf ) / 2.0f );
 
 		// this gives you some impression that the weapon stays in relatively the same
 		// position while you lean, so you appear to 'peek' over the weapon
-		AngleVectors( cg.refdefViewAngles, NULL, right, NULL );
-		VectorMA( origin, -cg.predictedPlayerState.leanf / 4.0f, right, origin );
+		idAngles(cg.refdefViewAngles).ToVectors(NULL, &(right), NULL);
+		origin = origin + right * (-cg.predictedPlayerState.leanf / 4.0f);
 	}
 
 
@@ -1711,13 +1710,13 @@ static void CG_CalculateWeaponPosition( vec3_t origin, vec3_t angles ) {
 //	scale = cg.xyspeed + 40;
 	scale = 80;
 //----(SA)	end
-	fracsin = sin( cg.time * 0.001 );
+	fracsin = idMath::Sin( cg.time * 0.001 );
 	angles[ROLL] += scale * fracsin * 0.01;
 	angles[YAW] += scale * fracsin * 0.01;
 	angles[PITCH] += scale * fracsin * 0.01;
 
 	// RF, subtract the kickAngles
-	VectorMA( angles, -1.0, cg.kickAngles, angles );
+	angles = angles + cg.kickAngles * (-1.0);
 
 }
 
@@ -1728,7 +1727,7 @@ static void CG_CalculateWeaponPosition( vec3_t origin, vec3_t angles ) {
 CG_FlamethrowerFlame
 ===============
 */
-static void CG_FlamethrowerFlame( centity_t *cent, vec3_t origin ) {
+static void CG_FlamethrowerFlame( centity_t *cent, idVec3 origin ) {
 
 	if ( cent->currentState.weapon != WP_FLAMETHROWER ) {
 		return;
@@ -1780,7 +1779,7 @@ static float	CG_MachinegunSpinAngle( centity_t *cent ) {
 
 	if ( cent->pe.barrelSpinning == !(cent->currentState.eFlags & EF_FIRING) ) {
 		cent->pe.barrelTime = cg.time;
-		cent->pe.barrelAngle = AngleMod( angle );
+		cent->pe.barrelAngle = idMath::AngleNormalize360( angle );
 		cent->pe.barrelSpinning = !!(cent->currentState.eFlags & EF_FIRING);
 	}
 
@@ -1815,11 +1814,11 @@ static float CG_TeslaSpinAngle( centity_t *cent ) {
 		angle += delta * TESLA_IDLESPEED;
 	}
 
-	cent->pe.barrelAngle = AngleMod( angle );
+	cent->pe.barrelAngle = idMath::AngleNormalize360( angle );
 
 	cent->pe.barrelTime = cg.time;
 
-	return AngleMod( angle );
+	return idMath::AngleNormalize360( angle );
 
 //----(SA)	trying new tesla effect scheme for MK
 //	angle = -(cent->pe.barrelAngle + delta * TESLA_SPINSPEED);
@@ -1830,7 +1829,7 @@ static float CG_TeslaSpinAngle( centity_t *cent ) {
 //	else
 //		cent->pe.barrelAngle += delta * TESLA_IDLESPEED;
 
-	return AngleMod( cent->pe.barrelAngle );
+	return idMath::AngleNormalize360( cent->pe.barrelAngle );
 
 
 
@@ -1852,7 +1851,7 @@ static float CG_TeslaSpinAngle( centity_t *cent ) {
 
 	if ( cent->pe.barrelSpinning == !( cent->currentState.eFlags & EF_FIRING ) ) {
 		cent->pe.barrelTime = cg.time;
-		cent->pe.barrelAngle = AngleMod( angle );
+		cent->pe.barrelAngle = idMath::AngleNormalize360( angle );
 		cent->pe.barrelSpinning = !!( cent->currentState.eFlags & EF_FIRING );
 	}
 
@@ -1904,7 +1903,7 @@ static float CG_VenomSpinAngle( centity_t *cent ) {
 
 	if ( cent->pe.barrelSpinning == !firing ) {
 		cent->pe.barrelTime = cg.time;
-		cent->pe.barrelAngle = AngleMod( angle );
+		cent->pe.barrelAngle = idMath::AngleNormalize360( angle );
 		cent->pe.barrelSpinning = !!firing;
 
 		// just switching between not spinning and spinning, play the appropriate weapon sound
@@ -1990,20 +1989,20 @@ alpha = 1;
 				}
 				gun->shaderRGBA[3] = (unsigned char)(255.0*alpha);
 				// calc the fireRiseDir from the velocity
-				VectorNegate( cg.snap->ps.velocity, gun->fireRiseDir );
-				VectorNormalize( gun->fireRiseDir );
+				gun->fireRiseDir = -cg.snap->ps.velocity;
+				gun->fireRiseDir.Normalize();
 				gun->fireRiseDir[2] += 1;
-				if (VectorNormalize( gun->fireRiseDir ) < 1) {
-					VectorClear( gun->fireRiseDir );
+				if (gun->fireRiseDir.Normalize() < 1) {
+					gun->fireRiseDir.Zero();
 					gun->fireRiseDir[2] = 1;
 				}
 				// now move towards the newDir
 				adjust = 5.0*(0.001*cg.frametime);
-				VectorMA( cg.v_fireRiseDir, adjust, gun->fireRiseDir, cg.v_fireRiseDir );
-				if (VectorNormalize( cg.v_fireRiseDir ) <= 0.1) {
-					VectorCopy( gun->fireRiseDir, cg.v_fireRiseDir );
+				cg.v_fireRiseDir = cg.v_fireRiseDir + gun->fireRiseDir * adjust;
+				if (cg.v_fireRiseDir.Normalize() <= 0.1) {
+					cg.v_fireRiseDir = gun->fireRiseDir;
 				}
-				VectorCopy( cg.v_fireRiseDir, gun->fireRiseDir );
+				gun->fireRiseDir = cg.v_fireRiseDir;
 
 //				gun->reFlags |= REFLAG_ONLYHAND;
 gun->customShader = cgs.media.dripWetShader2;
@@ -2029,7 +2028,7 @@ CG_PlayerTeslaCoilFire
   by server to all clients, so they draw the correct effects.
 ==============
 */
-void CG_PlayerTeslaCoilFire( centity_t *cent, vec3_t flashorigin ) {
+void CG_PlayerTeslaCoilFire( centity_t *cent, idVec3 flashorigin ) {
 
 #define TESLA_LIGHTNING_POINT_TIMEOUT   3000
 #define TESLA_LIGHTNING_MAX_DIST        ( cent->currentState.aiChar == AICHAR_SUPERSOLDIER ? TESLA_SUPERSOLDIER_RANGE : TESLA_RANGE )     // use these to perhaps vary the distance according to aiming
@@ -2038,18 +2037,18 @@ void CG_PlayerTeslaCoilFire( centity_t *cent, vec3_t flashorigin ) {
 #define TESLA_MAX_POINT_TESTS_PERFRAME  20
 
 	int i, j, pointTests = 0;
-	vec3_t testPos, tagPos, vec;
+	idVec3 testPos, tagPos, vec;
 	trace_t tr;
 	float maxDist;
 	int numPoints;
-	vec3_t viewAngles, viewDir;
+	idVec3 viewAngles, viewDir;
 	int visEnemies[16];
 	float visDists[16];
 	int visEnemiesSorted[MAX_TESLA_BOLTS];
 	int numEnemies, numSorted = 0, best; // TTimo: init
 	float bestDist;
 	centity_t *ctrav;
-	vec3_t traceOrg;
+	idVec3 traceOrg;
 	int playerTeam;
 
 	if ( cent->currentState.weapon != WP_TESLA ) {
@@ -2064,49 +2063,49 @@ void CG_PlayerTeslaCoilFire( centity_t *cent, vec3_t flashorigin ) {
 	//if (cent->currentState.number == cg.snap->ps.clientNum)
 	//	VectorCopy( cg.snap->ps.viewangles, viewAngles );
 	//else
-	VectorCopy( cent->lerpAngles, viewAngles );
+	viewAngles = cent->lerpAngles;
 
-	AngleVectors( viewAngles, viewDir, NULL, NULL );
+	idAngles(viewAngles).ToVectors(&(viewDir), NULL, NULL);
 
 	if ( cent->currentState.number == cg.snap->ps.clientNum ) {
-		VectorCopy( cg.snap->ps.origin, traceOrg );
+		traceOrg = cg.snap->ps.origin;
 		playerTeam = cg.snap->ps.teamNum;
 	} else {
-		VectorCopy( cent->lerpOrigin, traceOrg );
+		traceOrg = cent->lerpOrigin;
 		playerTeam = cent->currentState.teamNum;
 	}
 
 	maxDist = TESLA_LIGHTNING_MAX_DIST;
 	numPoints = MAX_TESLA_BOLTS;
 
-	VectorCopy( flashorigin, tagPos );
+	tagPos = flashorigin;
 
 	// first, build a list of visible enemies that can be hurt by this tesla, then filter by distance
 	if ( !cent->pe.teslaDamageApplyTime || cent->pe.teslaDamageApplyTime < cg.time - CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning" ) ) {
 		numEnemies = 0;
 		// check the local playing client
-		VectorSubtract( cg.snap->ps.origin, traceOrg, vec );
-		VectorNormalize( vec );
+		vec = cg.snap->ps.origin - traceOrg;
+		(vec).Normalize();
 		if ( ( cent != &cg_entities[cg.snap->ps.clientNum] ) &&
 			 ( cg.snap->ps.teamNum != playerTeam ) &&
-			 ( Distance( tagPos, cg.snap->ps.origin ) < TESLA_LIGHTNING_MAX_DIST ) &&
-			 ( DotProduct( viewDir, vec ) > 0.8 ) ) {
+			 ( ( tagPos - cg.snap->ps.origin ).Length() < TESLA_LIGHTNING_MAX_DIST ) &&
+			 ( ((viewDir) * (vec)) > 0.8 ) ) {
 			CG_Trace( &tr, traceOrg, NULL, NULL, cg.snap->ps.origin, cg.snap->ps.clientNum, MASK_SHOT & ~( CONTENTS_BODY ) );
 			if ( tr.fraction == 1 || tr.entityNum == cg.snap->ps.clientNum ) {
-				visDists[numEnemies] = Distance( tagPos, cg.snap->ps.origin );
+				visDists[numEnemies] = ( tagPos - cg.snap->ps.origin ).Length();
 				visEnemies[numEnemies++] = cg.snap->ps.clientNum;
 			} else {    // try head
-				VectorCopy( cg.snap->ps.origin, vec );
+				vec = cg.snap->ps.origin;
 				vec[2] += cg.snap->ps.viewheight;
 				CG_Trace( &tr, tagPos, NULL, NULL, vec, cg.snap->ps.clientNum, MASK_SHOT & ~( CONTENTS_BODY ) );
 				if ( tr.fraction == 1 || tr.entityNum == cg.snap->ps.clientNum ) {
-					visDists[numEnemies] = Distance( tagPos, cg.snap->ps.origin );
+					visDists[numEnemies] = ( tagPos - cg.snap->ps.origin ).Length();
 					visEnemies[numEnemies++] = cg.snap->ps.clientNum;
 				} else {    // try body, from tag
-					VectorCopy( cg.snap->ps.origin, vec );
+					vec = cg.snap->ps.origin;
 					CG_Trace( &tr, tagPos, NULL, NULL, vec, cg.snap->ps.clientNum, MASK_SHOT & ~( CONTENTS_BODY ) );
 					if ( tr.fraction == 1 || tr.entityNum == cg.snap->ps.clientNum ) {
-						visDists[numEnemies] = Distance( tagPos, cg.snap->ps.origin );
+						visDists[numEnemies] = ( tagPos - cg.snap->ps.origin ).Length();
 						visEnemies[numEnemies++] = cg.snap->ps.clientNum;
 					}
 				}
@@ -2128,14 +2127,14 @@ void CG_PlayerTeslaCoilFire( centity_t *cent, vec3_t flashorigin ) {
 					 ( ctrav->currentState.teamNum != playerTeam ) &&
 					 !( ctrav->currentState.eFlags & EF_DEAD ) &&
 					 ctrav->currentValid && // is in the visible frame
-					 ( Distance( tagPos, ctrav->lerpOrigin ) < TESLA_LIGHTNING_MAX_DIST ) ) {
-					VectorSubtract( ctrav->lerpOrigin, traceOrg, vec );
-					VectorNormalize( vec );
+					 ( ( tagPos - ctrav->lerpOrigin ).Length() < TESLA_LIGHTNING_MAX_DIST ) ) {
+					vec = ctrav->lerpOrigin - traceOrg;
+					(vec).Normalize();
 
-					if ( DotProduct( viewDir, vec ) > 0.8 ) {
+					if ( ((viewDir) * (vec)) > 0.8 ) {
 						CG_Trace( &tr, traceOrg, NULL, NULL, ctrav->lerpOrigin, ctrav->currentState.number, MASK_SHOT & ~CONTENTS_BODY );
 						if ( tr.fraction == 1 || tr.entityNum == ctrav->currentState.number ) {
-							visDists[numEnemies] = Distance( tagPos, ctrav->lerpOrigin );
+							visDists[numEnemies] = ( tagPos - ctrav->lerpOrigin ).Length();
 							visEnemies[numEnemies++] = ctrav->currentState.number;
 						}
 					}
@@ -2187,49 +2186,45 @@ void CG_PlayerTeslaCoilFire( centity_t *cent, vec3_t flashorigin ) {
 
 	for ( i = 0; i < numPoints; i++ ) {
 
-		//if (!(rand()%3))
+		//if (!(cgRandom.RandomInt()%3))
 		//	continue;
 
-		VectorSubtract( cent->pe.teslaEndPoints[i], tagPos, vec );
-		VectorNormalize( vec );
+		vec = cent->pe.teslaEndPoints[i] - tagPos;
+		(vec).Normalize();
 
 		// if this point has timed out, find a new spot
 		if ( cent->pe.teslaEnemy[i] >= 0 ) {
 			// attacking the player
-			VectorSet( testPos, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_2" ) * crandom(),
-					   CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_3" ) * crandom(),
-					   CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_4" ) * crandom() - CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_5" ) );
+			testPos.Set(CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_2" ) * cgRandom.CRandomFloat(), CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_3" ) * cgRandom.CRandomFloat(), CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_4" ) * cgRandom.CRandomFloat() - CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_5" ));
 			//VectorClear( testPos );
 			if ( cent->pe.teslaEnemy[i] != cg.snap->ps.clientNum ) {
-				VectorAdd( testPos, cg_entities[cent->pe.teslaEnemy[i]].lerpOrigin, testPos );
+				testPos = testPos + cg_entities[cent->pe.teslaEnemy[i]].lerpOrigin;
 			} else {
-				VectorAdd( testPos, cg.snap->ps.origin, testPos );
+				testPos = testPos + cg.snap->ps.origin;
 			}
-			cent->pe.teslaEndPointTimes[i] = cg.time; // - rand()%(TESLA_LIGHTNING_POINT_TIMEOUT/2);
-			VectorCopy( testPos, cent->pe.teslaEndPoints[i] );
+			cent->pe.teslaEndPointTimes[i] = cg.time; // - cgRandom.RandomInt()%(TESLA_LIGHTNING_POINT_TIMEOUT/2);
+			cent->pe.teslaEndPoints[i] = testPos;
 		} else if ( ( !cent->pe.teslaEndPointTimes[i] ) ||
 					( cent->pe.teslaEndPointTimes[i] > cg.time ) ||
 					( cent->pe.teslaEndPointTimes[i] < cg.time - TESLA_LIGHTNING_POINT_TIMEOUT ) ||
-					( VectorDistance( tagPos, cent->pe.teslaEndPoints[i] ) > maxDist ) ||
-					( DotProduct( viewDir, vec ) < 0.7 ) ) {
+					( ((tagPos) - (cent->pe.teslaEndPoints[i])).Length() > maxDist ) ||
+					( ((viewDir) * (vec)) < 0.7 ) ) {
 
 			//if (cent->currentState.groundEntityNum == ENTITYNUM_NONE)
 			//	continue;	// must be on the ground
 
 			// find a new spot
 			for ( j = 0; j < TESLA_MAX_POINT_TESTS; j++ ) {
-				VectorSet( testPos, cg.refdef.fov_y * crandom() * 0.5,
-						   cg.refdef.fov_x * crandom() * 0.5,
-						   0 );
-				VectorAdd( viewAngles, testPos, testPos );
-				AngleVectors( testPos, vec, NULL, NULL );
-				VectorMA( tagPos, TESLA_LIGHTNING_NORMAL_DIST, vec, testPos );
+				testPos.Set(cg.refdef.fov_y * cgRandom.CRandomFloat() * 0.5, cg.refdef.fov_x * cgRandom.CRandomFloat() * 0.5, 0);
+				testPos = viewAngles + testPos;
+				idAngles(testPos).ToVectors(&(vec), NULL, NULL);
+				testPos = tagPos + vec * (TESLA_LIGHTNING_NORMAL_DIST);
 				// try a trace to find a world collision
 				CG_Trace( &tr, tagPos, NULL, NULL, testPos, cent->currentState.number, MASK_SHOT & ~CONTENTS_BODY );
 				if ( tr.fraction < 1 && tr.entityNum == ENTITYNUM_WORLD && !( tr.surfaceFlags & ( SURF_NOIMPACT | SURF_SKY ) ) ) {
 					// found a valid spot!
-					cent->pe.teslaEndPointTimes[i] = cg.time - rand() % ( TESLA_LIGHTNING_POINT_TIMEOUT / 2 );
-					VectorCopy( tr.endpos, cent->pe.teslaEndPoints[i] );
+					cent->pe.teslaEndPointTimes[i] = cg.time - cgRandom.RandomInt() % ( TESLA_LIGHTNING_POINT_TIMEOUT / 2 );
+					cent->pe.teslaEndPoints[i] = tr.endpos;
 					break;
 				}
 				if ( pointTests++ > TESLA_MAX_POINT_TESTS_PERFRAME ) {
@@ -2242,23 +2237,23 @@ void CG_PlayerTeslaCoilFire( centity_t *cent, vec3_t flashorigin ) {
 			}
 
 			// add an impact mark on the wall
-			VectorSubtract( cent->pe.teslaEndPoints[i], tagPos, vec );
-			VectorNormalize( vec );
-			VectorInverse( vec );
-			CG_ImpactMark( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningHitWallShader" ), cent->pe.teslaEndPoints[i], vec, random() * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_6" ), CG_FxValue( "wolf/controller_playerteslacoilfire", "ImpactMark_value" ), CG_FxValue( "wolf/controller_playerteslacoilfire", "ImpactMark_value_2" ), CG_FxValue( "wolf/controller_playerteslacoilfire", "ImpactMark_value_3" ), CG_FxValue( "wolf/controller_playerteslacoilfire", "ImpactMark_value_4" ), qtrue, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_7" ), qfalse, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_8" ) );
+			vec = cent->pe.teslaEndPoints[i] - tagPos;
+			(vec).Normalize();
+			vec = 1.0f / (vec);
+			CG_ImpactMark( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningHitWallShader" ), cent->pe.teslaEndPoints[i], vec, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_6" ), CG_FxValue( "wolf/controller_playerteslacoilfire", "ImpactMark_value" ), CG_FxValue( "wolf/controller_playerteslacoilfire", "ImpactMark_value_2" ), CG_FxValue( "wolf/controller_playerteslacoilfire", "ImpactMark_value_3" ), CG_FxValue( "wolf/controller_playerteslacoilfire", "ImpactMark_value_4" ), qtrue, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_7" ), qfalse, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_8" ) );
 		}
 		//
 		// we have a valid lightning point, so draw it
 		// sanity check though to make sure it's valid
-		if ( VectorDistance( tagPos, cent->pe.teslaEndPoints[i] ) <= maxDist ) {
-			CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value" ) + ( ( cg.time % ( ( i + CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_2" ) ) * ( i + CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_3" ) ) ) ) + i ) % CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_4" ), CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_5" ) ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * random(), ( cent->pe.teslaEnemy[i] < CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_6" ) ), CG_FxValue( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_7" ), CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_8" ), i * i * CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_9" ) );
+		if ( ((tagPos) - (cent->pe.teslaEndPoints[i])).Length() <= maxDist ) {
+			CG_DynamicLightningBolt( CG_FxMaterial( "wolf/controller_playerteslacoilfire", "lightningBoltShader" ), tagPos, cent->pe.teslaEndPoints[i], CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value" ) + ( ( cg.time % ( ( i + CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_2" ) ) * ( i + CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_3" ) ) ) ) + i ) % CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_4" ), CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_9" ) + (float)( i % CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_5" ) ) * CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_10" ) + CG_FxValue( "wolf/controller_playerteslacoilfire", "tuning_11" ) * cgRandom.RandomFloat(), ( cent->pe.teslaEnemy[i] < CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_6" ) ), CG_FxValue( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_7" ), CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_8" ), i * i * CG_FxInt( "wolf/controller_playerteslacoilfire", "DynamicLightningBolt_value_9" ) );
 
 			// play a zap sound
 			if ( cent->pe.lightningSoundTime < cg.time - CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_12" ) ) {
-				CG_SoundPlayIndexedScript( cgs.media.teslaZapScript, cent->pe.teslaEndPoints[i], ENTITYNUM_WORLD );
-				CG_SoundPlayIndexedScript( cgs.media.teslaZapScript, cent->lerpOrigin, ENTITYNUM_WORLD );
-				//trap_S_StartSound( cent->pe.teslaEndPoints[i], ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.lightningSounds[rand()%3] );
-				cent->pe.lightningSoundTime = cg.time + rand() % CG_FxInt( "wolf/controller_playerteslacoilfire", "cent_pe_lightningSoundTime" );
+				CG_SoundPlayIndexedScript( cgs.media.teslaZapScript, &cent->pe.teslaEndPoints[i], ENTITYNUM_WORLD );
+				CG_SoundPlayIndexedScript( cgs.media.teslaZapScript, &cent->lerpOrigin, ENTITYNUM_WORLD );
+				//trap_S_StartSound( cent->pe.teslaEndPoints[i], ENTITYNUM_WORLD, CHAN_AUTO, cgs.media.lightningSounds[cgRandom.RandomInt()%3] );
+				cent->pe.lightningSoundTime = cg.time + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_playerteslacoilfire", "cent_pe_lightningSoundTime" );
 			}
 		}
 	}
@@ -2269,8 +2264,8 @@ void CG_PlayerTeslaCoilFire( centity_t *cent, vec3_t flashorigin ) {
 	}
 
 	// drop a dynamic light out infront of us
-	AngleVectors( viewAngles, vec, NULL, NULL );
-	VectorMA( tagPos, CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_13" ), vec, testPos );
+	idAngles(viewAngles).ToVectors(&(vec), NULL, NULL);
+	testPos = tagPos + vec * (CG_FxInt( "wolf/controller_playerteslacoilfire", "tuning_13" ));
 	// try a trace to find a world collision
 	CG_Trace( &tr, tagPos, NULL, NULL, testPos, cent->currentState.number, MASK_SOLID );
 
@@ -2306,7 +2301,7 @@ void CG_AddProtoWeapons( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		return;
 	}
 	memset( &gun, 0, sizeof( gun ) );
-	VectorCopy( parent->lightingOrigin, gun.lightingOrigin );
+	gun.lightingOrigin = parent->lightingOrigin;
 //	gun.hModel		= cgs.media.protoWeapon;
 	gun.shadowPlane = parent->shadowPlane;
 	gun.renderfx    = parent->renderfx;
@@ -2347,7 +2342,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	refEntity_t gun;
 	refEntity_t barrel;
 	refEntity_t flash;
-	vec3_t angles;
+	idVec3 angles;
 	weapon_t weaponNum, weapSelect;
 	weaponInfo_t    *weapon;
 	centity_t   *nonPredictedCent;
@@ -2429,7 +2424,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 	// add the weapon
 	memset( &gun, 0, sizeof( gun ) );
-	VectorCopy( parent->lightingOrigin, gun.lightingOrigin );
+	gun.lightingOrigin = parent->lightingOrigin;
 	gun.shadowPlane = parent->shadowPlane;
 	gun.renderfx = parent->renderfx;
 
@@ -2497,7 +2492,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	if ( !ps && playerScaled ) {   // don't "un-scale" weap up in 1st person
 		for ( i = 0; i < 3; i++ ) {  // scale weapon back up so it doesn't pick up the adjusted scale of the character models.
 									 // this will affect any parts attached to the gun as well (barrel/bolt/flash/brass/etc.)
-			VectorScale( gun.axis[i], 1.0 / ( cgs.clientinfo[ cent->currentState.clientNum ].playermodelScale[i] ), gun.axis[i] );
+			gun.axis[i] = gun.axis[i] * (1.0 / ( cgs.clientinfo[ cent->currentState.clientNum ].playermodelScale[i] ));
 		}
 
 	}
@@ -2530,11 +2525,11 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			CG_PositionRotatedEntityOnTag( &brass, &gun, "tag_brass" );
 		}
 
-		VectorCopy( brass.origin, ejectBrassCasingOrigin );
+		ejectBrassCasingOrigin = brass.origin;
 	}
 
 	memset( &barrel, 0, sizeof( barrel ) );
-	VectorCopy( parent->lightingOrigin, barrel.lightingOrigin );
+	barrel.lightingOrigin = parent->lightingOrigin;
 	barrel.shadowPlane = parent->shadowPlane;
 	barrel.renderfx = parent->renderfx;
 
@@ -2582,7 +2577,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			}
 
 			if ( spunpart ) {
-				AnglesToAxis( angles, barrel.axis );
+				idAngles( angles[0], angles[1], angles[2] ).ToVectors( &barrel.axis[0], &barrel.axis[1], &barrel.axis[2] );
 			}
 			// end spinning
 
@@ -2594,8 +2589,8 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					} else { CG_PositionEntityOnTag( &barrel, parent, "tag_barrel", 0, NULL );}
 				} else {
 					if ( spunpart ) {
-						CG_PositionRotatedEntityOnTag( &barrel, parent, va( "tag_barrel%d", i + 1 ) );
-					} else { CG_PositionEntityOnTag( &barrel, parent, va( "tag_barrel%d", i + 1 ), 0, NULL );}
+						CG_PositionRotatedEntityOnTag( &barrel, parent, idStr::FormatString( "tag_barrel%d", i + 1 ) );
+					} else { CG_PositionEntityOnTag( &barrel, parent, idStr::FormatString( "tag_barrel%d", i + 1 ), 0, NULL );}
 				}
 
 				drawpart = CG_GetPartFramesFromWeap( cent, &barrel, parent, i, weapon );
@@ -2610,7 +2605,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			if ( weaponNum == WP_VENOM ) {
 
 				angles[ROLL] = CG_VenomSpinAngle( cent );
-				AnglesToAxis( angles, barrel.axis );
+				idAngles( angles[0], angles[1], angles[2] ).ToVectors( &barrel.axis[0], &barrel.axis[1], &barrel.axis[2] );
 
 				barrel.hModel = weapon->wpPartModels[W_TP_MODEL][W_PART_1];
 				CG_PositionRotatedEntityOnTag( &barrel, &gun, "tag_barrel" );
@@ -2622,7 +2617,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	// add the scope model to the rifle if you've got it
 	if ( isPlayer && !cg.renderingThirdPerson ) {      // (SA) for now just do it on the first person weapons
 		if ( weaponNum == WP_MAUSER ) {
-			if ( COM_BitCheck( cg.predictedPlayerState.weapons, WP_SNIPERRIFLE ) ) {
+			if ( idBitField::Test( cg.predictedPlayerState.weapons, WP_SNIPERRIFLE ) ) {
 				barrel.hModel = weapon->modModel[0];
 				if ( barrel.hModel ) {
 					CG_PositionEntityOnTag( &barrel, &gun, "tag_scope", 0, NULL );
@@ -2646,7 +2641,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 	// add the flash
 	memset( &flash, 0, sizeof( flash ) );
-	VectorCopy( parent->lightingOrigin, flash.lightingOrigin );
+	flash.lightingOrigin = parent->lightingOrigin;
 	flash.shadowPlane = parent->shadowPlane;
 	flash.renderfx = parent->renderfx;
 
@@ -2658,8 +2653,8 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 	angles[YAW]     = 0;
 	angles[PITCH]   = 0;
-	angles[ROLL]    = crandom() * 10;
-	AnglesToAxis( angles, flash.axis );
+	angles[ROLL]    = cgRandom.CRandomFloat() * 10;
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 
 	CG_PositionRotatedEntityOnTag( &flash, &gun, "tag_flash" );
 
@@ -2680,14 +2675,14 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 				if ( !cg_paused.integer ) {    // don't add while paused
 					// hot smoking gun
 					if ( cg.time - cent->overheatTime < 3000 ) {
-						if ( !( rand() % 3 ) ) {
+						if ( !( cgRandom.RandomInt() % 3 ) ) {
 							float alpha;
 							alpha = 1.0f - ( (float)( cg.time - cent->overheatTime ) / 3000.0f );
 							alpha *= 0.25f;     // .25 max alpha
 							if ( weaponNum == WP_VENOM ) { // silly thing that makes the smoke off the venom swirlier since it's spinning real fast
-								CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_2" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_3" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_4" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_5" ), alpha );
+								CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_2" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_3" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_4" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_5" ), alpha );
 							} else {
-								CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_6" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_7" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_8" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_9" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_10" ), alpha );
+								CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_6" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_7" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_8" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_9" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_10" ), alpha );
 							}
 						}
 					}
@@ -2696,11 +2691,11 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			} else if ( weaponNum == WP_PANZERFAUST ) {
 				if ( !cg_paused.integer ) {    // don't add while paused
 					if ( cg.time - cent->muzzleFlashTime < BARREL_SMOKE_TIME ) {
-						if ( !( rand() % 5 ) ) {
+						if ( !( cgRandom.RandomInt() % 5 ) ) {
 							float alpha;
 							alpha = 1.0f - ( (float)( cg.time - cent->muzzleFlashTime ) / (float)BARREL_SMOKE_TIME ); // what fraction of BARREL_SMOKE_TIME are we at
 							alpha *= 0.25f;     // .25 max alpha
-							CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_11" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_12" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_13" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_14" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_15" ), alpha );
+							CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_11" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_12" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_13" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_14" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_15" ), alpha );
 						}
 					}
 				}
@@ -2735,7 +2730,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			if ( weaponNum == WP_STEN || weaponNum == WP_VENOM ) {
 				if ( cg.time - cent->muzzleFlashTime < 100 ) {
 //					CG_ParticleImpactSmokePuff (cgs.media.smokeParticleShader, flash.origin);
-					CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_16" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_17" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_18" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_19" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_20" ), CG_FxValue( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_21" ) );
+					CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, flash.origin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_16" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_17" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_18" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_19" ), CG_FxInt( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_20" ), CG_FxValue( "wolf/controller_addplayerweapon", "ParticleImpactSmokePuffExtended_value_21" ) );
 				}
 			}
 		}
@@ -2776,13 +2771,14 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 			// make a dlight for the flash
 			if ( weapon->flashDlightColor[0] || weapon->flashDlightColor[1] || weapon->flashDlightColor[2] ) {
-				trap_R_AddLightToScene( flash.origin, 200 + ( rand() & 31 ), weapon->flashDlightColor[0],
+				trap_R_AddLightToScene( flash.origin, 200 + ( cgRandom.RandomInt() & 31 ), weapon->flashDlightColor[0],
 										weapon->flashDlightColor[1], weapon->flashDlightColor[2], 0 );
 			}
 		} else {
 			if ( weaponNum == WP_FLAMETHROWER ) {
-				vec3_t flameAngles;
-				AxisToAngles( flash.axis, flameAngles );
+				idVec3 flameAngles;
+				const idAngles axisAngles = idMat3( flash.axis[0], flash.axis[1], flash.axis[2] ).ToAngles();
+				flameAngles.Set( axisAngles.pitch, axisAngles.yaw, axisAngles.roll );
 				CG_FireFlameChunks( cent, flash.origin, flameAngles, 1.0, qfalse, 0 );
 			}
 		}
@@ -2791,7 +2787,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 
 void CG_AddPlayerFoot( refEntity_t *parent, playerState_t *ps, centity_t *cent ) {
 	refEntity_t wolfkick;
-	vec3_t kickangle;
+	idVec3 kickangle;
 	weaponInfo_t    *weapon;
 	weapon_t weaponNum;
 	int frame;
@@ -2807,32 +2803,32 @@ void CG_AddPlayerFoot( refEntity_t *parent, playerState_t *ps, centity_t *cent )
 
 	memset( &wolfkick, 0, sizeof( wolfkick ) );
 
-	VectorCopy( parent->lightingOrigin, wolfkick.lightingOrigin );
+	wolfkick.lightingOrigin = parent->lightingOrigin;
 	wolfkick.shadowPlane = parent->shadowPlane;
 
 	// note to self we want this to lerp and advance frame
 	wolfkick.renderfx = RF_DEPTHHACK | RF_FIRST_PERSON;;
 	wolfkick.hModel = wolfkickModel;
 
-	VectorCopy( cg.refdef.vieworg, wolfkick.origin );
+	wolfkick.origin = cg.refdef.vieworg;
 	//----(SA)	allow offsets for testing boot model
 	if ( cg_gun_x.value ) {
-		VectorMA( wolfkick.origin, cg_gun_x.value,  cg.refdef.viewaxis[0], wolfkick.origin );
+		wolfkick.origin = wolfkick.origin + cg.refdef.viewaxis[0] * (cg_gun_x.value);
 	}
 	if ( cg_gun_y.value ) {
-		VectorMA( wolfkick.origin, cg_gun_y.value,  cg.refdef.viewaxis[1], wolfkick.origin );
+		wolfkick.origin = wolfkick.origin + cg.refdef.viewaxis[1] * (cg_gun_y.value);
 	}
 	if ( cg_gun_z.value ) {
-		VectorMA( wolfkick.origin, cg_gun_z.value,  cg.refdef.viewaxis[2], wolfkick.origin );
+		wolfkick.origin = wolfkick.origin + cg.refdef.viewaxis[2] * (cg_gun_z.value);
 	}
 	//----(SA)	end
 
 
-	VectorCopy( cg.refdefViewAngles, kickangle );
+	kickangle = cg.refdefViewAngles;
 	if ( kickangle[0] < 0 ) {
 		kickangle[0] = 0;                       //----(SA)	avoid "Rockette" syndrome :)
 	}
-	AnglesToAxis( kickangle, wolfkick.axis );
+	idAngles( kickangle[0], kickangle[1], kickangle[2] ).ToVectors( &wolfkick.axis[0], &wolfkick.axis[1], &wolfkick.axis[2] );
 
 
 	frame = cg.snap->ps.persistant[PERS_WOLFKICK];
@@ -2856,8 +2852,8 @@ Add the weapon, and flash for the player's view
 void CG_AddViewWeapon( playerState_t *ps ) {
 	refEntity_t hand;
 	float fovOffset;
-	vec3_t angles;
-	vec3_t gunoff;
+	idVec3 angles;
+	idVec3 gunoff;
 	weaponInfo_t    *weapon;
 
 	if ( ps->persistant[PERS_TEAM] == TEAM_SPECTATOR ) {
@@ -2876,12 +2872,12 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 	// allow the gun to be completely removed
 	if ( !cg_drawGun.integer ) {
 /*
-		vec3_t		origin;
+		idVec3		origin;
 
 		if ( cg.predictedPlayerState.eFlags & EF_FIRING ) {
 			// special hack for lightning gun...
-			VectorCopy( cg.refdef.vieworg, origin );
-			VectorMA( origin, -8, cg.refdef.viewaxis[2], origin );
+			origin = cg.refdef.vieworg;
+			origin = origin + cg.refdef.viewaxis[2] * -8;
 			CG_LightningBolt( &cg_entities[ps->clientNum], origin );
 		}
 */
@@ -2943,11 +2939,11 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 
 //----(SA)	removed
 
-		VectorMA( hand.origin, gunoff[0], cg.refdef.viewaxis[0], hand.origin );
-		VectorMA( hand.origin, gunoff[1], cg.refdef.viewaxis[1], hand.origin );
-		VectorMA( hand.origin, ( gunoff[2] + fovOffset ), cg.refdef.viewaxis[2], hand.origin );
+		hand.origin = hand.origin + cg.refdef.viewaxis[0] * (gunoff[0]);
+		hand.origin = hand.origin + cg.refdef.viewaxis[1] * (gunoff[1]);
+		hand.origin = hand.origin + cg.refdef.viewaxis[2] * (( gunoff[2] + fovOffset ));
 
-		AnglesToAxis( angles, hand.axis );
+		idAngles( angles[0], angles[1], angles[2] ).ToVectors( &hand.axis[0], &hand.axis[1], &hand.axis[2] );
 
 		if ( cg_gun_frame.integer ) {
 			hand.frame = hand.oldframe = cg_gun_frame.integer;
@@ -3005,7 +3001,7 @@ void CG_DrawWeaponSelect( void ) {
 	int curweap, curweapbank = 0, curweapcycle = 0, drawweap;
 	int realweap;               // DHM - Nerve
 	int bits[MAX_WEAPONS / ( sizeof( int ) * 8 )];
-	float       *color;
+	idVec4      *color;
 
 	// don't display if dead
 	if ( cg.predictedPlayerState.stats[STAT_HEALTH] <= 0 ) {
@@ -3020,7 +3016,7 @@ void CG_DrawWeaponSelect( void ) {
 	if ( !color ) {
 		return;
 	}
-	trap_R_SetColor( color );
+	trap_R_SetColor( color->ToFloatPtr() );
 
 
 //----(SA)	neither of these overlap the weapon selection area anymore, so let them stay
@@ -3270,7 +3266,7 @@ static qboolean CG_WeaponSelectable( int i ) {
 
 
 	// check for weapon
-	if ( !( COM_BitCheck( cg.predictedPlayerState.weapons, i ) ) ) {
+	if ( !( idBitField::Test( cg.predictedPlayerState.weapons, i ) ) ) {
 		return qfalse;
 	}
 
@@ -4428,65 +4424,65 @@ WEAPON EVENTS
 
 // Note to self this is dead code
 void CG_MG42EFX( centity_t *cent ) {
-	vec3_t forward;
-	vec3_t point;
+	idVec3 forward;
+	idVec3 point;
 	refEntity_t flash;
 
 //	trap_S_StartSound( NULL, cent->currentState.number, CHAN_WEAPON, hWeaponSnd );
 
-	VectorCopy( cent->currentState.origin, point );
-	AngleVectors( cent->currentState.angles, forward, NULL, NULL );
-	VectorMA( point, 40, forward, point );
-	trap_R_AddLightToScene( point, 200 + ( rand() & 31 ),1.0, 0.6, 0.23, 0 );
+	point = cent->currentState.origin;
+	idAngles(cent->currentState.angles).ToVectors(&(forward), NULL, NULL);
+	point = point + forward * (40);
+	trap_R_AddLightToScene( point, 200 + ( cgRandom.RandomInt() & 31 ),1.0, 0.6, 0.23, 0 );
 
 	memset( &flash, 0, sizeof( flash ) );
 	flash.renderfx = RF_LIGHTING_ORIGIN;
 	flash.hModel = cgs.media.mg42muzzleflash;
 
-	VectorCopy( point, flash.origin );
-	AnglesToAxis( cg.refdefViewAngles, flash.axis );
+	flash.origin = point;
+	idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 
 	trap_R_AddRefEntityToScene( &flash );
 }
 
 void CG_FLAKEFX( centity_t *cent, int whichgun ) {
 	entityState_t *ent;
-	vec3_t forward, right, up;
-	vec3_t point;
+	idVec3 forward, right, up;
+	idVec3 point;
 	refEntity_t flash;
 
 	ent = &cent->currentState;
 
-	VectorCopy( cent->currentState.pos.trBase, point );
-	AngleVectors( cent->currentState.apos.trBase, forward, right, up );
+	point = cent->currentState.pos.trBase;
+	idAngles(cent->currentState.apos.trBase).ToVectors(&(forward), &(right), &(up));
 
 	// gun 1 and 2 were switched
 	if ( whichgun == 2 ) {
-		VectorMA( point, 136, forward, point );
-		VectorMA( point, 31, up, point );
-		VectorMA( point, 22, right, point );
+		point = point + forward * (136);
+		point = point + up * (31);
+		point = point + right * (22);
 	} else if ( whichgun == 1 )     {
-		VectorMA( point, 136, forward, point );
-		VectorMA( point, 31, up, point );
-		VectorMA( point, -22, right, point );
+		point = point + forward * (136);
+		point = point + up * (31);
+		point = point + right * (-22);
 	} else if ( whichgun == 3 )     {
-		VectorMA( point, 136, forward, point );
-		VectorMA( point, 10, up, point );
-		VectorMA( point, 22, right, point );
+		point = point + forward * (136);
+		point = point + up * (10);
+		point = point + right * (22);
 	} else if ( whichgun == 4 )     {
-		VectorMA( point, 136, forward, point );
-		VectorMA( point, 10, up, point );
-		VectorMA( point, -22, right, point );
+		point = point + forward * (136);
+		point = point + up * (10);
+		point = point + right * (-22);
 	}
 
-	trap_R_AddLightToScene( point, 200 + ( rand() & 31 ),1.0, 0.6, 0.23, 0 );
+	trap_R_AddLightToScene( point, 200 + ( cgRandom.RandomInt() & 31 ),1.0, 0.6, 0.23, 0 );
 
 	memset( &flash, 0, sizeof( flash ) );
 	flash.renderfx = RF_LIGHTING_ORIGIN;
 	flash.hModel = cgs.media.mg42muzzleflash;
 
-	VectorCopy( point, flash.origin );
-	AnglesToAxis( cg.refdefViewAngles, flash.axis );
+	flash.origin = point;
+	idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 
 	trap_R_AddRefEntityToScene( &flash );
 
@@ -4511,14 +4507,14 @@ void CG_MortarEFX( centity_t *cent ) {
 
 	if ( cent->currentState.density & 2 ) {
 		// light
-		trap_R_AddLightToScene( cent->currentState.origin, CG_FxInt( "wolf/controller_mortarefx", "tuning" ) + ( rand() & CG_FxInt( "wolf/controller_mortarefx", "tuning_2" ) ), 1.0, 1.0, 1.0, 0 );
+		trap_R_AddLightToScene( cent->currentState.origin, CG_FxInt( "wolf/controller_mortarefx", "tuning" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_mortarefx", "tuning_2" ) ), 1.0, 1.0, 1.0, 0 );
 
 		// muzzle flash
 		memset( &flash, 0, sizeof( flash ) );
 		flash.renderfx = RF_LIGHTING_ORIGIN;
 		flash.hModel = CG_FxModel( "wolf/controller_mortarefx", "mg42muzzleflash" );
-		VectorCopy( cent->currentState.origin, flash.origin );
-		AnglesToAxis( cg.refdefViewAngles, flash.axis );
+		flash.origin = cent->currentState.origin;
+		idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 		trap_R_AddRefEntityToScene( &flash );
 	}
 }
@@ -4533,10 +4529,10 @@ CG_WeaponFireRecoil
 ==============
 */
 void CG_WeaponFireRecoil( int weapon ) {
-//	const	vec3_t maxKickAngles = {25, 30, 25};
+//	const	idVec3 maxKickAngles = {25, 30, 25};
 	float pitchRecoilAdd, pitchAdd;
 	float yawRandom;
-	vec3_t recoil;
+	idVec3 recoil;
 	//
 	pitchRecoilAdd = 0;
 	pitchAdd = 0;
@@ -4547,12 +4543,12 @@ void CG_WeaponFireRecoil( int weapon ) {
 	case WP_SILENCER:
 	case WP_COLT:
 	case WP_AKIMBO: //----(SA)	added
-		//pitchAdd = 2+rand()%3;
+		//pitchAdd = 2+cgRandom.RandomInt()%3;
 		//yawRandom = 2;
 		break;
 	case WP_MAUSER:
 	case WP_GARAND:
-		//pitchAdd = 4+rand()%3;
+		//pitchAdd = 4+cgRandom.RandomInt()%3;
 		//yawRandom = 4;
 		pitchAdd = 2;   //----(SA)	for DM
 		yawRandom = 1;  //----(SA)	for DM
@@ -4567,7 +4563,7 @@ void CG_WeaponFireRecoil( int weapon ) {
 	case WP_THOMPSON:
 	case WP_STEN:
 		//pitchRecoilAdd = 1;
-		pitchAdd = 1 + rand() % 3;
+		pitchAdd = 1 + cgRandom.RandomInt() % 3;
 		yawRandom = 2;
 
 
@@ -4575,7 +4571,7 @@ void CG_WeaponFireRecoil( int weapon ) {
 		yawRandom *= 0.3;
 		break;
 	case WP_PANZERFAUST:
-		//pitchAdd = 12+rand()%3;
+		//pitchAdd = 12+cgRandom.RandomInt()%3;
 		//yawRandom = 6;
 
 		CG_StartShakeCamera( CG_FxValue( "wolf/controller_weaponfirerecoil", "StartShakeCamera_value" ), CG_FxInt( "wolf/controller_weaponfirerecoil", "StartShakeCamera_value_2" ), cg.snap->ps.origin, CG_FxInt( "wolf/controller_weaponfirerecoil", "StartShakeCamera_value_3" ) );
@@ -4583,8 +4579,8 @@ void CG_WeaponFireRecoil( int weapon ) {
 		// push the player back instead
 		break;
 	case WP_VENOM:
-		pitchRecoilAdd = pow( random(),8 ) * ( 10 + VectorLength( cg.snap->ps.velocity ) / 5 );
-		pitchAdd = ( rand() % 5 ) - 2;
+		pitchRecoilAdd = idMath::Pow( cgRandom.RandomFloat(),8 ) * ( 10 + (cg.snap->ps.velocity).Length() / 5 );
+		pitchAdd = ( cgRandom.RandomInt() % 5 ) - 2;
 		yawRandom = 2;
 
 
@@ -4596,13 +4592,13 @@ void CG_WeaponFireRecoil( int weapon ) {
 		return;
 	}
 	// calc the recoil
-	recoil[YAW] = crandom() * yawRandom;
+	recoil[YAW] = cgRandom.CRandomFloat() * yawRandom;
 	recoil[ROLL] = -recoil[YAW];    // why not
 	recoil[PITCH] = -pitchAdd;
 	// scale it up a bit (easier to modify this while tweaking)
-	VectorScale( recoil, 30, recoil );
+	recoil = recoil * (30);
 	// set the recoil
-	VectorCopy( recoil, cg.kickAVel );
+	cg.kickAVel = recoil;
 	// set the recoil
 	cg.recoilPitch -= pitchRecoilAdd;
 }
@@ -4714,24 +4710,24 @@ void CG_FireWeapon( centity_t *cent ) {
 		}
 	}
 	if ( c > 0 ) {
-		c = rand() % c;
+		c = cgRandom.RandomInt() % c;
 		if ( firesound[c] ) {
 			trap_S_StartSound( NULL, ent->number, CHAN_WEAPON, firesound[c] );
 
 			if ( fireEchosound && fireEchosound[c] ) { // check for echo
 				centity_t   *ecent;
-				vec3_t porg, gorg, norm;    // player/gun origin
+				idVec3 porg, gorg, norm;    // player/gun origin
 				float gdist;
 
 				ecent = &cg_entities[ent->number];
-				VectorCopy( ecent->currentState.pos.trBase, gorg );
-				VectorCopy( cg.refdef.vieworg, porg );
-				VectorSubtract( gorg, porg, norm );
-				gdist = VectorNormalize( norm );
+				gorg = ecent->currentState.pos.trBase;
+				porg = cg.refdef.vieworg;
+				norm = gorg - porg;
+				gdist = (norm).Normalize();
 				if ( gdist > 512 && gdist < 4096 ) {   // temp dist.  TODO: use numbers that are weapon specific
 					// use gorg as the new sound origin
-					VectorMA( cg.refdef.vieworg, 64, norm, gorg );    // sound-on-a-stick
-					trap_S_StartSoundEx( gorg, ent->number, CHAN_WEAPON, fireEchosound[c], SND_NOCUT );
+					gorg = cg.refdef.vieworg + norm * (64);    // sound-on-a-stick
+					trap_S_StartSoundEx( &gorg, ent->number, CHAN_WEAPON, fireEchosound[c], SND_NOCUT );
 				}
 			}
 		}
@@ -4750,31 +4746,33 @@ void CG_FireWeapon( centity_t *cent ) {
 CG_AddSparks
 =================
 */
-void CG_AddSparks( vec3_t origin, vec3_t dir, int speed, int duration, int count, float randScale ) {
+void CG_AddSparks( idVec3 origin, idVec3 dir, int speed, int duration, int count, float randScale ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
-	vec3_t velocity;
+	idVec3 velocity;
 	int i;
 
 	for ( i = 0; i < count; i++ ) {
 		le = CG_FxSpawnModel( "wolf/controller_addsparks" );
 		re = &le->refEntity;
 
-		VectorSet( velocity, dir[0] + crandom() * randScale, dir[1] + crandom() * randScale, dir[2] + crandom() * randScale );
-		VectorScale( velocity, (float)speed, velocity );
+		velocity.Set(dir[0] + cgRandom.CRandomFloat() * randScale, dir[1] + cgRandom.CRandomFloat() * randScale, dir[2] + cgRandom.CRandomFloat() * randScale);
+		velocity = velocity * ((float)speed);
 
 		le->leType = LE_SPARK;
 		le->startTime = cg.time;
-		le->endTime = le->startTime + duration - (int)( CG_FxValue( "wolf/controller_addsparks", "le_endTime" ) * random() * duration );
+		le->endTime = le->startTime + duration - (int)( CG_FxValue( "wolf/controller_addsparks", "le_endTime" ) * cgRandom.RandomFloat() * duration );
 		le->lastTrailTime = cg.time;
 
-		VectorCopy( origin, re->origin );
-		AxisCopy( axisDefault, re->axis );
+		re->origin = origin;
+		re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 
 		le->pos.trType = TR_GRAVITY_LOW;
-		VectorCopy( origin, le->pos.trBase );
-		VectorMA( le->pos.trBase, 2 + random() * CG_FxInt( "wolf/controller_addsparks", "tuning" ), dir, le->pos.trBase );
-		VectorCopy( velocity, le->pos.trDelta );
+		le->pos.trBase = origin;
+		le->pos.trBase = le->pos.trBase + dir * (2 + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_addsparks", "tuning" ));
+		le->pos.trDelta = velocity;
 		le->pos.trTime = cg.time;
 
 		le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addsparks", "sparkParticleShader" );
@@ -4790,22 +4788,22 @@ void CG_AddSparks( vec3_t origin, vec3_t dir, int speed, int duration, int count
 CG_AddBulletParticles
 =================
 */
-void CG_AddBulletParticles( vec3_t origin, vec3_t dir, int speed, int duration, int count, float randScale ) {
+void CG_AddBulletParticles( const idVec3 &origin, const idVec3 &dir, int speed, int duration, int count, float randScale ) {
 //	fxEntity_t	*le;
 //	refEntity_t		*re;
-	vec3_t velocity, pos;
+	idVec3 velocity, pos;
 	int i;
 
 	// add the falling particles
 	for ( i = 0; i < count; i++ ) {
 
-		VectorSet( velocity, dir[0] + crandom() * randScale, dir[1] + crandom() * randScale, dir[2] + crandom() * randScale );
-		VectorScale( velocity, (float)speed, velocity );
+		velocity.Set(dir[0] + cgRandom.CRandomFloat() * randScale, dir[1] + cgRandom.CRandomFloat() * randScale, dir[2] + cgRandom.CRandomFloat() * randScale);
+		velocity = velocity * ((float)speed);
 
-		VectorCopy( origin, pos );
-		VectorMA( pos, 2 + random() * CG_FxInt( "wolf/controller_addbulletparticles", "tuning" ), dir, pos );
+		pos = origin;
+		pos = pos + dir * (2 + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_addbulletparticles", "tuning" ));
 
-		CG_ParticleBulletDebris( pos, velocity, CG_FxInt( "wolf/controller_addbulletparticles", "tuning_2" ) + rand() % CG_FxInt( "wolf/controller_addbulletparticles", "tuning_3" ) );
+		CG_ParticleBulletDebris( pos, velocity, CG_FxInt( "wolf/controller_addbulletparticles", "tuning_2" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_addbulletparticles", "tuning_3" ) );
 
 	}
 }
@@ -4816,22 +4814,21 @@ void CG_AddBulletParticles( vec3_t origin, vec3_t dir, int speed, int duration, 
 CG_AddDirtBulletParticles
 =================
 */
-void CG_AddDirtBulletParticles( vec3_t origin, vec3_t dir, int speed, int duration, int count, float randScale,
+void CG_AddDirtBulletParticles( idVec3 origin, idVec3 dir, int speed, int duration, int count, float randScale,
 								float width, float height, float alpha, char *shadername ) { // JPW NERVE
-	vec3_t velocity, pos;
+	idVec3 velocity, pos;
 	int i;
 
 	// add the big falling particle
-	VectorSet( velocity, 0, 0, (float)speed );
+	velocity.Set(0, 0, (float)speed);
 
-	VectorCopy( origin, pos );
+	pos = origin;
 
 // JPW NERVE
-	CG_ParticleDirtBulletDebris_Core( pos, velocity, duration, width,height, alpha, shadername ); //600 + rand()%300 ); // keep central one
+	CG_ParticleDirtBulletDebris_Core( pos, velocity, duration, width,height, alpha, shadername ); //600 + cgRandom.RandomInt()%300 ); // keep central one
 	for ( i = 0; i < count; i++ ) {
-		VectorSet( velocity, dir[0] * crandom() * speed * randScale,
-				   dir[1] * crandom() * speed * randScale, dir[2] * random() * speed );
-		CG_ParticleDirtBulletDebris_Core( pos, velocity, duration + ( rand() % ( duration >> CG_FxInt( "wolf/controller_adddirtbulletparticles", "ParticleDirtBulletDebris_Core_value" ) ) ), // dur * 0.5, but int
+		velocity.Set(dir[0] * cgRandom.CRandomFloat() * speed * randScale, dir[1] * cgRandom.CRandomFloat() * speed * randScale, dir[2] * cgRandom.RandomFloat() * speed);
+		CG_ParticleDirtBulletDebris_Core( pos, velocity, duration + ( cgRandom.RandomInt() % ( duration >> CG_FxInt( "wolf/controller_adddirtbulletparticles", "ParticleDirtBulletDebris_Core_value" ) ) ), // dur * 0.5, but int
 										  width,height, alpha, shadername );
 	}
 }
@@ -4842,10 +4839,10 @@ void CG_AddDirtBulletParticles( vec3_t origin, vec3_t dir, int speed, int durati
 CG_AddDebris
 =================
 */
-void CG_AddDebris( vec3_t origin, vec3_t dir, int speed, int duration, int count ) {
+void CG_AddDebris( const idVec3 &origin, const idVec3 &dir, int speed, int duration, int count ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
-	vec3_t velocity, unitvel;
+	idVec3 velocity, unitvel;
 	float timeAdd;
 	int i;
 
@@ -4853,33 +4850,35 @@ void CG_AddDebris( vec3_t origin, vec3_t dir, int speed, int duration, int count
 		le = CG_FxSpawnModel( "wolf/controller_adddebris" );
 		re = &le->refEntity;
 
-		VectorSet( unitvel, dir[0] + crandom() * 0.9, dir[1] + crandom() * 0.9, fabs( dir[2] ) > 0.5 ? dir[2] * ( 0.2 + 0.8 * random() ) : random() * 0.6 );
-		VectorScale( unitvel, (float)speed + (float)speed * 0.5 * crandom(), velocity );
+		unitvel.Set(dir[0] + cgRandom.CRandomFloat() * 0.9, dir[1] + cgRandom.CRandomFloat() * 0.9, idMath::Fabs( dir[2] ) > 0.5 ? dir[2] * ( 0.2 + 0.8 * cgRandom.RandomFloat() ) : cgRandom.RandomFloat() * 0.6);
+		velocity = unitvel * ((float)speed + (float)speed * 0.5 * cgRandom.CRandomFloat());
 
 		le->leType = LE_DEBRIS;
 		le->startTime = cg.time;
-		le->endTime = le->startTime + duration + (int)( (float)duration * CG_FxValue( "wolf/controller_adddebris", "le_endTime" ) * crandom() );
+		le->endTime = le->startTime + duration + (int)( (float)duration * CG_FxValue( "wolf/controller_adddebris", "le_endTime" ) * cgRandom.CRandomFloat() );
 		le->lastTrailTime = cg.time;
 
-		VectorCopy( origin, re->origin );
-		AxisCopy( axisDefault, re->axis );
+		re->origin = origin;
+		re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 
 		le->pos.trType = TR_GRAVITY_LOW;
-		VectorCopy( origin, le->pos.trBase );
-		VectorCopy( velocity, le->pos.trDelta );
+		le->pos.trBase = origin;
+		le->pos.trDelta = velocity;
 		le->pos.trTime = cg.time;
 
-		timeAdd = CG_FxValue( "wolf/controller_adddebris", "timeAdd" ) + random() * CG_FxValue( "wolf/controller_adddebris", "timeAdd_2" );
+		timeAdd = CG_FxValue( "wolf/controller_adddebris", "timeAdd" ) + cgRandom.RandomFloat() * CG_FxValue( "wolf/controller_adddebris", "timeAdd_2" );
 		BG_EvaluateTrajectory( &le->pos, cg.time + (int)timeAdd, le->pos.trBase );
 
 		le->bounceFactor = CG_FxValue( "wolf/controller_adddebris", "le_bounceFactor" );
 
-//		if (!rand()%2)
+//		if (!cgRandom.RandomInt()%2)
 //			le->effectWidth = 0;	// no flame
 //		else
-		le->effectWidth = CG_FxInt( "wolf/controller_adddebris", "le_effectWidth" ) + random() * CG_FxInt( "wolf/controller_adddebris", "le_effectWidth_2" );
+		le->effectWidth = CG_FxInt( "wolf/controller_adddebris", "le_effectWidth" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_adddebris", "le_effectWidth_2" );
 
-//		if (rand()%3)
+//		if (cgRandom.RandomInt()%3)
 		le->effectFlags |= 1;       // smoke trail
 
 
@@ -4895,7 +4894,7 @@ void CG_AddDebris( vec3_t origin, vec3_t dir, int speed, int duration, int count
 CG_WaterRipple
 ==============
 */
-void CG_WaterRipple( qhandle_t shader, vec3_t loc, vec3_t dir, int size, int lifetime ) {
+void CG_WaterRipple( qhandle_t shader, const idVec3 &loc, const idVec3 &dir, int size, int lifetime ) {
 	FxParameters parameters;
 	parameters.shader = shader;
 	parameters.size = size;
@@ -4912,14 +4911,14 @@ Caused by an EV_MISSILE_MISS event, or directly by local bullet tracing
 ClientNum is a dummy field used to define what sort of effect to spawn
 =================
 */
-void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, int surfFlags ) { //	(SA) modified to send missilehitwall surface parameters
+void CG_MissileHitWall( int weapon, int clientNum, const idVec3 &origin, const idVec3 &dir, int surfFlags ) { //	(SA) modified to send missilehitwall surface parameters
 	qhandle_t mod;
 	qhandle_t mark;
 	qhandle_t shader;
 	sfxHandle_t sfx, sfx2;
 	float radius;
 	float light;
-	vec3_t lightColor;
+	idVec3 lightColor;
 	fxEntity_t   *le;
 	int r;
 	qboolean alphaFade = qfalse;
@@ -4927,8 +4926,8 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 	int duration;
 	// Ridah
 	int lightOverdraw;
-	vec3_t sprOrg;
-	vec3_t sprVel;
+	idVec3 sprOrg;
+	idVec3 sprVel;
 	int i,j;
 	int markDuration;
 
@@ -4965,12 +4964,12 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 	case WP_KNIFE:
 		sfx     = cgs.media.sfx_knifehit[4];    // different values for different types (stone/metal/wood/etc.)
 		mark    = CG_FxMaterial( "wolf/controller_missilehitwall", "bulletMarkShader" );
-		radius  = CG_FxInt( "wolf/controller_missilehitwall", "radius_2" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "radius_3" );
+		radius  = CG_FxInt( "wolf/controller_missilehitwall", "radius_2" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "radius_3" );
 
 		CG_AddBulletParticles( origin, dir,
 							   CG_FxInt( "wolf/controller_missilehitwall", "tuning" ),      // speed
 							   CG_FxInt( "wolf/controller_missilehitwall", "tuning_2" ),     // duration
-							   CG_FxInt( "wolf/controller_missilehitwall", "AddBulletParticles_value" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_3" ), // count
+							   CG_FxInt( "wolf/controller_missilehitwall", "AddBulletParticles_value" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_3" ), // count
 							   CG_FxValue( "wolf/controller_missilehitwall", "AddBulletParticles_value_2" ) );   // rand scale
 		break;
 
@@ -4991,9 +4990,9 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 
 		// actually yeah.  meant that.  very rare.
 		if ( cg_gameType.integer == GT_SINGLE_PLAYER ) { // JPW NERVE
-			r = rand() & CG_FxInt( "wolf/controller_missilehitwall", "r" );
+			r = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_missilehitwall", "r" );
 		} else {
-			r = ( rand() & 3 ) + 1; // JPW NERVE increased spark frequency so players can tell where rounds are coming from in MP
+			r = ( cgRandom.RandomInt() & 3 ) + 1; // JPW NERVE increased spark frequency so players can tell where rounds are coming from in MP
 
 		}
 		if ( r == 3 ) {
@@ -5012,12 +5011,12 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 			CG_AddSparks( origin, dir,
 						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_4" ),      // speed
 						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_5" ),      // duration
-						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_6" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_7" ),  // count
+						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_6" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_7" ),  // count
 						  CG_FxValue( "wolf/controller_missilehitwall", "AddSparks_value" ) );    // rand scale
 		} else if ( clientNum == 1 )      { // just do a little smoke puff
-			vec3_t d, o;
-			VectorMA( origin, CG_FxInt( "wolf/controller_missilehitwall", "tuning_8" ), dir, o );
-			VectorScale( dir, CG_FxInt( "wolf/controller_missilehitwall", "tuning_9" ), d );
+			idVec3 d, o;
+			o = origin + dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_8" ));
+			d = dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_9" ));
 			d[2] += CG_FxInt( "wolf/controller_missilehitwall", "d_z" );
 
 			// just snow
@@ -5052,15 +5051,15 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 				CG_AddBulletParticles( origin, dir,
 									   CG_FxInt( "wolf/controller_missilehitwall", "tuning_18" ), // speed
 									   CG_FxInt( "wolf/controller_missilehitwall", "tuning_19" ), // duration
-									   CG_FxInt( "wolf/controller_missilehitwall", "AddBulletParticles_value_3" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_20" ), // count
+									   CG_FxInt( "wolf/controller_missilehitwall", "AddBulletParticles_value_3" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_20" ), // count
 									   CG_FxValue( "wolf/controller_missilehitwall", "AddBulletParticles_value_4" ) ); // rand scale
 
 				// just do a little one
-				if ( sfx && ( rand() % 3 == 0 ) ) {
+				if ( sfx && ( cgRandom.RandomInt() % 3 == 0 ) ) {
 					CG_AddSparks( origin, dir,
 								  CG_FxInt( "wolf/controller_missilehitwall", "tuning_21" ),      // speed
 								  CG_FxInt( "wolf/controller_missilehitwall", "tuning_22" ),      // duration
-								  CG_FxInt( "wolf/controller_missilehitwall", "AddSparks_value_2" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "AddSparks_value_3" ),   // count
+								  CG_FxInt( "wolf/controller_missilehitwall", "AddSparks_value_2" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "AddSparks_value_3" ),   // count
 								  CG_FxValue( "wolf/controller_missilehitwall", "AddSparks_value_4" ) );    // rand scale
 				}
 			}
@@ -5069,7 +5068,7 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 			mark = 0;
 
 			// (SA) needed to do the CG_WaterRipple using a localent since I needed the timer reset on the shader for each shot
-			CG_WaterRipple( CG_FxMaterial( "wolf/controller_missilehitwall", "wakeMarkShaderAnim" ), origin, tv( 0, 0, 1 ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_23" ), CG_FxInt( "wolf/controller_missilehitwall", "WaterRipple_value" ) );
+			CG_WaterRipple( CG_FxMaterial( "wolf/controller_missilehitwall", "wakeMarkShaderAnim" ), origin, idVec3( 0, 0, 1 ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_23" ), CG_FxInt( "wolf/controller_missilehitwall", "WaterRipple_value" ) );
 
 			CG_AddDirtBulletParticles( origin, dir,
 									   CG_FxInt( "wolf/controller_missilehitwall", "tuning_24" ), // speed
@@ -5094,7 +5093,7 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 		// enough to see it, this way we can leave other marks around a lot
 		// longer, since most of the time we can't actually see the bullet holes
 // (SA) small modification.  only do this for non-rifles (so you can see your shots hitting when you're zooming with a rifle scope)
-		if ( weapon == WP_FG42SCOPE || weapon == WP_SNIPERRIFLE || weapon == WP_SNOOPERSCOPE || ( Distance( cg.refdef.vieworg, origin ) < CG_FxInt( "wolf/controller_missilehitwall", "tuning_29" ) ) ) {
+		if ( weapon == WP_FG42SCOPE || weapon == WP_SNIPERRIFLE || weapon == WP_SNOOPERSCOPE || ( ( cg.refdef.vieworg - origin ).Length() < CG_FxInt( "wolf/controller_missilehitwall", "tuning_29" ) ) ) {
 
 			if ( clientNum ) {
 
@@ -5102,33 +5101,33 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 
 				mark = CG_FxMaterial( "wolf/controller_missilehitwall", "bulletMarkShader" );  // default
 				alphaFade = qtrue;      // max made the bullet mark alpha (he'll make everything in the game out of 1024 textures, all with alpha blend funcs yet...)
-				radius = CG_FxValue( "wolf/controller_missilehitwall", "radius_4" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "radius_5" );   // slightly larger for DM
+				radius = CG_FxValue( "wolf/controller_missilehitwall", "radius_4" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "radius_5" );   // slightly larger for DM
 
 				if ( surfFlags & SURF_METAL ) {
-					sfx = cgs.media.sfx_bullet_metalhit[rand() % 3];
+					sfx = cgs.media.sfx_bullet_metalhit[cgRandom.RandomInt() % 3];
 					mark = CG_FxMaterial( "wolf/controller_missilehitwall", "bulletMarkShaderMetal" );
 					alphaFade = qtrue;
 				} else if ( surfFlags & SURF_WOOD ) {
-					sfx = cgs.media.sfx_bullet_woodhit[rand() % 3];
+					sfx = cgs.media.sfx_bullet_woodhit[cgRandom.RandomInt() % 3];
 					mark = CG_FxMaterial( "wolf/controller_missilehitwall", "bulletMarkShaderWood" );
 					alphaFade = qtrue;
 					radius += CG_FxInt( "wolf/controller_missilehitwall", "radius_6" );    // experimenting with different mark sizes per surface
 
 /*
-					if (rand()%100 > 75)
+					if (cgRandom.RandomInt()%100 > 75)
 					{
 						gentity_t	*sfx;
-						vec3_t		start;
-						vec3_t		dir;
+						idVec3		start;
+						idVec3		dir;
 
 						sfx = G_Spawn ();
 
 						sfx->s.density = type;
 
-						VectorCopy (tr.endpos, start);
+						start = tr.endpos;
 
-						VectorCopy (muzzleTrace, dir);
-						VectorNegate (dir, dir);
+						dir = muzzleTrace;
+						dir = -dir;
 
 						G_SetOrigin (sfx, start);
 						G_SetAngle (sfx, dir);
@@ -5138,12 +5137,12 @@ void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, in
 						sfx->think = G_FreeEntity;
 						sfx->nextthink = level.time + 1000;
 
-						sfx->s.frame = 3 + (rand()%3) ;
+						sfx->s.frame = 3 + (cgRandom.RandomInt()%3) ;
 
 						trap_LinkEntity (sfx);
 
 
-void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
+void CG_Shard(centity_t *cent, idVec3 origin, idVec3 dir)
 						CG_Shard
 
 					}
@@ -5152,13 +5151,13 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 
 
 				} else if ( surfFlags & SURF_CERAMIC ) {
-					sfx = cgs.media.sfx_bullet_ceramichit[rand() % 3];
+					sfx = cgs.media.sfx_bullet_ceramichit[cgRandom.RandomInt() % 3];
 					mark = CG_FxMaterial( "wolf/controller_missilehitwall", "bulletMarkShaderCeramic" );
 					alphaFade = qtrue;
 					radius += CG_FxInt( "wolf/controller_missilehitwall", "radius_7" );    // experimenting with different mark sizes per surface
 
 				} else if ( surfFlags & SURF_GLASS ) {
-					sfx = cgs.media.sfx_bullet_glasshit[rand() % 3];
+					sfx = cgs.media.sfx_bullet_glasshit[cgRandom.RandomInt() % 3];
 					mark = CG_FxMaterial( "wolf/controller_missilehitwall", "bulletMarkShaderGlass" );
 					alphaFade = qtrue;
 				} else if ( surfFlags & SURF_GRASS ) {
@@ -5194,17 +5193,17 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 		shakeDur = CG_FxInt( "wolf/controller_missilehitwall", "shakeDur" );
 		shakeRad = CG_FxInt( "wolf/controller_missilehitwall", "shakeRad" );
 
-		VectorScale( dir, CG_FxInt( "wolf/controller_missilehitwall", "tuning_30" ), sprVel );
+		sprVel = dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_30" ));
 		for ( i = 0; i < CG_FxInt( "wolf/controller_missilehitwall", "i" ); i++ ) {
 			for ( j = 0; j < 3; j++ )
-				sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j_" ) * dir[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j__2" ) * crandom();
-			sprVel[2] += rand() % CG_FxInt( "wolf/controller_missilehitwall", "sprVel_z" );
-//			CG_ParticleExplosion( 2, sprOrg, sprVel, 1000+rand()%250, 20, 40+rand()%60 );
-			CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_31" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_32" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_33" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_34" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_35" ) );
+				sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j_" ) * dir[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j__2" ) * cgRandom.CRandomFloat();
+			sprVel[2] += cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "sprVel_z" );
+//			CG_ParticleExplosion( 2, sprOrg, sprVel, 1000+cgRandom.RandomInt()%250, 20, 40+cgRandom.RandomInt()%60 );
+			CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_31" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_32" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_33" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_34" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_35" ) );
 		}
 
-		VectorMA( origin, CG_FxInt( "wolf/controller_missilehitwall", "tuning_36" ), dir, sprOrg );
-		VectorScale( dir, CG_FxInt( "wolf/controller_missilehitwall", "tuning_37" ), sprVel );
+		sprOrg = origin + dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_36" ));
+		sprVel = dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_37" ));
 		// RF, I like this new animation, feel free to revert
 		CG_ParticleExplosion( "expblue", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "ParticleExplosion_value" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_38" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_39" ) );
 		//CG_ParticleExplosion( "explode1", sprOrg, sprVel, 1200, 9, 300 );
@@ -5231,16 +5230,16 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 		if ( cg_gameType.integer == GT_SINGLE_PLAYER ) { // JPW NERVE
 			for ( i = 0; i < CG_FxInt( "wolf/controller_missilehitwall", "i_2" ); i++ ) {
 				for ( j = 0; j < 3; j++ )
-					sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j__3" ) * dir[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j__4" ) * crandom();
-				sprVel[2] += rand() % CG_FxInt( "wolf/controller_missilehitwall", "sprVel_z_2" );
+					sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j__3" ) * dir[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j__4" ) * cgRandom.CRandomFloat();
+				sprVel[2] += cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "sprVel_z_2" );
 				CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel,
-									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_40" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_41" ),          // duration
+									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_40" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_41" ),          // duration
 									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_42" ),                           // startsize
-									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_43" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_44" ) );          // endsize
+									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_43" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_44" ) );          // endsize
 			}
 
-			VectorMA( origin, CG_FxInt( "wolf/controller_missilehitwall", "tuning_45" ), dir, sprOrg );
-			VectorScale( dir, CG_FxInt( "wolf/controller_missilehitwall", "tuning_46" ), sprVel );
+			sprOrg = origin + dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_45" ));
+			sprVel = dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_46" ));
 
 			// trying this one just for now just for variety
 			CG_ParticleExplosion( "explode1", sprOrg, sprVel,
@@ -5251,34 +5250,34 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 			CG_AddDebris( origin, dir,
 						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_50" ),              // speed
 						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_51" ),             // duration
-						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_52" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "AddDebris_value" ) ); // count
+						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_52" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "AddDebris_value" ) ); // count
 		}
 // JPW NERVE
 		else {
 			for ( i = 0; i < CG_FxInt( "wolf/controller_missilehitwall", "i_3" ); i++ ) {
 				for ( j = 0; j < 2; j++ )
-					sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j__5" ) * crandom();
-				sprOrg[2] = origin[2] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_z" ) * random();
-				sprVel[2] += rand() % CG_FxInt( "wolf/controller_missilehitwall", "sprVel_z_3" );
+					sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_j__5" ) * cgRandom.CRandomFloat();
+				sprOrg[2] = origin[2] + CG_FxInt( "wolf/controller_missilehitwall", "sprOrg_z" ) * cgRandom.RandomFloat();
+				sprVel[2] += cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "sprVel_z_3" );
 				CG_ParticleExplosion( "blacksmokeanimb", sprOrg, sprVel,
-									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_53" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_54" ),      // duration
+									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_53" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_54" ),      // duration
 									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_55" ),                       // startsize
-									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_56" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_57" ) );     // endsize
+									  CG_FxInt( "wolf/controller_missilehitwall", "tuning_56" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_57" ) );     // endsize
 			}
 
-			VectorMA( origin, CG_FxInt( "wolf/controller_missilehitwall", "tuning_58" ), dir, sprOrg );
-			VectorScale( dir, CG_FxInt( "wolf/controller_missilehitwall", "tuning_59" ), sprVel );
+			sprOrg = origin + dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_58" ));
+			sprVel = dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_59" ));
 
 			// trying this one just for now just for variety
 			CG_ParticleExplosion( "explode1", sprOrg, sprVel,
 								  CG_FxInt( "wolf/controller_missilehitwall", "tuning_60" ),         // duration
 								  CG_FxInt( "wolf/controller_missilehitwall", "tuning_61" ),            // startsize
-								  CG_FxInt( "wolf/controller_missilehitwall", "tuning_62" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_63" ) );     // endsize
+								  CG_FxInt( "wolf/controller_missilehitwall", "tuning_62" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_63" ) );     // endsize
 
 			CG_AddDebris( origin, dir,
-						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_64" ) + random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_65" ),         // speed
+						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_64" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_65" ),         // speed
 						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_66" ),             // duration
-						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_67" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_68" ) );    // count
+						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_67" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_68" ) );    // count
 		}
 // jpw
 		break;
@@ -5307,26 +5306,26 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 		}
 
 		// Ridah, explosion sprite animation
-		VectorMA( origin, CG_FxInt( "wolf/controller_missilehitwall", "tuning_69" ), dir, sprOrg );
-		VectorScale( dir, CG_FxInt( "wolf/controller_missilehitwall", "tuning_70" ), sprVel );
+		sprOrg = origin + dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_69" ));
+		sprVel = dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_70" ));
 
 		// RF, testing new explosion animation
 		CG_ParticleExplosion( "expblue", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_71" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_72" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_73" ) );
 		//CG_ParticleExplosion( "twiltb", sprOrg, sprVel, 600, 9, 100 );
 		//CG_ParticleExplosion( 3, sprOrg, sprVel, 900, 9, 250 );
 /*
-		r = 2 + rand()%3;
+		r = 2 + cgRandom.RandomInt()%3;
 		for (i=0; i<3; i++) {
-			for (j=0;j<3;j++) sprOrg[j] = origin[j] + 14*dir[j] + 14*crandom();
-			CG_ParticleExplosion( 3, sprOrg, sprVel, 800+rand()%250, 9, 60+rand()%200 );
+			for (j=0;j<3;j++) sprOrg[j] = origin[j] + 14*dir[j] + 14*cgRandom.CRandomFloat();
+			CG_ParticleExplosion( 3, sprOrg, sprVel, 800+cgRandom.RandomInt()%250, 9, 60+cgRandom.RandomInt()%200 );
 		}
 */
 		// Ridah, throw some debris
 		CG_AddDebris( origin, dir,
 					  CG_FxInt( "wolf/controller_missilehitwall", "tuning_74" ),      // speed
 					  CG_FxInt( "wolf/controller_missilehitwall", "tuning_75" ),     // duration
-					  // 15 + rand()%5 );	// count
-					  CG_FxInt( "wolf/controller_missilehitwall", "tuning_76" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "AddDebris_value_2" ) ); // count
+					  // 15 + cgRandom.RandomInt()%5 );	// count
+					  CG_FxInt( "wolf/controller_missilehitwall", "tuning_76" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "AddDebris_value_2" ) ); // count
 
 		break;
 	case VERYBIGEXPLOSION:
@@ -5349,8 +5348,8 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 		lightColor[2] = CG_FxValue( "wolf/controller_missilehitwall", "lightColor_z_5" );
 
 		// explosion sprite animation
-		VectorMA( origin, CG_FxInt( "wolf/controller_missilehitwall", "tuning_77" ), dir, sprOrg );
-		VectorScale( dir, CG_FxInt( "wolf/controller_missilehitwall", "tuning_78" ), sprVel );
+		sprOrg = origin + dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_77" ));
+		sprVel = dir * (CG_FxInt( "wolf/controller_missilehitwall", "tuning_78" ));
 
 		// cam shake
 		if ( weapon == VERYBIGEXPLOSION ) {
@@ -5372,14 +5371,14 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 			}
 
 			// NOTE: these must all have the same duration, so that we are less likely to use a wider range of images per scene
-			r = 2 + rand() % 3;
+			r = 2 + cgRandom.RandomInt() % 3;
 			for ( i = 0; i < 4; i++ ) {
 				if ( weapon == VERYBIGEXPLOSION ) {
-					for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "j" ) * dir[j] + CG_FxInt( "wolf/controller_missilehitwall", "j_2" ) * crandom();
-					CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_85" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_86" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_87" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_88" ) );
+					for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "j" ) * dir[j] + CG_FxInt( "wolf/controller_missilehitwall", "j_2" ) * cgRandom.CRandomFloat();
+					CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_85" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_86" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_87" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_88" ) );
 				} else if ( i < 2 ) {
-					for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "j_3" ) * dir[j] + CG_FxInt( "wolf/controller_missilehitwall", "j_4" ) * crandom();
-					CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_89" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_90" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_91" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_92" ) );
+					for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "j_3" ) * dir[j] + CG_FxInt( "wolf/controller_missilehitwall", "j_4" ) * cgRandom.CRandomFloat();
+					CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_89" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_90" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_91" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_92" ) );
 				}
 			}
 
@@ -5387,25 +5386,25 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 			CG_AddDebris( origin, dir,
 						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_93" ),      // speed
 						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_94" ),  //350,	// duration
-						  // 15 + rand()%5 );	// count
-						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_95" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "AddDebris_value_3" ) ); // count
+						  // 15 + cgRandom.RandomInt()%5 );	// count
+						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_95" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "AddDebris_value_3" ) ); // count
 		}
 // JPW NERVE -- multiplayer explosions over the top due to large damage radiusesesizes
 		else {
-			CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_96" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_97" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_98" ) + random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_99" ) );
+			CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_96" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_97" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_98" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_99" ) );
 
 			// NOTE: these must all have the same duration, so that we are less likely to use a wider range of images per scene
-			r = 2 + rand() % 3;
+			r = 2 + cgRandom.RandomInt() % 3;
 			for ( i = 0; i < 4; i++ ) {
-				for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "j_5" ) * crandom();
-				CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_100" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_101" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_102" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_103" ) );
+				for ( j = 0; j < 3; j++ ) sprOrg[j] = origin[j] + CG_FxInt( "wolf/controller_missilehitwall", "j_5" ) * cgRandom.CRandomFloat();
+				CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwall", "tuning_100" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_101" ), CG_FxInt( "wolf/controller_missilehitwall", "tuning_102" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_103" ) );
 			}
 
 			CG_AddDebris( origin, dir,
-						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_104" ) + random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_105" ), // speed
-						  rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_106" ) + CG_FxInt( "wolf/controller_missilehitwall", "AddDebris_value_4" ), //350,	// duration
-						  // 15 + rand()%5 );	// count
-						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_107" ) + rand() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_108" ) ); // count
+						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_104" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_105" ), // speed
+						  cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_106" ) + CG_FxInt( "wolf/controller_missilehitwall", "AddDebris_value_4" ), //350,	// duration
+						  // 15 + cgRandom.RandomInt()%5 );	// count
+						  CG_FxInt( "wolf/controller_missilehitwall", "tuning_107" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwall", "tuning_108" ) ); // count
 
 		}
 // jpw
@@ -5414,7 +5413,7 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 		CG_AddSparks( origin, dir,
 						200,	// speed
 						800,	// duration
-						5 + rand()%10,	// count
+						5 + cgRandom.RandomInt()%10,	// count
 						0.8 );	// rand scale
 */
 		// done.
@@ -5460,14 +5459,14 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 		le->light = light;
 		// Ridah
 		le->lightOverdraw = lightOverdraw;
-		VectorCopy( lightColor, le->lightColor );
+		le->lightColor = lightColor;
 	}
 
 	//
 	// impact mark
 	//
 	if ( mark ) {
-		CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_109" ), CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value" ),CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value_4" ), alphaFade, radius, qfalse, -CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value_5" ) );
+		CG_ImpactMark( mark, origin, dir, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_missilehitwall", "tuning_109" ), CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value" ),CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value_4" ), alphaFade, radius, qfalse, -CG_FxInt( "wolf/controller_missilehitwall", "ImpactMark_value_5" ) );
 	}
 }
 
@@ -5476,14 +5475,14 @@ void CG_Shard(centity_t *cent, vec3_t origin, vec3_t dir)
 CG_MissileHitWallSmall
 ==============
 */
-void CG_MissileHitWallSmall( int weapon, int clientNum, vec3_t origin, vec3_t dir ) {
+void CG_MissileHitWallSmall( int weapon, int clientNum, const idVec3 &origin, const idVec3 &dir ) {
 	qhandle_t mod;
 	qhandle_t mark;
 	qhandle_t shader;
 	sfxHandle_t sfx;
 	float radius;
 	float light;
-	vec3_t lightColor;
+	idVec3 lightColor;
 	fxEntity_t   *le;
 //	int				r;
 	qboolean alphaFade;
@@ -5491,8 +5490,8 @@ void CG_MissileHitWallSmall( int weapon, int clientNum, vec3_t origin, vec3_t di
 	int duration;
 	// Ridah
 	int lightOverdraw;
-	vec3_t sprOrg;
-	vec3_t sprVel;
+	idVec3 sprOrg;
+	idVec3 sprVel;
 //	int				i,j;
 
 	mark = 0;
@@ -5523,8 +5522,8 @@ void CG_MissileHitWallSmall( int weapon, int clientNum, vec3_t origin, vec3_t di
 	lightColor[2] = CG_FxValue( "wolf/controller_missilehitwallsmall", "lightColor_z_2" );
 
 	// Ridah, explosion sprite animation
-	VectorMA( origin, CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning" ), dir, sprOrg );
-	VectorScale( dir, CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_2" ), sprVel );
+	sprOrg = origin + dir * (CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning" ));
+	sprVel = dir * (CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_2" ));
 
 	CG_ParticleExplosion( "explode1", sprOrg, sprVel, CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_3" ), CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_4" ), CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_5" ) );
 
@@ -5532,8 +5531,8 @@ void CG_MissileHitWallSmall( int weapon, int clientNum, vec3_t origin, vec3_t di
 	CG_AddDebris( origin, dir,
 				  CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_6" ),          // speed
 				  CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_7" ),         // duration
-				  // 15 + rand()%5 );	// count
-				  CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_8" ) + rand() % CG_FxInt( "wolf/controller_missilehitwallsmall", "AddDebris_value" ) );     // count
+				  // 15 + cgRandom.RandomInt()%5 );	// count
+				  CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_8" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_missilehitwallsmall", "AddDebris_value" ) );     // count
 
 	if ( sfx ) {
 		trap_S_StartSound( origin, ENTITYNUM_WORLD, CHAN_AUTO, sfx );
@@ -5549,15 +5548,15 @@ void CG_MissileHitWallSmall( int weapon, int clientNum, vec3_t origin, vec3_t di
 		le->light = light;
 		// Ridah
 		le->lightOverdraw = lightOverdraw;
-		VectorCopy( lightColor, le->lightColor );
+		le->lightColor = lightColor;
 	}
 
 	//
 	// impact mark
 	//
 	alphaFade = ( mark == cgs.media.energyMarkShader );   // plasma fades alpha, all others fade color
-	// CG_ImpactMark( mark, origin, dir, random()*360, 1,1,1,1, alphaFade, radius, qfalse, 60000 );
-	CG_ImpactMark( mark, origin, dir, random() * CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_9" ), CG_FxInt( "wolf/controller_missilehitwallsmall", "ImpactMark_value" ),CG_FxInt( "wolf/controller_missilehitwallsmall", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_missilehitwallsmall", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_missilehitwallsmall", "ImpactMark_value_4" ), alphaFade, radius, qfalse, 0xffffffff );
+	// CG_ImpactMark( mark, origin, dir, cgRandom.RandomFloat()*360, 1,1,1,1, alphaFade, radius, qfalse, 60000 );
+	CG_ImpactMark( mark, origin, dir, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_9" ), CG_FxInt( "wolf/controller_missilehitwallsmall", "ImpactMark_value" ),CG_FxInt( "wolf/controller_missilehitwallsmall", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_missilehitwallsmall", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_missilehitwallsmall", "ImpactMark_value_4" ), alphaFade, radius, qfalse, 0xffffffff );
 
 	CG_StartShakeCamera( CG_FxValue( "wolf/controller_missilehitwallsmall", "StartShakeCamera_value" ), CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_10" ), origin, CG_FxInt( "wolf/controller_missilehitwallsmall", "tuning_11" ) );
 }
@@ -5567,7 +5566,7 @@ void CG_MissileHitWallSmall( int weapon, int clientNum, vec3_t origin, vec3_t di
 CG_MissileHitPlayer
 =================
 */
-void CG_MissileHitPlayer( centity_t *cent, int weapon, vec3_t origin, vec3_t dir, int entityNum ) {
+void CG_MissileHitPlayer( centity_t *cent, int weapon, const idVec3 &origin, const idVec3 &dir, int entityNum ) {
 	int i;
 
 	CG_Bleed( origin, entityNum );
@@ -5577,7 +5576,7 @@ void CG_MissileHitPlayer( centity_t *cent, int weapon, vec3_t origin, vec3_t dir
 	switch ( weapon ) {
 		// knives just make the flesh hit sound.  no other effects
 	case WP_KNIFE:
-		i = rand() % 4;
+		i = cgRandom.RandomInt() % 4;
 		if ( cgs.media.sfx_knifehit[i] ) {
 			trap_S_StartSound( origin, cent->currentState.number, CHAN_WEAPON, cgs.media.sfx_knifehit[i] );
 		}
@@ -5613,7 +5612,7 @@ VENOM GUN TRACING
 CG_VenomPellet
 ================
 */
-static void CG_VenomPellet( vec3_t start, vec3_t end, int skipNum )
+static void CG_VenomPellet( idVec3 start, idVec3 end, int skipNum )
 {}
 
 
@@ -5634,25 +5633,25 @@ hit splashes (FIXME: random seed isn't synced anymore)
 		organized so that the pattern is more of a circle (with some degree of randomness)
 ================
 */
-static void CG_VenomPattern( vec3_t origin, vec3_t origin2, int otherEntNum ) {
+static void CG_VenomPattern( idVec3 origin, idVec3 origin2, int otherEntNum ) {
 	int i;
 	float r, u;
-	vec3_t end;
-	vec3_t forward, right, up;
+	idVec3 end;
+	idVec3 forward, right, up;
 
 	// derive the right and up vectors from the forward vector, because
 	// the client won't have any other information
-	VectorNormalize2( origin2, forward );
-	PerpendicularVector( right, forward );
-	CrossProduct( forward, right, up );
+	((forward = origin2), (forward).Normalize());
+	right.PerpendicularVector( forward );
+	up = (forward).Cross(right);
 
 	// generate the "random" spread pattern
 	for ( i = 0 ; i < DEFAULT_VENOM_COUNT ; i++ ) {
-		r = crandom() * DEFAULT_VENOM_SPREAD;
-		u = crandom() * DEFAULT_VENOM_SPREAD;
-		VectorMA( origin, 8192, forward, end );
-		VectorMA( end, r, right, end );
-		VectorMA( end, u, up, end );
+		r = cgRandom.CRandomFloat() * DEFAULT_VENOM_SPREAD;
+		u = cgRandom.CRandomFloat() * DEFAULT_VENOM_SPREAD;
+		end = origin + forward * (8192);
+		end = end + right * (r);
+		end = end + up * (u);
 
 		CG_VenomPellet( origin, end, otherEntNum );
 	}
@@ -5664,23 +5663,23 @@ CG_VenomFire
 ==============
 */
 void CG_VenomFire( entityState_t *es, qboolean fullmode ) {
-	vec3_t v;
+	idVec3 v;
 	int contents;
 
-	VectorSubtract( es->origin2, es->pos.trBase, v );
-	VectorNormalize( v );
-	VectorScale( v, 32, v );
-	VectorAdd( es->pos.trBase, v, v );
+	v = es->origin2 - es->pos.trBase;
+	(v).Normalize();
+	v = v * (32);
+	v = es->pos.trBase + v;
 	if ( cgs.glconfig.hardwareType != GLHW_RAGEPRO ) {
 		// ragepro can't alpha fade, so don't even bother with smoke
-		vec3_t up;
+		idVec3 up;
 
 		contents = trap_CM_PointContents( es->pos.trBase, 0 );
 		if ( !( contents & CONTENTS_WATER ) ) {
-			VectorSet( up, 0, 0, 32 );
+			up.Set(0, 0, 32);
 			if ( fullmode ) {
 				FxParameters parameters;
-				VectorCopy( up, parameters.velocity );
+				parameters.velocity = up;
 				CG_FxPlayParameters( "wolf/venom_smoke", v, vec3_origin, parameters );
 			}
 //----(SA)	for the time being don't do the single shot smoke as it's position is funky
@@ -5705,18 +5704,18 @@ BULLETS
 CG_SpawnTracer
 ===============
 */
-void CG_SpawnTracer( int sourceEnt, vec3_t pstart, vec3_t pend ) {
+void CG_SpawnTracer( int sourceEnt, idVec3 pstart, idVec3 pend ) {
 	fxEntity_t   *le;
 	float dist;
-	vec3_t dir, ofs;
+	idVec3 dir, ofs;
 	orientation_t orent;
-	vec3_t start, end;
+	idVec3 start, end;
 
-	VectorCopy( pstart, start );
-	VectorCopy( pend, end );
+	start = pstart;
+	end = pend;
 
-	VectorSubtract( end, start, dir );
-	dist = VectorNormalize( dir );
+	dir = end - start;
+	dist = (dir).Normalize();
 
 	if ( dist < 2.0 * cg_tracerLength.value ) {
 		return; // segment isnt long enough, dont bother
@@ -5729,9 +5728,9 @@ void CG_SpawnTracer( int sourceEnt, vec3_t pstart, vec3_t pend ) {
 			start[2] -= CG_FxInt( "wolf/controller_spawntracer", "start_z" ); // (SA) hack to get the tracer down below the barrel FIXME: do properly
 		} else {
 			if ( CG_GetWeaponTag( sourceEnt, "tag_flash", &orent ) ) {
-				VectorSubtract( orent.origin, start, ofs );
-				if ( VectorLength( ofs ) < CG_FxInt( "wolf/controller_spawntracer", "tuning" ) ) {
-					VectorAdd( start, ofs, start );
+				ofs = orent.origin - start;
+				if ( (ofs).Length() < CG_FxInt( "wolf/controller_spawntracer", "tuning" ) ) {
+					start = start + ofs;
 					//VectorAdd( end, ofs, end );
 				}
 			}
@@ -5739,18 +5738,18 @@ void CG_SpawnTracer( int sourceEnt, vec3_t pstart, vec3_t pend ) {
 	}
 
 	// subtract the length of the tracer from the end point, so we dont go through the end point
-	VectorMA( end, -cg_tracerLength.value, dir, end );
-	dist = VectorDistance( start, end );
+	end = end + dir * (-cg_tracerLength.value);
+	dist = ((start) - (end)).Length();
 
 	le = CG_FxSpawnModel( "wolf/controller_spawntracer" );
 	le->leType = LE_MOVING_TRACER;
-	le->startTime = cg.time - ( cg.frametime ? ( rand() % cg.frametime ) / 2 : 0 );
+	le->startTime = cg.time - ( cg.frametime ? ( cgRandom.RandomInt() % cg.frametime ) / 2 : 0 );
 	le->endTime = le->startTime + CG_FxValue( "wolf/controller_spawntracer", "le__endTime_value" ) * dist / cg_tracerSpeed.value;
 
 	le->pos.trType = TR_LINEAR;
 	le->pos.trTime = le->startTime;
-	VectorCopy( start, le->pos.trBase );
-	VectorScale( dir, cg_tracerSpeed.value, le->pos.trDelta );
+	le->pos.trBase = start;
+	le->pos.trDelta = dir * (cg_tracerSpeed.value);
 }
 
 /*
@@ -5758,21 +5757,21 @@ void CG_SpawnTracer( int sourceEnt, vec3_t pstart, vec3_t pend ) {
 CG_DrawTracer
 ===============
 */
-void CG_DrawTracer( vec3_t start, vec3_t finish ) {
-	vec3_t forward, right;
+void CG_DrawTracer( const idVec3 &start, const idVec3 &finish ) {
+	idVec3 forward, right;
 	polyVert_t verts[4];
-	vec3_t line;
+	idVec3 line;
 
-	VectorSubtract( finish, start, forward );
+	forward = finish - start;
 
-	line[0] = DotProduct( forward, cg.refdef.viewaxis[1] );
-	line[1] = DotProduct( forward, cg.refdef.viewaxis[2] );
+	line[0] = ((forward) * (cg.refdef.viewaxis[1]));
+	line[1] = ((forward) * (cg.refdef.viewaxis[2]));
 
-	VectorScale( cg.refdef.viewaxis[1], line[1], right );
-	VectorMA( right, -line[0], cg.refdef.viewaxis[2], right );
-	VectorNormalize( right );
+	right = cg.refdef.viewaxis[1] * (line[1]);
+	right = right + cg.refdef.viewaxis[2] * (-line[0]);
+	(right).Normalize();
 
-	VectorMA( finish, cg_tracerWidth.value, right, verts[0].xyz );
+	verts[0].xyz = finish + right * (cg_tracerWidth.value);
 	verts[0].st[0] = 1;
 	verts[0].st[1] = 1;
 	verts[0].modulate[0] = 255;
@@ -5780,7 +5779,7 @@ void CG_DrawTracer( vec3_t start, vec3_t finish ) {
 	verts[0].modulate[2] = 255;
 	verts[0].modulate[3] = 255;
 
-	VectorMA( finish, -cg_tracerWidth.value, right, verts[1].xyz );
+	verts[1].xyz = finish + right * (-cg_tracerWidth.value);
 	verts[1].st[0] = 1;
 	verts[1].st[1] = 0;
 	verts[1].modulate[0] = 255;
@@ -5788,7 +5787,7 @@ void CG_DrawTracer( vec3_t start, vec3_t finish ) {
 	verts[1].modulate[2] = 255;
 	verts[1].modulate[3] = 255;
 
-	VectorMA( start, -cg_tracerWidth.value, right, verts[2].xyz );
+	verts[2].xyz = start + right * (-cg_tracerWidth.value);
 	verts[2].st[0] = 0;
 	verts[2].st[1] = 0;
 	verts[2].modulate[0] = 255;
@@ -5796,7 +5795,7 @@ void CG_DrawTracer( vec3_t start, vec3_t finish ) {
 	verts[2].modulate[2] = 255;
 	verts[2].modulate[3] = 255;
 
-	VectorMA( start, cg_tracerWidth.value, right, verts[3].xyz );
+	verts[3].xyz = start + right * (cg_tracerWidth.value);
 	verts[3].st[0] = 0;
 	verts[3].st[1] = 1;
 	verts[3].modulate[0] = 255;
@@ -5812,27 +5811,27 @@ void CG_DrawTracer( vec3_t start, vec3_t finish ) {
 CG_Tracer
 ===============
 */
-void CG_Tracer( vec3_t source, vec3_t dest, int sparks ) {
+void CG_Tracer( idVec3 source, idVec3 dest, int sparks ) {
 	float len, begin, end;
-	vec3_t start, finish;
-	vec3_t midpoint;
-	vec3_t forward;
+	idVec3 start, finish;
+	idVec3 midpoint;
+	idVec3 forward;
 
 	// tracer
-	VectorSubtract( dest, source, forward );
-	len = VectorNormalize( forward );
+	forward = dest - source;
+	len = (forward).Normalize();
 
 	// start at least a little ways from the muzzle
 	if ( len < 100 && !sparks ) {
 		return;
 	}
-	begin = 50 + random() * ( len - 60 );
+	begin = 50 + cgRandom.RandomFloat() * ( len - 60 );
 	end = begin + cg_tracerLength.value;
 	if ( end > len ) {
 		end = len;
 	}
-	VectorMA( source, begin, forward, start );
-	VectorMA( source, end, forward, finish );
+	start = source + forward * (begin);
+	finish = source + forward * (end);
 
 	CG_DrawTracer( start, finish );
 
@@ -5851,16 +5850,16 @@ void CG_Tracer( vec3_t source, vec3_t dest, int sparks ) {
 CG_CalcMuzzlePoint
 ======================
 */
-static qboolean CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle ) {
-	vec3_t forward, right, up;
+static qboolean CG_CalcMuzzlePoint( int entityNum, idVec3 muzzle ) {
+	idVec3 forward, right, up;
 	centity_t   *cent;
 	int anim;
 
 	if ( entityNum == cg.snap->ps.clientNum ) {
-		VectorCopy( cg.snap->ps.origin, muzzle );
+		muzzle = cg.snap->ps.origin;
 		muzzle[2] += cg.snap->ps.viewheight;
-		AngleVectors( cg.snap->ps.viewangles, forward, NULL, NULL );
-		VectorMA( muzzle, 14, forward, muzzle );
+		idAngles(cg.snap->ps.viewangles).ToVectors(&(forward), NULL, NULL);
+		muzzle = muzzle + forward * (14);
 		return qtrue;
 	}
 
@@ -5871,9 +5870,9 @@ static qboolean CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle ) {
 //	}
 //----(SA)	end
 
-	VectorCopy( cent->currentState.pos.trBase, muzzle );
+	muzzle = cent->currentState.pos.trBase;
 
-	AngleVectors( cent->currentState.apos.trBase, forward, right, up );
+	idAngles(cent->currentState.apos.trBase).ToVectors(&(forward), &(right), &(up));
 	anim = cent->currentState.legsAnim & ~ANIM_TOGGLEBIT;
 // RF, this is all broken by scripting system
 //	if ( anim == LEGS_WALKCR || anim == LEGS_IDLECR || anim  == LEGS_IDLE_ALT ) {
@@ -5882,7 +5881,7 @@ static qboolean CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle ) {
 	muzzle[2] += DEFAULT_VIEWHEIGHT;
 //	}
 
-	VectorMA( muzzle, 14, forward, muzzle );
+	muzzle = muzzle + forward * (14);
 
 	return qtrue;
 
@@ -5895,11 +5894,11 @@ CG_Bullet
 Renders bullet effects.
 ======================
 */
-void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, int fleshEntityNum, qboolean wolfkick, int otherEntNum2 ) {
+void CG_Bullet( const idVec3 &end, int sourceEntityNum, const idVec3 &normal, qboolean flesh, int fleshEntityNum, qboolean wolfkick, int otherEntNum2 ) {
 	trace_t trace;
 	int sourceContentType = 0, destContentType = 0; // TTimo: init
-	vec3_t dir;
-	vec3_t start, trend, tmp;      // JPW
+	idVec3 dir;
+	idVec3 start, trend, tmp;      // JPW
 	static int lastBloodSpat;
 	centity_t *cent;
 
@@ -5930,7 +5929,7 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 //							5,	// count
 //							0.5, 80, 16, 0.125, "water_splash" );	// rand scale
 				// only add bubbles if effect is close to viewer
-				if ( Distance( cg.snap->ps.origin, end ) < 1024 ) {
+				if ( ( cg.snap->ps.origin - end ).Length() < 1024 ) {
 					trap_CM_BoxTrace( &trace, start, end, NULL, NULL, 0, CONTENTS_WATER );
 					CG_BubbleTrail( end, trace.endpos, .5, 8 );
 				}
@@ -5939,7 +5938,7 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 			// if not flesh, then do a moving tracer
 			if ( flesh ) {
 				// draw a tracer
-				if ( !wolfkick && random() < cg_tracerChance.value ) {
+				if ( !wolfkick && cgRandom.RandomFloat() < cg_tracerChance.value ) {
 					CG_Tracer( start, end, 0 );
 				}
 			} else {    // (not flesh)
@@ -5954,7 +5953,7 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 
 	// impact splash and mark
 	if ( flesh ) {
-		vec3_t origin;
+		idVec3 origin;
 		int aiType;
 
 		aiType = cg_entities[fleshEntityNum].currentState.aiChar;
@@ -5975,21 +5974,21 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 				CG_SoundPlayIndexedScript( cgs.media.bulletHitFleshScript, NULL, fleshEntityNum );
 			}
 		} else {
-			VectorSubtract( cg_entities[fleshEntityNum].lerpOrigin, cg.snap->ps.origin, origin );
-			VectorMA( cg.snap->ps.origin, 3, origin, origin );
+			origin = cg_entities[fleshEntityNum].lerpOrigin - cg.snap->ps.origin;
+			origin = cg.snap->ps.origin + origin * (3);
 			if ( aiType == AICHAR_PROTOSOLDIER ||
 				 aiType == AICHAR_SUPERSOLDIER ) {
-				CG_SoundPlayIndexedScript( cgs.media.bulletHitFleshMetalScript, origin, ENTITYNUM_WORLD );
+				CG_SoundPlayIndexedScript( cgs.media.bulletHitFleshMetalScript, &origin, ENTITYNUM_WORLD );
 			} else {
-				CG_SoundPlayIndexedScript( cgs.media.bulletHitFleshScript, origin, ENTITYNUM_WORLD );
+				CG_SoundPlayIndexedScript( cgs.media.bulletHitFleshScript, &origin, ENTITYNUM_WORLD );
 			}
 		}
 
 		/*
 		// special FX for Zombie
 		if (cent->currentState.aiChar == AICHAR_ZOMBIE) {
-			VectorSubtract( end, start, dir );
-			VectorNormalize( dir );
+			dir = end - start;
+			dir.Normalize();
 			// upper
 			trap_RB_ZombieFXAddNewHit( cent->currentState.number, end, dir );
 			// lower
@@ -6001,24 +6000,24 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 		// if we haven't dropped a blood spat in a while, check if this is a good scenario
 		if ( lastBloodSpat > cg.time || lastBloodSpat < cg.time - 500 ) {
 			if ( CG_CalcMuzzlePoint( sourceEntityNum, start ) ) {
-				VectorSubtract( end, start, dir );
-				VectorNormalize( dir );
-				VectorMA( end, 128, dir, trend );
+				dir = end - start;
+				(dir).Normalize();
+				trend = end + dir * (128);
 				trap_CM_BoxTrace( &trace, end, trend, NULL, NULL, 0, MASK_SHOT & ~CONTENTS_BODY );
 
 				if ( trace.fraction < 1 ) {
-					CG_ImpactMark( cgs.media.bloodDotShaders[rand() % 5], trace.endpos, trace.plane.normal, random() * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value" ),
-								   CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_4" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_5" ), qtrue, CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_6" ) + random() * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_7" ), qfalse, cg_bloodTime.integer * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_8" ) );
+					CG_ImpactMark( cgs.media.bloodDotShaders[cgRandom.RandomInt() % 5], trace.endpos, trace.plane.normal, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value" ),
+								   CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_4" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_5" ), qtrue, CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_6" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_7" ), qfalse, cg_bloodTime.integer * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_8" ) );
 					lastBloodSpat = cg.time;
 				} else if ( lastBloodSpat < cg.time - 1000 ) {
 					// drop one on the ground?
-					VectorCopy( end, trend );
+					trend = end;
 					trend[2] -= 64;
 					trap_CM_BoxTrace( &trace, end, trend, NULL, NULL, 0, MASK_SHOT & ~CONTENTS_BODY );
 
 					if ( trace.fraction < 1 ) {
-						CG_ImpactMark( cgs.media.bloodDotShaders[rand() % 5], trace.endpos, trace.plane.normal, random() * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_9" ),
-									   CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_10" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_11" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_12" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_13" ), qtrue, CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_14" ) + random() * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_15" ), qfalse, cg_bloodTime.integer * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_16" ) );
+						CG_ImpactMark( cgs.media.bloodDotShaders[cgRandom.RandomInt() % 5], trace.endpos, trace.plane.normal, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_9" ),
+									   CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_10" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_11" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_12" ),CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_13" ), qtrue, CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_14" ) + cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_15" ), qfalse, cg_bloodTime.integer * CG_FxInt( "wolf/controller_bullet", "ImpactMark_value_16" ) );
 						lastBloodSpat = cg.time;
 					}
 				}
@@ -6049,20 +6048,20 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 
 		if ( CG_CalcMuzzlePoint( sourceEntityNum, start )
 			 || cg.snap->ps.persistant[PERS_HWEAPON_USE] ) {
-			vec3_t start2;
-			VectorSubtract( end, start, dir );
-			VectorNormalize( dir );
-			VectorMA( end, -4, dir, start2 );   // back off a little so it doesn't start in solid
-			VectorMA( end, 64, dir, dir );
+			idVec3 start2;
+			dir = end - start;
+			(dir).Normalize();
+			start2 = end + dir * (-4);   // back off a little so it doesn't start in solid
+			dir = end + dir * (64);
 			trap_CM_BoxTrace( &trace, start2, dir, NULL, NULL, 0, MASK_SHOT );
 
-			if ( ( trace.surfaceFlags & SURF_METAL ) || !( rand() % 10 ) || ( otherEntNum2 != ENTITYNUM_NONE ) ) {
+			if ( ( trace.surfaceFlags & SURF_METAL ) || !( cgRandom.RandomInt() % 10 ) || ( otherEntNum2 != ENTITYNUM_NONE ) ) {
 				// JPW NERVE compute new spark direction from normal & dir (rotate -dir 180 degrees about normal)
 
 				// (SA) NOTE: isn't this done by the server and sent along in the 'normal' that's passed into this routine? (1107 g_weapon.c)
 
-				VectorScale( dir,-1.0f,tmp );
-				RotatePointAroundVector( tmp,normal,tmp,180.0f );
+				tmp = dir * (-1.0f);
+				tmp.RotatePointAroundVector( normal, tmp, 180.0f );
 				CG_MissileHitWall( fromweap, 0, end, tmp, trace.surfaceFlags ); // sparks	//	(SA) modified to send missilehitwall surface parameters
 // jpw
 //				CG_MissileHitWall( fromweap, 0, end, normal, trace.surfaceFlags );	// sparks	//	(SA) modified to send missilehitwall surface parameters
@@ -6083,8 +6082,8 @@ void CG_Bullet( vec3_t end, int sourceEntityNum, vec3_t normal, qboolean flesh, 
 					le->startTime = cg.time;
 					le->endTime = le->startTime + CG_FxInt( "wolf/controller_emitter", "debugLife" );
 					le->pos.trType = TR_STATIONARY;
-					VectorCopy( end, le->pos.trBase );
-					VectorCopy( normal, le->angles.trBase );
+					le->pos.trBase = end;
+					le->angles.trBase = normal;
 					le->ownerNum = 0;
 				}
 			}
@@ -6113,6 +6112,6 @@ void CG_ClientDamage( int entnum, int enemynum, int id ) {
 	}
 	// -NERVE - SMF
 	else {
-		trap_SendClientCommand( va( "cld %i %i %i", entnum, enemynum, id ) );
+		trap_SendClientCommand( idStr::FormatString( "cld %i %i %i", entnum, enemynum, id ) );
 	}
 }

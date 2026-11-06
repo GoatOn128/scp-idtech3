@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // cg_scoreboard -- draw the scoreboard on top of the game screen
+#include "../precompiled.h"
+
 #include "cg_local.h"
 
 
@@ -37,9 +39,9 @@ If you have questions concerning this license or the applicable additional terms
 CG_DrawScoreboard
 =================
 */
-static void CG_DrawClientScore( int x, int y, score_t *score, float *color, float fade ) {
+static void CG_DrawClientScore( int x, int y, score_t *score, const idVec4 &color, float fade ) {
 	char string[1024];
-	vec3_t headAngles;
+	idVec3 headAngles;
 	clientInfo_t    *ci;
 
 	if ( score->client < 0 || score->client >= cgs.maxclients ) {
@@ -64,7 +66,7 @@ static void CG_DrawClientScore( int x, int y, score_t *score, float *color, floa
 	}
 
 	// draw the face
-	VectorClear( headAngles );
+	headAngles.Zero();
 	headAngles[YAW] = 180;
 
 	CG_DrawHead( x - ICON_SIZE, y - ( ICON_SIZE - BIGCHAR_HEIGHT ) / 2, ICON_SIZE, ICON_SIZE,
@@ -92,7 +94,7 @@ static void CG_DrawClientScore( int x, int y, score_t *score, float *color, floa
 
 	// highlight your position
 	if ( score->client == cg.snap->ps.clientNum ) {
-		float hcolor[4];
+		idVec4 hcolor;
 		int rank;
 
 		if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR
@@ -140,7 +142,7 @@ CG_TeamScoreboard
 static int CG_TeamScoreboard( int x, int y, team_t team, float fade ) {
 	int i;
 	score_t *score;
-	float color[4];
+	idVec4 color;
 	int count;
 	int lineHeight;
 	clientInfo_t    *ci;
@@ -178,9 +180,9 @@ static int INFO_LATENCY_WIDTH   = 80;
 static int INFO_TEAM_HEIGHT     = 24;
 static int INFO_BORDER          = 2;
 
-static void WM_DrawClientScore( int x, int y, score_t *score, float *color, float fade ) {
+static void WM_DrawClientScore( int x, int y, score_t *score, const idVec4 &color, float fade ) {
 	float tempx;
-	vec4_t hcolor;
+	idVec4 hcolor;
 	clientInfo_t *ci;
 
 	if ( y + SMALLCHAR_HEIGHT >= 440 ) {
@@ -191,7 +193,7 @@ static void WM_DrawClientScore( int x, int y, score_t *score, float *color, floa
 		tempx = x;
 
 		hcolor[3] = fade * 0.3;
-		VectorSet( hcolor, 0.4452, 0.1172, 0.0782 );            // DARK-RED
+		hcolor.Set( 0.4452, 0.1172, 0.0782, hcolor[3] );            // DARK-RED
 
 		CG_FillRect( tempx, y + 1, INFO_PLAYER_WIDTH - INFO_BORDER, SMALLCHAR_HEIGHT - 1, hcolor );
 		tempx += INFO_PLAYER_WIDTH;
@@ -209,10 +211,10 @@ static void WM_DrawClientScore( int x, int y, score_t *score, float *color, floa
 	CG_DrawSmallString( tempx, y, ci->name, fade );
 	tempx += INFO_PLAYER_WIDTH;
 
-	CG_DrawSmallString( tempx, y, va( "%4i", score->score ), fade );
+	CG_DrawSmallString( tempx, y, idStr::FormatString( "%4i", score->score ), fade );
 	tempx += INFO_SCORE_WIDTH;
 
-	CG_DrawSmallString( tempx, y, va( "%4i", score->ping ), fade );
+	CG_DrawSmallString( tempx, y, idStr::FormatString( "%4i", score->ping ), fade );
 	tempx += INFO_LATENCY_WIDTH;
 }
 
@@ -222,17 +224,17 @@ WM_TeamScoreboard
 =================
 */
 static int WM_TeamScoreboard( int x, int y, team_t team, float fade ) {
-	vec4_t hcolor;
+	idVec4 hcolor;
 	float tempx;
 	int i;
 
 	hcolor[3] = fade;
 	if ( team == TEAM_RED ) {
-		VectorSet( hcolor, 0.4452, 0.1172, 0.0782 );        // LIGHT-RED
+		hcolor.Set( 0.4452, 0.1172, 0.0782, hcolor[3] );        // LIGHT-RED
 	} else if ( team == TEAM_BLUE )                                                             {
-		VectorSet( hcolor, 0.1836, 0.2422, 0.1680 );        // LIGHT-GREEN
+		hcolor.Set( 0.1836, 0.2422, 0.1680, hcolor[3] );        // LIGHT-GREEN
 	} else {
-		VectorSet( hcolor, 0.2, 0.2, 0.2 );                 // DARK-GREY
+		hcolor.Set( 0.2, 0.2, 0.2, hcolor[3] );                 // DARK-GREY
 
 	}
 	// dont draw spectator if there are none
@@ -269,7 +271,7 @@ static int WM_TeamScoreboard( int x, int y, team_t team, float fade ) {
 	tempx += INFO_LATENCY_WIDTH;
 
 	// draw player info
-	VectorSet( hcolor, 1, 1, 1 );
+	hcolor.Set( 1, 1, 1, 0 );
 	hcolor[3] = fade;
 
 	y += INFO_TEAM_HEIGHT + INFO_BORDER;
@@ -294,7 +296,8 @@ WM_DrawObjectives
 =================
 */
 int WM_DrawObjectives( int x, int y, int width, float fade ) {
-	const char *s, *buf, *str;
+	idStr s, str;
+	const char *buf;
 	char teamstr[32];
 	int i, num, strwidth, status;
 
@@ -318,7 +321,7 @@ int WM_DrawObjectives( int x, int y, int width, float fade ) {
 			buf = Info_ValueForKey( s, teamstr );
 
 			// draw text
-			str = va( "%s", buf );
+			str = idStr::FormatString( "%s", buf );
 			strwidth = CG_DrawStrlen( str ) * SMALLCHAR_WIDTH;
 			CG_DrawSmallString( x + width / 2 - strwidth / 2 - 12, y, str, fade );
 
@@ -346,21 +349,21 @@ WM_ScoreboardOverlay
 =================
 */
 int WM_ScoreboardOverlay( int x, int y, float fade ) {
-	vec4_t hcolor;
+	idVec4 hcolor;
 	int width;
-	char        *s; // JPW NERVE
+	idStr s; // JPW NERVE
 	int msec, mins, seconds, tens; // JPW NERVE
 
 	width = INFO_PLAYER_WIDTH + INFO_LATENCY_WIDTH + INFO_SCORE_WIDTH + 25;
 
-	VectorSet( hcolor, 0, 0, 0 );
+	hcolor.Set( 0, 0, 0, 0 );
 	hcolor[3] = 0.7 * fade;
 
 	// draw background
 	CG_FillRect( x - 12, y, width, 400, hcolor );
 
 	// draw title frame
-	VectorSet( hcolor, 0.0039, 0.0039, 0.2461 );
+	hcolor.Set( 0.0039, 0.0039, 0.2461, 0 );
 	hcolor[3] = 1 * fade;
 	CG_FillRect( x - 12, y, width, 30, hcolor );
 	CG_DrawRect( x - 12, y, width, 400, 2, hcolor );
@@ -387,7 +390,7 @@ int WM_ScoreboardOverlay( int x, int y, float fade ) {
 		tens = seconds / 10;
 		seconds -= tens * 10;
 
-		s = va( "Mission time:   %2.0f:%i%i", (float)mins, tens, seconds ); // float cast to line up with reinforce time
+		s = idStr::FormatString( "Mission time:   %2.0f:%i%i", (float)mins, tens, seconds ); // float cast to line up with reinforce time
 		CG_DrawSmallString( x - 7,y,s,fade );
 
 		if ( cgs.clientinfo[cg.snap->ps.clientNum].team == TEAM_RED ) {
@@ -405,7 +408,7 @@ int WM_ScoreboardOverlay( int x, int y, float fade ) {
 			tens = seconds / 10;
 			seconds -= tens * 10;
 
-			s = va( "Reinforce time: %2.0f:%i%i", (float)mins, tens, seconds );
+			s = idStr::FormatString( "Reinforce time: %2.0f:%i%i", (float)mins, tens, seconds );
 			CG_DrawSmallString( x - 7,y + 16,s,fade );
 		}
 	}
@@ -441,8 +444,8 @@ Draw the normal in-game scoreboard
 qboolean CG_DrawScoreboard( void ) {
 	int x = 0, y = 0, w;     // TTimo init
 	float fade;
-	float   *fadeColor;
-	char    *s;
+	idVec4  *fadeColor;
+	idStr s;
 
 	// don't draw amuthing if the menu or console is up
 	if ( cg_paused.integer ) {
@@ -468,7 +471,7 @@ qboolean CG_DrawScoreboard( void ) {
 	if ( cg.showScores || cg.predictedPlayerState.pm_type == PM_DEAD ||
 		 cg.predictedPlayerState.pm_type == PM_INTERMISSION ) {
 		fade = 1.0;
-		fadeColor = colorWhite;
+		fadeColor = &colorWhite;
 	} else {
 		fadeColor = CG_FadeColor( cg.scoreFadeTime, FADE_TIME );
 
@@ -478,13 +481,13 @@ qboolean CG_DrawScoreboard( void ) {
 			cg.killerName[0] = 0;
 			return qfalse;
 		}
-		fade = *fadeColor;
+		fade = ( *fadeColor )[3];
 	}
 
 
 	// fragged by ... line
 	if ( cg.killerName[0] ) {
-		s = va( "Killed by %s", cg.killerName );
+		s = idStr::FormatString( "Killed by %s", cg.killerName );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 		x = ( SCREEN_WIDTH - w ) / 2;
 		y = 40;
@@ -497,7 +500,7 @@ qboolean CG_DrawScoreboard( void ) {
 	if ( cgs.gametype != GT_SINGLE_PLAYER && cgs.gametype != GT_WOLF ) { // NERVE - SMF - added wolf multiplayer check
 		if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
 			if ( cgs.gametype < GT_TEAM ) {
-				s = va( "%s place with %i",
+				s = idStr::FormatString( "%s place with %i",
 						CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),
 						cg.snap->ps.persistant[PERS_SCORE] );
 				w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
@@ -506,11 +509,11 @@ qboolean CG_DrawScoreboard( void ) {
 				CG_DrawBigString( x, y, s, fade );
 			} else {
 				if ( cg.teamScores[0] == cg.teamScores[1] ) {
-					s = va( "Teams are tied at %i", cg.teamScores[0] );
+					s = idStr::FormatString( "Teams are tied at %i", cg.teamScores[0] );
 				} else if ( cg.teamScores[0] >= cg.teamScores[1] ) {
-					s = va( "Red leads %i to %i",cg.teamScores[0], cg.teamScores[1] );
+					s = idStr::FormatString( "Red leads %i to %i",cg.teamScores[0], cg.teamScores[1] );
 				} else {
-					s = va( "Blue leads %i to %i",cg.teamScores[1], cg.teamScores[0] );
+					s = idStr::FormatString( "Blue leads %i to %i",cg.teamScores[1], cg.teamScores[0] );
 				}
 
 				w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
@@ -594,7 +597,7 @@ CG_CenterGiantLine
 */
 static void CG_CenterGiantLine( float y, const char *string ) {
 	float x;
-	vec4_t color;
+	idVec4 color;
 
 	color[0] = 1;
 	color[1] = 1;
@@ -615,7 +618,7 @@ Draw the oversize scoreboard for tournements
 */
 void CG_DrawTourneyScoreboard( void ) {
 	const char      *s;
-	vec4_t color;
+	idVec4 color;
 	int min, tens, ones;
 	clientInfo_t    *ci;
 	int y;
@@ -652,7 +655,7 @@ void CG_DrawTourneyScoreboard( void ) {
 	ones %= 60;
 	tens = ones / 10;
 	ones %= 10;
-	s = va( "%i:%i%i", min, tens, ones );
+	s = idStr::FormatString( "%i:%i%i", min, tens, ones );
 
 	CG_CenterGiantLine( 64, s );
 
@@ -665,13 +668,13 @@ void CG_DrawTourneyScoreboard( void ) {
 		// teamplay scoreboard
 		//
 		CG_DrawStringExt( 8, y, "Red Team", color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
-		s = va( "%i", cg.teamScores[0] );
+		s = idStr::FormatString( "%i", cg.teamScores[0] );
 		CG_DrawStringExt( 632 - GIANT_WIDTH * strlen( s ), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 
 		y += 64;
 
 		CG_DrawStringExt( 8, y, "Blue Team", color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
-		s = va( "%i", cg.teamScores[1] );
+		s = idStr::FormatString( "%i", cg.teamScores[1] );
 		CG_DrawStringExt( 632 - GIANT_WIDTH * strlen( s ), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 	} else {
 		//
@@ -687,7 +690,7 @@ void CG_DrawTourneyScoreboard( void ) {
 			}
 
 			CG_DrawStringExt( 8, y, ci->name, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
-			s = va( "%i", ci->score );
+			s = idStr::FormatString( "%i", ci->score );
 			CG_DrawStringExt( 632 - GIANT_WIDTH * strlen( s ), y, s, color, qtrue, qtrue, GIANT_WIDTH, GIANT_HEIGHT, 0 );
 			y += 64;
 		}
@@ -695,4 +698,3 @@ void CG_DrawTourneyScoreboard( void ) {
 
 
 }
-

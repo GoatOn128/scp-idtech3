@@ -26,15 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 // g_client.c -- client functions that don't happen every frame
 
 // Ridah, new bounding box
-//static vec3_t	playerMins = {-15, -15, -24};
-//static vec3_t	playerMaxs = {15, 15, 32};
-vec3_t playerMins = {-18, -18, -24};
-vec3_t playerMaxs = {18, 18, 48};
+//static idVec3	playerMins = {-15, -15, -24};
+//static idVec3	playerMaxs = {15, 15, 32};
+idVec3 playerMins( -18, -18, -24 );
+idVec3 playerMaxs( 18, 18, 48 );
 // done.
 
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32) initial
@@ -47,7 +49,7 @@ If the start position is targeting an entity, the players camera will start out 
 */
 void SP_info_player_deathmatch( gentity_t *ent ) {
 	int i;
-	vec3_t dir;
+	idVec3 dir;
 
 	G_SpawnInt( "nobots", "0", &i );
 	if ( i ) {
@@ -60,8 +62,9 @@ void SP_info_player_deathmatch( gentity_t *ent ) {
 
 	ent->enemy = G_PickTarget( ent->target );
 	if ( ent->enemy ) {
-		VectorSubtract( ent->enemy->s.origin, ent->s.origin, dir );
-		vectoangles( dir, ent->s.angles );
+		dir = ent->enemy->s.origin - ent->s.origin;
+		idAngles targetAngles = dir.ToAngles();
+		ent->s.angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 	}
 
 }
@@ -103,10 +106,10 @@ qboolean SpotWouldTelefrag( gentity_t *spot ) {
 	int i, num;
 	int touch[MAX_GENTITIES];
 	gentity_t   *hit;
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 
-	VectorAdd( spot->s.origin, playerMins, mins );
-	VectorAdd( spot->s.origin, playerMaxs, maxs );
+	mins = spot->s.origin + playerMins;
+	maxs = spot->s.origin + playerMaxs;
 	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
 
 	for ( i = 0 ; i < num ; i++ ) {
@@ -128,9 +131,9 @@ Find the spot that we DON'T want to use
 ================
 */
 #define MAX_SPAWN_POINTS    128
-gentity_t *SelectNearestDeathmatchSpawnPoint( vec3_t from ) {
+gentity_t *SelectNearestDeathmatchSpawnPoint( idVec3 &from ) {
 	gentity_t   *spot;
-	vec3_t delta;
+	idVec3 delta;
 	float dist, nearestDist;
 	gentity_t   *nearestSpot;
 
@@ -140,8 +143,8 @@ gentity_t *SelectNearestDeathmatchSpawnPoint( vec3_t from ) {
 
 	while ( ( spot = G_Find( spot, FOFS( classname ), "info_player_deathmatch" ) ) != NULL ) {
 
-		VectorSubtract( spot->s.origin, from, delta );
-		dist = VectorLength( delta );
+		delta = spot->s.origin - from;
+		dist = delta.Length();
 		if ( dist < nearestDist ) {
 			nearestDist = dist;
 			nearestSpot = spot;
@@ -193,7 +196,7 @@ SelectSpawnPoint
 Chooses a player start, deathmatch start, etc
 ============
 */
-gentity_t *SelectSpawnPoint( vec3_t avoidPoint, vec3_t origin, vec3_t angles ) {
+gentity_t *SelectSpawnPoint( idVec3 &avoidPoint, idVec3 &origin, idVec3 &angles ) {
 	gentity_t   *spot;
 	gentity_t   *nearestSpot;
 
@@ -214,9 +217,9 @@ gentity_t *SelectSpawnPoint( vec3_t avoidPoint, vec3_t origin, vec3_t angles ) {
 		G_Error( "Couldn't find a spawn point" );
 	}
 
-	VectorCopy( spot->s.origin, origin );
+	origin = spot->s.origin;
 	origin[2] += 9;
-	VectorCopy( spot->s.angles, angles );
+	angles = spot->s.angles;
 
 	return spot;
 }
@@ -229,7 +232,7 @@ Try to find a spawn point marked 'initial', otherwise
 use normal spawn selection.
 ============
 */
-gentity_t *SelectInitialSpawnPoint( vec3_t origin, vec3_t angles ) {
+gentity_t *SelectInitialSpawnPoint( idVec3 &origin, idVec3 &angles ) {
 	gentity_t   *spot;
 
 	spot = NULL;
@@ -243,9 +246,9 @@ gentity_t *SelectInitialSpawnPoint( vec3_t origin, vec3_t angles ) {
 		return SelectSpawnPoint( vec3_origin, origin, angles );
 	}
 
-	VectorCopy( spot->s.origin, origin );
+	origin = spot->s.origin;
 	origin[2] += 9;
-	VectorCopy( spot->s.angles, angles );
+	angles = spot->s.angles;
 
 	return spot;
 }
@@ -256,11 +259,11 @@ SelectSpectatorSpawnPoint
 
 ============
 */
-gentity_t *SelectSpectatorSpawnPoint( vec3_t origin, vec3_t angles ) {
+gentity_t *SelectSpectatorSpawnPoint( idVec3 &origin, idVec3 &angles ) {
 	FindIntermissionPoint();
 
-	VectorCopy( level.intermission_origin, origin );
-	VectorCopy( level.intermission_angle, angles );
+	origin = level.intermission_origin;
+	angles = level.intermission_angle;
 
 	return NULL;
 }
@@ -351,7 +354,7 @@ void CopyToBodyQue( gentity_t *ent ) {
 	if ( body->s.groundEntityNum == ENTITYNUM_NONE ) {
 		body->s.pos.trType = TR_GRAVITY;
 		body->s.pos.trTime = level.time;
-		VectorCopy( ent->client->ps.velocity, body->s.pos.trDelta );
+		body->s.pos.trDelta = ent->client->ps.velocity;
 	} else {
 		body->s.pos.trType = TR_STATIONARY;
 	}
@@ -385,10 +388,10 @@ void CopyToBodyQue( gentity_t *ent ) {
 	// dhm
 
 	body->r.svFlags = ent->r.svFlags;
-	VectorCopy( ent->r.mins, body->r.mins );
-	VectorCopy( ent->r.maxs, body->r.maxs );
-	VectorCopy( ent->r.absmin, body->r.absmin );
-	VectorCopy( ent->r.absmax, body->r.absmax );
+	body->r.mins = ent->r.mins;
+	body->r.maxs = ent->r.maxs;
+	body->r.absmin = ent->r.absmin;
+	body->r.absmax = ent->r.absmax;
 
 	body->clipmask = CONTENTS_SOLID | CONTENTS_PLAYERCLIP;
 	body->r.contents = CONTENTS_CORPSE;
@@ -407,7 +410,7 @@ void CopyToBodyQue( gentity_t *ent ) {
 	}
 
 
-	VectorCopy( body->s.pos.trBase, body->r.currentOrigin );
+	body->r.currentOrigin = body->s.pos.trBase;
 	trap_LinkEntity( body );
 }
 
@@ -420,7 +423,7 @@ SetClientViewAngle
 
 ==================
 */
-void SetClientViewAngle( gentity_t *ent, vec3_t angle ) {
+void SetClientViewAngle( gentity_t *ent, idVec3 &angle ) {
 	int i;
 
 	// set the delta angle
@@ -430,8 +433,8 @@ void SetClientViewAngle( gentity_t *ent, vec3_t angle ) {
 		cmdAngle = ANGLE2SHORT( angle[i] );
 		ent->client->ps.delta_angles[i] = cmdAngle - ent->client->pers.cmd.angles[i];
 	}
-	VectorCopy( angle, ent->s.angles );
-	VectorCopy( ent->s.angles, ent->client->ps.viewangles );
+	ent->s.angles = angle;
+	ent->client->ps.viewangles = ent->s.angles;
 }
 
 /* JPW NERVE
@@ -655,14 +658,14 @@ void respawn( gentity_t *ent ) {
 		if ( !( ent->r.svFlags & SVF_CASTAI ) ) {
 			// Fast method, just do a map_restart, and then load in the savegame
 			// once everything is settled.
-			trap_SetConfigstring( CS_SCREENFADE, va( "1 %i 4000", level.time + 2000 ) );
+			trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i 4000", level.time + 2000 ) );
 //			reloading = qtrue;
 			trap_Cvar_Set( "g_reloading", "1" );
 
 //			level.reloadDelayTime = level.time + 1500;
 			level.reloadDelayTime = level.time + 6000;
 
-			trap_SendServerCommand( -1, va( "snd_fade 0 %d", 6000 ) );  // fade sound out
+			trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 0 %d", 6000 ) );  // fade sound out
 
 			return;
 		}
@@ -738,8 +741,8 @@ void ForceClientSkin( gclient_t *client, char *model, const char *skin ) {
 		*p = 0;
 	}
 
-	Q_strcat( model, MAX_QPATH, "/" );
-	Q_strcat( model, MAX_QPATH, skin );
+	idStr::Append( model, MAX_QPATH, "/" );
+	idStr::Append( model, MAX_QPATH, skin );
 }
 
 
@@ -759,47 +762,47 @@ void SetWolfSkin( gclient_t *client, char *model ) {
 
 	switch ( client->sess.sessionTeam ) {
 	case TEAM_RED:
-		Q_strcat( model, MAX_QPATH, "red" );
+		idStr::Append( model, MAX_QPATH, "red" );
 		break;
 	case TEAM_BLUE:
-		Q_strcat( model, MAX_QPATH, "blue" );
+		idStr::Append( model, MAX_QPATH, "blue" );
 		break;
 	default:
-		Q_strcat( model, MAX_QPATH, "red" );
+		idStr::Append( model, MAX_QPATH, "red" );
 		break;
 	}
 
 	switch ( client->sess.playerType ) {
 	case PC_SOLDIER:
-		Q_strcat( model, MAX_QPATH, "soldier" );
+		idStr::Append( model, MAX_QPATH, "soldier" );
 		break;
 	case PC_MEDIC:
-		Q_strcat( model, MAX_QPATH, "medic" );
+		idStr::Append( model, MAX_QPATH, "medic" );
 		break;
 	case PC_ENGINEER:
-		Q_strcat( model, MAX_QPATH, "engineer" );
+		idStr::Append( model, MAX_QPATH, "engineer" );
 		break;
 	case PC_LT:
-		Q_strcat( model, MAX_QPATH, "lieutenant" );
+		idStr::Append( model, MAX_QPATH, "lieutenant" );
 		break;
 	default:
-		Q_strcat( model, MAX_QPATH, "soldier" );
+		idStr::Append( model, MAX_QPATH, "soldier" );
 		break;
 	}
 
 	// DHM - A skinnum will be in the session data soon...
 	switch ( client->sess.playerSkin ) {
 	case 1:
-		Q_strcat( model, MAX_QPATH, "1" );
+		idStr::Append( model, MAX_QPATH, "1" );
 		break;
 	case 2:
-		Q_strcat( model, MAX_QPATH, "2" );
+		idStr::Append( model, MAX_QPATH, "2" );
 		break;
 	case 3:
-		Q_strcat( model, MAX_QPATH, "3" );
+		idStr::Append( model, MAX_QPATH, "3" );
 		break;
 	default:
-		Q_strcat( model, MAX_QPATH, "1" );
+		idStr::Append( model, MAX_QPATH, "1" );
 		break;
 	}
 }
@@ -827,7 +830,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 	// All players start with a knife (not OR-ing so that it clears previous weapons)
 	client->ps.weapons[0] = 0;
 	client->ps.weapons[1] = 0;
-	COM_BitSet( client->ps.weapons, WP_KNIFE );
+	idBitField::Set( client->ps.weapons, WP_KNIFE );
 
 	client->ps.ammo[BG_FindAmmoForWeapon( WP_KNIFE )] = 1;
 	client->ps.weapon = WP_KNIFE;
@@ -835,7 +838,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 
 	// Engineer gets dynamite
 	if ( pc == PC_ENGINEER ) {
-		COM_BitSet( client->ps.weapons, WP_DYNAMITE );
+		idBitField::Set( client->ps.weapons, WP_DYNAMITE );
 		client->ps.ammo[BG_FindAmmoForWeapon( WP_DYNAMITE )] = 0;
 		client->ps.ammoclip[BG_FindClipForWeapon( WP_DYNAMITE )] = 1;
 	}
@@ -844,7 +847,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 	if ( pc == PC_LT ) {
 		client->ps.stats[STAT_KEYS] |= ( 1 << INV_BINOCS );
 /* no grenades for balance JPW NERVE
-		COM_BitSet( client->ps.weapons, WP_GRENADE_LAUNCHER );
+		idBitField::Set( client->ps.weapons, WP_GRENADE_LAUNCHER );
 		client->ps.ammo[BG_FindAmmoForWeapon(WP_GRENADE_LAUNCHER)] = 2;
 		client->ps.ammoclip[BG_FindClipForWeapon(WP_GRENADE_LAUNCHER)] = 1;
 */
@@ -852,7 +855,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 
 	// Everyone except the Soldier has a special weapon
 	if ( pc != PC_SOLDIER ) {
-		COM_BitSet( client->ps.weapons, WP_CLASS_SPECIAL );
+		idBitField::Set( client->ps.weapons, WP_CLASS_SPECIAL );
 		client->ps.ammo[WP_CLASS_SPECIAL] = 1;
 		// ammo for other special weapons so that icons draw ok
 		client->ps.ammo[WP_MEDIC_HEAL] = 1;
@@ -863,13 +866,13 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 	switch ( client->sess.sessionTeam ) { // JPW NERVE was playerPistol
 
 	case TEAM_RED: // JPW NERVE
-		COM_BitSet( client->ps.weapons, WP_LUGER );
+		idBitField::Set( client->ps.weapons, WP_LUGER );
 		client->ps.ammoclip[BG_FindClipForWeapon( WP_LUGER )] += 8;
 		client->ps.ammo[BG_FindAmmoForWeapon( WP_LUGER )] += 24;
 		client->ps.weapon = WP_LUGER;
 		break;
 	default: // '0' // TEAM_BLUE
-		COM_BitSet( client->ps.weapons, WP_COLT );
+		idBitField::Set( client->ps.weapons, WP_COLT );
 		client->ps.ammoclip[BG_FindClipForWeapon( WP_COLT )] += 8;
 		client->ps.ammo[BG_FindAmmoForWeapon( WP_COLT )] += 24;
 		client->ps.weapon = WP_COLT;
@@ -882,17 +885,17 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 		switch ( client->sess.sessionTeam ) { // was playerItem
 
 		case TEAM_BLUE:
-			COM_BitSet( client->ps.weapons, WP_GRENADE_PINEAPPLE );
+			idBitField::Set( client->ps.weapons, WP_GRENADE_PINEAPPLE );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_GRENADE_PINEAPPLE )] = 4;
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_GRENADE_PINEAPPLE )] = 1;
 			break;
 		case TEAM_RED:
-			COM_BitSet( client->ps.weapons, WP_GRENADE_LAUNCHER );
+			idBitField::Set( client->ps.weapons, WP_GRENADE_LAUNCHER );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_GRENADE_LAUNCHER )] = 4;
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_GRENADE_LAUNCHER )] = 1;
 			break;
 		default:
-			COM_BitSet( client->ps.weapons, WP_GRENADE_PINEAPPLE );
+			idBitField::Set( client->ps.weapons, WP_GRENADE_PINEAPPLE );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_GRENADE_PINEAPPLE )] = 4;
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_GRENADE_PINEAPPLE )] = 1;
 			break;
@@ -914,7 +917,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 		switch ( client->sess.playerWeapon ) {
 
 		case 3:     // WP_MP40
-			COM_BitSet( client->ps.weapons, WP_MP40 );
+			idBitField::Set( client->ps.weapons, WP_MP40 );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_MP40 )] += 32;
 			if ( pc == PC_SOLDIER ) {
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_MP40 )] += 64;
@@ -925,7 +928,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 			break;
 
 		case 4:     // WP_THOMPSON
-			COM_BitSet( client->ps.weapons, WP_THOMPSON );
+			idBitField::Set( client->ps.weapons, WP_THOMPSON );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_THOMPSON )] += 30;
 			if ( pc == PC_SOLDIER ) {
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_THOMPSON )] += 60;
@@ -936,7 +939,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 			break;
 
 		case 5:     // WP_STEN
-			COM_BitSet( client->ps.weapons, WP_STEN );
+			idBitField::Set( client->ps.weapons, WP_STEN );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_STEN )] += 32;
 			if ( pc == PC_SOLDIER ) {
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_STEN )] += 64;
@@ -951,12 +954,12 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 
-			COM_BitSet( client->ps.weapons, WP_SNIPERRIFLE );
+			idBitField::Set( client->ps.weapons, WP_SNIPERRIFLE );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_SNIPERRIFLE )] = 10;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_SNIPERRIFLE )] = 10;
 			client->ps.weapon = WP_SNIPERRIFLE;
 
-			COM_BitSet( client->ps.weapons, WP_MAUSER );
+			idBitField::Set( client->ps.weapons, WP_MAUSER );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_MAUSER )] = 10;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_MAUSER )] = 10;
 			client->ps.weapon = WP_MAUSER;
@@ -967,12 +970,12 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 
-			COM_BitSet( client->ps.weapons, WP_SNOOPERSCOPE );
+			idBitField::Set( client->ps.weapons, WP_SNOOPERSCOPE );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_SNOOPERSCOPE )] = 5;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_SNOOPERSCOPE )] = 15;
 			client->ps.weapon = WP_SNOOPERSCOPE;
 
-			COM_BitSet( client->ps.weapons, WP_GARAND );
+			idBitField::Set( client->ps.weapons, WP_GARAND );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_GARAND )] = 5;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_GARAND )] = 15;
 			client->ps.weapon = WP_GARAND;
@@ -984,7 +987,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 
-			COM_BitSet( client->ps.weapons, WP_PANZERFAUST );
+			idBitField::Set( client->ps.weapons, WP_PANZERFAUST );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_PANZERFAUST )] = 4;
 			client->ps.weapon = WP_PANZERFAUST;
 			break;
@@ -994,7 +997,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 // JPW NERVE may not keep this, but put it in to test
-			COM_BitSet( client->ps.weapons, WP_VENOM );
+			idBitField::Set( client->ps.weapons, WP_VENOM );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_VENOM )] = 200;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_VENOM )] = 500;
 			client->ps.weapon = WP_VENOM;
@@ -1005,19 +1008,19 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 
-			COM_BitSet( client->ps.weapons, WP_FLAMETHROWER );
+			idBitField::Set( client->ps.weapons, WP_FLAMETHROWER );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_FLAMETHROWER )] = 300;
 			client->ps.weapon = WP_FLAMETHROWER;
 			break;
 
 		default:    // give MP40 if given invalid weapon number
 			if ( client->sess.sessionTeam == TEAM_RED ) { // JPW NERVE
-				COM_BitSet( client->ps.weapons, WP_MP40 );
+				idBitField::Set( client->ps.weapons, WP_MP40 );
 				client->ps.ammoclip[BG_FindClipForWeapon( WP_MP40 )] += 32;
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_MP40 )] += 64;
 				client->ps.weapon = WP_MP40;
 			} else { // TEAM_BLUE
-				COM_BitSet( client->ps.weapons, WP_THOMPSON );
+				idBitField::Set( client->ps.weapons, WP_THOMPSON );
 				client->ps.ammoclip[BG_FindClipForWeapon( WP_THOMPSON )] += 30;
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_THOMPSON )] += 60;
 				client->ps.weapon = WP_THOMPSON;
@@ -1026,11 +1029,11 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 		}
 	} else { // medic or engineer gets assigned MP40 or Thompson with one magazine ammo
 		if ( client->sess.sessionTeam == TEAM_RED ) { // axis
-			COM_BitSet( client->ps.weapons, WP_MP40 );
+			idBitField::Set( client->ps.weapons, WP_MP40 );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_MP40 )] += 32;
 			client->ps.weapon = WP_MP40;
 		} else { // allied
-			COM_BitSet( client->ps.weapons, WP_THOMPSON );
+			idBitField::Set( client->ps.weapons, WP_THOMPSON );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_THOMPSON )] += 30;
 			client->ps.weapon = WP_THOMPSON;
 		}
@@ -1100,7 +1103,7 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 		}
 
 		// check colors
-		if ( ch == Q_COLOR_ESCAPE ) {
+		if ( ch == C_COLOR_ESCAPE ) {
 			// solo trailing carat is not a color prefix
 			if ( !*in ) {
 				break;
@@ -1144,7 +1147,7 @@ static void ClientCleanName( const char *in, char *out, int outSize ) {
 
 	// don't allow empty names
 	if ( *p == 0 || colorlessLen == 0 ) {
-		Q_strncpyz( out, "UnnamedPlayer", outSize );
+		idStr::Copynz( out, "UnnamedPlayer", outSize );
 	}
 }
 
@@ -1165,7 +1168,7 @@ qboolean G_CheckForExistingModelInfo( gclient_t *cl, char *modelName, animModelI
 	for ( i = 0; i < MAX_ANIMSCRIPT_MODELS; i++ ) {
 		trav = level.animScriptData.modelInfo[i];
 		if ( trav && trav->modelname[0] ) {
-			if ( !Q_stricmp( trav->modelname, modelName ) ) {
+			if ( !idStr::Icmp( trav->modelname, modelName ) ) {
 				// found a match, use this modelinfo
 				*modelInfo = trav;
 				level.animScriptData.clientModels[cl->ps.clientNum] = i + 1;
@@ -1216,7 +1219,7 @@ qboolean G_ParseAnimationFiles( char *modelname, gclient_t *cl ) {
 	int len;
 
 	// set the name of the model in the modelinfo structure
-	Q_strncpyz( cl->modelInfo->modelname, modelname, sizeof( cl->modelInfo->modelname ) );
+	idStr::Copynz( cl->modelInfo->modelname, modelname, sizeof( cl->modelInfo->modelname ) );
 
 	// load the cfg file
 	Com_sprintf( filename, sizeof( filename ), "models/players/%s/wolfanim.cfg", modelname );
@@ -1263,7 +1266,7 @@ qboolean G_ParseAnimationFiles( char *modelname, gclient_t *cl ) {
 
 	// ask the client to send us the movespeeds if available
 	if ( g_gametype.integer == GT_SINGLE_PLAYER && g_entities[0].client && g_entities[0].client->pers.connected == CON_CONNECTED ) {
-		trap_SendServerCommand( 0, va( "mvspd %s", modelname ) );
+		trap_SendServerCommand( 0, idStr::FormatString( "mvspd %s", modelname ) );
 	}
 
 	return qtrue;
@@ -1284,6 +1287,7 @@ if desired.
 void ClientUserinfoChanged( int clientNum ) {
 	gentity_t *ent;
 	char    *s;
+	idStr userinfoString;
 	char model[MAX_QPATH], modelname[MAX_QPATH];
 
 //----(SA) added this for head separation
@@ -1337,19 +1341,19 @@ void ClientUserinfoChanged( int clientNum ) {
 	}
 
 	// set name
-	Q_strncpyz( oldname, client->pers.netname, sizeof( oldname ) );
+	idStr::Copynz( oldname, client->pers.netname, sizeof( oldname ) );
 	s = Info_ValueForKey( userinfo, "name" );
 	ClientCleanName( s, client->pers.netname, sizeof( client->pers.netname ) );
 
 	if ( client->sess.sessionTeam == TEAM_SPECTATOR ) {
 		if ( client->sess.spectatorState == SPECTATOR_SCOREBOARD ) {
-			Q_strncpyz( client->pers.netname, "scoreboard", sizeof( client->pers.netname ) );
+			idStr::Copynz( client->pers.netname, "scoreboard", sizeof( client->pers.netname ) );
 		}
 	}
 
 	if ( client->pers.connected == CON_CONNECTED ) {
 		if ( strcmp( oldname, client->pers.netname ) ) {
-			trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " renamed to %s\n\"", oldname,
+			trap_SendServerCommand( -1, idStr::FormatString( "print \"%s" S_COLOR_WHITE " renamed to %s\n\"", oldname,
 											client->pers.netname ) );
 		}
 	}
@@ -1363,10 +1367,10 @@ void ClientUserinfoChanged( int clientNum ) {
 
 	// set model
 	if ( g_forceModel.integer ) {
-		Q_strncpyz( model, DEFAULT_MODEL, sizeof( model ) );
-		Q_strcat( model, sizeof( model ), "/default" );
+		idStr::Copynz( model, DEFAULT_MODEL, sizeof( model ) );
+		idStr::Append( model, sizeof( model ), "/default" );
 	} else {
-		Q_strncpyz( model, Info_ValueForKey( userinfo, "model" ), sizeof( model ) );
+		idStr::Copynz( model, Info_ValueForKey( userinfo, "model" ), sizeof( model ) );
 	}
 
 	// RF, reset anims so client's dont freak out
@@ -1379,17 +1383,17 @@ void ClientUserinfoChanged( int clientNum ) {
 		// To communicate it to cgame
 		client->ps.stats[ STAT_PLAYER_CLASS ] = client->sess.playerType;
 
-		Q_strncpyz( model, MULTIPLAYER_MODEL, MAX_QPATH );
-		Q_strcat( model, MAX_QPATH, "/" );
+		idStr::Copynz( model, MULTIPLAYER_MODEL, MAX_QPATH );
+		idStr::Append( model, MAX_QPATH, "/" );
 
 		SetWolfSkin( client, model );
 
-		Q_strncpyz( head, "", MAX_QPATH );
+		idStr::Copynz( head, "", MAX_QPATH );
 		SetWolfSkin( client, head );
 	}
 
 	// strip the skin name
-	Q_strncpyz( modelname, model, sizeof( modelname ) );
+	idStr::Copynz( modelname, model, sizeof( modelname ) );
 	if ( strstr( modelname, "/" ) ) {
 		modelname[ strstr( modelname, "/" ) - modelname ] = 0;
 	} else if ( strstr( modelname, "\\" ) ) {
@@ -1409,9 +1413,9 @@ void ClientUserinfoChanged( int clientNum ) {
 //----(SA) added this for head separation
 		// set head
 		if ( g_forceModel.integer ) {
-			Q_strncpyz( head, DEFAULT_HEAD, sizeof( head ) );
+			idStr::Copynz( head, DEFAULT_HEAD, sizeof( head ) );
 		} else {
-			Q_strncpyz( head, Info_ValueForKey( userinfo, "head" ), sizeof( head ) );
+			idStr::Copynz( head, Info_ValueForKey( userinfo, "head" ), sizeof( head ) );
 		}
 
 //----(SA) end
@@ -1445,21 +1449,21 @@ void ClientUserinfoChanged( int clientNum ) {
 
 	if ( ent->r.svFlags & SVF_BOT ) {
 
-		s = va( "n\\%s\\t\\%i\\model\\%s\\head\\%s\\c1\\%s\\hc\\%i\\w\\%i\\l\\%i\\skill\\%s",
+		userinfoString.Format( "n\\%s\\t\\%i\\model\\%s\\head\\%s\\c1\\%s\\hc\\%i\\w\\%i\\l\\%i\\skill\\%s",
 				client->pers.netname, client->sess.sessionTeam, model, head, c1,
 				client->pers.maxHealth, client->sess.wins, client->sess.losses,
 				Info_ValueForKey( userinfo, "skill" ) );
 	} else {
-		s = va( "n\\%s\\t\\%i\\model\\%s\\head\\%s\\c1\\%s\\hc\\%i\\w\\%i\\l\\%i",
+		userinfoString.Format( "n\\%s\\t\\%i\\model\\%s\\head\\%s\\c1\\%s\\hc\\%i\\w\\%i\\l\\%i",
 				client->pers.netname, client->sess.sessionTeam, model, head, c1,
 				client->pers.maxHealth, client->sess.wins, client->sess.losses );
 	}
 
 //----(SA) end
 
-	trap_SetConfigstring( CS_PLAYERS + clientNum, s );
+	trap_SetConfigstring( CS_PLAYERS + clientNum, userinfoString );
 
-	G_LogPrintf( "ClientUserinfoChanged: %i %s\n", clientNum, s );
+	G_LogPrintf( "ClientUserinfoChanged: %i %s\n", clientNum, userinfoString.c_str() );
 }
 
 
@@ -1530,7 +1534,7 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 		// Ridah
 		if ( !( ent->r.svFlags & SVF_CASTAI ) ) {
 			// done.
-			trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
+			trap_SendServerCommand( -1, idStr::FormatString( "print \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
 		}
 	}
 
@@ -1607,7 +1611,7 @@ void ClientBegin( int clientNum ) {
 			// Ridah
 			if ( !( ent->r.svFlags & SVF_CASTAI ) ) {
 				// done.
-				trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " entered the game\n\"", client->pers.netname ) );
+				trap_SendServerCommand( -1, idStr::FormatString( "print \"%s" S_COLOR_WHITE " entered the game\n\"", client->pers.netname ) );
 			}
 		}
 	}
@@ -1629,7 +1633,7 @@ Initializes all non-persistant parts of playerState
 */
 void ClientSpawn( gentity_t *ent ) {
 	int index;
-	vec3_t spawn_origin, spawn_angles;
+	idVec3 spawn_origin, spawn_angles;
 	gclient_t   *client;
 	int i;
 	clientPersistant_t saved;
@@ -1650,9 +1654,9 @@ void ClientSpawn( gentity_t *ent ) {
 	// Ridah
 	if ( ent->r.svFlags & SVF_CASTAI ) {
 		spawnPoint = ent;
-		VectorCopy( ent->s.origin, spawn_origin );
+		spawn_origin = ent->s.origin;
 		spawn_origin[2] += 9;   // spawns seem to be sunk into ground?
-		VectorCopy( ent->s.angles, spawn_angles );
+		spawn_angles = ent->s.angles;
 	} else
 	{
 		ent->aiName = "player";  // needed for script AI
@@ -1760,12 +1764,12 @@ void ClientSpawn( gentity_t *ent ) {
 	ent->watertype = 0;
 	ent->flags = 0;
 
-	VectorCopy( playerMins, ent->r.mins );
-	VectorCopy( playerMaxs, ent->r.maxs );
+	ent->r.mins = playerMins;
+	ent->r.maxs = playerMaxs;
 
 	// Ridah, setup the bounding boxes and viewheights for prediction
-	VectorCopy( ent->r.mins, client->ps.mins );
-	VectorCopy( ent->r.maxs, client->ps.maxs );
+	client->ps.mins = ent->r.mins;
+	client->ps.maxs = ent->r.maxs;
 
 	client->ps.crouchViewHeight = CROUCH_VIEWHEIGHT;
 	client->ps.standViewHeight = DEFAULT_VIEWHEIGHT;
@@ -1799,10 +1803,10 @@ void ClientSpawn( gentity_t *ent ) {
 /*
 	if (!(ent->r.svFlags & SVF_CASTAI) && level.scriptAI && strstr (level.scriptAI, "beach assault"))
 	{
-		COM_BitSet( client->ps.weapons, WP_THOMPSON );
+		idBitField::Set( client->ps.weapons, WP_THOMPSON );
 		client->ps.ammo[BG_FindAmmoForWeapon(WP_THOMPSON)] = 100;
 
-		COM_BitSet( client->ps.weapons, WP_GRENADE_PINEAPPLE );
+		idBitField::Set( client->ps.weapons, WP_GRENADE_PINEAPPLE );
 		client->ps.ammo[BG_FindAmmoForWeapon(WP_GRENADE_PINEAPPLE)] = 5;
 
 		client->ps.weapon = WP_THOMPSON;
@@ -1831,7 +1835,7 @@ void ClientSpawn( gentity_t *ent ) {
 	ent->health = client->ps.stats[STAT_HEALTH] = client->ps.stats[STAT_MAX_HEALTH];
 
 	G_SetOrigin( ent, spawn_origin );
-	VectorCopy( spawn_origin, client->ps.origin );
+	client->ps.origin = spawn_origin;
 
 	// the respawned flag will be cleared after the attack and jump keys come up
 	client->ps.pm_flags |= PMF_RESPAWNED;
@@ -1890,7 +1894,7 @@ void ClientSpawn( gentity_t *ent ) {
 	// positively link the client, even if the command times are weird
 	if ( ent->client->sess.sessionTeam != TEAM_SPECTATOR ) {
 		BG_PlayerStateToEntityState( &client->ps, &ent->s, qtrue );
-		VectorCopy( ent->client->ps.origin, ent->r.currentOrigin );
+		ent->r.currentOrigin = ent->client->ps.origin;
 		trap_LinkEntity( ent );
 	}
 
@@ -1985,49 +1989,42 @@ G_RetrieveMoveSpeedsFromClient
 ==================
 */
 void G_RetrieveMoveSpeedsFromClient( int entnum, char *text ) {
-	char *text_p, *token;
+	idLexer lexer;
+	idToken token;
 	animation_t *anim;
 	animModelInfo_t *modelInfo;
 
-	text_p = text;
+	lexer.LoadMemory( text, strlen( text ), "movespeeds" );
 
 	// get the model name
-	token = COM_Parse( &text_p );
-	if ( !token || !token[0] ) {
+	if ( !lexer.ReadToken( &token ) ) {
 		G_Error( "G_RetrieveMoveSpeedsFromClient: internal error" );
 	}
 
-	modelInfo = BG_ModelInfoForModelname( token );
+	modelInfo = BG_ModelInfoForModelname( token.c_str() );
 
 	if ( !modelInfo ) {
 		// ignore it
 		return;
 	}
 
-	while ( 1 ) {
-		token = COM_Parse( &text_p );
-		if ( !token || !token[0] ) {
-			break;
-		}
-
+	while ( lexer.ReadToken( &token ) ) {
 		// this is a name
-		anim = BG_AnimationForString( token, modelInfo );
+		anim = BG_AnimationForString( token.c_str(), modelInfo );
 		if ( anim->moveSpeed == 0 ) {
 			G_Error( "G_RetrieveMoveSpeedsFromClient: trying to set movespeed for non-moving animation" );
 		}
 
 		// get the movespeed
-		token = COM_Parse( &text_p );
-		if ( !token || !token[0] ) {
+		if ( !lexer.ReadToken( &token ) ) {
 			G_Error( "G_RetrieveMoveSpeedsFromClient: missing movespeed" );
 		}
-		anim->moveSpeed = atoi( token );
+		anim->moveSpeed = atoi( token.c_str() );
 
 		// get the stepgap
-		token = COM_Parse( &text_p );
-		if ( !token || !token[0] ) {
+		if ( !lexer.ReadToken( &token ) ) {
 			G_Error( "G_RetrieveMoveSpeedsFromClient: missing stepGap" );
 		}
-		anim->stepGap = atoi( token );
+		anim->stepGap = atoi( token.c_str() );
 	}
 }

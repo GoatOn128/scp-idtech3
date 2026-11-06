@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cl_scrn.c -- master for refresh, status bar, console, chat, notify, etc
 
+#include "../precompiled.h"
+
 #include "client.h"
 
 qboolean scr_initialized;           // ready to draw
@@ -99,7 +101,7 @@ Coordinates are 640*480 virtual values
 =================
 */
 void SCR_FillRect( float x, float y, float width, float height, const float *color ) {
-	re.SetColor( color );
+	re.SetColor( color.ToFloatPtr() );
 
 	SCR_AdjustFrom640( &x, &y, &width, &height );
 	re.DrawStretchPic( x, y, width, height, 0, 0, 0, 0, cls.whiteShader );
@@ -204,14 +206,14 @@ Coordinates are at 640 by 480 virtual resolution
 ==================
 */
 void SCR_DrawStringExt( int x, int y, float size, const char *string, float *setColor, qboolean forceColor ) {
-	vec4_t color;
+	idVec4 color;
 	const char  *s;
 	int xx;
 
 	// draw the drop shadow
 	color[0] = color[1] = color[2] = 0;
 	color[3] = setColor[3];
-	re.SetColor( color );
+	re.SetColor( color.ToFloatPtr() );
 	s = string;
 	xx = x;
 	while ( *s ) {
@@ -234,7 +236,7 @@ void SCR_DrawStringExt( int x, int y, float size, const char *string, float *set
 			if ( !forceColor ) {
 				memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
 				color[3] = setColor[3];
-				re.SetColor( color );
+				re.SetColor( color.ToFloatPtr() );
 			}
 			s += 2;
 			continue;
@@ -255,8 +257,8 @@ void SCR_DrawBigString( int x, int y, const char *s, float alpha ) {
 	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, qfalse );
 }
 
-void SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color ) {
-	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color, qtrue );
+void SCR_DrawBigStringColor( int x, int y, const char *s, idVec4 color ) {
+	SCR_DrawStringExt( x, y, BIGCHAR_WIDTH, s, color.ToFloatPtr(), qtrue );
 }
 
 
@@ -271,7 +273,7 @@ Coordinates are at 640 by 480 virtual resolution
 ==================
 */
 void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, qboolean forceColor ) {
-	vec4_t color;
+	idVec4 color;
 	const char  *s;
 	int xx;
 
@@ -284,7 +286,7 @@ void SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, 
 			if ( !forceColor ) {
 				memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
 				color[3] = setColor[3];
-				re.SetColor( color );
+				re.SetColor( color.ToFloatPtr() );
 			}
 			s += 2;
 			continue;

@@ -322,32 +322,35 @@ extern sfxHandle_t menu_move_sound;
 extern sfxHandle_t menu_out_sound;
 extern sfxHandle_t menu_buzz_sound;
 extern sfxHandle_t menu_null_sound;
-extern vec4_t menu_text_color;
-extern vec4_t menu_grayed_color;
-extern vec4_t menu_dark_color;
-extern vec4_t menu_highlight_color;
-extern vec4_t menu_red_color;
-extern vec4_t menu_black_color;
-extern vec4_t menu_dim_color;
-extern vec4_t color_black;
+// ported from the old q3 mathlib
+extern idVec4 colorWhite;
+extern idVec4 colorBlack;
+extern idVec4 menu_text_color;
+extern idVec4 menu_grayed_color;
+extern idVec4 menu_dark_color;
+extern idVec4 menu_highlight_color;
+extern idVec4 menu_red_color;
+extern idVec4 menu_black_color;
+extern idVec4 menu_dim_color;
+extern idVec4 color_black;
 // JOSEPH 11-29-99
-extern vec4_t color_halfblack;
+extern idVec4 color_halfblack;
 // END JOSEPH
-extern vec4_t color_white;
-extern vec4_t color_yellow;
-extern vec4_t color_blue;
-extern vec4_t color_orange;
-extern vec4_t color_red;
-extern vec4_t color_dim;
-extern vec4_t name_color;
-extern vec4_t list_color;
-extern vec4_t listbar_color;
+extern idVec4 color_white;
+extern idVec4 color_yellow;
+extern idVec4 color_blue;
+extern idVec4 color_orange;
+extern idVec4 color_red;
+extern idVec4 color_dim;
+extern idVec4 name_color;
+extern idVec4 list_color;
+extern idVec4 listbar_color;
 // JOSEPH 11-23-99
-extern vec4_t listbar_color2;
+extern idVec4 listbar_color2;
 // END JOSEPH
-extern vec4_t text_color_disabled;
-extern vec4_t text_color_normal;
-extern vec4_t text_color_highlight;
+extern idVec4 text_color_disabled;
+extern idVec4 text_color_normal;
+extern idVec4 text_color_highlight;
 
 extern char *ui_medalNames[];
 extern char *ui_medalPicNames[];
@@ -359,7 +362,7 @@ extern char *ui_medalSounds[];
 extern void         MField_Clear( mfield_t *edit );
 extern void         MField_KeyDownEvent( mfield_t *edit, int key );
 extern void         MField_CharEvent( mfield_t *edit, int ch );
-extern void         MField_Draw( mfield_t *edit, int x, int y, int style, vec4_t color );
+extern void         MField_Draw( mfield_t *edit, int x, int y, int style, const idVec4 &color );
 // JOSEPH 11-23-99
 extern void         MenuField_Draw2( menufield_s *f, int specialtype );
 // END JOSEPH
@@ -544,12 +547,12 @@ typedef struct {
 	qhandle_t weaponModel;
 	qhandle_t barrelModel;
 	qhandle_t flashModel;
-	vec3_t flashDlightColor;
+	idVec3 flashDlightColor;
 	int muzzleFlashTime;
 
 	// currently in use drawing parms
-	vec3_t viewAngles;
-	vec3_t moveAngles;
+	idVec3 viewAngles;
+	idVec3 moveAngles;
 	weapon_t currentWeapon;
 	int legsAnim;
 	int torsoAnim;
@@ -578,7 +581,7 @@ typedef struct {
 	// parsed from the start of the cfg file
 	gender_t gender;
 	footstep_t footsteps;
-	vec3_t headOffset;
+	idVec3 headOffset;
 	int version;
 	qboolean isSkeletal;
 	int numAnimations;
@@ -590,7 +593,7 @@ typedef struct {
 
 void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int time );
 void UI_PlayerInfo_SetModel( playerInfo_t *pi, const char *model );
-void UI_PlayerInfo_SetInfo( playerInfo_t *pi, int legsAnim, int torsoAnim, vec3_t viewAngles, vec3_t moveAngles, weapon_t weaponNum, qboolean chat );
+void UI_PlayerInfo_SetInfo( playerInfo_t *pi, int legsAnim, int torsoAnim, const idVec3 &viewAngles, const idVec3 &moveAngles, weapon_t weaponNum, qboolean chat );
 qboolean UI_RegisterClientModelname( playerInfo_t *pi, const char *modelSkinName );
 
 //
@@ -928,19 +931,19 @@ extern qboolean     UI_ConsoleCommand( int realTime );
 extern float        UI_ClampCvar( float min, float max, float value );
 extern void         UI_DrawNamedPic( float x, float y, float width, float height, const char *picname );
 extern void         UI_DrawHandlePic( float x, float y, float w, float h, qhandle_t hShader );
-extern void         UI_FillRect( float x, float y, float width, float height, const float *color );
-extern void         UI_DrawRect( float x, float y, float width, float height, const float *color );
+extern void         UI_FillRect( float x, float y, float width, float height, const idVec4 &color );
+extern void         UI_DrawRect( float x, float y, float width, float height, const idVec4 &color );
 extern void     UI_DrawTopBottom( float x, float y, float w, float h );
 extern void     UI_DrawSides( float x, float y, float w, float h );
 extern void         UI_UpdateScreen( void );
 extern void         UI_SetColor( const float *rgba );
-extern void         UI_LerpColor( vec4_t a, vec4_t b, vec4_t c, float t );
-extern void         UI_DrawBannerString( int x, int y, const char* str, int style, vec4_t color );
+extern void         UI_LerpColor( const idVec4 &a, const idVec4 &b, const idVec4 &c, float t );
+extern void         UI_DrawBannerString( int x, int y, const char* str, int style, const idVec4 &color );
 extern float        UI_ProportionalSizeScale( int style );
-extern void         UI_DrawProportionalString( int x, int y, const char* str, int style, vec4_t color );
+extern void         UI_DrawProportionalString( int x, int y, const char* str, int style, const idVec4 &color );
 extern int          UI_ProportionalStringWidth( const char* str );
-extern void         UI_DrawString( int x, int y, const char* str, int style, vec4_t color );
-extern void         UI_DrawChar( int x, int y, int ch, int style, vec4_t color );
+extern void         UI_DrawString( int x, int y, const char* str, int style, const idVec4 &color );
+extern void         UI_DrawChar( int x, int y, int ch, int style, const idVec4 &color );
 extern qboolean     UI_CursorInRect( int x, int y, int width, int height );
 extern void         UI_AdjustFrom640( float *x, float *y, float *w, float *h );
 extern void         UI_DrawTextBox( int x, int y, int width, int lines );
@@ -1014,12 +1017,12 @@ qhandle_t       trap_R_RegisterShaderNoMip( const char *name );
 void            trap_R_ClearScene( void );
 void            trap_R_AddRefEntityToScene( const refEntity_t *re );
 void            trap_R_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts );
-void            trap_R_AddLightToScene( const vec3_t org, float intensity, float r, float g, float b, int overdraw );
-void            trap_R_AddCoronaToScene( const vec3_t org, float r, float g, float b, float scale, int id, int flags );
+void            trap_R_AddLightToScene( const idVec3 &org, float intensity, float r, float g, float b, int overdraw );
+void            trap_R_AddCoronaToScene( const idVec3 &org, float r, float g, float b, float scale, int id, int flags );
 void            trap_R_RenderScene( const refdef_t *fd );
 void            trap_R_SetColor( const float *rgba );
 void            trap_R_DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, qhandle_t hShader );
-void            trap_R_ModelBounds( clipHandle_t model, vec3_t mins, vec3_t maxs );
+void            trap_R_ModelBounds( clipHandle_t model, idVec3 &mins, idVec3 &maxs );
 void            trap_UpdateScreen( void );
 int             trap_CM_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagName, int startIndex );
 void            trap_S_StartLocalSound( sfxHandle_t sfx, int channelNum );

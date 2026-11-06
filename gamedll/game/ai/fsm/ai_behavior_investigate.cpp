@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -34,7 +36,7 @@ char *AIFunc_InspectFriendly( cast_state_t *cs ) {
 	bot_moveresult_t *moveresult;
 	gentity_t *followent, *ent;
 	ai_client_state_t *bs;
-	vec3_t destorg;
+	idVec3 destorg;
 	float dist;
 	qboolean moved = qfalse;
 
@@ -86,13 +88,13 @@ char *AIFunc_InspectFriendly( cast_state_t *cs ) {
 	}
 
 	if ( followent->client ) {
-		VectorCopy( followent->client->ps.origin, destorg );
+		destorg = followent->client->ps.origin;
 	} else {
-		VectorCopy( followent->r.currentOrigin, destorg );
+		destorg = followent->r.currentOrigin;
 	}
 
 	// they are ready, are they inside range? FIXME: make configurable
-	dist = Distance( destorg, cs->clientState->origin );
+	dist = ( destorg - cs->clientState->origin ).Length();
 	if ( !( dist < cs->navigation.followDist &&
 			( ent->waterlevel || ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE ) ) ) ) {
 		//
@@ -107,7 +109,7 @@ char *AIFunc_InspectFriendly( cast_state_t *cs ) {
 		if ( !moved && ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE ||
 						 g_entities[cs->entityNum].waterlevel > 1 ) ) {
 			aicast_predictmove_t move;
-			vec3_t dir;
+			idVec3 dir;
 			bot_input_t bi;
 			usercmd_t ucmd;
 			trace_t tr;
@@ -119,8 +121,8 @@ char *AIFunc_InspectFriendly( cast_state_t *cs ) {
 
 			if ( !simTest ) {
 				// trace will eliminate most unsuccessful paths
-				trap_Trace( &tr, cs->clientState->origin, NULL /*g_entities[cs->entityNum].r.mins*/,
-							NULL /*g_entities[cs->entityNum].r.maxs*/, followent->r.currentOrigin, cs->entityNum,
+				trap_Trace( &tr, cs->clientState->origin, vec3_origin,
+							vec3_origin, followent->r.currentOrigin, cs->entityNum,
 							g_entities[cs->entityNum].clipmask );
 				if ( tr.entityNum == cs->navigation.followEntity || tr.fraction == 1 ) {
 					simTest = qtrue;
@@ -129,14 +131,14 @@ char *AIFunc_InspectFriendly( cast_state_t *cs ) {
 
 			if ( simTest ) {
 				// try walking straight to them
-				VectorSubtract( followent->r.currentOrigin, cs->clientState->origin, dir );
-				VectorNormalize( dir );
+				dir = followent->r.currentOrigin - cs->clientState->origin;
+				dir.Normalize();
 				if ( !ent->waterlevel ) {
 					dir[2] = 0;
 				}
 				//trap_EA_Move(cs->entityNum, dir, 400);
 				trap_EA_GetInput( cs->entityNum, (float)level.time / 1000, &bi );
-				VectorCopy( dir, bi.dir );
+				bi.dir = dir;
 				bi.speed = 400;
 				bi.actionflags = 0;
 				AICast_InputToUserCommand( cs, &bi, &ucmd, bs->cur_ps.delta_angles );
@@ -144,7 +146,10 @@ char *AIFunc_InspectFriendly( cast_state_t *cs ) {
 
 				if ( move.stopevent == PREDICTSTOP_HITENT ) { // success!
 					trap_EA_Move( cs->entityNum, dir, 400 ); // set the movement
-					vectoangles( dir, cs->ideal_viewangles );
+					{
+						const idAngles convertedAngles = dir.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					cs->ideal_viewangles[2] *= 0.5;
 					moved = qtrue;
 				} else { // clear movement
@@ -165,12 +170,15 @@ char *AIFunc_InspectFriendly( cast_state_t *cs ) {
 						cs->aiFlags |= AIFL_MISCFLAG2;
 					} else {
 						// if it failed, just use their origin for now, but keep checking
-						VectorCopy( followent->r.currentOrigin, cs->combat.takeCoverEnemyPos );
+						cs->combat.takeCoverEnemyPos = followent->r.currentOrigin;
 					}
 				}
-				VectorSubtract( cs->combat.takeCoverEnemyPos, cs->clientState->origin, destorg );
-				VectorNormalize( destorg );
-				vectoangles( destorg, cs->ideal_viewangles );
+				destorg = cs->combat.takeCoverEnemyPos - cs->clientState->origin;
+				destorg.Normalize();
+				{
+					const idAngles convertedAngles = destorg.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 			}
 		}
 
@@ -256,22 +264,22 @@ char *AIFunc_InspectFriendly( cast_state_t *cs ) {
 
 			cs->idleYaw = AICast_GetRandomViewAngle( cs, 512 );
 
-			if ( fabs( AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] ) ) < 45 ) {
+			if ( fabs( idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] ) ) < 45 ) {
 				cs->nextIdleAngleChange = level.time + 1000 + rand() % 2500;
 			} else { // do really fast
 				cs->nextIdleAngleChange = level.time + 500;
 			}
 
 			// adjust with time
-			cs->idleYawChange = AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
+			cs->idleYawChange = idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
 			/// ((float)(cs->nextIdleAngleChange - level.time) / 1000.0);
 
 			cs->ideal_viewangles[PITCH] = 0;
 		}
 	} else if ( cs->idleYawChange ) {
-		cs->idleYawChange = AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
+		cs->idleYawChange = idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
 		cs->ideal_viewangles[YAW] =
-			AngleMod( cs->ideal_viewangles[YAW] + ( cs->idleYawChange * cs->clientState->thinktime ) );
+			idMath::AngleNormalize360( cs->ideal_viewangles[YAW] + ( cs->idleYawChange * cs->clientState->thinktime ) );
 	}
 
 	// set head look flag if no enemy
@@ -354,7 +362,7 @@ AIFunc_InspectBulletImpact()
 char *AIFunc_InspectBulletImpact( cast_state_t *cs ) {
 	int enemies[MAX_CLIENTS];
 	gentity_t *ent;
-	vec3_t v1;
+	idVec3 v1;
 	gclient_t *client;
 	//
 	client = &level.clients[cs->entityNum];
@@ -380,9 +388,12 @@ char *AIFunc_InspectBulletImpact( cast_state_t *cs ) {
 		// pause any scripting
 		cs->script.scriptPauseTime = level.time + 1000;
 		// look at bullet impact
-		VectorSubtract( cs->perception.bulletImpactEnd, cs->clientState->origin, v1 );
-		VectorNormalize( v1 );
-		vectoangles( v1, cs->ideal_viewangles );
+		v1 = cs->perception.bulletImpactEnd - cs->clientState->origin;
+		v1.Normalize();
+		{
+			const idAngles convertedAngles = v1.ToAngles();
+			cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+		}
 		//
 		// if we are facing that direction, we've looked at the impact point
 		if ( fabs( cs->ideal_viewangles[YAW] - cs->viewangles[YAW] ) < 1 ) {
@@ -393,15 +404,18 @@ char *AIFunc_InspectBulletImpact( cast_state_t *cs ) {
 		// clear the flag now
 		cs->aiFlags &= ~AIFL_MISCFLAG1;
 		// start looking back at bullet
-		VectorSubtract( cs->perception.bulletImpactStart, cs->clientState->origin, v1 );
-		VectorNormalize( v1 );
-		vectoangles( v1, cs->ideal_viewangles );
+		v1 = cs->perception.bulletImpactStart - cs->clientState->origin;
+		v1.Normalize();
+		{
+			const idAngles convertedAngles = v1.ToAngles();
+			cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+		}
 		if ( cs->aiState < AISTATE_ALERT ) {
 			// change to alert state
 			if ( !AICast_StateChange( cs, AISTATE_ALERT ) ) {
 				if ( cs->lastEnemy < 0 && cs->enemyNum < 0 ) {
 					// look back at our original angles
-					VectorCopy( ent->s.angles, cs->ideal_viewangles );
+					cs->ideal_viewangles = ent->s.angles;
 				}
 				// stop doing whatever we are doing, and return control to scripting
 				cs->script.scriptPauseTime = 0;
@@ -424,7 +438,7 @@ char *AIFunc_InspectBulletImpact( cast_state_t *cs ) {
 	if ( cs->script.scriptPauseTime < level.time ) {
 		if ( cs->lastEnemy < 0 && cs->enemyNum < 0 ) {
 			// look back at our original angles
-			VectorCopy( ent->s.angles, cs->ideal_viewangles );
+			cs->ideal_viewangles = ent->s.angles;
 		}
 		return AIFunc_IdleStart( cs );
 	}
@@ -509,7 +523,7 @@ char *AIFunc_InspectAudibleEvent( cast_state_t *cs ) {
 	bot_moveresult_t *moveresult;
 	gentity_t *ent;
 	ai_client_state_t *bs;
-	vec3_t destorg, vec;
+	idVec3 destorg, vec;
 	float dist;
 	qboolean moved = qfalse;
 
@@ -548,10 +562,10 @@ char *AIFunc_InspectAudibleEvent( cast_state_t *cs ) {
 		return NULL;
 	}
 
-	VectorCopy( cs->perception.audibleEventOrg, destorg );
+	destorg = cs->perception.audibleEventOrg;
 
 	// they are ready, are they inside range? FIXME: make configurable
-	dist = Distance( destorg, cs->clientState->origin );
+	dist = ( destorg - cs->clientState->origin ).Length();
 	if ( !( dist < cs->navigation.followDist &&
 			( ent->waterlevel || ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE ) ) ) ) {
 		//
@@ -572,7 +586,7 @@ char *AIFunc_InspectAudibleEvent( cast_state_t *cs ) {
 		if ( !moved && ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE ||
 						 g_entities[cs->entityNum].waterlevel > 1 ) ) {
 			aicast_predictmove_t move;
-			vec3_t dir;
+			idVec3 dir;
 			bot_input_t bi;
 			usercmd_t ucmd;
 			trace_t tr;
@@ -584,8 +598,8 @@ char *AIFunc_InspectAudibleEvent( cast_state_t *cs ) {
 
 			if ( !simTest ) {
 				// trace will eliminate most unsuccessful paths
-				trap_Trace( &tr, cs->clientState->origin, NULL /*g_entities[cs->entityNum].r.mins*/,
-							NULL /*g_entities[cs->entityNum].r.maxs*/, destorg, cs->entityNum,
+				trap_Trace( &tr, cs->clientState->origin, vec3_origin,
+							vec3_origin, destorg, cs->entityNum,
 							g_entities[cs->entityNum].clipmask );
 				if ( tr.fraction == 1 ) {
 					simTest = qtrue;
@@ -597,16 +611,16 @@ char *AIFunc_InspectAudibleEvent( cast_state_t *cs ) {
 				gentity_t *gent;
 				//
 				gent = G_Spawn();
-				VectorCopy( destorg, gent->r.currentOrigin );
+				gent->r.currentOrigin = destorg;
 				//
-				VectorSubtract( destorg, cs->clientState->origin, dir );
-				VectorNormalize( dir );
+				dir = destorg - cs->clientState->origin;
+				dir.Normalize();
 				if ( !ent->waterlevel ) {
 					dir[2] = 0;
 				}
 				//trap_EA_Move(cs->entityNum, dir, 400);
 				trap_EA_GetInput( cs->entityNum, (float)level.time / 1000, &bi );
-				VectorCopy( dir, bi.dir );
+				bi.dir = dir;
 				bi.speed = 400;
 				bi.actionflags = 0;
 				AICast_InputToUserCommand( cs, &bi, &ucmd, bs->cur_ps.delta_angles );
@@ -614,7 +628,10 @@ char *AIFunc_InspectAudibleEvent( cast_state_t *cs ) {
 				//
 				if ( move.stopevent == PREDICTSTOP_HITENT ) { // success!
 					trap_EA_Move( cs->entityNum, dir, 400 );
-					vectoangles( dir, cs->ideal_viewangles );
+					{
+						const idAngles convertedAngles = dir.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					cs->ideal_viewangles[2] *= 0.5;
 					moved = qtrue;
 				} else { // clear movement
@@ -635,22 +652,28 @@ char *AIFunc_InspectAudibleEvent( cast_state_t *cs ) {
 				if ( trap_AAS_GetRouteFirstVisPos( cs->perception.audibleEventOrg, cs->clientState->origin,
 												   cs->travelflags, destorg ) ) {
 					cs->aiFlags |= AIFL_MISCFLAG2;
-					VectorSubtract( destorg, cs->clientState->origin, destorg );
-					VectorNormalize( destorg );
-					vectoangles( destorg, cs->ideal_viewangles );
+					destorg = destorg - cs->clientState->origin;
+					destorg.Normalize();
+					{
+						const idAngles convertedAngles = destorg.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					return NULL;
 				}
 
 				if ( cs->lastEnemy < 0 && cs->enemyNum < 0 ) {
 					// look back at our original angles
-					VectorCopy( ent->s.angles, cs->ideal_viewangles );
+					cs->ideal_viewangles = ent->s.angles;
 				}
 				return AIFunc_DefaultStart( cs );
 			} else if ( !moveresult ) { // face it?
 				if ( trap_InPVS( destorg, cs->clientState->origin ) ) {
-					VectorSubtract( destorg, cs->clientState->origin, vec );
-					VectorNormalize( vec );
-					vectoangles( vec, cs->ideal_viewangles );
+					vec = destorg - cs->clientState->origin;
+					vec.Normalize();
+					{
+						const idAngles convertedAngles = vec.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 				}
 			}
 		}
@@ -685,14 +708,14 @@ char *AIFunc_InspectAudibleEvent( cast_state_t *cs ) {
 			cs->combat.battleHuntViewTime = level.time + 700 + rand() % 1000;
 			// set a random viewangle
 			cs->ideal_viewangles[YAW] =
-				AngleMod( cs->ideal_viewangles[YAW] + ( 45.0 + random() * 45.0 ) * ( 2 * ( rand() % 2 ) - 1 ) );
+				idMath::AngleNormalize360( cs->ideal_viewangles[YAW] + ( 45.0 + gameRandom.RandomFloat() * 45.0 ) * ( 2 * ( rand() % 2 ) - 1 ) );
 		}
 		//
 		if ( cs->script.scriptPauseTime < level.time ) {
 			// we're done waiting around here
 			if ( cs->lastEnemy < 0 && cs->enemyNum < 0 ) {
 				// look back at our original angles
-				VectorCopy( ent->s.angles, cs->ideal_viewangles );
+				cs->ideal_viewangles = ent->s.angles;
 			}
 			return AIFunc_DefaultStart( cs );
 		}
@@ -820,7 +843,7 @@ char *AIFunc_InspectBody( cast_state_t *cs ) {
 	int numEnemies;
 	bot_moveresult_t *moveresult;
 	ai_client_state_t *bs;
-	vec3_t destorg, enemyOrg;
+	idVec3 destorg, enemyOrg;
 	//
 	// stop crouching
 	cs->attackcrouch_time = 0;
@@ -876,10 +899,10 @@ char *AIFunc_InspectBody( cast_state_t *cs ) {
 		return AIFunc_BattleStart( cs );
 	}
 	//
-	VectorCopy( cs->perception.vislist[cs->enemyNum].visible_pos, enemyOrg );
-	if ( ( cs->inspectBodyTime < 0 ) && ( Distance( cs->clientState->origin, enemyOrg ) > 64 ) ) {
+	enemyOrg = cs->perception.vislist[cs->enemyNum].visible_pos;
+	if ( ( cs->inspectBodyTime < 0 ) && ( cs->clientState->origin - enemyOrg ).Length() > 64 ) {
 		// if they were gibbed, don't go all the way
-		if ( g_entities[cs->enemyNum].health < GIB_HEALTH && ( Distance( cs->clientState->origin, enemyOrg ) < 180 ) ) {
+		if ( g_entities[cs->enemyNum].health < GIB_HEALTH && ( cs->clientState->origin - enemyOrg ).Length() < 180 ) {
 			cs->inspectBodyTime = level.time + 1000 + rand() % 1000;
 			trap_EA_Gesture( cs->entityNum );
 			G_AddEvent( &g_entities[cs->entityNum], EV_GENERAL_SOUND,
@@ -900,12 +923,15 @@ char *AIFunc_InspectBody( cast_state_t *cs ) {
 			cs->enemyNum = -1;
 			return AIFunc_IdleStart( cs );
 		}
-		if ( Distance( cs->clientState->origin, enemyOrg ) < 180 ) {
+		if ( ( cs->clientState->origin - enemyOrg ).Length() < 180 ) {
 			// look down at them
-			VectorSubtract( enemyOrg, cs->clientState->origin, destorg );
+			destorg = enemyOrg - cs->clientState->origin;
 			destorg[2] -= 20;
-			VectorNormalize( destorg );
-			vectoangles( destorg, cs->ideal_viewangles );
+			destorg.Normalize();
+			{
+				const idAngles convertedAngles = destorg.ToAngles();
+				cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+			}
 		}
 	} else if ( cs->inspectBodyTime < 0 ) {
 		// just reached them
@@ -914,11 +940,11 @@ char *AIFunc_InspectBody( cast_state_t *cs ) {
 		G_AddEvent( &g_entities[cs->entityNum], EV_GENERAL_SOUND,
 					G_SoundIndex( aiDefaults[cs->aiCharacter].soundScripts[ORDERSSOUNDSCRIPT] ) );
 	} else if ( cs->inspectBodyTime < level.time ) {
-		vec3_t vec;
-		VectorSubtract( cs->startOrigin, cs->clientState->origin, vec );
+		idVec3 vec;
+		vec = cs->startOrigin - cs->clientState->origin;
 		vec[2] = 0;
 		// ready to go back to start position
-		if ( VectorLength( vec ) > 64 ) {
+		if ( vec.Length() > 64 ) {
 			if ( cs->movestate != MS_CROUCH ) {
 				cs->movestate = MS_WALK;
 			}
@@ -935,10 +961,13 @@ char *AIFunc_InspectBody( cast_state_t *cs ) {
 			// stay looking at them for a bit after starting to walk back
 			if ( cs->inspectBodyTime + 750 > level.time ) {
 				// look down at them
-				VectorSubtract( enemyOrg, cs->clientState->origin, destorg );
+				destorg = enemyOrg - cs->clientState->origin;
 				destorg[2] -= 20;
-				VectorNormalize( destorg );
-				vectoangles( destorg, cs->ideal_viewangles );
+				destorg.Normalize();
+				{
+					const idAngles convertedAngles = destorg.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 			}
 		} else {
 			cs->attackSNDtime = level.time;

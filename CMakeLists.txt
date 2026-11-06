@@ -2,12 +2,18 @@ cmake_minimum_required(VERSION 3.25)
 
 project(WolfSP LANGUAGES C CXX)
 
+# The Windows toolchain is intentionally 32-bit.  The original asset tools
+# use 32-bit file formats and are not supported as x64 executables.
+if ( WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8 )
+	message(FATAL_ERROR "Windows builds must use the Win32/x86 toolchain; x64 is unsupported")
+endif()
+
 # the AI state machine uses scoped enums: build as C++14 everywhere
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if ( WIN32 )
-    enable_language( RC )
+	enable_language( RC )
 endif()
 
 function(set_output_directory target)
@@ -48,8 +54,6 @@ function(configure_target target)
 		target_compile_definitions(${target} PRIVATE
 			$<$<CONFIG:Debug>:_DEBUG;DEBUG>
 			$<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
-		# the engine passes string literals to char * parameters everywhere:
-		# silence those deprecation warnings on gcc and clang
 		if ( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 			target_compile_options(${target} PRIVATE
 				-Wno-writable-strings -Wno-deprecated-writable-strings
@@ -59,8 +63,8 @@ function(configure_target target)
 		endif()
 	endif()
 
-	# platform wide macros, see PLATFORM_DEFINES at the top of this file
 	target_compile_definitions(${target} PRIVATE ${PLATFORM_DEFINES})
+	target_include_directories(${target} PRIVATE ${CMAKE_SOURCE_DIR}/idlib)
 	set_output_directory(${target} ${ARGN})
 endfunction()
 
@@ -68,14 +72,10 @@ if ( MSVC )
 	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-# Platform defines that used to live in the ifdef blocks of q_shared.h and
-# q_splineshared.h; every target gets them through configure_target
+# Platform defines
 set(PLATFORM_DEFINES "MAC_STATIC=")
 if ( WIN32 )
 	list(APPEND PLATFORM_DEFINES "QDECL=__cdecl")
-	# PATH_SEP is the backslash character on Windows. cl takes the /D
-	# definition raw while gcc and clang unescape it once, so assemble the
-	# value with string(ASCII) instead of backslash literals
 	string(ASCII 92 Q_BACKSLASH)
 	if ( MSVC )
 		string(CONCAT Q_PATH_SEP "PATH_SEP='" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "'")
@@ -83,13 +83,7 @@ if ( WIN32 )
 		string(CONCAT Q_PATH_SEP "PATH_SEP='" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "'")
 	endif()
 	list(APPEND PLATFORM_DEFINES "${Q_PATH_SEP}")
-if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
-		set(Q_CPUSTRING "win-x64")
-	else()
-		set(Q_CPUSTRING "win-x86")
-	endif()
-	# keep the -debug suffix of the original defines in debug builds
-	list(APPEND PLATFORM_DEFINES "CPUSTRING=\"${Q_CPUSTRING}$<$<CONFIG:Debug>:-debug>\"")
+list(APPEND PLATFORM_DEFINES "CPUSTRING=\"win-x86$<$<CONFIG:Debug>:-debug>\"")
 elseif ( APPLE )
 	list(APPEND PLATFORM_DEFINES "QDECL=" "PATH_SEP='/'")
 	list(APPEND PLATFORM_DEFINES "CPUSTRING=\"macos-${CMAKE_SYSTEM_PROCESSOR}\"")
@@ -107,20 +101,17 @@ else()
 	list(APPEND PLATFORM_DEFINES "CPUSTRING=\"${Q_CPUSTRING}\"")
 endif()
 
-# Define the module hard-link macros. The game, cgame and ui modules then
-# drop their local Com_Error/Com_Printf stubs and bind the engine's
-# functions instead; the exe exports the two for them (engine/CMakeLists.txt)
 option(HARD_LINKED_MODULES "Define the GAME/CGAME/UI/BOTLIB_HARD_LINKED macros so the modules bind the engine's Com_Error and Com_Printf" OFF)
 if ( HARD_LINKED_MODULES )
 	list(APPEND PLATFORM_DEFINES GAME_HARD_LINKED CGAME_HARD_LINKED UI_HARD_LINKED BOTLIB_HARD_LINKED)
 endif()
 
+# idLib
+add_subdirectory(idlib)
 
 # External
 add_subdirectory(external)
 
-# external/ stays untouched: its detour target carries an MSVC-only /wd4127
-# warning option that gcc and clang reject, so drop it again for other compilers
 if ( NOT MSVC )
 	get_target_property( detour_compile_options detour COMPILE_OPTIONS )
 	if ( detour_compile_options )
@@ -129,11 +120,10 @@ if ( NOT MSVC )
 	endif()
 endif()
 
-# Tools (Windows only, they carry win32 specific code)
-if ( WIN32 )
-	add_subdirectory(tools/bspc)
-	add_subdirectory(tools/extractfuncs)
-endif()
+# Tools
+add_subdirectory(tools/bspc)
+add_subdirectory(tools/extractfuncs)
+add_subdirectory(tools/q3map)
 
 # GameDLLs
 add_subdirectory(gamedll/botlib)

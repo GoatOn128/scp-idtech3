@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 
 // Wolf-specific debris, shell, spirit and emitter behavior hosted by the FX runtime.
+#include "../precompiled.h"
+
 #include "FxScheduler.h"
 #include "cg_fx.h"
 
@@ -59,10 +61,10 @@ void CG_BloodTrail( fxEntity_t *le ) {
 	int t;
 	int t2;
 	int step;
-	vec3_t newOrigin;
+	idVec3 newOrigin;
 
 #ifndef BLOOD_PARTICLE_TRAIL
-	static vec3_t col = {1,1,1};
+	static idVec3 col(1,1,1);
 #endif
 
 	centity_t   *cent;
@@ -77,7 +79,7 @@ void CG_BloodTrail( fxEntity_t *le ) {
 	step = CG_FxInt( "wolf/controller_bloodtrail", "step" );
 #else
 	// time it takes to move 3 units
-	step = ( 1000 * 3 ) / VectorLength( le->pos.trDelta );
+	step = ( 1000 * 3 ) / ( le->pos.trDelta.Length() );
 #endif
 
 	if ( cent && cent->currentState.aiChar == AICHAR_ZOMBIE ) {
@@ -91,12 +93,12 @@ void CG_BloodTrail( fxEntity_t *le ) {
 		BG_EvaluateTrajectory( &le->pos, t, newOrigin );
 
 #ifdef BLOOD_PARTICLE_TRAIL
-		CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, CG_FxInt( "wolf/controller_bloodtrail", "Particle_Bleed_value" ), CG_FxInt( "wolf/controller_bloodtrail", "tuning" ) + rand() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_2" ) );
+		CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, CG_FxInt( "wolf/controller_bloodtrail", "Particle_Bleed_value" ), CG_FxInt( "wolf/controller_bloodtrail", "tuning" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_2" ) );
 #else
 
 
 		if ( cent && cent->currentState.aiChar == AICHAR_ZOMBIE ) {
-			CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, CG_FxInt( "wolf/controller_bloodtrail", "Particle_Bleed_value_2" ), CG_FxInt( "wolf/controller_bloodtrail", "tuning_3" ) + rand() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_4" ) );
+			CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, CG_FxInt( "wolf/controller_bloodtrail", "Particle_Bleed_value_2" ), CG_FxInt( "wolf/controller_bloodtrail", "tuning_3" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_4" ) );
 		} else {
 			// Ridah, blood trail using trail code (should be faster since we don't have to spawn as many)
 			le->headJuncIndex = CG_FxTrail( "wolf/trail_gib_blood", le->headJuncIndex, newOrigin,
@@ -121,8 +123,8 @@ void CG_FragmentBounceMark( fxEntity_t *le, trace_t *trace ) {
 
 		// don't drop too many blood marks
 		if ( !( lastBloodMark > cg.time || lastBloodMark > cg.time - CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning" ) ) ) {
-			radius = CG_FxInt( "wolf/controller_fragmentbouncemark", "radius" ) + ( rand() & CG_FxInt( "wolf/controller_fragmentbouncemark", "radius_2" ) );
-			CG_ImpactMark( cgs.media.bloodDotShaders[rand() % 5], trace->endpos, trace->plane.normal, random() * CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning_2" ),
+			radius = CG_FxInt( "wolf/controller_fragmentbouncemark", "radius" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_fragmentbouncemark", "radius_2" ) );
+			CG_ImpactMark( cgs.media.bloodDotShaders[cgRandom.RandomInt() % 5], trace->endpos, trace->plane.normal, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning_2" ),
 						   CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_4" ), qtrue, radius, qfalse, cg_bloodTime.integer * CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_5" ) );
 
 			lastBloodMark = cg.time;
@@ -142,8 +144,8 @@ CG_FragmentBounceSound
 void CG_FragmentBounceSound( fxEntity_t *le, trace_t *trace ) {
 	if ( le->leBounceSoundType == LEBS_BLOOD ) {
 		// half the gibs will make splat sounds
-		if ( rand() & 1 ) {
-			int r = rand() & 3;
+		if ( cgRandom.RandomInt() & 1 ) {
+			int r = cgRandom.RandomInt() & 3;
 			sfxHandle_t s;
 
 			if ( r < 2 ) {
@@ -160,8 +162,8 @@ void CG_FragmentBounceSound( fxEntity_t *le, trace_t *trace ) {
 //----(SA) added
 	} else if ( le->leBounceSoundType == LEBS_ROCK ) {
 		// half the hits will make thunk sounds	(this is just to start since we don't even have the sound yet... (SA))
-		if ( rand() & 1 ) {
-			int r = rand() & 3;
+		if ( cgRandom.RandomInt() & 1 ) {
+			int r = cgRandom.RandomInt() & 3;
 			sfxHandle_t s;
 
 			if ( r < 2 ) {
@@ -193,19 +195,19 @@ CG_ReflectVelocity
 ================
 */
 void CG_ReflectVelocity( fxEntity_t *le, trace_t *trace ) {
-	vec3_t velocity;
+	idVec3 velocity;
 	float dot;
 	int hitTime;
 
 	// reflect the velocity on the trace plane
 	hitTime = cg.time - cg.frametime + cg.frametime * trace->fraction;
 	BG_EvaluateTrajectoryDelta( &le->pos, hitTime, velocity );
-	dot = DotProduct( velocity, trace->plane.normal );
-	VectorMA( velocity, -2 * dot, trace->plane.normal, le->pos.trDelta );
+	dot = ( velocity * trace->plane.normal );
+	( le->pos.trDelta = velocity + trace->plane.normal * -2 * dot );
 
-	VectorScale( le->pos.trDelta, le->bounceFactor, le->pos.trDelta );
+	( le->pos.trDelta = le->pos.trDelta * le->bounceFactor );
 
-	VectorCopy( trace->endpos, le->pos.trBase );
+	( le->pos.trBase = trace->endpos );
 	le->pos.trTime = cg.time;
 
 
@@ -242,7 +244,7 @@ CG_AddEmitter
 ==============
 */
 void CG_AddEmitter( fxEntity_t *le ) {
-	vec3_t dir;
+	idVec3 dir;
 	int nextTime = CG_FxInt( "wolf/controller_addemitter", "nextTime" );
 
 	if ( le->breakCount > cg.time ) {  // using 'breakCount' for 'wait'
@@ -264,11 +266,11 @@ void CG_AddEmitter( fxEntity_t *le ) {
 //		CG_Particle_Bleed(cgs.media.smokePuffShader, le->pos.trBase, dir, 0, 200);
 
 	case 1:     // oil
-		VectorScale( le->angles.trBase, le->radius, dir );
+		( dir = le->angles.trBase * le->radius );
 		CG_Particle_OilParticle( CG_FxMaterial( "wolf/controller_addemitter", "oilParticle" ), le->pos.trBase, dir,  CG_FxInt( "wolf/controller_addemitter", "tuning" ), le->ownerNum );
 		break;
 	case 2:     // water
-		VectorScale( le->angles.trBase, le->radius, dir );
+		( dir = le->angles.trBase * le->radius );
 		CG_Particle_OilParticle( CG_FxMaterial( "wolf/controller_addemitter", "oilParticle" ), le->pos.trBase, dir,  CG_FxInt( "wolf/controller_addemitter", "tuning_2" ), le->ownerNum );
 		break;
 	case 3:     // steam
@@ -277,7 +279,7 @@ void CG_AddEmitter( fxEntity_t *le ) {
 		CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addemitter", "smokeParticleShader" ), le->pos.trBase, le->angles.trBase, CG_FxInt( "wolf/controller_addemitter", "tuning_3" ), CG_FxInt( "wolf/controller_addemitter", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_addemitter", "tuning_4" ), le->radius, CG_FxInt( "wolf/controller_addemitter", "tuning_5" ), CG_FxValue( "wolf/controller_addemitter", "ParticleImpactSmokePuffExtended_value_2" ) );
 		break;
 	case 4:     // wine
-		VectorScale( le->angles.trBase, le->radius, dir );
+		( dir = le->angles.trBase * le->radius );
 		CG_Particle_OilParticle( CG_FxMaterial( "wolf/controller_addemitter", "oilParticle" ), le->pos.trBase, dir,  CG_FxInt( "wolf/controller_addemitter", "tuning_6" ), le->ownerNum );
 		break;
 	case 5:     // smoke
@@ -309,11 +311,11 @@ CG_AddFragment
 ================
 */
 void CG_AddFragment( fxEntity_t *le ) {
-	vec3_t newOrigin;
+	idVec3 newOrigin;
 	trace_t trace;
 	refEntity_t     *re;
 	float flameAlpha = CG_FxValue( "wolf/controller_addfragment", "flameAlpha" );   // TTimo: init
-	vec3_t flameDir;
+	idVec3 flameDir;
 	qboolean hasFlame = qfalse;
 	int i;
 	int contents;
@@ -353,12 +355,12 @@ void CG_AddFragment( fxEntity_t *le ) {
 		//	TODO: FIXME: this is not quite right, because it'll become fps dependant - in a bad way.
 		//		the slower the fps, the /more/ smoke there'll be, probably driving the fps lower.
 		if ( !cg_paused.integer ) {    // don't add while paused
-			if ( !( rand() % CG_FxInt( "wolf/controller_addfragment", "tuning_3" ) ) ) {
+			if ( !( cgRandom.RandomInt() % CG_FxInt( "wolf/controller_addfragment", "tuning_3" ) ) ) {
 				alpha = CG_FxValue( "wolf/controller_addfragment", "alpha" ) - ( (float)( cg.time - le->startTime ) / (float)( le->endTime - le->startTime ) );
 				alpha *= CG_FxValue( "wolf/controller_addfragment", "alpha_2" );
 				memset( &flash, 0, sizeof( flash ) );
 				CG_PositionEntityOnTag( &flash, &le->refEntity, "tag_flash", 0, NULL );
-				CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addfragment", "smokeParticleShader" ), flash.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_addfragment", "tuning_4" ), CG_FxInt( "wolf/controller_addfragment", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_addfragment", "tuning_5" ), CG_FxInt( "wolf/controller_addfragment", "tuning_6" ), CG_FxInt( "wolf/controller_addfragment", "tuning_7" ), alpha );
+				CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addfragment", "smokeParticleShader" ), flash.origin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_addfragment", "tuning_4" ), CG_FxInt( "wolf/controller_addfragment", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_addfragment", "tuning_5" ), CG_FxInt( "wolf/controller_addfragment", "tuning_6" ), CG_FxInt( "wolf/controller_addfragment", "tuning_7" ), alpha );
 			}
 		}
 	}
@@ -373,11 +375,11 @@ void CG_AddFragment( fxEntity_t *le ) {
 
 			backupEnt = le->refEntity;
 
-			VectorClear( flameDir );
+			flameDir.Zero();
 			flameDir[2] = 1;
 
 			le->refEntity.shaderRGBA[3] = ( unsigned char )( 255.0 * flameAlpha );
-			VectorCopy( flameDir, le->refEntity.fireRiseDir );
+			( le->refEntity.fireRiseDir = flameDir );
 			le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addfragment", "onFireShader" );
 			trap_R_AddRefEntityToScene( &le->refEntity );
 			le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addfragment", "onFireShader2" );
@@ -400,11 +402,11 @@ void CG_AddFragment( fxEntity_t *le ) {
 
 			backupEnt = le->refEntity;
 
-			VectorClear( flameDir );
+			flameDir.Zero();
 			flameDir[2] = 1;
 
 			le->refEntity.shaderRGBA[3] = ( unsigned char )( 255.0 * flameAlpha );
-			VectorCopy( flameDir, le->refEntity.fireRiseDir );
+			( le->refEntity.fireRiseDir = flameDir );
 			le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addfragment", "onFireShader" );
 			trap_R_AddRefEntityToScene( &le->refEntity );
 			le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addfragment", "onFireShader2" );
@@ -419,13 +421,13 @@ void CG_AddFragment( fxEntity_t *le ) {
 
 		// trace a line from previous position down, to see if I should start falling again
 
-		VectorCopy( le->refEntity.origin, newOrigin );
+		( newOrigin = le->refEntity.origin );
 		newOrigin [2] -= CG_FxInt( "wolf/controller_addfragment", "_" );
 		CG_Trace( &trace, le->refEntity.origin, NULL, NULL, newOrigin, -1, CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_MISSILECLIP );
 
 		if ( trace.fraction == 1.0 ) { // it's clear, start moving again
-			VectorClear( le->pos.trDelta );
-			VectorClear( le->angles.trDelta );
+			le->pos.trDelta.Zero();
+			le->angles.trDelta.Zero();
 			le->pos.trType = TR_GRAVITY;    // nothing below me, start falling again
 		} else {
 			return;
@@ -437,13 +439,13 @@ void CG_AddFragment( fxEntity_t *le ) {
 
 	if ( hasFlame ) {
 		// calc the flame dir
-		VectorSubtract( le->refEntity.origin, newOrigin, flameDir );
-		if ( VectorLength( flameDir ) == 0 ) {
+		( flameDir = le->refEntity.origin - newOrigin );
+		if ( ( flameDir.Length() ) == 0 ) {
 			flameDir[2] = 1;
 			// play a burning sound when not moving
 			trap_S_AddLoopingSound( 0, newOrigin, vec3_origin, cgs.media.flameSound, (int)( 0.3 * 255.0 * flameAlpha ) );
 		} else {
-			VectorNormalize( flameDir );
+			flameDir.Normalize();
 			// play a flame blow sound when moving
 			trap_S_AddLoopingSound( 0, newOrigin, vec3_origin, cgs.media.flameBlowSound, (int)( 0.3 * 255.0 * flameAlpha ) );
 		}
@@ -462,14 +464,14 @@ void CG_AddFragment( fxEntity_t *le ) {
 	if ( le->leFlags & LEF_PLAYER_DAMAGE ) {
 		// only do damage if travelling at a fast enough velocity
 		if ( newOrigin[2] < le->refEntity.origin[2] ) {
-			vec3_t pmin, pmax, dmin = {-(float)CG_FxInt( "wolf/controller_addfragment", "dmin" ),-(float)CG_FxInt( "wolf/controller_addfragment", "dmin_2" ),-(float)CG_FxInt( "wolf/controller_addfragment", "dmin_3" )}, dmax = {(float)CG_FxInt( "wolf/controller_addfragment", "dmin_4" ),(float)CG_FxInt( "wolf/controller_addfragment", "dmin_5" ),(float)CG_FxInt( "wolf/controller_addfragment", "dmin_6" )};
+			idVec3 pmin, pmax, dmin(-(float)CG_FxInt( "wolf/controller_addfragment", "dmin" ),-(float)CG_FxInt( "wolf/controller_addfragment", "dmin_2" ),-(float)CG_FxInt( "wolf/controller_addfragment", "dmin_3" )), dmax((float)CG_FxInt( "wolf/controller_addfragment", "dmin_4" ),(float)CG_FxInt( "wolf/controller_addfragment", "dmin_5" ),(float)CG_FxInt( "wolf/controller_addfragment", "dmin_6" ));
 			// debris bounds
-			VectorAdd( dmin, newOrigin, dmin );
-			VectorAdd( dmax, newOrigin, dmax );
+			( dmin = dmin + newOrigin );
+			( dmax = dmax + newOrigin );
 			dmax[2] += le->refEntity.origin[2] - newOrigin[2];  // add falling distance to box
 			// are we touching the player?
-			VectorAdd( cg.snap->ps.mins, cg.snap->ps.origin, pmin );
-			VectorAdd( cg.snap->ps.maxs, cg.snap->ps.origin, pmax );
+			( pmin = cg.snap->ps.mins + cg.snap->ps.origin );
+			( pmax = cg.snap->ps.maxs + cg.snap->ps.origin );
 			pmin[2] = pmax[2] - CG_FxInt( "wolf/controller_addfragment", "pmin_z" ); // only hit on the head
 			for ( i = 0; i < 3; i++ ) {
 				if ( ( dmax[i] < pmin[i] ) || ( dmin[i] > pmax[i] ) ) {
@@ -488,15 +490,15 @@ void CG_AddFragment( fxEntity_t *le ) {
 	if ( trace.fraction == 1.0 ) {
 
 		// still in free fall
-		VectorCopy( newOrigin, le->refEntity.origin );
+		( le->refEntity.origin = newOrigin );
 
 		if ( le->leFlags & LEF_TUMBLE || le->angles.trType == TR_LINEAR ) {
-			vec3_t angles;
+			idVec3 angles;
 
 			BG_EvaluateTrajectory( &le->angles, cg.time, angles );
-			AnglesToAxis( angles, le->refEntity.axis );
+			idAngles( angles[0], angles[1], angles[2] ).ToVectors( &le->refEntity.axis[0], &le->refEntity.axis[1], &le->refEntity.axis[2] );
 			if ( le->sizeScale && le->sizeScale != 1.0 ) {
-				for ( i = 0; i < 3; i++ ) VectorScale( le->refEntity.axis[i], le->sizeScale, le->refEntity.axis[i] );
+				for ( i = 0; i < 3; i++ ) ( le->refEntity.axis[i] = le->refEntity.axis[i] * le->sizeScale );
 			}
 		}
 
@@ -507,7 +509,7 @@ void CG_AddFragment( fxEntity_t *le ) {
 			backupEnt = le->refEntity;
 
 			le->refEntity.shaderRGBA[3] = ( unsigned char )( 255.0 * flameAlpha );
-			VectorCopy( flameDir, le->refEntity.fireRiseDir );
+			( le->refEntity.fireRiseDir = flameDir );
 			le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addfragment", "onFireShader" );
 			trap_R_AddRefEntityToScene( &le->refEntity );
 			le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addfragment", "onFireShader2" );
@@ -554,7 +556,7 @@ void CG_AddFragment( fxEntity_t *le ) {
 		clientInfo_t    *ci;
 		int clientNum;
 		fxEntity_t   *nle;
-		vec3_t dir;
+		idVec3 dir;
 
 		clientNum = le->ownerNum;
 		if ( clientNum < 0 || clientNum >= MAX_CLIENTS ) {
@@ -567,9 +569,9 @@ void CG_AddFragment( fxEntity_t *le ) {
 			nle = CG_FxSpawnModel( "wolf/controller_addfragment" );
 			*nle = *le;
 			if ( nle->breakCount-- < 2 ) {
-				nle->refEntity.hModel = ci->gibModels[rand() % 2];
+				nle->refEntity.hModel = ci->gibModels[cgRandom.RandomInt() % 2];
 			} else {
-				nle->refEntity.hModel = ci->gibModels[rand() % 4];
+				nle->refEntity.hModel = ci->gibModels[cgRandom.RandomInt() % 4];
 			}
 			// make it smaller
 			nle->endTime = le->endTime + ( cg.time - le->startTime );
@@ -579,10 +581,10 @@ void CG_AddFragment( fxEntity_t *le ) {
 				nle->leBounceSoundType = (leBounceSoundType_t)CG_FxInt( "wolf/controller_addfragment", "nle_leBounceSoundType" );
 			}
 			// move us a bit
-			VectorNormalize2( nle->pos.trDelta, dir );
-			VectorMA( trace.endpos, CG_FxValue( "wolf/controller_addfragment", "tuning_8" ) * le->sizeScale * i, dir, nle->pos.trBase );
+			( dir = nle->pos.trDelta ).Normalize();
+			( nle->pos.trBase = trace.endpos + dir * CG_FxValue( "wolf/controller_addfragment", "tuning_8" ) * le->sizeScale * i );
 			// randomize vel a bit
-			VectorMA( nle->pos.trDelta, VectorLength( nle->pos.trDelta ) * 0.3, bytedirs[rand() % NUMVERTEXNORMALS], nle->pos.trDelta );
+			( nle->pos.trDelta = nle->pos.trDelta + bytedirs[cgRandom.RandomInt() % NUMVERTEXNORMALS] * ( nle->pos.trDelta.Length() ) * 0.3 );
 		}
 		// we're done
 		CG_FxFreeEntity( le );
@@ -607,7 +609,7 @@ void CG_AddFragment( fxEntity_t *le ) {
 		backupEnt = le->refEntity;
 
 		le->refEntity.shaderRGBA[3] = ( unsigned char )( 255.0 * flameAlpha );
-		VectorCopy( flameDir, le->refEntity.fireRiseDir );
+		( le->refEntity.fireRiseDir = flameDir );
 		le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addfragment", "onFireShader" );
 		trap_R_AddRefEntityToScene( &le->refEntity );
 		le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addfragment", "onFireShader2" );
@@ -626,11 +628,11 @@ CG_AddMovingTracer
 ================
 */
 void CG_AddMovingTracer( fxEntity_t *le ) {
-	vec3_t start, end, dir;
+	idVec3 start, end, dir;
 
 	BG_EvaluateTrajectory( &le->pos, cg.time, start );
-	VectorNormalize2( le->pos.trDelta, dir );
-	VectorMA( start, cg_tracerLength.value, dir, end );
+	( dir = le->pos.trDelta ).Normalize();
+	( end = start + dir * cg_tracerLength.value );
 
 	CG_DrawTracer( start, end );
 }
@@ -641,7 +643,7 @@ CG_AddSparkElements
 ================
 */
 void CG_AddSparkElements( fxEntity_t *le ) {
-	vec3_t newOrigin;
+	idVec3 newOrigin;
 	trace_t trace;
 	float time;
 	float lifeFrac;
@@ -660,12 +662,12 @@ void CG_AddSparkElements( fxEntity_t *le ) {
 		// if stuck, kill it
 		if ( trace.startsolid ) {
 			// HACK, some walls screw up, so just pass through if starting in a solid
-			VectorCopy( newOrigin, trace.endpos );
+			( trace.endpos = newOrigin );
 			trace.fraction = 1.0;
 		}
 
 		// moved some distance
-		VectorCopy( trace.endpos, le->refEntity.origin );
+		( le->refEntity.origin = trace.endpos );
 /*
 		} else
 		{	// just move it there
@@ -759,29 +761,29 @@ CG_AddClientCritter
 ================
 */
 void CG_AddClientCritter( fxEntity_t *le ) {
-	vec3_t newOrigin;
+	idVec3 newOrigin;
 	trace_t trace;
 	int time, step = CG_FxInt( "wolf/controller_addclientcritter", "step" ), i;
-	vec3_t v, ang, v2, oDelta;
+	idVec3 v, ang, v2, oDelta;
 	fxEntity_t backup;
 	float oldSpeed, enemyDist, of;
-	vec3_t enemyPos;
+	idVec3 enemyPos;
 	float alpha = CG_FxValue( "wolf/controller_addclientcritter", "alpha" ), fadeRatio; // TTimo: init
 
 	if ( cg_entities[le->ownerNum].currentState.otherEntityNum2 == cg.snap->ps.clientNum ) {
-		VectorCopy( cg.snap->ps.origin, enemyPos );
+		( enemyPos = cg.snap->ps.origin );
 		enemyPos[2] += cg.snap->ps.viewheight;
 	} else {
-		VectorCopy( cg_entities[le->ownerNum].currentState.origin2, enemyPos );
+		( enemyPos = cg_entities[le->ownerNum].currentState.origin2 );
 	}
 
-	VectorCopy( le->pos.trDelta, oDelta );
+	( oDelta = le->pos.trDelta );
 
 	// vary the enemyPos to create a psuedo-randomness
 	of = (float)cg.time + le->startTime;
-	enemyPos[0] += CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_x" ) * ( sin( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_x_2" ) ) * cos( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_x_3" ) ) );
-	enemyPos[1] += CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_y" ) * ( sin( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_y_2" ) ) * cos( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_y_3" ) ) );
-	enemyPos[2] += CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_z" ) * ( sin( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_z_2" ) ) * cos( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_z_3" ) ) );
+	enemyPos[0] += CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_x" ) * ( idMath::Sin( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_x_2" ) ) * idMath::Cos( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_x_3" ) ) );
+	enemyPos[1] += CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_y" ) * ( idMath::Sin( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_y_2" ) ) * idMath::Cos( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_y_3" ) ) );
+	enemyPos[2] += CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_z" ) * ( idMath::Sin( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_z_2" ) ) * idMath::Cos( of / CG_FxInt( "wolf/controller_addclientcritter", "enemyPos_z_3" ) ) );
 
 	time = le->lastTrailTime + step;
 
@@ -808,8 +810,8 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 		// calculate new position
 		BG_EvaluateTrajectory( &le->pos, time, newOrigin );
 
-		VectorSubtract( enemyPos, le->refEntity.origin, v );
-		enemyDist = VectorNormalize( v );
+		( v = enemyPos - le->refEntity.origin );
+		enemyDist = v.Normalize();
 
 		// trace a line from previous position to new position
 		CG_Trace( &trace, le->refEntity.origin, NULL, NULL, newOrigin, le->ownerNum, MASK_SHOT );
@@ -822,16 +824,16 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 				CG_FxFreeEntity( le );
 				return;
 			} else {
-				VectorCopy( newOrigin, trace.endpos );
+				( trace.endpos = newOrigin );
 			}
 		}
 
 		// moved some distance
-		VectorCopy( trace.endpos, le->refEntity.origin );
+		( le->refEntity.origin = trace.endpos );
 
 		// record this pos
 		le->validOldPos[le->oldPosHead] = 1;
-		VectorCopy( le->refEntity.origin, le->oldPos[le->oldPosHead] );
+		( le->oldPos[le->oldPosHead] = le->refEntity.origin );
 		if ( ++le->oldPosHead >= MAX_OLD_POS ) {
 			le->oldPosHead = 0;
 		}
@@ -852,12 +854,12 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 		} else {
 			le->bounceFactor = CG_FxValue( "wolf/controller_addclientcritter", "le_bounceFactor_2" ) * (float)step / 1000.0;
 		}
-		oldSpeed = VectorLength( le->pos.trDelta );
+		oldSpeed = ( le->pos.trDelta.Length() );
 
 		// track the enemy
 		backup = *le;
-		VectorSubtract( enemyPos, le->refEntity.origin, v );
-		enemyDist = VectorNormalize( v );
+		( v = enemyPos - le->refEntity.origin );
+		enemyDist = v.Normalize();
 
 		if ( alpha > 0.5 && ( le->lastSpiritDmgTime < time - CG_FxInt( "wolf/controller_addclientcritter", "tuning" ) ) && enemyDist < CG_FxInt( "wolf/controller_addclientcritter", "tuning_2" ) ) {
 			fxEntity_t *fb;
@@ -880,9 +882,9 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 			}
 		}
 
-		VectorMA( le->pos.trDelta, le->bounceFactor * oldSpeed, v, le->pos.trDelta );
+		( le->pos.trDelta = le->pos.trDelta + v * le->bounceFactor * oldSpeed );
 		//VectorCopy( v, le->pos.trDelta );
-		if ( VectorLength( le->pos.trDelta ) < 1 ) {
+		if ( ( le->pos.trDelta.Length() ) < 1 ) {
 			CG_FxFreeEntity( le );
 			return;
 		}
@@ -891,9 +893,9 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 
 		// the intersection is a fraction of the frametime
 		le->pos.trTime = time;
-		VectorCopy( le->refEntity.origin, le->pos.trBase );
-		VectorNormalize( le->pos.trDelta );
-		VectorScale( le->pos.trDelta, oldSpeed, le->pos.trDelta );
+		( le->pos.trBase = le->refEntity.origin );
+		le->pos.trDelta.Normalize();
+		( le->pos.trDelta = le->pos.trDelta * oldSpeed );
 
 		// now trace ahead of time, if we're going to hit something, then avoid it
 		// only avoid dangers if we don't have direct sight to the enemy
@@ -902,32 +904,32 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 			BG_EvaluateTrajectory( &le->pos, time + 1000, newOrigin );
 
 			// if we would go passed the enemy, don't bother
-			if ( VectorDistance( le->refEntity.origin, enemyPos ) > VectorDistance( le->refEntity.origin, newOrigin ) ) {
+			if ( ((le->refEntity.origin) - (enemyPos)).Length() > ((le->refEntity.origin) - (newOrigin)).Length() ) {
 
 				trap_CM_BoxTrace( &trace, le->refEntity.origin, newOrigin, NULL, NULL, 0, MASK_SOLID );
 
 				if ( trace.fraction < 1.0 ) {
 					// make sure we are not heading away from the enemy too much
-					VectorNormalize2( le->pos.trDelta, v2 );
-					if ( DotProduct( v, v2 ) > 0.7 ) {
+					( v2 = le->pos.trDelta ).Normalize();
+					if ( ( v * v2 ) > 0.7 ) {
 						// avoid world geometry
 						backup = *le;
 						le->bounceFactor = ( CG_FxValue( "wolf/controller_addclientcritter", "le_bounceFactor_4" ) - trace.fraction ) * CG_FxValue( "wolf/controller_addclientcritter", "le_bounceFactor_5" ) * (float)step / 1000.0;  // tracking and avoidance factor
 						// reflect the velocity on the trace plane
-						VectorMA( le->pos.trDelta, le->bounceFactor * oldSpeed, trace.plane.normal, le->pos.trDelta );
-						if ( VectorLength( le->pos.trDelta ) < 1 ) {
+						( le->pos.trDelta = le->pos.trDelta + trace.plane.normal * le->bounceFactor * oldSpeed );
+						if ( ( le->pos.trDelta.Length() ) < 1 ) {
 							CG_FxFreeEntity( le );
 							return;
 						}
 						// the intersection is a fraction of the frametime
 						le->pos.trTime = time;
-						VectorCopy( le->refEntity.origin, le->pos.trBase );
-						VectorNormalize( le->pos.trDelta );
-						VectorScale( le->pos.trDelta, oldSpeed, le->pos.trDelta );
+						( le->pos.trBase = le->refEntity.origin );
+						le->pos.trDelta.Normalize();
+						( le->pos.trDelta = le->pos.trDelta * oldSpeed );
 						//
 						// double check end velocity
-						VectorNormalize2( le->pos.trDelta, v2 );
-						if ( DotProduct( v, v2 ) <= 0.2 ) {
+						( v2 = le->pos.trDelta ).Normalize();
+						if ( ( v * v2 ) <= 0.2 ) {
 							// restore
 							*le = backup;
 						}
@@ -937,18 +939,18 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 		}
 
 		// set the angles
-		VectorNormalize2( oDelta, v );
+		( v = oDelta ).Normalize();
 		// HACK!!! skull model is back-to-front, need to fix
 		if ( le->leType == LE_ZOMBIE_SPIRIT /*|| le->leType == LE_HELGA_SPIRIT*/ ) {
-			VectorInverse( v );
+			( v = -v );
 		}
-		vectoangles( v, ang );
-		AnglesToAxis( ang, le->refEntity.axis );
+		idAngles angles = v.ToAngles();
+		angles.ToVectors( &le->refEntity.axis[0], &le->refEntity.axis[1], &le->refEntity.axis[2] );
 		// lean when turning
 		if ( le->leType == LE_ZOMBIE_BAT || le->leType == LE_HELGA_SPIRIT ) {
-			VectorSubtract( le->pos.trDelta, oDelta, v2 );
-			ang[ROLL] = -CG_FxValue( "wolf/controller_addclientcritter", "ang_ROLL_" ) * DotProduct( le->refEntity.axis[1], v2 );
-			if ( fabs( ang[ROLL] ) < CG_FxInt( "wolf/controller_addclientcritter", "tuning_3" ) ) {
+			( v2 = le->pos.trDelta - oDelta );
+			ang[ROLL] = -CG_FxValue( "wolf/controller_addclientcritter", "ang_ROLL_" ) * ( le->refEntity.axis[1] * v2 );
+			if ( idMath::Fabs( ang[ROLL] ) < CG_FxInt( "wolf/controller_addclientcritter", "tuning_3" ) ) {
 				ang[ROLL] = CG_FxInt( "wolf/controller_addclientcritter", "ang_ROLL__2" );
 			} else {
 				if ( ang[ROLL] < 0 ) {
@@ -957,20 +959,20 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 					ang[ROLL] -= CG_FxInt( "wolf/controller_addclientcritter", "ang_ROLL__4" );
 				}
 			}
-			if ( fabs( ang[ROLL] ) > CG_FxInt( "wolf/controller_addclientcritter", "tuning_4" ) ) {
+			if ( idMath::Fabs( ang[ROLL] ) > CG_FxInt( "wolf/controller_addclientcritter", "tuning_4" ) ) {
 				if ( ang[ROLL] > CG_FxInt( "wolf/controller_addclientcritter", "tuning_5" ) ) {
 					ang[ROLL] = CG_FxInt( "wolf/controller_addclientcritter", "ang_ROLL__5" );
 				} else { ang[ROLL] = -CG_FxInt( "wolf/controller_addclientcritter", "ang_ROLL__6" );}
 			}
-			AnglesToAxis( ang, le->refEntity.axis );
+			idAngles( ang[0], ang[1], ang[2] ).ToVectors( &le->refEntity.axis[0], &le->refEntity.axis[1], &le->refEntity.axis[2] );
 		}
 
 		// HACK: the skull is slightly higher than the origin
 		if ( le->leType == LE_ZOMBIE_SPIRIT ) {
 			// set the size scale
 			for ( i = 0; i < 3; i++ )
-				VectorScale( le->refEntity.axis[i], 0.35, le->refEntity.axis[i] );
-			VectorMA( le->refEntity.origin, -CG_FxInt( "wolf/controller_addclientcritter", "tuning_6" ), le->refEntity.axis[2], le->refEntity.origin );
+				( le->refEntity.axis[i] = le->refEntity.axis[i] * 0.35 );
+			( le->refEntity.origin = le->refEntity.origin + le->refEntity.axis[2] * -CG_FxInt( "wolf/controller_addclientcritter", "tuning_6" ) );
 		}
 
 		le->lastTrailTime = time;
@@ -1024,10 +1026,10 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 	if ( le->leType == LE_ZOMBIE_BAT ) {
 		//
 		le->refEntity.shaderRGBA[3] = 255;
-		VectorNormalize2( le->pos.trDelta, v );
-		VectorInverse( v );
+		( v = le->pos.trDelta ).Normalize();
+		( v = -v );
 		v[2] += 1;
-		VectorNormalize2( v, le->refEntity.fireRiseDir );
+		( le->refEntity.fireRiseDir = v ).Normalize();
 
 		le->refEntity.customShader = CG_FxMaterial( "wolf/controller_addclientcritter", "onFireShader2" );
 		trap_R_AddRefEntityToScene( &le->refEntity );
@@ -1045,7 +1047,7 @@ CG_AddDebrisElements
 ================
 */
 void CG_AddDebrisElements( fxEntity_t *le ) {
-	vec3_t newOrigin;
+	idVec3 newOrigin;
 	trace_t trace;
 	float lifeFrac;
 	int t, step = CG_FxInt( "wolf/controller_adddebriselements", "step" );
@@ -1060,12 +1062,12 @@ void CG_AddDebrisElements( fxEntity_t *le ) {
 		// if stuck, kill it
 		if ( trace.startsolid ) {
 			// HACK, some walls screw up, so just pass through if starting in a solid
-			VectorCopy( newOrigin, trace.endpos );
+			( trace.endpos = newOrigin );
 			trace.fraction = 1.0;
 		}
 
 		// moved some distance
-		VectorCopy( trace.endpos, le->refEntity.origin );
+		( le->refEntity.origin = trace.endpos );
 
 		// add a trail
 		lifeFrac = (float)( t - le->startTime ) / (float)( le->endTime - le->startTime );
@@ -1088,7 +1090,7 @@ void CG_AddDebrisElements( fxEntity_t *le ) {
 		if ( trace.fraction < 1.0 ) {
 			// reflect the velocity on the trace plane
 			CG_ReflectVelocity( le, &trace );
-			if ( VectorLength( le->pos.trDelta ) < 1 ) {
+			if ( ( le->pos.trDelta.Length() ) < 1 ) {
 				CG_FxFreeEntity( le );
 				return;
 			}
@@ -1108,7 +1110,7 @@ CG_AddShrapnel
 ===============
 */
 void CG_AddShrapnel( fxEntity_t *le ) {
-	vec3_t newOrigin;
+	idVec3 newOrigin;
 	trace_t trace;
 
 	if ( le->pos.trType == TR_STATIONARY ) {
@@ -1121,7 +1123,7 @@ void CG_AddShrapnel( fxEntity_t *le ) {
 			// we must use an explicit lighting origin, otherwise the
 			// lighting would be lost as soon as the origin went
 			// into the ground
-			VectorCopy( le->refEntity.origin, le->refEntity.lightingOrigin );
+			( le->refEntity.lightingOrigin = le->refEntity.origin );
 			le->refEntity.renderfx |= RF_LIGHTING_ORIGIN;
 			oldZ = le->refEntity.origin[2];
 			le->refEntity.origin[2] -= CG_FxInt( "wolf/controller_addshrapnel", "le_refEntity_origin_z" ) * ( 1.0 - (float)t / SINK_TIME );
@@ -1142,13 +1144,13 @@ void CG_AddShrapnel( fxEntity_t *le ) {
 	CG_Trace( &trace, le->refEntity.origin, NULL, NULL, newOrigin, -1, CONTENTS_SOLID );
 	if ( trace.fraction == 1.0 ) {
 		// still in free fall
-		VectorCopy( newOrigin, le->refEntity.origin );
+		( le->refEntity.origin = newOrigin );
 
 		if ( le->leFlags & LEF_TUMBLE ) {
-			vec3_t angles;
+			idVec3 angles;
 
 			BG_EvaluateTrajectory( &le->angles, cg.time, angles );
-			AnglesToAxis( angles, le->refEntity.axis );
+			idAngles( angles[0], angles[1], angles[2] ).ToVectors( &le->refEntity.axis[0], &le->refEntity.axis[1], &le->refEntity.axis[2] );
 		}
 
 		trap_R_AddRefEntityToScene( &le->refEntity );
@@ -1275,7 +1277,7 @@ static void CG_AddSpriteExplosion( fxEntity_t *le ) {
 	re.radius = CG_FxInt( "wolf/controller_addspriteexplosion", "re_radius" ) * ( CG_FxValue( "wolf/controller_addspriteexplosion", "re_radius_2" ) - c ) + CG_FxInt( "wolf/controller_addspriteexplosion", "re_radius_3" );
 
 	// Ridah, move away from surface
-	VectorMA( le->pos.trBase, ( 1.0 - c ), le->pos.trDelta, re.origin );
+	( re.origin = le->pos.trBase + le->pos.trDelta * ( 1.0 - c ) );
 	// done.
 
 	// RF, don't add if shader is invalid

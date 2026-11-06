@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -38,7 +40,7 @@ void AICast_ChangeViewAngles( cast_state_t *cs, float thinktime ) {
 	//
 	// restore locked viewangles if required
 	if ( cs->aiFlags & AIFL_VIEWLOCKED ) {
-		VectorCopy( cs->viewlock_viewangles, cs->ideal_viewangles );
+		cs->ideal_viewangles = cs->viewlock_viewangles;
 	} else {
 		// check for playanim angles
 		if ( cs->script.castScriptStatus.playAnimViewlockTime >= level.time ) {
@@ -46,7 +48,7 @@ void AICast_ChangeViewAngles( cast_state_t *cs, float thinktime ) {
 			if ( !g_entities[cs->entityNum].client->ps.legsTimer ) {
 				cs->script.castScriptStatus.playAnimViewlockTime = 0;
 			} else {
-				VectorCopy( cs->script.castScriptStatus.playanim_viewangles, cs->ideal_viewangles );
+				cs->ideal_viewangles = cs->script.castScriptStatus.playanim_viewangles;
 			}
 		}
 	}
@@ -97,7 +99,7 @@ AICast_InputToUserCommand
 */
 static int serverTime;
 void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *ucmd, int delta_angles[3] ) {
-	vec3_t angles, forward, right, up;
+	idVec3 angles, forward, right, up;
 	short temp;
 	int j;
 	signed char movechar;
@@ -127,7 +129,7 @@ void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *uc
 	}
 	//set the buttons
 	if ( bi->actionflags & ACTION_ATTACK ) {
-		vec3_t ofs;
+		idVec3 ofs;
 		// don't fire if we are not facing the right direction yet
 		if ( ( cs->combat.triggerReleaseTime < level.time ) &&
 			 ( ( cs->lockViewAnglesTime >= level.time ) ||
@@ -139,7 +141,7 @@ void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *uc
 			ucmd->buttons |= BUTTON_ATTACK;
 			// do some swaying around for some weapons
 			AICast_WeaponSway( cs, ofs );
-			VectorAdd( bi->viewangles, ofs, bi->viewangles );
+			bi->viewangles = bi->viewangles + ofs;
 		}
 	}
 	//
@@ -200,7 +202,7 @@ void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *uc
 	// only move if we are in combat or we are facing where our ideal angles
 	if ( bi->speed ) {
 		if ( ( !( cs->aiFlags & AIFL_WALKFORWARD ) && cs->enemyNum >= 0 ) ||
-			 ( ( ucmd->forwardmove >= 0 ) && fabs( AngleNormalize180( AI_AngleDifference(
+			 ( ( ucmd->forwardmove >= 0 ) && fabs( idMath::AngleNormalize180( AI_AngleDifference(
 												 cs->ideal_viewangles[YAW], cs->viewangles[YAW] ) ) ) < 60 ) ) {
 			//NOTE: movement is relative to the REAL view angles
 			//get the horizontal forward and right vector
@@ -212,16 +214,16 @@ void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *uc
 			}
 			angles[YAW] = bi->viewangles[YAW];
 			angles[ROLL] = 0;
-			AngleVectors( angles, forward, right, up );
+			idAngles( angles ).ToVectors( &forward, &right, &up );
 			//bot input speed is in the range [0, 400]
 			bi->speed = bi->speed * 127 / 400;
 			//set the view independent movement
-			ucmd->forwardmove = DotProduct( forward, bi->dir ) * bi->speed;
-			ucmd->rightmove = DotProduct( right, bi->dir ) * bi->speed;
+			ucmd->forwardmove = ( forward * bi->dir ) * bi->speed;
+			ucmd->rightmove = ( right * bi->dir ) * bi->speed;
 
 			// RF, changed this to fix stim soldier flying attack
 			if ( !ucmd->upmove ) { // only change it if we don't already have an upmove set
-				ucmd->upmove = DotProduct( up, bi->dir ) * bi->speed;
+				ucmd->upmove = ( up * bi->dir ) * bi->speed;
 			}
 			//if (!ucmd->upmove)	// only change it if we don't already have an upmove set
 			//	ucmd->upmove = abs(forward[2]) * bi->dir[2] * bi->speed;
@@ -286,7 +288,7 @@ void AICast_UpdateInput( cast_state_t *cs, int time ) {
 
 	//add the delta angles to the bot's current view angles
 	for ( j = 0; j < 3; j++ ) {
-		cs->viewangles[j] = AngleMod( cs->viewangles[j] + SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
+		cs->viewangles[j] = idMath::AngleNormalize360( cs->viewangles[j] + SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
 	}
 	//
 	AICast_ChangeViewAngles( cs, (float)time / 1000 );
@@ -299,7 +301,7 @@ void AICast_UpdateInput( cast_state_t *cs, int time ) {
 		//
 		//subtract the delta angles
 		for ( j = 0; j < 3; j++ ) {
-			cs->viewangles[j] = AngleMod( cs->viewangles[j] - SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
+			cs->viewangles[j] = idMath::AngleNormalize360( cs->viewangles[j] - SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
 		}
 		//
 		return;
@@ -358,7 +360,7 @@ void AICast_UpdateInput( cast_state_t *cs, int time ) {
 	//
 	//subtract the delta angles
 	for ( j = 0; j < 3; j++ ) {
-		cs->viewangles[j] = AngleMod( cs->viewangles[j] - SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
+		cs->viewangles[j] = idMath::AngleNormalize360( cs->viewangles[j] - SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
 	}
 	//
 	// make sure the respawn flag is disabled (causes problems after multiple "map xxx" commands)
@@ -483,7 +485,7 @@ void AICast_StartServerFrame( int time ) {
 											cs->perception.vislist[0].lastcheck_timestamp ) ) ||
 						( highPriority && ( pcs->perception.vislist[cs->entityNum].visible_timestamp ==
 											pcs->perception.vislist[cs->entityNum].lastcheck_timestamp ) ) ||
-						( VectorLength( ent->client->ps.velocity ) > 0 ) ||
+						( ent->client->ps.velocity.Length() > 0 ) ||
 						( highPriority && ( cs->lastucmd.forwardmove || cs->lastucmd.rightmove ||
 											cs->lastucmd.upmove > 0 || cs->lastucmd.buttons || cs->lastucmd.wbuttons ) )
 						// !!NOTE: always allow thinking if in PVS, otherwise bosses won't gib, and dead guys might not push away from clipped walls
@@ -549,8 +551,8 @@ float AI_AngleDifference( float ang1, float ang2 ) {
 float AI_ChangeViewAngle( float angle, float ideal_angle, float speed ) {
 	float move;
 
-	angle = AngleMod( angle );
-	ideal_angle = AngleMod( ideal_angle );
+	angle = idMath::AngleNormalize360( angle );
+	ideal_angle = idMath::AngleNormalize360( ideal_angle );
 	if ( angle == ideal_angle ) {
 		return angle;
 	}
@@ -573,5 +575,5 @@ float AI_ChangeViewAngle( float angle, float ideal_angle, float speed ) {
 			move = -speed;
 		}
 	}
-	return AngleMod( angle + move );
+	return idMath::AngleNormalize360( angle + move );
 }

@@ -9,42 +9,32 @@ set(BOTLIB_SOURCES
 	be_ai_weight.cpp
 	be_ea.cpp
 	be_interface.cpp
-	l_crc.cpp
 	l_libvar.cpp
 	l_log.cpp
-	l_memory.cpp
-	l_precomp.cpp
-	l_script.cpp
 	l_struct.cpp
-	${CMAKE_SOURCE_DIR}/engine/qcommon/q_math.cpp
 	${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp)
 
 if ( WIN32 )
-	# export GetBotLibAPI through a def file like the game module does
 	list(APPEND BOTLIB_SOURCES botlib.def)
 endif()
 	
 source_group(TREE "${CMAKE_SOURCE_DIR}" FILES ${BOTLIB_SOURCES})
 
-# built as its own library, the exe loads it at startup instead of
-# carrying the code statically
 add_library(botlib SHARED ${BOTLIB_SOURCES})
 set_target_properties(botlib PROPERTIES FOLDER "dlls")
-# carry the cpu suffix like the game modules do
 set_target_properties(botlib PROPERTIES OUTPUT_NAME botlibx86)
 if ( NOT WIN32 )
 	set_target_properties(botlib PROPERTIES PREFIX "")
 endif()
 target_compile_definitions(botlib PRIVATE _LIB BOTLIB)
 target_compile_features(botlib PRIVATE cxx_std_17)
-target_link_libraries(botlib PUBLIC detour)
+target_link_libraries(botlib PUBLIC detour idlib)
 if ( MSVC )
-	# be_interface.cpp uses timeGetTime for Sys_MilliSeconds, the game module
-	# links winmm for the same reason
 	target_link_libraries(botlib PRIVATE winmm)
 	target_link_options(botlib PRIVATE /BASE:0x40000000 /MAP:${CMAKE_SOURCE_DIR}/bin/botlibx86.map)
 endif()
-# q_math.cpp/q_shared.cpp include their headers from the engine qcommon dir,
-# same setup the game module uses for its copies
+
 target_include_directories(botlib PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
+
 configure_target(botlib)
+target_precompile_headers(botlib PRIVATE "${CMAKE_SOURCE_DIR}/gamedll/precompiled.h")

@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 typedef struct {
@@ -50,7 +52,7 @@ void AddRemap( const char *oldShader, const char *newShader, float timeOffset ) 
 	int i;
 
 	for ( i = 0; i < remapCount; i++ ) {
-		if ( Q_stricmp( oldShader, remappedShaders[i].oldShader ) == 0 ) {
+		if ( idStr::Icmp( oldShader, remappedShaders[i].oldShader ) == 0 ) {
 			// found it, just update this one
 			strcpy( remappedShaders[i].newShader,newShader );
 			remappedShaders[i].timeOffset = timeOffset;
@@ -73,7 +75,7 @@ const char *BuildShaderStateConfig() {
 	memset( buff, 0, MAX_STRING_CHARS );
 	for ( i = 0; i < remapCount; i++ ) {
 		Com_sprintf( out, ( MAX_QPATH * 2 ) + 5, "%s=%s:%5.2f@", remappedShaders[i].oldShader, remappedShaders[i].newShader, remappedShaders[i].timeOffset );
-		Q_strcat( buff, sizeof( buff ), out );
+		idStr::Append( buff, sizeof( buff ), out );
 	}
 	return buff;
 }
@@ -148,7 +150,7 @@ void G_TeamCommand( team_t team, char *cmd ) {
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		if ( level.clients[i].pers.connected == CON_CONNECTED ) {
 			if ( level.clients[i].sess.sessionTeam == team ) {
-				trap_SendServerCommand( i, va( "%s", cmd ) );
+				trap_SendServerCommand( i, idStr::FormatString( "%s", cmd ) );
 			}
 		}
 	}
@@ -185,7 +187,7 @@ gentity_t *G_Find( gentity_t *from, int fieldofs, const char *match ) {
 		if ( !s ) {
 			continue;
 		}
-		if ( !Q_stricmp( s, match ) ) {
+		if ( !idStr::Icmp( s, match ) ) {
 			return from;
 		}
 	}
@@ -278,8 +280,8 @@ void G_UseTargets( gentity_t *ent, gentity_t *activator ) {
 				t->flags |= ( ent->flags & FL_SOFTACTIVATE ); // (SA) likewise for soft activation
 
 				if (    activator &&
-						(   ( Q_stricmp( t->classname, "func_door" ) == 0 ) ||
-							( Q_stricmp( t->classname, "func_door_rotating" ) == 0 )
+						(   ( idStr::Icmp( t->classname, "func_door" ) == 0 ) ||
+							( idStr::Icmp( t->classname, "func_door_rotating" ) == 0 )
 						)
 						) {
 					// check door usage rules before allowing any entity to trigger a door open
@@ -308,7 +310,7 @@ for making temporary vectors for function calls
 /*
 float	*tv( float x, float y, float z ) {
 	static	int		index;
-	static	vec3_t	vecs[8];
+	static	idVec3	vecs[8];
 	float	*v;
 
 	// use an array so that multiple tempvectors won't collide
@@ -332,7 +334,7 @@ This is just a convenience function
 for printing vectors
 =============
 */
-char    *vtos( const vec3_t v ) {
+char    *vtos( const idVec3 &v ) {
 	static int index;
 	static char str[8][32];
 	char    *s;
@@ -345,7 +347,7 @@ char    *vtos( const vec3_t v ) {
 
 	return s;
 }
-char    *vtosf( const vec3_t v ) {
+char    *vtosf( const idVec3 &v ) {
 	static int index;
 	static char str[8][64];
 	char    *s;
@@ -370,20 +372,20 @@ Angles will be cleared, because it is being used to represent a direction
 instead of an orientation.
 ===============
 */
-void G_SetMovedir( vec3_t angles, vec3_t movedir ) {
-	static vec3_t VEC_UP        = {0, -1, 0};
-	static vec3_t MOVEDIR_UP    = {0, 0, 1};
-	static vec3_t VEC_DOWN      = {0, -2, 0};
-	static vec3_t MOVEDIR_DOWN  = {0, 0, -1};
+void G_SetMovedir( idVec3 &angles, idVec3 &movedir ) {
+	static idVec3 VEC_UP( 0, -1, 0 );
+	static idVec3 MOVEDIR_UP( 0, 0, 1 );
+	static idVec3 VEC_DOWN( 0, -2, 0 );
+	static idVec3 MOVEDIR_DOWN( 0, 0, -1 );
 
-	if ( VectorCompare( angles, VEC_UP ) ) {
-		VectorCopy( MOVEDIR_UP, movedir );
-	} else if ( VectorCompare( angles, VEC_DOWN ) ) {
-		VectorCopy( MOVEDIR_DOWN, movedir );
+	if ( angles.Compare( VEC_UP ) ) {
+		movedir = MOVEDIR_UP;
+	} else if ( angles.Compare( VEC_DOWN ) ) {
+		movedir = MOVEDIR_DOWN;
 	} else {
-		AngleVectors( angles, movedir, NULL, NULL );
+		idAngles( angles ).ToVectors( &movedir, NULL, NULL );
 	}
-	VectorClear( angles );
+	angles.Zero();
 }
 
 
@@ -514,9 +516,9 @@ The origin will be snapped to save net bandwidth, so care
 must be taken if the origin is right on a surface (snap towards start vector first)
 =================
 */
-gentity_t *G_TempEntity( vec3_t origin, int event ) {
+gentity_t *G_TempEntity( idVec3 &origin, int event ) {
 	gentity_t       *e;
-	vec3_t snapped;
+	idVec3 snapped;
 
 	e = G_Spawn();
 	e->s.eType = ET_EVENTS + event;
@@ -526,8 +528,8 @@ gentity_t *G_TempEntity( vec3_t origin, int event ) {
 	e->r.eventTime = level.time;
 	e->freeAfterEvent = qtrue;
 
-	VectorCopy( origin, snapped );
-	SnapVector( snapped );      // save network bandwidth
+	snapped = origin;
+	snapped.Snap();      // save network bandwidth
 	G_SetOrigin( e, snapped );
 
 	// find cluster for PVS
@@ -558,10 +560,10 @@ void G_KillBox( gentity_t *ent ) {
 	int i, num;
 	int touch[MAX_GENTITIES];
 	gentity_t   *hit;
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 
-	VectorAdd( ent->client->ps.origin, ent->r.mins, mins );
-	VectorAdd( ent->client->ps.origin, ent->r.maxs, maxs );
+	mins = ent->client->ps.origin + ent->r.mins;
+	maxs = ent->client->ps.origin + ent->r.maxs;
 	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
 
 	for ( i = 0 ; i < num ; i++ ) {
@@ -574,7 +576,7 @@ void G_KillBox( gentity_t *ent ) {
 		}
 
 		// nail it
-		G_Damage( hit, ent, ent, NULL, NULL,
+		G_Damage( hit, ent, ent, vec3_origin, vec3_origin,
 				  100000, DAMAGE_NO_PROTECTION, MOD_TELEFRAG );
 	}
 
@@ -667,7 +669,7 @@ void G_Sound( gentity_t *ent, int soundIndex ) {
 G_AnimScriptSound
 =============
 */
-void G_AnimScriptSound( int soundIndex, vec3_t org, int client ) {
+void G_AnimScriptSound( int soundIndex, const idVec3 *org, int client ) {
 	gentity_t *e;
 	e = &g_entities[client];
 	G_AddEvent( e, EV_GENERAL_SOUND, soundIndex );
@@ -684,14 +686,14 @@ G_SetOrigin
 Sets the pos trajectory for a fixed position
 ================
 */
-void G_SetOrigin( gentity_t *ent, vec3_t origin ) {
-	VectorCopy( origin, ent->s.pos.trBase );
+void G_SetOrigin( gentity_t *ent, idVec3 &origin ) {
+	ent->s.pos.trBase = origin;
 	ent->s.pos.trType = TR_STATIONARY;
 	ent->s.pos.trTime = 0;
 	ent->s.pos.trDuration = 0;
-	VectorClear( ent->s.pos.trDelta );
+	ent->s.pos.trDelta.Zero();
 
-	VectorCopy( origin, ent->r.currentOrigin );
+	ent->r.currentOrigin = origin;
 }
 
 
@@ -700,15 +702,15 @@ void G_SetOrigin( gentity_t *ent, vec3_t origin ) {
 G_SetOrigin
 ==============
 */
-void G_SetAngle( gentity_t *ent, vec3_t angle ) {
+void G_SetAngle( gentity_t *ent, idVec3 &angle ) {
 
-	VectorCopy( angle, ent->s.apos.trBase );
+	ent->s.apos.trBase = angle;
 	ent->s.apos.trType = TR_STATIONARY;
 	ent->s.apos.trTime = 0;
 	ent->s.apos.trDuration = 0;
-	VectorClear( ent->s.apos.trDelta );
+	ent->s.apos.trDelta.Zero();
 
-	VectorCopy( angle, ent->r.currentAngles );
+	ent->r.currentAngles = angle;
 
 //	VectorCopy (ent->s.angles, ent->s.apos.trDelta );
 
@@ -721,28 +723,28 @@ infront
 */
 
 qboolean infront( gentity_t *self, gentity_t *other ) {
-	vec3_t vec;
+	idVec3 vec;
 	float dot;
-	vec3_t forward, otherOrigin;
+	idVec3 forward, otherOrigin;
 
 	if ( self->client ) {
-		AngleVectors( self->client->ps.viewangles, forward, NULL, NULL );
+		idAngles( self->client->ps.viewangles ).ToVectors( &forward, NULL, NULL );
 	} else {
-		AngleVectors( self->s.angles, forward, NULL, NULL );
+		idAngles( self->s.angles ).ToVectors( &forward, NULL, NULL );
 	}
 
 
 	if ( self->activateArc ) {
 		// move the origin of the 'other' up/down so that it matches the 'self' so the check is along a horizontal plane
-		VectorCopy( other->r.currentOrigin, otherOrigin );
+		otherOrigin = other->r.currentOrigin;
 		otherOrigin[2] = self->r.currentOrigin[2];
-		VectorSubtract( otherOrigin, self->r.currentOrigin, vec );
+		vec = otherOrigin - self->r.currentOrigin;
 	} else {
-		VectorSubtract( other->r.currentOrigin, self->r.currentOrigin, vec );
+		vec = other->r.currentOrigin - self->r.currentOrigin;
 	}
 
-	VectorNormalize( vec );
-	dot = DotProduct( vec, forward );
+	vec.Normalize();
+	dot = ( vec * forward );
 	// G_Printf( "other %5.2f\n",	dot);
 
 	if ( !other->aiCharacter && self->activateArc ) {  //----(SA)	make sure ai's aren't constrained to the grabarc of an mg42
@@ -774,18 +776,18 @@ void G_ProcessTagConnect( gentity_t *ent, qboolean clearAngles ) {
 	if ( !ent->tagParent ) {
 		G_Error( "G_ProcessTagConnect: NULL ent->tagParent\n" );
 	}
-	G_FindConfigstringIndex( va( "%i %i %s", ent->s.number, ent->tagParent->s.number, ent->tagName ), CS_TAGCONNECTS, MAX_TAGCONNECTS, qtrue );
+	G_FindConfigstringIndex( idStr::FormatString( "%i %i %s", ent->s.number, ent->tagParent->s.number, ent->tagName ), CS_TAGCONNECTS, MAX_TAGCONNECTS, qtrue );
 	ent->s.eFlags |= EF_TAGCONNECT;
 
 	if ( clearAngles ) {
 		// clear out the angles so it always starts out facing the tag direction
-		VectorClear( ent->s.angles );
-		VectorCopy( ent->s.angles, ent->s.apos.trBase );
+		ent->s.angles.Zero();
+		ent->s.apos.trBase = ent->s.angles;
 		ent->s.apos.trTime = level.time;
 		ent->s.apos.trDuration = 0;
 		ent->s.apos.trType = TR_STATIONARY;
-		VectorClear( ent->s.apos.trDelta );
-		VectorClear( ent->r.currentAngles );
+		ent->s.apos.trDelta.Zero();
+		ent->r.currentAngles.Zero();
 	}
 }
 
@@ -797,31 +799,31 @@ DebugLine
   with r_debugSurface set to 2
 ================
 */
-int DebugLine( vec3_t start, vec3_t end, int color ) {
-	vec3_t points[4], dir, cross, up = {0, 0, 1};
+int DebugLine( const idVec3 &start, const idVec3 &end, int color ) {
+	idVec3 points[4], dir, cross, up( 0, 0, 1 );
 	float dot;
 
-	VectorCopy( start, points[0] );
-	VectorCopy( start, points[1] );
+	points[0] = start;
+	points[1] = start;
 	//points[1][2] -= 2;
-	VectorCopy( end, points[2] );
+	points[2] = end;
 	//points[2][2] -= 2;
-	VectorCopy( end, points[3] );
+	points[3] = end;
 
 
-	VectorSubtract( end, start, dir );
-	VectorNormalize( dir );
-	dot = DotProduct( dir, up );
+	dir = end - start;
+	dir.Normalize();
+	dot = ( dir * up );
 	if ( dot > 0.99 || dot < -0.99 ) {
-		VectorSet( cross, 1, 0, 0 );
-	} else { CrossProduct( dir, up, cross );}
+		cross.Set( 1, 0, 0 );
+	} else { cross = dir.Cross( up );}
 
-	VectorNormalize( cross );
+	cross.Normalize();
 
-	VectorMA( points[0], 2, cross, points[0] );
-	VectorMA( points[1], -2, cross, points[1] );
-	VectorMA( points[2], -2, cross, points[2] );
-	VectorMA( points[3], 2, cross, points[3] );
+	points[0] = points[0] + cross * 2;
+	points[1] = points[1] + cross * -2;
+	points[2] = points[2] + cross * -2;
+	points[3] = points[3] + cross * 2;
 
 	return trap_DebugPolygonCreate( color, 4, points );
 }

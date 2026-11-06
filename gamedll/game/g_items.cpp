@@ -38,6 +38,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 
@@ -86,7 +88,7 @@ int Pickup_Powerup( gentity_t *ent, gentity_t *other ) {
 
 	// brandy also gives a little health (10)
 	if ( ent->item->giTag == PW_NOFATIGUE ) {
-		if ( Q_stricmp( ent->item->classname, "item_stamina_brandy" ) == 0 ) {
+		if ( idStr::Icmp( ent->item->classname, "item_stamina_brandy" ) == 0 ) {
 			other->health += 10;
 			if ( other->health > other->client->ps.stats[STAT_MAX_HEALTH] ) {
 				other->health = other->client->ps.stats[STAT_MAX_HEALTH];
@@ -106,9 +108,9 @@ int Pickup_Powerup( gentity_t *ent, gentity_t *other ) {
 		// done.
 		// give any nearby players a "denied" anti-reward
 		for ( i = 0 ; i < level.maxclients ; i++ ) {
-			vec3_t delta;
+			idVec3 delta;
 			float len;
-			vec3_t forward;
+			idVec3 forward;
 			trace_t tr;
 
 			client = &level.clients[i];
@@ -123,20 +125,20 @@ int Pickup_Powerup( gentity_t *ent, gentity_t *other ) {
 			}
 
 			// if too far away, no sound
-			VectorSubtract( ent->s.pos.trBase, client->ps.origin, delta );
-			len = VectorNormalize( delta );
+			delta = ent->s.pos.trBase - client->ps.origin;
+			len = delta.Normalize();
 			if ( len > 192 ) {
 				continue;
 			}
 
 			// if not facing, no sound
-			AngleVectors( client->ps.viewangles, forward, NULL, NULL );
-			if ( DotProduct( delta, forward ) < 0.4 ) {
+			idAngles( client->ps.viewangles ).ToVectors( &forward, NULL, NULL );
+			if ( ( delta * forward ) < 0.4 ) {
 				continue;
 			}
 
 			// if not line of sight, no sound
-			trap_Trace( &tr, client->ps.origin, NULL, NULL, ent->s.pos.trBase, ENTITYNUM_NONE, CONTENTS_SOLID );
+			trap_Trace( &tr, client->ps.origin, vec3_origin, vec3_origin, ent->s.pos.trBase, ENTITYNUM_NONE, CONTENTS_SOLID );
 			if ( tr.fraction != 1.0 ) {
 				continue;
 			}
@@ -326,7 +328,7 @@ void Add_Ammo( gentity_t *ent, int weapon, int count, qboolean fillClip ) {
 	case WP_GRENADE_LAUNCHER:       // make sure if he picks up a grenade that he get's the "launcher" too
 	case WP_GRENADE_PINEAPPLE:
 	case WP_DYNAMITE:
-		COM_BitSet( ent->client->ps.weapons, ammoweap );
+		idBitField::Set( ent->client->ps.weapons, ammoweap );
 
 	case WP_TESLA:
 	case WP_FLAMETHROWER:
@@ -415,8 +417,8 @@ int Pickup_Weapon( gentity_t *ent, gentity_t *other ) {
 		} else {
 //----(SA) modified
 //			quantity = ent->item->quantity;
-//			quantity = (random() * (ent->item->quantity - 1)) + 1;	// giving 1-<item default count>
-			quantity = ( random() * ( ammoTable[weapon].maxclip - 4 ) ) + 4;    // giving 4-<item default count>
+//			quantity = (gameRandom.RandomFloat() * (ent->item->quantity - 1)) + 1;	// giving 1-<item default count>
+			quantity = ( gameRandom.RandomFloat() * ( ammoTable[weapon].maxclip - 4 ) ) + 4;    // giving 4-<item default count>
 
 		}
 
@@ -437,32 +439,32 @@ int Pickup_Weapon( gentity_t *ent, gentity_t *other ) {
 	//----(SA)	added
 	// check for special colt->akimbo add (if you've got a colt already, add the second now)
 	if ( weapon == WP_COLT ) {
-		if ( COM_BitCheck( other->client->ps.weapons, WP_COLT ) ) {
+		if ( idBitField::Test( other->client->ps.weapons, WP_COLT ) ) {
 			weapon = WP_AKIMBO;
 		}
 	}
 //----(SA)	end
 
 	// check if player already had the weapon
-	alreadyHave = COM_BitCheck( other->client->ps.weapons, weapon );
+	alreadyHave = idBitField::Test( other->client->ps.weapons, weapon );
 
 	// add the weapon
-	COM_BitSet( other->client->ps.weapons, weapon );
+	idBitField::Set( other->client->ps.weapons, weapon );
 
 //----(SA)	added
 	// snooper/garand
 	if ( weapon == WP_SNOOPERSCOPE ) {
-		COM_BitSet( other->client->ps.weapons, WP_GARAND );
+		idBitField::Set( other->client->ps.weapons, WP_GARAND );
 	} else if ( weapon == WP_GARAND ) {
-		COM_BitSet( other->client->ps.weapons, WP_SNOOPERSCOPE );
+		idBitField::Set( other->client->ps.weapons, WP_SNOOPERSCOPE );
 	}
 	// fg42/scope
 	else if ( weapon == WP_FG42SCOPE ) {
-		COM_BitSet( other->client->ps.weapons, WP_FG42 );
+		idBitField::Set( other->client->ps.weapons, WP_FG42 );
 	} else if ( weapon == WP_FG42 ) {
-		COM_BitSet( other->client->ps.weapons, WP_FG42SCOPE );
+		idBitField::Set( other->client->ps.weapons, WP_FG42SCOPE );
 	} else if ( weapon == WP_SNIPERRIFLE ) {
-		COM_BitSet( other->client->ps.weapons, WP_MAUSER );
+		idBitField::Set( other->client->ps.weapons, WP_MAUSER );
 	}
 
 //----(SA)	end
@@ -785,7 +787,7 @@ void Touch_Item( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 
 	// random can be used to vary the respawn time
 	if ( ent->random ) {
-		respawn += crandom() * ent->random;
+		respawn += gameRandom.CRandomFloat() * ent->random;
 		if ( respawn < 1 ) {
 			respawn = 1;
 		}
@@ -828,7 +830,7 @@ LaunchItem
 Spawns an item and tosses it forward
 ================
 */
-gentity_t *LaunchItem( gitem_t *item, vec3_t origin, vec3_t velocity ) {
+gentity_t *LaunchItem( gitem_t *item, idVec3 &origin, idVec3 &velocity ) {
 	gentity_t   *dropped;
 
 	dropped = G_Spawn();
@@ -842,8 +844,8 @@ gentity_t *LaunchItem( gitem_t *item, vec3_t origin, vec3_t velocity ) {
 	dropped->item = item;
 //	VectorSet (dropped->r.mins, -ITEM_RADIUS, -ITEM_RADIUS, -ITEM_RADIUS);
 //	VectorSet (dropped->r.maxs, ITEM_RADIUS, ITEM_RADIUS, ITEM_RADIUS);
-	VectorSet( dropped->r.mins, -ITEM_RADIUS, -ITEM_RADIUS, 0 );            //----(SA)	so items sit on the ground
-	VectorSet( dropped->r.maxs, ITEM_RADIUS, ITEM_RADIUS, 2 * ITEM_RADIUS );  //----(SA)	so items sit on the ground
+	dropped->r.mins.Set( -ITEM_RADIUS, -ITEM_RADIUS, 0 );            //----(SA)	so items sit on the ground
+	dropped->r.maxs.Set( ITEM_RADIUS, ITEM_RADIUS, 2 * ITEM_RADIUS );  //----(SA)	so items sit on the ground
 	dropped->r.contents = CONTENTS_TRIGGER | CONTENTS_ITEM;
 
 	dropped->touch = Touch_Item_Auto;
@@ -851,7 +853,7 @@ gentity_t *LaunchItem( gitem_t *item, vec3_t origin, vec3_t velocity ) {
 	G_SetOrigin( dropped, origin );
 	dropped->s.pos.trType = TR_GRAVITY;
 	dropped->s.pos.trTime = level.time;
-	VectorCopy( velocity, dropped->s.pos.trDelta );
+	dropped->s.pos.trDelta = velocity;
 
 	dropped->s.eFlags |= EF_BOUNCE_HALF;
 
@@ -883,20 +885,20 @@ Spawns an item and tosses it forward
 ================
 */
 gentity_t *Drop_Item( gentity_t *ent, gitem_t *item, float angle, qboolean novelocity ) {
-	vec3_t velocity;
-	vec3_t angles;
+	idVec3 velocity;
+	idVec3 angles;
 
-	VectorCopy( ent->s.apos.trBase, angles );
+	angles = ent->s.apos.trBase;
 	angles[YAW] += angle;
 	angles[PITCH] = 0;  // always forward
 
 	if ( novelocity ) {
-		VectorClear( velocity );
+		velocity.Zero();
 	} else
 	{
-		AngleVectors( angles, velocity, NULL, NULL );
-		VectorScale( velocity, 150, velocity );
-		velocity[2] += 200 + crandom() * 50;
+		idAngles( angles ).ToVectors( &velocity, NULL, NULL );
+		velocity = velocity * 150;
+		velocity[2] += 200 + gameRandom.CRandomFloat() * 50;
 	}
 
 	return LaunchItem( item, ent->s.pos.trBase, velocity );
@@ -926,20 +928,20 @@ free fall from their spawn points
 */
 void FinishSpawningItem( gentity_t *ent ) {
 	trace_t tr;
-	vec3_t dest;
-	vec3_t maxs;
+	idVec3 dest;
+	idVec3 maxs;
 
 	if ( ent->spawnflags & 1 ) { // suspended
-		VectorSet( ent->r.mins, -ITEM_RADIUS, -ITEM_RADIUS, -ITEM_RADIUS );
-		VectorSet( ent->r.maxs, ITEM_RADIUS, ITEM_RADIUS, ITEM_RADIUS );
-		VectorCopy( ent->r.maxs, maxs );
+		ent->r.mins.Set( -ITEM_RADIUS, -ITEM_RADIUS, -ITEM_RADIUS );
+		ent->r.maxs.Set( ITEM_RADIUS, ITEM_RADIUS, ITEM_RADIUS );
+		maxs = ent->r.maxs;
 	} else
 	{
 		// Rafael
 		// had to modify this so that items would spawn in shelves
-		VectorSet( ent->r.mins, -ITEM_RADIUS, -ITEM_RADIUS, 0 );
-		VectorSet( ent->r.maxs, ITEM_RADIUS, ITEM_RADIUS, ITEM_RADIUS );
-		VectorCopy( ent->r.maxs, maxs );
+		ent->r.mins.Set( -ITEM_RADIUS, -ITEM_RADIUS, 0 );
+		ent->r.maxs.Set( ITEM_RADIUS, ITEM_RADIUS, ITEM_RADIUS );
+		maxs = ent->r.maxs;
 		maxs[2] /= 2;
 	}
 
@@ -967,7 +969,7 @@ void FinishSpawningItem( gentity_t *ent ) {
 		ent->touch = Touch_Item;    // no auto-pickup, only activate
 	} else if ( ent->item->giType == IT_HOLDABLE )      {
 		if ( ent->item->giTag >= HI_BOOK1 && ent->item->giTag <= HI_BOOK3 ) {
-			G_FindConfigstringIndex( va( "hbook%d", ent->item->giTag - HI_BOOK1 ), CS_CLIPBOARDS, MAX_CLIPBOARD_CONFIGSTRINGS, qtrue );
+			G_FindConfigstringIndex( idStr::FormatString( "hbook%d", ent->item->giTag - HI_BOOK1 ), CS_CLIPBOARDS, MAX_CLIPBOARD_CONFIGSTRINGS, qtrue );
 		}
 //		ent->touch = Touch_Item;	// no auto-pickup, only activate
 	}
@@ -983,22 +985,22 @@ void FinishSpawningItem( gentity_t *ent ) {
 		G_SetOrigin( ent, ent->s.origin );
 	} else {
 
-		VectorSet( dest, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2] - 4096 );
+		dest.Set( ent->s.origin[0], ent->s.origin[1], ent->s.origin[2] - 4096 );
 		trap_Trace( &tr, ent->s.origin, ent->r.mins, maxs, dest, ent->s.number, MASK_SOLID );
 
 		if ( tr.startsolid ) {
-			vec3_t temp;
+			idVec3 temp;
 
-			VectorCopy( ent->s.origin, temp );
+			temp = ent->s.origin;
 			temp[2] -= ITEM_RADIUS;
 
-			VectorSet( dest, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2] - 4096 );
+			dest.Set( ent->s.origin[0], ent->s.origin[1], ent->s.origin[2] - 4096 );
 			trap_Trace( &tr, temp, ent->r.mins, maxs, dest, ent->s.number, MASK_SOLID );
 		}
 
 #if 0
 		// drop to floor
-		VectorSet( dest, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2] - 4096 );
+		dest.Set( ent->s.origin[0], ent->s.origin[1], ent->s.origin[2] - 4096 );
 		trap_Trace( &tr, ent->s.origin, ent->r.mins, maxs, dest, ent->s.number, MASK_SOLID );
 #endif
 		if ( tr.startsolid ) {
@@ -1045,7 +1047,7 @@ void FinishSpawningItem( gentity_t *ent ) {
 	if ( ent->item->giType == IT_POWERUP && g_gametype.integer != GT_SINGLE_PLAYER ) {
 		float respawn;
 
-		respawn = 45 + crandom() * 15;
+		respawn = 45 + gameRandom.CRandomFloat() * 15;
 		ent->flags |= FL_NODRAW;
 		//ent->s.eFlags |= EF_NODRAW;
 		ent->r.contents = 0;
@@ -1202,30 +1204,30 @@ G_BounceItem
 ================
 */
 void G_BounceItem( gentity_t *ent, trace_t *trace ) {
-	vec3_t velocity;
+	idVec3 velocity;
 	float dot;
 	int hitTime;
 
 	// reflect the velocity on the trace plane
 	hitTime = level.previousTime + ( level.time - level.previousTime ) * trace->fraction;
 	BG_EvaluateTrajectoryDelta( &ent->s.pos, hitTime, velocity );
-	dot = DotProduct( velocity, trace->plane.normal );
-	VectorMA( velocity, -2 * dot, trace->plane.normal, ent->s.pos.trDelta );
+	dot = ( velocity * trace->plane.normal );
+	ent->s.pos.trDelta = velocity + trace->plane.normal * -2 * dot;
 
 	// cut the velocity to keep from bouncing forever
-	VectorScale( ent->s.pos.trDelta, ent->physicsBounce, ent->s.pos.trDelta );
+	ent->s.pos.trDelta = ent->s.pos.trDelta * ent->physicsBounce;
 
 	// check for stop
 	if ( trace->plane.normal[2] > 0 && ent->s.pos.trDelta[2] < 40 ) {
 		trace->endpos[2] += 1.0;    // make sure it is off ground
-		SnapVector( trace->endpos );
+		trace->endpos.Snap();
 		G_SetOrigin( ent, trace->endpos );
 		ent->s.groundEntityNum = trace->entityNum;
 		return;
 	}
 
-	VectorAdd( ent->r.currentOrigin, trace->plane.normal, ent->r.currentOrigin );
-	VectorCopy( ent->r.currentOrigin, ent->s.pos.trBase );
+	ent->r.currentOrigin = ent->r.currentOrigin + trace->plane.normal;
+	ent->s.pos.trBase = ent->r.currentOrigin;
 	ent->s.pos.trTime = level.time;
 }
 
@@ -1235,19 +1237,19 @@ G_RunItemProp
 =================
 */
 
-void G_RunItemProp( gentity_t *ent, vec3_t origin ) {
+void G_RunItemProp( gentity_t *ent, idVec3 &origin ) {
 	gentity_t   *traceEnt;
 	trace_t trace;
 	gentity_t   *owner;
-	vec3_t start;
-	vec3_t end;
+	idVec3 start;
+	idVec3 end;
 
 	owner = &g_entities[ent->r.ownerNum];
 
-	VectorCopy( ent->r.currentOrigin, start );
+	start = ent->r.currentOrigin;
 	start[2] += 1;
 
-	VectorCopy( origin, end );
+	end = origin;
 	end[2] += 1;
 
 	trap_Trace( &trace, ent->r.currentOrigin, ent->r.mins, ent->r.maxs, end,
@@ -1282,7 +1284,7 @@ G_RunItem
 ================
 */
 void G_RunItem( gentity_t *ent ) {
-	vec3_t origin;
+	idVec3 origin;
 	trace_t tr;
 	int contents;
 	int mask;
@@ -1317,7 +1319,7 @@ void G_RunItem( gentity_t *ent ) {
 		G_RunItemProp( ent, origin );
 	}
 
-	VectorCopy( tr.endpos, ent->r.currentOrigin );
+	ent->r.currentOrigin = tr.endpos;
 
 	if ( tr.startsolid ) {
 		tr.fraction = 0;
@@ -1345,4 +1347,3 @@ void G_RunItem( gentity_t *ent ) {
 
 	G_BounceItem( ent, &tr );
 }
-

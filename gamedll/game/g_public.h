@@ -89,18 +89,18 @@ typedef struct {
 
 	qboolean bmodel;                // if false, assume an explicit mins / maxs bounding box
 									// only set by trap_SetBrushModel
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 	int contents;                   // CONTENTS_TRIGGER, CONTENTS_SOLID, CONTENTS_BODY, etc
 									// a non-solid entity should set to 0
 
-	vec3_t absmin, absmax;          // derived from mins/maxs and origin + rotation
+	idVec3 absmin, absmax;          // derived from mins/maxs and origin + rotation
 
 	// currentOrigin will be used for all collision detection and world linking.
 	// it will not necessarily be the same as the trajectory evaluation for the current
 	// time, because each entity must be moved one at a time after time is advanced
 	// to avoid simultanious collision issues
-	vec3_t currentOrigin;
-	vec3_t currentAngles;
+	idVec3 currentOrigin;
+	idVec3 currentAngles;
 
 	// when a trace call is made and passEntityNum != ENTITYNUM_NONE,
 	// an ent will be excluded from testing if:
@@ -155,61 +155,61 @@ typedef struct {
 	void ( QDECL *SV_SetUserinfo )( int num, const char *buffer );
 	void ( QDECL *SV_GetServerinfo )( char *buffer, int bufferSize );
 	void ( QDECL *SV_SetBrushModel )( gentity_t *ent, const char *name );
-	void ( QDECL *SV_Trace )( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask );
-	void ( QDECL *SV_TraceCapsule )( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask );
-	int ( QDECL *SV_PointContents )( const vec3_t point, int passEntityNum );
-	qboolean ( QDECL *SV_inPVS )( const vec3_t p1, const vec3_t p2 );
-	qboolean ( QDECL *SV_inPVSIgnorePortals )( const vec3_t p1, const vec3_t p2 );
+	void ( QDECL *SV_Trace )( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask );
+	void ( QDECL *SV_TraceCapsule )( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask );
+	int ( QDECL *SV_PointContents )( const idVec3 &point, int passEntityNum );
+	qboolean ( QDECL *SV_inPVS )( const idVec3 &p1, const idVec3 &p2 );
+	qboolean ( QDECL *SV_inPVSIgnorePortals )( const idVec3 &p1, const idVec3 &p2 );
 	void ( QDECL *SV_AdjustAreaPortalState )( gentity_t *ent, qboolean open );
 	qboolean ( QDECL *CM_AreasConnected )( int area1, int area2 );
 	void ( QDECL *SV_LinkEntity )( gentity_t *ent );
 	void ( QDECL *SV_UnlinkEntity )( gentity_t *ent );
-	int ( QDECL *SV_AreaEntities )( const vec3_t mins, const vec3_t maxs, int *list, int maxcount );
-	qboolean ( QDECL *SV_EntityContact )( const vec3_t mins, const vec3_t maxs, const gentity_t *ent );
-	qboolean ( QDECL *SV_EntityContactCapsule )( const vec3_t mins, const vec3_t maxs, const gentity_t *ent );
+	int ( QDECL *SV_AreaEntities )( const idVec3 &mins, const idVec3 &maxs, int *list, int maxcount );
+	qboolean ( QDECL *SV_EntityContact )( const idVec3 &mins, const idVec3 &maxs, const gentity_t *ent );
+	qboolean ( QDECL *SV_EntityContactCapsule )( const idVec3 &mins, const idVec3 &maxs, const gentity_t *ent );
 	int ( QDECL *SV_BotAllocateClient )( void );
 	void ( QDECL *SV_BotFreeClient )( int clientNum );
 	void ( QDECL *SV_GetUsercmd )( int clientNum, usercmd_t *cmd );
 	qboolean ( QDECL *SV_GetEntityToken )( char *buffer, int bufferSize );
-	int ( QDECL *BotImport_DebugPolygonCreate )( int color, int numPoints, vec3_t *points );
+	int ( QDECL *BotImport_DebugPolygonCreate )( int color, int numPoints, const idVec3 *points );
 	void ( QDECL *BotImport_DebugPolygonDelete )( int id );
 	int ( QDECL *Com_RealTime )( qtime_t *qtime );
-	void ( QDECL *Sys_SnapVector )( float *v );
+	void ( QDECL *Sys_SnapVector )( idVec3 &v );
 	qboolean ( QDECL *SV_GetTag )( int clientNum, char *tagName, orientation_t *orent );
 	int ( QDECL *SV_BotLibSetup )( void );
 	int ( QDECL *SV_BotLibShutdown )( void );
 	int ( QDECL *BotLibVarSet )( char *var_name, char *value );
 	int ( QDECL *BotLibVarGet )( char *var_name, char *value, int size );
-	int ( QDECL *PC_AddGlobalDefine )( char *string );
+	int ( QDECL *BotLibDefine )( const char *string );
 	int ( QDECL *BotLibStartFrame )( float time );
 	int ( QDECL *BotLibLoadMap )( const char *mapname );
 	int ( QDECL *BotLibUpdateEntity )( int ent, struct bot_entitystate_s *bue );
-	int ( QDECL *Test )( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 );
+	int ( QDECL *Test )( int parm0, char *parm1, const idVec3 &parm2, const idVec3 &parm3 );
 	int ( QDECL *SV_BotGetSnapshotEntity )( int clientNum, int sequence );
 	int ( QDECL *SV_BotGetConsoleMessage )( int clientNum, char *message, int size );
 	void ( QDECL *SV_ClientThink )( int clientNum, usercmd_t *ucmd );
 	void ( QDECL *AAS_EntityInfo )( int entnum, struct aas_entityinfo_s *info );
 	int ( QDECL *AAS_Initialized )( void );
-	void ( QDECL *AAS_PresenceTypeBoundingBox )( int presencetype, vec3_t mins, vec3_t maxs );
+	void ( QDECL *AAS_PresenceTypeBoundingBox )( int presencetype, idVec3 &mins, idVec3 &maxs );
 	float ( QDECL *AAS_Time )( void );
 	void ( QDECL *AAS_SetCurrentWorld )( int index );
-	int ( QDECL *AAS_PointAreaNum )( vec3_t point );
-	int ( QDECL *AAS_TraceAreas )( vec3_t start, vec3_t end, int *areas, vec3_t *points, int maxareas );
-	int ( QDECL *AAS_PointContents )( vec3_t point );
+	int ( QDECL *AAS_PointAreaNum )( const idVec3 &point );
+	int ( QDECL *AAS_TraceAreas )( const idVec3 &start, const idVec3 &end, int *areas, idVec3 *points, int maxareas );
+	int ( QDECL *AAS_PointContents )( const idVec3 &point );
 	int ( QDECL *AAS_NextBSPEntity )( int ent );
 	int ( QDECL *AAS_ValueForBSPEpairKey )( int ent, char *key, char *value, int size );
-	int ( QDECL *AAS_VectorForBSPEpairKey )( int ent, char *key, vec3_t v );
+	int ( QDECL *AAS_VectorForBSPEpairKey )( int ent, char *key, idVec3 &v );
 	int ( QDECL *AAS_FloatForBSPEpairKey )( int ent, char *key, float *value );
 	int ( QDECL *AAS_IntForBSPEpairKey )( int ent, char *key, int *value );
 	int ( QDECL *AAS_AreaReachability )( int areanum );
-	int ( QDECL *AAS_AreaTravelTimeToGoalArea )( int areanum, vec3_t origin, int goalareanum, int travelflags );
-	int ( QDECL *AAS_Swimming )( vec3_t origin );
-	int ( QDECL *AAS_PredictClientMovement )( struct aas_clientmove_s *move, int entnum, vec3_t origin, int presencetype, int onground, vec3_t velocity, vec3_t cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize );
-	void ( QDECL *AAS_RT_ShowRoute )( vec3_t srcpos, int srcnum, int destnum );
-	qboolean ( QDECL *AAS_RT_GetHidePos )( vec3_t srcpos, int srcnum, int srcarea, vec3_t destpos, int destnum, int destarea, vec3_t returnPos );
+	int ( QDECL *AAS_AreaTravelTimeToGoalArea )( int areanum, const idVec3 &origin, int goalareanum, int travelflags );
+	int ( QDECL *AAS_Swimming )( const idVec3 &origin );
+	int ( QDECL *AAS_PredictClientMovement )( struct aas_clientmove_s *move, int entnum, const idVec3 &origin, int presencetype, int onground, const idVec3 &velocity, const idVec3 &cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize );
+	void ( QDECL *AAS_RT_ShowRoute )( const idVec3 &srcpos, int srcnum, int destnum );
+	qboolean ( QDECL *AAS_RT_GetHidePos )( const idVec3 &srcpos, int srcnum, int srcarea, const idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos );
 	int ( QDECL *AAS_FindAttackSpotWithinRange )( int srcnum, int rangenum, int enemynum, float rangedist, int travelflags, float *outpos );
-	qboolean ( QDECL *AAS_GetRouteFirstVisPos )( vec3_t srcpos, vec3_t destpos, int travelflags, vec3_t retpos );
-	void ( QDECL *AAS_SetAASBlockingEntity )( vec3_t absmin, vec3_t absmax, qboolean blocking );
+	qboolean ( QDECL *AAS_GetRouteFirstVisPos )( const idVec3 &srcpos, const idVec3 &destpos, int travelflags, idVec3 &retpos );
+	void ( QDECL *AAS_SetAASBlockingEntity )( const idVec3 &absmin, const idVec3 &absmax, qboolean blocking );
 	void ( QDECL *EA_Say )( int client, char *str );
 	void ( QDECL *EA_SayTeam )( int client, char *str );
 	void ( QDECL *EA_UseItem )( int client, char *it );
@@ -233,8 +233,8 @@ typedef struct {
 	void ( QDECL *EA_MoveBack )( int client );
 	void ( QDECL *EA_MoveLeft )( int client );
 	void ( QDECL *EA_MoveRight )( int client );
-	void ( QDECL *EA_Move )( int client, vec3_t dir, float speed );
-	void ( QDECL *EA_View )( int client, vec3_t viewangles );
+	void ( QDECL *EA_Move )( int client, const idVec3 &dir, float speed );
+	void ( QDECL *EA_View )( int client, const idVec3 &viewangles );
 	void ( QDECL *EA_EndRegular )( int client, float thinktime );
 	void ( QDECL *EA_GetInput )( int client, float thinktime, struct bot_input_s *input );
 	void ( QDECL *EA_ResetInput )( int client, struct bot_input_s *init );
@@ -276,10 +276,10 @@ typedef struct {
 	void ( QDECL *BotGoalName )( int number, char *name, int size );
 	int ( QDECL *BotGetTopGoal )( int goalstate, struct bot_goal_s *goal );
 	int ( QDECL *BotGetSecondGoal )( int goalstate, struct bot_goal_s *goal );
-	int ( QDECL *BotChooseLTGItem )( int goalstate, vec3_t origin, int *inventory, int travelflags );
-	int ( QDECL *BotChooseNBGItem )( int goalstate, vec3_t origin, int *inventory, int travelflags, struct bot_goal_s *ltg, float maxtime );
-	int ( QDECL *BotTouchingGoal )( vec3_t origin, struct bot_goal_s *goal );
-	int ( QDECL *BotItemGoalInVisButNotVisible )( int viewer, vec3_t eye, vec3_t viewangles, struct bot_goal_s *goal );
+	int ( QDECL *BotChooseLTGItem )( int goalstate, const idVec3 &origin, int *inventory, int travelflags );
+	int ( QDECL *BotChooseNBGItem )( int goalstate, const idVec3 &origin, int *inventory, int travelflags, struct bot_goal_s *ltg, float maxtime );
+	int ( QDECL *BotTouchingGoal )( const idVec3 &origin, struct bot_goal_s *goal );
+	int ( QDECL *BotItemGoalInVisButNotVisible )( int viewer, const idVec3 &eye, const idVec3 &viewangles, struct bot_goal_s *goal );
 	int ( QDECL *BotGetLevelItemGoal )( int index, char *classname, struct bot_goal_s *goal );
 	int ( QDECL *BotGetNextCampSpotGoal )( int num, struct bot_goal_s *goal );
 	int ( QDECL *BotGetMapLocationGoal )( char *name, struct bot_goal_s *goal );
@@ -295,12 +295,12 @@ typedef struct {
 	void ( QDECL *BotFreeGoalState )( int handle );
 	void ( QDECL *BotResetMoveState )( int movestate );
 	void ( QDECL *BotMoveToGoal )( struct bot_moveresult_s *result, int movestate, struct bot_goal_s *goal, int travelflags );
-	int ( QDECL *BotMoveInDirection )( int movestate, vec3_t dir, float speed, int type );
+	int ( QDECL *BotMoveInDirection )( int movestate, const idVec3 &dir, float speed, int type );
 	void ( QDECL *BotResetAvoidReach )( int movestate );
 	void ( QDECL *BotResetLastAvoidReach )( int movestate );
-	int ( QDECL *BotReachabilityArea )( vec3_t origin, int testground );
-	int ( QDECL *BotMovementViewTarget )( int movestate, struct bot_goal_s *goal, int travelflags, float lookahead, vec3_t target );
-	int ( QDECL *BotPredictVisiblePosition )( vec3_t origin, int areanum, struct bot_goal_s *goal, int travelflags, vec3_t target );
+	int ( QDECL *BotReachabilityArea )( const idVec3 &origin, int testground );
+	int ( QDECL *BotMovementViewTarget )( int movestate, struct bot_goal_s *goal, int travelflags, float lookahead, idVec3 &target );
+	int ( QDECL *BotPredictVisiblePosition )( const idVec3 &origin, int areanum, struct bot_goal_s *goal, int travelflags, idVec3 &target );
 	int ( QDECL *BotAllocMoveState )( void );
 	void ( QDECL *BotFreeMoveState )( int handle );
 	void ( QDECL *BotInitMoveState )( int handle, struct bot_initmove_s *initmove );
@@ -331,8 +331,8 @@ typedef struct {
 	void ( *GAME_RUN_FRAME )( int levelTime );
 	qboolean ( *GAME_CONSOLE_COMMAND )( void );
 	int ( *BOTAI_START_FRAME )( int time );
-	qboolean ( *AICAST_VISIBLEFROMPOS )( vec3_t srcpos, int srcnum, vec3_t destpos, int destnum, qboolean updateVisPos );
-	qboolean ( *AICAST_CHECKATTACKATPOS )( int entnum, int enemy, vec3_t pos, qboolean ducking, qboolean allowHitWorld );
+	qboolean ( *AICAST_VISIBLEFROMPOS )( const idVec3 &srcpos, int srcnum, const idVec3 &destpos, int destnum, qboolean updateVisPos );
+	qboolean ( *AICAST_CHECKATTACKATPOS )( int entnum, int enemy, const idVec3 &pos, qboolean ducking, qboolean allowHitWorld );
 	void ( *GAME_RETRIEVE_MOVESPEEDS_FROM_CLIENT )( int entnum, char *text );
 	qboolean ( *GAME_GETMODELINFO )( int clientNum, char *modelName, void **modelInfo );
 } gameExport_t;

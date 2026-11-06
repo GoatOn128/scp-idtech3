@@ -22,7 +22,10 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
+static idRandom aiRandom;
 
 /*
 ==================
@@ -35,7 +38,7 @@ float AICast_WeaponRange( cast_state_t *cs, int weaponnum ) {
 		switch ( cs->aiCharacter ) {
 		case AICHAR_SUPERSOLDIER: // BOSS2
 			// if they have a panzer, give this weapon a shorter range
-			if ( !COM_BitCheck( cs->clientState->cur_ps.weapons, WP_PANZERFAUST ) ) {
+			if ( !idBitField::Test( cs->clientState->cur_ps.weapons, WP_PANZERFAUST ) ) {
 				return TESLA_SUPERSOLDIER_RANGE;
 			}
 		}
@@ -73,13 +76,14 @@ AICast_CheckAttack_real
 */
 qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHitWorld ) {
 	//float points;
-	vec3_t forward, right, start, end, dir, up, angles;
+	idVec3 forward, right, start, end, dir, up;
+	idAngles angles;
 	weaponinfo_t wi;
 	trace_t trace;
 	float traceDist;
-	static vec3_t smins = { -6, -6, -6 }, smaxs = { 6, 6, 6 };
-	static vec3_t fmins = { -30, -30, -24 }, fmaxs = { 30, 30, 24 };
-	float *mins, *maxs;
+	static idVec3 smins( -6, -6, -6 ), smaxs( 6, 6, 6 );
+	static idVec3 fmins( -30, -30, -24 ), fmaxs( 30, 30, 24 );
+	const idVec3 *mins, *maxs;
 	float halfHeight;
 	int traceMask;
 	int fuzzyCount, i;
@@ -139,42 +143,42 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 	//end point aiming at
 	if ( !ent->active ) {
 		//get the start point shooting from
-		VectorCopy( enemyEnt->r.currentOrigin, start );
+		start = enemyEnt->r.currentOrigin;
 		start[2] += enemyEnt->client->ps.viewheight;
-		VectorCopy( ent->r.currentOrigin, end );
+		end = ent->r.currentOrigin;
 		end[2] += ent->client->ps.viewheight;
-		VectorSubtract( start, end, dir );
-		vectoangles( dir, angles );
-		AngleVectors( angles, forward, right, up );
+		dir = start - end;
+		angles = dir.ToAngles();
+		angles.ToVectors( &forward, &right, &up );
 		CalcMuzzlePoint( &g_entities[cs->entityNum], weapnum, forward, right, up, start );
 
 		traceDist = AICast_WeaponRange( cs, weapnum );
 		switch ( weapnum ) {
 		case WP_GAUNTLET:
-			mins = NULL;
-			maxs = NULL;
+			mins = &vec3_origin;
+			maxs = &vec3_origin;
 			break;
 		case WP_DYNAMITE:
 		case WP_PANZERFAUST:
 		case WP_GRENADE_LAUNCHER:
 		case WP_GRENADE_PINEAPPLE:
 			traceMask = MASK_MISSILESHOT;
-			mins = smins;
-			maxs = smaxs;
+			mins = &smins;
+			maxs = &smaxs;
 			break;
 		case WP_FLAMETHROWER:
-			mins = fmins;
-			maxs = fmaxs;
+			mins = &fmins;
+			maxs = &fmaxs;
 			break;
 		default:
-			mins = smins;
-			maxs = smaxs;
+			mins = &smins;
+			maxs = &smaxs;
 			break;
 		}
 		passEnt = cs->entityNum;
 
 		// don't try too far
-		dist = Distance( start, enemyEnt->r.currentOrigin );
+		dist = ( start - enemyEnt->r.currentOrigin ).Length();
 		fuzzyCount = 6;
 		if ( traceDist > dist ) {
 			traceDist = dist;
@@ -188,22 +192,22 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 		gentity_t *mg42;
 		// we are mounted on a weapon
 		mg42 = &g_entities[cs->mountedEntity];
-		VectorCopy( enemyEnt->r.currentOrigin, start );
+		start = enemyEnt->r.currentOrigin;
 		start[2] += enemyEnt->client->ps.viewheight;
-		VectorCopy( mg42->r.currentOrigin, end );
-		VectorSubtract( start, end, dir );
-		vectoangles( dir, angles );
-		AngleVectors( angles, forward, right, up );
+		end = mg42->r.currentOrigin;
+		dir = start - end;
+		angles = dir.ToAngles();
+		angles.ToVectors( &forward, &right, &up );
 
-		VectorCopy( mg42->r.currentOrigin, start );
-		VectorMA( start, 16, forward, start );
-		VectorMA( start, 16, up, start );
+		start = mg42->r.currentOrigin;
+		start = start + forward * 16;
+		start = start + up * 16;
 		// snap to integer coordinates for more efficient network bandwidth usage
-		SnapVector( start );
+		start.Snap();
 
 		traceDist = 8192;
-		mins = NULL;
-		maxs = NULL;
+		mins = &vec3_origin;
+		maxs = &vec3_origin;
 		if ( mg42->mg42BaseEnt >= 0 ) {
 			passEnt = mg42->mg42BaseEnt;
 		} else {
@@ -211,7 +215,7 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 		}
 
 		// don't try too far
-		dist = Distance( start, enemyEnt->r.currentOrigin );
+		dist = ( start - enemyEnt->r.currentOrigin ).Length();
 		if ( traceDist > dist ) {
 			traceDist = dist;
 			fuzzyCount = 6;
@@ -224,14 +228,14 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 	}
 
 	for ( i = 0; i <= fuzzyCount; i++ ) {
-		VectorMA( start, traceDist, forward, end );
+		end = start + forward * traceDist;
 
 		// fuzzy end point
 		if ( i > 0 ) {
-			VectorMA( end, enemyEnt->r.maxs[0] * 0.9 * (float)( ( i % 2 ) * 2 - 1 ), right, end );
+			end = end + right * enemyEnt->r.maxs[0] * 0.9 * (float)( ( i % 2 ) * 2 - 1 );
 			halfHeight = ( enemyEnt->r.maxs[2] - enemyEnt->r.mins[2] ) / 2.0;
 			end[2] = ( enemyEnt->r.currentOrigin[2] + enemyEnt->r.mins[2] ) + halfHeight;
-			VectorMA( end, halfHeight * 0.9 * ( ( (float)( ( i - 1 ) - ( ( i - 1 ) % 2 ) ) / 2 - 1.0 ) ), up, end );
+			end = end + up * halfHeight * 0.9 * ( ( (float)( ( i - 1 ) - ( ( i - 1 ) % 2 ) ) / 2 - 1.0 ) );
 		}
 
 		if ( /*allowHitWorld &&*/ !trap_InPVS( start, end ) ) {
@@ -240,7 +244,7 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 			return qfalse;
 		}
 
-		trap_Trace( &trace, start, mins, maxs, end, passEnt, traceMask );
+		trap_Trace( &trace, start, *mins, *maxs, end, passEnt, traceMask );
 		if ( trace.fraction == 1.0 ) {
 			if ( !trace.startsolid ) {
 				return qtrue; // not sure why, but this fixes blackguards in chateau shooting through glass ceiling
@@ -253,7 +257,7 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 
 			// RF, assume we can shoot through props (chairs, etc)
 			if ( g_entities[trace.entityNum].takedamage && g_entities[trace.entityNum].health > 0 &&
-				 !Q_strncmp( g_entities[trace.entityNum].classname, "props_", 6 ) ) {
+				 !idStr::Cmpn( g_entities[trace.entityNum].classname, "props_", 6 ) ) {
 				return qtrue;
 			}
 
@@ -274,7 +278,7 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 			}
 			//if the projectile does a radial damage
 			if ( cs->weaponNum == WP_PANZERFAUST ) {
-				if ( Distance( trace.endpos, g_entities[enemy].s.pos.trBase ) > 120 ) {
+				if ( ( trace.endpos - g_entities[enemy].s.pos.trBase ).Length() > 120 ) {
 					continue;
 				}
 				//FIXME: check if a teammate gets radial damage
@@ -292,9 +296,9 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 AICast_CheckAttackAtPos
 ==================
 */
-qboolean AICast_CheckAttackAtPos( int entnum, int enemy, vec3_t pos, qboolean ducking, qboolean allowHitWorld ) {
+qboolean AICast_CheckAttackAtPos( int entnum, int enemy, const idVec3 &pos, qboolean ducking, qboolean allowHitWorld ) {
 	gentity_t *ent;
-	vec3_t savepos;
+	idVec3 savepos;
 	int saveview;
 	qboolean rval;
 	cast_state_t *cs;
@@ -302,8 +306,8 @@ qboolean AICast_CheckAttackAtPos( int entnum, int enemy, vec3_t pos, qboolean du
 	cs = AICast_GetCastState( entnum );
 	ent = &g_entities[cs->clientState->entitynum];
 
-	VectorCopy( ent->r.currentOrigin, savepos );
-	VectorCopy( pos, ent->r.currentOrigin );
+	savepos = ent->r.currentOrigin;
+	ent->r.currentOrigin = pos;
 
 	saveview = ent->client->ps.viewheight;
 	if ( ducking ) {
@@ -318,7 +322,7 @@ qboolean AICast_CheckAttackAtPos( int entnum, int enemy, vec3_t pos, qboolean du
 
 	rval = AICast_CheckAttack_real( cs, enemy, allowHitWorld );
 
-	VectorCopy( savepos, ent->r.currentOrigin );
+	ent->r.currentOrigin = savepos;
 	ent->client->ps.viewheight = saveview;
 
 	return rval;
@@ -406,7 +410,7 @@ qboolean AICast_WeaponUsable( cast_state_t *cs, int weaponNum ) {
 	gentity_t *ent, *grenade;
 
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 
 	oldweap = cs->weaponNum;
@@ -478,7 +482,7 @@ void AICast_ChooseWeapon( cast_state_t *cs, qboolean battleFunc ) {
 	bestWantScale = 0.0;
 
 	if ( cs->enemyNum >= 0 ) {
-		enemyDist = VectorDistance( g_entities[cs->enemyNum].s.pos.trBase, cs->clientState->origin );
+		enemyDist = ( g_entities[cs->enemyNum].s.pos.trBase - cs->clientState->origin ).Length();
 		// subtract distance to edge of bounding box
 		enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 	}
@@ -518,7 +522,7 @@ void AICast_ChooseWeapon( cast_state_t *cs, qboolean battleFunc ) {
 			continue; // Special abilities start through the combat state.
 		}
 
-		if ( COM_BitCheck( cs->clientState->cur_ps.weapons, i ) ) {
+		if ( idBitField::Test( cs->clientState->cur_ps.weapons, i ) ) {
 			gotOne = qtrue;
 			// check that our ammo is enough
 			if ( !AICast_GotEnoughAmmoForWeapon( cs, i ) || !AICast_WeaponUsable( cs, i ) ) {
@@ -564,8 +568,8 @@ AICast_WeaponSway
   Some weapons should be "sprayed" around a bit while firing
 ==================
 */
-void AICast_WeaponSway( cast_state_t *cs, vec3_t ofs ) {
-	VectorClear( ofs );
+void AICast_WeaponSway( cast_state_t *cs, idVec3 &ofs ) {
+	ofs.Zero();
 	switch ( cs->weaponNum ) {
 	case WP_MONSTER_ATTACK1:
 		if ( cs->aiCharacter != AICHAR_ZOMBIE ) {
@@ -592,8 +596,8 @@ AICast_AimAtEnemy
 qboolean AICast_AimAtEnemy( cast_state_t *cs ) {
 	ai_client_state_t *bs;
 	float aim_skill, aim_accuracy;
-	vec3_t dir, bestorigin, start, enemyOrg;
-	//	vec3_t mins = {-4,-4,-4}, maxs = {4, 4, 4};
+	idVec3 dir, bestorigin, start, enemyOrg;
+	//	idVec3 mins = {-4,-4,-4}, maxs = {4, 4, 4};
 	float dist;
 	cast_visibility_t *vis;
 
@@ -632,9 +636,9 @@ qboolean AICast_AimAtEnemy( cast_state_t *cs ) {
 	if ( vis->visible_timestamp < vis->lastcheck_timestamp ) {
 		// use our last visible position of them
 		if ( vis->real_visible_timestamp == vis->lastcheck_timestamp ) {
-			VectorCopy( vis->real_visible_pos, bestorigin );
+			bestorigin = vis->real_visible_pos;
 		} else {
-			VectorCopy( vis->visible_pos, bestorigin );
+			bestorigin = vis->visible_pos;
 		}
 	} else {
 		// we can see them, if this weapon isn't a direct-hit weapon (bullets),
@@ -643,57 +647,57 @@ qboolean AICast_AimAtEnemy( cast_state_t *cs ) {
 			aicast_predictmove_t move;
 			AICast_PredictMovement( AICast_GetCastState( cs->enemyNum ), 1, 1.0, &move,
 									&g_entities[cs->enemyNum].client->pers.cmd, -1 );
-			VectorCopy( move.endpos, bestorigin );
+			bestorigin = move.endpos;
 		} else { // they are visible, use actual position
-			VectorCopy( g_entities[cs->enemyNum].client->ps.origin, bestorigin );
+			bestorigin = g_entities[cs->enemyNum].client->ps.origin;
 		}
 	}
 
 	bestorigin[2] += g_entities[cs->enemyNum].client->ps.viewheight;
 	//get the start point shooting from
 	//NOTE: the x and y projectile start offsets are ignored
-	VectorCopy( bs->origin, start );
+	start = bs->origin;
 	start[2] += bs->cur_ps.viewheight;
 	//
-	VectorCopy( bestorigin, enemyOrg );
+	enemyOrg = bestorigin;
 	//
 	// grenade hack: aim grenades at their feet if they are close
 	if ( cs->weaponNum == WP_GRENADE_LAUNCHER || cs->weaponNum == WP_GRENADE_PINEAPPLE ) {
-		if ( Distance( start, bestorigin ) < 180 ) {
-			bestorigin[2] = enemyOrg[2] + g_entities[cs->enemyNum].r.mins[2] + crandom() * 20;
-		} else if ( Distance( start, bestorigin ) > 400 ) { // aim up a bit for distance
-			bestorigin[2] += 12 + Distance( start, bestorigin ) / 50 + crandom() * 20;
+		if ( ( start - bestorigin ).Length() < 180 ) {
+			bestorigin[2] = enemyOrg[2] + g_entities[cs->enemyNum].r.mins[2] + aiRandom.CRandomFloat() * 20;
+		} else if ( ( start - bestorigin ).Length() > 400 ) { // aim up a bit for distance
+			bestorigin[2] += 12 + ( start - bestorigin ).Length() / 50 + aiRandom.CRandomFloat() * 20;
 		}
 	}
-	dist = Distance( bs->eye, bestorigin );
+	dist = ( bs->eye - bestorigin ).Length();
 	// rocket launcher should aim ahead
 	if ( cs->weaponNum == WP_PANZERFAUST ) {
-		VectorMA( bestorigin, aim_skill * aim_skill * ( dist / 900 ), g_entities[cs->enemyNum].client->ps.velocity,
-				  bestorigin );
+		bestorigin = bestorigin + g_entities[cs->enemyNum].client->ps.velocity * aim_skill * aim_skill * ( dist / 900 );
 		// if they are close, aim down at their feet
 		if ( dist < 512 ) {
 			bestorigin[2] -=
-				( VectorLength( g_entities[cs->enemyNum].client->ps.velocity ) / 500.0 ) * ( 1.0 - dist / 2048 ) *
+				( g_entities[cs->enemyNum].client->ps.velocity.Length() / 500.0 ) * ( 1.0 - dist / 2048 ) *
 				( bestorigin[2] -
 				  ( g_entities[cs->enemyNum].client->ps.origin[2] + g_entities[cs->enemyNum].client->ps.mins[2] ) );
 		}
 	}
 	// if the enemy is moving, they are harder to hit
 	if ( dist > 256 ) {
-		VectorMA( bestorigin,
-				  ( 0.3 + 0.7 * ( 1 - aim_accuracy ) ) * 0.4 *
-					  sin( (float)level.time / ( 500.0 + ( 100.0 * ( ( cs->entityNum + 3 ) % 4 ) ) ) ),
-				  g_entities[cs->enemyNum].client->ps.velocity, bestorigin );
+		bestorigin = bestorigin + g_entities[cs->enemyNum].client->ps.velocity * ( 0.3 + 0.7 * ( 1 - aim_accuracy ) ) * 0.4 *
+					  sin( (float)level.time / ( 500.0 + ( 100.0 * ( ( cs->entityNum + 3 ) % 4 ) ) ) );
 	}
 	// if we are good at aiming, we should aim ahead of where they are now
 	// since by the time we have rotated to that direction, some time will have passed
 	if ( aim_skill > 0.2 ) {
-		VectorMA( bestorigin, aim_skill * 0.2, g_entities[cs->enemyNum].client->ps.velocity, bestorigin );
+		bestorigin = bestorigin + g_entities[cs->enemyNum].client->ps.velocity * aim_skill * 0.2;
 	}
 	//get aim direction
-	VectorSubtract( bestorigin, bs->eye, dir );
+	dir = bestorigin - bs->eye;
 	//set the ideal view angles
-	vectoangles( dir, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = dir.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 
 	return qtrue; // do real aim checking after we've moved the angles
 }
@@ -855,7 +859,7 @@ void AICast_RecordWeaponFire( gentity_t *ent ) {
 	cs = AICast_GetCastState( ent->s.number );
 	cs->combat.lastWeaponFired = level.time;
 	cs->combat.lastWeaponFiredWeaponNum = ent->client->ps.weapon;
-	VectorCopy( ent->r.currentOrigin, cs->combat.lastWeaponFiredPos );
+	cs->combat.lastWeaponFiredPos = ent->r.currentOrigin;
 
 	cs->combat.weaponFireTimes[cs->combat.lastWeaponFiredWeaponNum] = level.time;
 
@@ -882,7 +886,7 @@ qboolean AICast_StopAndAttack( cast_state_t *cs ) {
 	cast_state_t *ecs;
 
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].r.currentOrigin );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].r.currentOrigin ).Length();
 	}
 
 	switch ( cs->weaponNum ) {

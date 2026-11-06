@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -78,7 +80,7 @@ void AICast_Sight( gentity_t *ent, gentity_t *other, int lastSight ) {
 AICast_Pain
 ============
 */
-void AICast_Pain( gentity_t *targ, gentity_t *attacker, int damage, vec3_t point ) {
+void AICast_Pain( gentity_t *targ, gentity_t *attacker, int damage, idVec3 &point ) {
 	cast_state_t *cs;
 
 	cs = AICast_GetCastState( targ->s.number );
@@ -113,7 +115,11 @@ void AICast_Pain( gentity_t *targ, gentity_t *attacker, int damage, vec3_t point
 
 	AICast_ScriptEvent( cs, "painenemy", attacker->aiName );
 
-	AICast_ScriptEvent( cs, "pain", va( "%d %d", targ->health, targ->health + damage ) );
+	char painParams[MAX_QPATH];
+	idStr::Copynz( painParams,
+				   idStr::FormatString( "%d %d", targ->health, targ->health + damage ).c_str(),
+				   sizeof( painParams ) );
+	AICast_ScriptEvent( cs, "pain", painParams );
 
 	if ( cs->aiFlags & AIFL_DENYACTION ) {
 		// dont play any sounds
@@ -262,7 +268,7 @@ void AICast_Die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		self->s.angles[1] = self->client->ps.viewangles[1];
 		self->s.angles[2] = 0;
 
-		VectorCopy( self->s.angles, self->client->ps.viewangles );
+		self->client->ps.viewangles = self->s.angles;
 
 		self->s.loopSound = 0;
 
@@ -328,7 +334,7 @@ void AICast_Die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		cs->deadSinkStartTime = 0;
 		if ( cs->aiCharacter == AICHAR_WARZOMBIE ) {
 			trap_Cvar_VariableStringBuffer( "mapname", mapname, sizeof( mapname ) );
-			if ( !Q_strncmp( mapname, "end", 3 ) ) { // !! FIXME: post beta2, make this a spawnflag!
+			if ( !idStr::Cmpn( mapname, "end", 3 ) ) { // !! FIXME: post beta2, make this a spawnflag!
 				cs->deadSinkStartTime = level.time + 4000;
 			}
 		}
@@ -401,7 +407,7 @@ void AICast_AIDoor_Touch( gentity_t *ent, gentity_t *aidoor_trigger, gentity_t *
 	gentity_t *trav;
 	int i;
 	trace_t tr;
-	vec3_t mins, pos, dir;
+	idVec3 mins, pos, dir;
 
 	cs = AICast_GetCastState( ent->s.number );
 
@@ -421,11 +427,11 @@ void AICast_AIDoor_Touch( gentity_t *ent, gentity_t *aidoor_trigger, gentity_t *
 	}
 
 	// if they are moving away from the door, ignore them
-	if ( VectorLength( cs->clientState->velocity ) > 1 ) {
-		VectorAdd( door->r.absmin, door->r.absmax, pos );
-		VectorScale( pos, 0.5, pos );
-		VectorSubtract( pos, cs->clientState->origin, dir );
-		if ( DotProduct( cs->clientState->velocity, dir ) < 0 ) {
+	if ( cs->clientState->velocity.Length() > 1 ) {
+		pos = door->r.absmin + door->r.absmax;
+		pos = pos * 0.5;
+		dir = pos - cs->clientState->origin;
+		if ( ( cs->clientState->velocity * dir ) < 0 ) {
 			return;
 		}
 	}
@@ -456,7 +462,7 @@ void AICast_AIDoor_Touch( gentity_t *ent, gentity_t *aidoor_trigger, gentity_t *
 			continue;
 		}
 		// make sure there is a clear path
-		VectorCopy( ent->r.mins, mins );
+		mins = ent->r.mins;
 		mins[2] += 16; // step height
 		trap_Trace( &tr, ent->r.currentOrigin, mins, ent->r.maxs, trav->r.currentOrigin, ent->s.number, ent->clipmask );
 		if ( tr.fraction < 1.0 ) {

@@ -27,11 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "tr_renderprog.h"
-#include <algorithm>
 #include <cmath>
-#include <vector>
+#include "containers/List.h"
 
 struct screenParticle_t {
 	const refEntity_t *entity;
@@ -47,44 +48,50 @@ billboards, sorted back to front, and fades intersections against opaque depth.
 ====================
 */
 void RB_DrawScreenParticles( void ) {
-	std::vector<screenParticle_t> particles;
+	idList<screenParticle_t> particles;
 	for ( int i = 0; i < backEnd.refdef.num_entities; i++ ) {
 		const refEntity_t *entity = &backEnd.refdef.entities[i].e;
 		if ( entity->reType != RT_SCREEN_PARTICLE || !RB_ScreenEntityVisible( entity ) ) { continue; }
-		vec3_t delta;
-		VectorSubtract( entity->origin, backEnd.viewParms.orent.origin, delta );
-		float depth = DotProduct( delta, backEnd.viewParms.orent.axis[0] );
+		idVec3 delta;
+		delta = entity->origin - backEnd.viewParms.orent.origin;
+		float depth = ( delta ) * ( backEnd.viewParms.orent.axis[0] );
 		if ( depth <= 0 ) { continue; }
-		particles.push_back( { entity, depth } );
+		particles.Append( { entity, depth } );
 	}
-	if ( particles.empty() || !RB_BeginScreenPass( SCREEN_PARTICLE_PROGRAM ) ) { return; }
-	std::stable_sort( particles.begin(), particles.end(), []( const screenParticle_t &a, const screenParticle_t &b ) {
-		return a.depth > b.depth;
-	} );
+	if ( particles.Num() == 0 || !RB_BeginScreenPass( SCREEN_PARTICLE_PROGRAM ) ) { return; }
+	for ( int i = 1; i < particles.Num(); ++i ) {
+		const screenParticle_t particle = particles[i];
+		int j = i;
+		while ( j > 0 && particles[j - 1].depth < particle.depth ) {
+			particles[j] = particles[j - 1];
+			--j;
+		}
+		particles[j] = particle;
+	}
 	const float st[4][2] = { { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } };
 	const float signs[4][2] = { { -1, 1 }, { 1, 1 }, { 1, -1 }, { -1, -1 } };
-	for ( size_t i = 0; i < particles.size(); i++ ) {
+	for ( int i = 0; i < particles.Num(); i++ ) {
 		const refEntity_t *entity = particles[i].entity;
 		float aspect = entity->scale[0];
-		if ( !std::isfinite( aspect ) || aspect <= 0 || !std::isfinite( entity->rotation ) ) { continue; }
+		if ( !idMath::IsFinite( aspect ) || aspect <= 0 || !idMath::IsFinite( entity->rotation ) ) { continue; }
 		float angle = DEG2RAD( entity->rotation );
 		float cosine = cosf( angle ), sine = sinf( angle );
-		vec3_t right, up;
+		idVec3 right, up;
 		for ( int j = 0; j < 3; j++ ) {
 			right[j] = -backEnd.viewParms.orent.axis[1][j] * cosine + backEnd.viewParms.orent.axis[2][j] * sine;
 			up[j] = backEnd.viewParms.orent.axis[1][j] * sine + backEnd.viewParms.orent.axis[2][j] * cosine;
 		}
 		float softness = entity->shaderTexCoord[0];
-		if ( !std::isfinite( softness ) || softness <= 0 ) { softness = 1; }
+		if ( !idMath::IsFinite( softness ) || softness <= 0 ) { softness = 1; }
 		RB_ScreenSoftness( softness );
 		RB_BindScreenMaterial( entity );
 		qglBegin( GL_QUADS );
 		for ( int corner = 0; corner < 4; corner++ ) {
-			vec3_t point;
-			VectorMA( entity->origin, signs[corner][0] * entity->radius, right, point );
-			VectorMA( point, signs[corner][1] * entity->radius * aspect, up, point );
+			idVec3 point;
+			point = entity->origin + right * signs[corner][0] * entity->radius;
+			point = point + up * signs[corner][1] * entity->radius * aspect;
 			qglTexCoord2fv( st[corner] );
-			qglVertex3fv( point );
+			qglVertex3fv( point.ToFloatPtr() );
 		}
 		qglEnd();
 	}

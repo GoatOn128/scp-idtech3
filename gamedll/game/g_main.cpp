@@ -29,7 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 
 
 
+#include "../precompiled.h"
+
 #include "g_local.h"
+
+idRandom gameRandom;
 
 level_locals_t level;
 
@@ -259,9 +263,9 @@ void G_ShutdownGame( int restart );
 void CheckExitRules( void );
 
 // Ridah, Cast AI
-qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum,
-								vec3_t destpos, int destnum, qboolean updateVisPos );
-qboolean AICast_CheckAttackAtPos( int entnum, int enemy, vec3_t pos, qboolean ducking, qboolean allowHitWorld );
+qboolean AICast_VisibleFromPos( const idVec3 &srcpos, int srcnum,
+								const idVec3 &destpos, int destnum, qboolean updateVisPos );
+qboolean AICast_CheckAttackAtPos( int entnum, int enemy, const idVec3 &pos, qboolean ducking, qboolean allowHitWorld );
 void AICast_Init( void );
 // done.
 
@@ -397,7 +401,7 @@ static int nextCheckTime = 0;
 #define AITEAM_NEUTRAL  7   // yes, '7'
 
 void G_CheckForCursorHints( gentity_t *ent ) {
-	vec3_t forward, right, up, offset, end;
+	idVec3 forward, right, up, offset, end;
 	trace_t     *tr;
 	float dist;
 	gentity_t   *checkEnt, *traceEnt = 0;
@@ -441,20 +445,20 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 
 	zooming = (qboolean)( ps->eFlags & EF_ZOOMING );
 
-	AngleVectors( ps->viewangles, forward, right, up );
+	idAngles( ps->viewangles ).ToVectors( &forward, &right, &up );
 
 	//----(SA)	modified to use shared routine for finding start point
 	CalcMuzzlePointForActivate( ent, forward, right, up, offset );
 
 	if ( zooming ) {
-		VectorMA( offset, CH_MAX_DIST_ZOOM, forward, end );
+		end = offset + forward * CH_MAX_DIST_ZOOM;
 	} else {
-		VectorMA( offset, CH_MAX_DIST, forward, end );
+		end = offset + forward * CH_MAX_DIST;
 	}
 
 	tr = &ps->serverCursorHintTrace;
 	trace_contents = ( CONTENTS_TRIGGER | CONTENTS_SOLID | CONTENTS_PLAYERCLIP | CONTENTS_BODY | CONTENTS_CORPSE );   // SP fine checking corpses
-	trap_Trace( tr, offset, NULL, NULL, end, ps->clientNum, trace_contents );
+	trap_Trace( tr, offset, vec3_origin, vec3_origin, end, ps->clientNum, trace_contents );
 
 	oldHintType = ps->serverCursorHint; // store the old one so we know when there's a transition
 
@@ -497,7 +501,7 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 	else if ( tr->entityNum < MAX_CLIENTS ) {
 
 		if ( ent->s.weapon == WP_KNIFE ) {
-			vec3_t pforward, eforward;
+			idVec3 pforward, eforward;
 			qboolean canKnife = qfalse;
 
 // only knife certain characters
@@ -506,11 +510,11 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 			}
 
 			if ( canKnife ) {
-				AngleVectors( ent->client->ps.viewangles,       pforward, NULL, NULL );
-				AngleVectors( traceEnt->client->ps.viewangles,  eforward, NULL, NULL );
+				idAngles( ent->client->ps.viewangles ).ToVectors( &pforward, NULL, NULL );
+				idAngles( traceEnt->client->ps.viewangles ).ToVectors( &eforward, NULL, NULL );
 
 				// (SA) TODO: neutralize pitch (so only yaw is considered)?
-				if ( DotProduct( eforward, pforward ) > 0.9f ) {   // from behind
+				if ( ( eforward * pforward ) > 0.9f ) {   // from behind
 					hintType = HINT_KNIFE;
 					hintDist = CH_KNIFE_DIST;
 				}
@@ -554,11 +558,11 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 			// ignore trigger_aidoor.  can't just not trace for triggers, since I need invisible_users...
 			// damn, I would like to ignore some of these triggers though.
 
-			if ( !Q_stricmp( traceEnt->classname, "trigger_aidoor" ) ) {
+			if ( !idStr::Icmp( traceEnt->classname, "trigger_aidoor" ) ) {
 				return;
 			}
 
-			if ( !Q_stricmp( traceEnt->classname, "func_invisible_user" ) ) {
+			if ( !idStr::Icmp( traceEnt->classname, "func_invisible_user" ) ) {
 				indirectHit = qtrue;
 
 				// DHM - Nerve :: Put this back in only in multiplayer
@@ -586,9 +590,9 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 				// ainame = 'player'
 				// target = 'endmap'
 				//
-				if ( !Q_stricmp( traceEnt->classname, "ai_trigger" ) ) {
-					if ( ( !Q_stricmp( traceEnt->aiName, "player" ) ) &&
-						 ( !Q_stricmp( traceEnt->target, "endmap" ) ) ) {
+				if ( !idStr::Icmp( traceEnt->classname, "ai_trigger" ) ) {
+					if ( ( !idStr::Icmp( traceEnt->aiName, "player" ) ) &&
+						 ( !idStr::Icmp( traceEnt->target, "endmap" ) ) ) {
 
 						hintDist = CH_EXIT_DIST;
 
@@ -697,7 +701,7 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 					break;
 				}
 			} else if ( checkEnt->s.eType == ET_MOVER )     {
-				if ( !Q_stricmp( checkEnt->classname, "func_door_rotating" ) ) {
+				if ( !idStr::Icmp( checkEnt->classname, "func_door_rotating" ) ) {
 					if ( checkEnt->moverState == MOVER_POS1ROTATE    ||      // stationary/closed
 						 ( checkEnt->moverState == MOVER_POS2ROTATE && checkEnt->flags & FL_TOGGLE ) ) { // toggle door that's open
 
@@ -708,7 +712,7 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 							//						hintType = HINT_DOOR_ROTATING_LOCKED;
 						}
 					}
-				} else if ( !Q_stricmp( checkEnt->classname, "func_door" ) )         {
+				} else if ( !idStr::Icmp( checkEnt->classname, "func_door" ) )         {
 					if ( checkEnt->moverState == MOVER_POS1   || // stationary/closed
 						 ( checkEnt->moverState == MOVER_POS2 && checkEnt->flags & FL_TOGGLE ) ) { // toggle door that's open
 
@@ -719,13 +723,13 @@ void G_CheckForCursorHints( gentity_t *ent ) {
 							//						hintType = HINT_DOOR_LOCKED;
 						}
 					}
-				} else if ( !Q_stricmp( checkEnt->classname, "func_button" ) )         {
+				} else if ( !idStr::Icmp( checkEnt->classname, "func_button" ) )         {
 					hintDist = CH_ACTIVATE_DIST;
 					hintType = HINT_BUTTON;
-				} else if ( !Q_stricmp( checkEnt->classname, "props_flamebarrel" ) )         {
+				} else if ( !idStr::Icmp( checkEnt->classname, "props_flamebarrel" ) )         {
 					hintDist = CH_BREAKABLE_DIST;
 					hintType = HINT_BREAKABLE;
-				} else if ( !Q_stricmp( checkEnt->classname, "props_statue" ) )         {
+				} else if ( !idStr::Icmp( checkEnt->classname, "props_statue" ) )         {
 					hintDist = CH_BREAKABLE_DIST;
 					hintType = HINT_BREAKABLE;
 				} else if ( strstr( checkEnt->classname, "chair" ) )         {
@@ -856,7 +860,7 @@ void G_FindTeams( void ) {
 		}
 
 //----(SA)	this was never setting a master except for tramcar's...
-		if ( !Q_stricmp( e->classname, "func_tramcar" ) ) {
+		if ( !idStr::Icmp( e->classname, "func_tramcar" ) ) {
 			if ( e->spawnflags & 8 ) { // leader
 				e->teammaster = e;
 			} else {
@@ -888,7 +892,7 @@ void G_FindTeams( void ) {
 //				e2->key = e->key;	// (SA) I can't set the key here since the master door hasn't finished spawning yet and therefore has a key of -1
 				e2->flags |= FL_TEAMSLAVE;
 
-				if ( !Q_stricmp( e2->classname, "func_tramcar" ) ) {
+				if ( !idStr::Icmp( e2->classname, "func_tramcar" ) ) {
 					trap_UnlinkEntity( e2 );
 				}
 
@@ -899,7 +903,7 @@ void G_FindTeams( void ) {
 					// Rafael
 					// note to self: added this because of problems
 					// pertaining to keys and double doors
-					if ( Q_stricmp( e2->classname, "func_door_rotating" ) ) {
+					if ( idStr::Icmp( e2->classname, "func_door_rotating" ) ) {
 						e2->targetname = NULL;
 					}
 				}
@@ -968,7 +972,7 @@ void G_RegisterCvars( void ) {
 	// Rafael gameskill
 	if ( g_gameskill.integer < GSKILL_EASY || g_gameskill.integer > GSKILL_MAX ) {
 		G_Printf( "g_gameskill %i is out of range, default to medium\n", g_gameskill.integer );
-		trap_Cvar_Set( "g_gameskill", va( "%d", GSKILL_MEDIUM ) ); // default to medium
+		trap_Cvar_Set( "g_gameskill", idStr::FormatString( "%d", GSKILL_MEDIUM ) ); // default to medium
 	}
 
 	bg_pmove_gameskill_integer = g_gameskill.integer;
@@ -997,7 +1001,7 @@ void G_UpdateCvars( void ) {
 				cv->modificationCount = cv->vmCvar->modificationCount;
 
 				if ( cv->trackChange ) {
-					trap_SendServerCommand( -1, va( "print \"Server: %s changed to %s\n\"",
+					trap_SendServerCommand( -1, idStr::FormatString( "print \"Server: %s changed to %s\n\"",
 													cv->cvarName, cv->vmCvar->string ) );
 				}
 
@@ -1006,7 +1010,7 @@ void G_UpdateCvars( void ) {
 				}
 
 				// check for changed values for particular cvars
-				if ( !Q_stricmp( cv->cvarName, "g_playerStart" ) ) {
+				if ( !idStr::Icmp( cv->cvarName, "g_playerStart" ) ) {
 					gentity_t *player;
 					player = AICast_FindEntityForName( "player" );
 					if ( player && cv->vmCvar->integer ) {
@@ -1024,8 +1028,8 @@ void G_UpdateCvars( void ) {
 
 						// save the "autosave\\<mapname>" savegame, which is taken before any cameras have been played
 						trap_Cvar_VariableStringBuffer( "mapname", mapname, sizeof( mapname ) );
-						Q_strncpyz( filename, "autosave\\", sizeof( filename ) );
-						Q_strcat( filename, sizeof( filename ), mapname );
+						idStr::Copynz( filename, "autosave\\", sizeof( filename ) );
+						idStr::Append( filename, sizeof( filename ), mapname );
 						G_SaveGame( filename );
 
 						// now let it think
@@ -1070,8 +1074,8 @@ void G_SpawnScriptCamera( void ) {
 	g_camEnt->s.apos.trType = TR_STATIONARY;
 	g_camEnt->s.apos.trTime = 0;
 	g_camEnt->s.apos.trDuration = 0;
-	VectorCopy( g_camEnt->s.angles, g_camEnt->s.apos.trBase );
-	VectorClear( g_camEnt->s.apos.trDelta );
+	g_camEnt->s.apos.trBase = g_camEnt->s.angles;
+	g_camEnt->s.apos.trDelta.Zero();
 
 	g_camEnt->s.frame = 0;
 
@@ -1113,7 +1117,7 @@ int G_SendMissionStats() {
 	}
 
 	memset( cmd, 0, sizeof( cmd ) );
-	Q_strcat( cmd, sizeof( cmd ), "s=" );
+	idStr::Append( cmd, sizeof( cmd ), "s=" );
 
 	// 'kills' no longer tracked
 
@@ -1123,22 +1127,22 @@ int G_SendMissionStats() {
 		minutes = ( ( playtime % 3600000 ) / 1000 ) / 60; // handle hours in a map
 
 	}
-	Q_strcat( cmd, sizeof( cmd ), va( ",%i,%i,%i", ( ( playtime / 1000 ) / 60 ) / 60, minutes, ( playtime / 1000 ) % 60 ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i,%i,%i", ( ( playtime / 1000 ) / 60 ) / 60, minutes, ( playtime / 1000 ) % 60 ) );
 
 	// objectives
-	Q_strcat( cmd, sizeof( cmd ), va( ",%i,%i", objs, level.numObjectives ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i,%i", objs, level.numObjectives ) );
 	if ( objs >= level.numObjectives ) { // you're ready to go!
 		canExit = 1;
 	}
 
 	// secrets
-	Q_strcat( cmd, sizeof( cmd ), va( ",%i,%i", sec, level.numSecrets ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i,%i", sec, level.numSecrets ) );
 
 	// treasure
-	Q_strcat( cmd, sizeof( cmd ), va( ",%i,%i", treas, level.numTreasure ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i,%i", treas, level.numTreasure ) );
 
 	// attempts
-	Q_strcat( cmd, sizeof( cmd ), va( ",%i", attempts ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i", attempts ) );
 
 //	trap_Cvar_Set( "g_missionStats", cmd );
 	// changing to a configstring (should help w/ savegame, no?)
@@ -1259,7 +1263,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 		}
 
 		for ( i = 0; i < 8; i++ )     {  // max objective cvars: 8 (FIXME: use #define somewhere)
-			trap_Cvar_Set( va( "g_objective%i", i + 1 ), "0" );   // clear the objective ROM cvars
+			trap_Cvar_Set( idStr::FormatString( "g_objective%i", i + 1 ), "0" );   // clear the objective ROM cvars
 		}
 		trap_Cvar_Set( "cg_yougotMail", "0" );
 	}
@@ -1644,18 +1648,18 @@ void CalculateRanks( void ) {
 
 	// set the CS_SCORES1/2 configstrings, which will be visible to everyone
 	if ( g_gametype.integer >= GT_TEAM ) {
-		trap_SetConfigstring( CS_SCORES1, va( "%i", level.teamScores[TEAM_RED] ) );
-		trap_SetConfigstring( CS_SCORES2, va( "%i", level.teamScores[TEAM_BLUE] ) );
+		trap_SetConfigstring( CS_SCORES1, idStr::FormatString( "%i", level.teamScores[TEAM_RED] ) );
+		trap_SetConfigstring( CS_SCORES2, idStr::FormatString( "%i", level.teamScores[TEAM_BLUE] ) );
 	} else {
 		if ( level.numConnectedClients == 0 ) {
-			trap_SetConfigstring( CS_SCORES1, va( "%i", SCORE_NOT_PRESENT ) );
-			trap_SetConfigstring( CS_SCORES2, va( "%i", SCORE_NOT_PRESENT ) );
+			trap_SetConfigstring( CS_SCORES1, idStr::FormatString( "%i", SCORE_NOT_PRESENT ) );
+			trap_SetConfigstring( CS_SCORES2, idStr::FormatString( "%i", SCORE_NOT_PRESENT ) );
 		} else if ( level.numConnectedClients == 1 ) {
-			trap_SetConfigstring( CS_SCORES1, va( "%i", level.clients[ level.sortedClients[0] ].ps.persistant[PERS_SCORE] ) );
-			trap_SetConfigstring( CS_SCORES2, va( "%i", SCORE_NOT_PRESENT ) );
+			trap_SetConfigstring( CS_SCORES1, idStr::FormatString( "%i", level.clients[ level.sortedClients[0] ].ps.persistant[PERS_SCORE] ) );
+			trap_SetConfigstring( CS_SCORES2, idStr::FormatString( "%i", SCORE_NOT_PRESENT ) );
 		} else {
-			trap_SetConfigstring( CS_SCORES1, va( "%i", level.clients[ level.sortedClients[0] ].ps.persistant[PERS_SCORE] ) );
-			trap_SetConfigstring( CS_SCORES2, va( "%i", level.clients[ level.sortedClients[1] ].ps.persistant[PERS_SCORE] ) );
+			trap_SetConfigstring( CS_SCORES1, idStr::FormatString( "%i", level.clients[ level.sortedClients[0] ].ps.persistant[PERS_SCORE] ) );
+			trap_SetConfigstring( CS_SCORES2, idStr::FormatString( "%i", level.clients[ level.sortedClients[1] ].ps.persistant[PERS_SCORE] ) );
 		}
 	}
 
@@ -1711,9 +1715,9 @@ void MoveClientToIntermission( gentity_t *ent ) {
 
 
 	// move to the spot
-	VectorCopy( level.intermission_origin, ent->s.origin );
-	VectorCopy( level.intermission_origin, ent->client->ps.origin );
-	VectorCopy( level.intermission_angle, ent->client->ps.viewangles );
+	ent->s.origin = level.intermission_origin;
+	ent->client->ps.origin = level.intermission_origin;
+	ent->client->ps.viewangles = level.intermission_angle;
 	ent->client->ps.pm_type = PM_INTERMISSION;
 
 	// clean up powerup info
@@ -1737,21 +1741,22 @@ This is also used for spectator spawns
 */
 void FindIntermissionPoint( void ) {
 	gentity_t   *ent, *target;
-	vec3_t dir;
+	idVec3 dir;
 
 	// find the intermission spot
 	ent = G_Find( NULL, FOFS( classname ), "info_player_intermission" );
 	if ( !ent ) {   // the map creator forgot to put in an intermission point...
 		SelectSpawnPoint( vec3_origin, level.intermission_origin, level.intermission_angle );
 	} else {
-		VectorCopy( ent->s.origin, level.intermission_origin );
-		VectorCopy( ent->s.angles, level.intermission_angle );
+		level.intermission_origin = ent->s.origin;
+		level.intermission_angle = ent->s.angles;
 		// if it has a target, look towards it
 		if ( ent->target ) {
 			target = G_PickTarget( ent->target );
 			if ( target ) {
-				VectorSubtract( target->s.origin, level.intermission_origin, dir );
-				vectoangles( dir, level.intermission_angle );
+				dir = target->s.origin - level.intermission_origin;
+				idAngles intermissionAngles = dir.ToAngles();
+				level.intermission_angle.Set( intermissionAngles.pitch, intermissionAngles.yaw, intermissionAngles.roll );
 			}
 		}
 	}
@@ -2140,7 +2145,7 @@ void CheckExitRules( void ) {
 
 			if ( cl->ps.persistant[PERS_SCORE] >= g_fraglimit.integer ) {
 				LogExit( "Fraglimit hit." );
-				trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " hit the fraglimit.\n\"",
+				trap_SendServerCommand( -1, idStr::FormatString( "print \"%s" S_COLOR_WHITE " hit the fraglimit.\n\"",
 												cl->pers.netname ) );
 				return;
 			}
@@ -2200,7 +2205,7 @@ void CheckTournement( void ) {
 	if ( level.numPlayingClients != 2 ) {
 		if ( level.warmupTime != -1 ) {
 			level.warmupTime = -1;
-			trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
+			trap_SetConfigstring( CS_WARMUP, idStr::FormatString( "%i", level.warmupTime ) );
 			G_LogPrintf( "Warmup:\n" );
 		}
 		return;
@@ -2221,7 +2226,7 @@ void CheckTournement( void ) {
 		if ( level.numPlayingClients == 2 ) {
 			// fudge by -1 to account for extra delays
 			level.warmupTime = level.time + ( g_warmup.integer - 1 ) * 1000;
-			trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
+			trap_SetConfigstring( CS_WARMUP, idStr::FormatString( "%i", level.warmupTime ) );
 		}
 		return;
 	}
@@ -2245,7 +2250,7 @@ CheckVote
 void CheckVote( void ) {
 	if ( level.voteExecuteTime && level.voteExecuteTime < level.time ) {
 		level.voteExecuteTime = 0;
-		trap_SendConsoleCommand( EXEC_APPEND, va( "%s\n", level.voteString ) );
+		trap_SendConsoleCommand( EXEC_APPEND, idStr::FormatString( "%s\n", level.voteString ) );
 	}
 	if ( !level.voteTime ) {
 		return;
@@ -2282,11 +2287,11 @@ void CheckReloadStatus( void ) {
 			if ( level.reloadDelayTime < level.time ) {
 
 				if ( g_reloading.integer == RELOAD_NEXTMAP_WAITING ) {
-					trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_NEXTMAP ) ); // set so sv_map_f will know it's okay to start a map
+					trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_NEXTMAP ) ); // set so sv_map_f will know it's okay to start a map
 					if ( g_cheats.integer ) {
-						trap_SendConsoleCommand( EXEC_APPEND, va( "spdevmap %s\n", level.nextMap ) );
+						trap_SendConsoleCommand( EXEC_APPEND, idStr::FormatString( "spdevmap %s\n", level.nextMap ) );
 					} else {
-						trap_SendConsoleCommand( EXEC_APPEND, va( "spmap %s\n", level.nextMap ) );
+						trap_SendConsoleCommand( EXEC_APPEND, idStr::FormatString( "spmap %s\n", level.nextMap ) );
 					}
 
 				} else if ( g_reloading.integer == RELOAD_ENDGAME ) {
@@ -2319,7 +2324,7 @@ void CheckCvars( void ) {
 
 	if ( g_password.modificationCount != lastMod ) {
 		lastMod = g_password.modificationCount;
-		if ( *g_password.string && Q_stricmp( g_password.string, "none" ) ) {
+		if ( *g_password.string && idStr::Icmp( g_password.string, "none" ) ) {
 			trap_Cvar_Set( "g_needpass", "1" );
 		} else {
 			trap_Cvar_Set( "g_needpass", "0" );
@@ -2412,10 +2417,10 @@ void G_RunFrame( int levelTime ) {
 
 		// RF, if this entity is attached to a parent, move it around with it, so the server thinks it's at least close to where the client will view it
 		if ( ent->tagParent ) {
-			vec3_t org;
+			idVec3 org;
 			BG_EvaluateTrajectory( &ent->tagParent->s.pos, level.time, org );
 			G_SetOrigin( ent, org );
-			VectorCopy( org, ent->s.origin );
+			ent->s.origin = org;
 			if ( ent->r.linked ) {    // update position
 				trap_LinkEntity( ent );
 			}

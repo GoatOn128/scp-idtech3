@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 
@@ -86,14 +88,14 @@ void R_RenderShadowEdges( void ) {
 		i3 = tess.indexes[ i * 3 + 2 ];
 
 		qglBegin( GL_TRIANGLE_STRIP );
-		qglVertex3fv( tess.xyz[ i1 ] );
-		qglVertex3fv( tess.xyz[ i1 + tess.numVertexes ] );
-		qglVertex3fv( tess.xyz[ i2 ] );
-		qglVertex3fv( tess.xyz[ i2 + tess.numVertexes ] );
-		qglVertex3fv( tess.xyz[ i3 ] );
-		qglVertex3fv( tess.xyz[ i3 + tess.numVertexes ] );
-		qglVertex3fv( tess.xyz[ i1 ] );
-		qglVertex3fv( tess.xyz[ i1 + tess.numVertexes ] );
+		qglVertex3fv( tess.xyz[ i1 ].ToFloatPtr() );
+		qglVertex3fv( tess.xyz[ i1 + tess.numVertexes ].ToFloatPtr() );
+		qglVertex3fv( tess.xyz[ i2 ].ToFloatPtr() );
+		qglVertex3fv( tess.xyz[ i2 + tess.numVertexes ].ToFloatPtr() );
+		qglVertex3fv( tess.xyz[ i3 ].ToFloatPtr() );
+		qglVertex3fv( tess.xyz[ i3 + tess.numVertexes ].ToFloatPtr() );
+		qglVertex3fv( tess.xyz[ i1 ].ToFloatPtr() );
+		qglVertex3fv( tess.xyz[ i1 + tess.numVertexes ].ToFloatPtr() );
 		qglEnd();
 	}
 #else
@@ -132,10 +134,10 @@ void R_RenderShadowEdges( void ) {
 			// triangle, it is a sil edge
 			if ( hit[ 1 ] == 0 ) {
 				qglBegin( GL_TRIANGLE_STRIP );
-				qglVertex3fv( tess.xyz[ i ] );
-				qglVertex3fv( tess.xyz[ i + tess.numVertexes ] );
-				qglVertex3fv( tess.xyz[ i2 ] );
-				qglVertex3fv( tess.xyz[ i2 + tess.numVertexes ] );
+				qglVertex3fv( tess.xyz[ i ].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[ i + tess.numVertexes ].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[ i2 ].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[ i2 + tess.numVertexes ].ToFloatPtr() );
 				qglEnd();
 				c_edges++;
 			} else {
@@ -161,7 +163,7 @@ triangleFromEdge[ v1 ][ v2 ]
 void RB_ShadowTessEnd( void ) {
 	int i;
 	int numTris;
-	vec3_t lightDir;
+	idVec3 lightDir;
 
 	// we can only do this if we have enough space in the vertex buffers
 	if ( tess.numVertexes >= SHADER_MAX_VERTEXES / 2 ) {
@@ -172,11 +174,11 @@ void RB_ShadowTessEnd( void ) {
 		return;
 	}
 
-	VectorCopy( backEnd.currentEntity->lightDir, lightDir );
+	lightDir = backEnd.currentEntity->lightDir;
 
 	// project vertexes away from light direction
 	for ( i = 0 ; i < tess.numVertexes ; i++ ) {
-		VectorMA( tess.xyz[i], -512, lightDir, tess.xyz[i + tess.numVertexes] );
+		tess.xyz[i + tess.numVertexes].ToVec3() = tess.xyz[i].ToVec3() - lightDir * 512;
 	}
 
 	// decide which triangles face the light
@@ -185,7 +187,7 @@ void RB_ShadowTessEnd( void ) {
 	numTris = tess.numIndexes / 3;
 	for ( i = 0 ; i < numTris ; i++ ) {
 		int i1, i2, i3;
-		vec3_t d1, d2, normal;
+		idVec3 d1, d2, normal;
 		float   *v1, *v2, *v3;
 		float d;
 
@@ -193,15 +195,19 @@ void RB_ShadowTessEnd( void ) {
 		i2 = tess.indexes[ i * 3 + 1 ];
 		i3 = tess.indexes[ i * 3 + 2 ];
 
-		v1 = tess.xyz[ i1 ];
-		v2 = tess.xyz[ i2 ];
-		v3 = tess.xyz[ i3 ];
+		v1 = tess.xyz[ i1 ].ToFloatPtr();
+		v2 = tess.xyz[ i2 ].ToFloatPtr();
+		v3 = tess.xyz[ i3 ].ToFloatPtr();
 
-		VectorSubtract( v2, v1, d1 );
-		VectorSubtract( v3, v1, d2 );
-		CrossProduct( d1, d2, normal );
+		d1[0] = v2[0] - v1[0];
+		d1[1] = v2[1] - v1[1];
+		d1[2] = v2[2] - v1[2];
+		d2[0] = v3[0] - v1[0];
+		d2[1] = v3[1] - v1[1];
+		d2[2] = v3[2] - v1[2];
+		normal.Cross( d1, d2 );
 
-		d = DotProduct( normal, lightDir );
+		d = ( normal ) * ( lightDir );
 		if ( d > 0 ) {
 			facing[ i ] = 1;
 		} else {
@@ -311,11 +317,11 @@ void RB_ProjectionShadowDeform( void ) {
 	float   *xyz;
 	int i;
 	float h;
-	vec3_t ground;
-	vec3_t light;
+	idVec3 ground;
+	idVec3 light;
 	float groundDist;
 	float d;
-	vec3_t lightDir;
+	idVec3 lightDir;
 
 	xyz = ( float * ) tess.xyz;
 
@@ -325,12 +331,12 @@ void RB_ProjectionShadowDeform( void ) {
 
 	groundDist = backEnd.orent.origin[2] - backEnd.currentEntity->e.shadowPlane;
 
-	VectorCopy( backEnd.currentEntity->lightDir, lightDir );
-	d = DotProduct( lightDir, ground );
+	lightDir = backEnd.currentEntity->lightDir;
+	d = ( lightDir ) * ( ground );
 	// don't let the shadows get too long or go negative
 	if ( d < 0.5 ) {
-		VectorMA( lightDir, ( 0.5 - d ), ground, lightDir );
-		d = DotProduct( lightDir, ground );
+		lightDir = lightDir + ground * ( 0.5 - d );
+		d = ( lightDir ) * ( ground );
 	}
 	d = 1.0 / d;
 
@@ -339,7 +345,7 @@ void RB_ProjectionShadowDeform( void ) {
 	light[2] = lightDir[2] * d;
 
 	for ( i = 0; i < tess.numVertexes; i++, xyz += 4 ) {
-		h = DotProduct( xyz, ground ) + groundDist;
+		h = xyz[0] * ground[0] + xyz[1] * ground[1] + xyz[2] * ground[2] + groundDist;
 
 		xyz[0] -= light[0] * h;
 		xyz[1] -= light[1] * h;

@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
@@ -70,7 +72,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "infantryss/default", // default model/skin
 	  { WP_MP40, WP_GRENADE_LAUNCHER }, // starting weapons
 	  BBOX_SMALL,
-	  { 32, 48 }, // bbox, crouch/stand height
+	  idVec2( 32, 48 ), // bbox, crouch/stand height
 	  AIFL_CATCH_GRENADE | AIFL_STAND_IDLE2, // flags
 	  NULL,
 	  NULL, // looping sound
@@ -117,7 +119,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "american/default",
 	  { WP_THOMPSON, WP_GRENADE_PINEAPPLE },
 	  BBOX_SMALL,
-	  { 32, 48 },
+	  idVec2( 32, 48 ),
 	  AIFL_CATCH_GRENADE | AIFL_STAND_IDLE2,
 	  NULL,
 	  NULL,
@@ -164,7 +166,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "zombie/default",
 	  { /*WP_GAUNTLET,*/ WP_MONSTER_ATTACK2, WP_MONSTER_ATTACK3 },
 	  BBOX_SMALL,
-	  { 32, 48 },
+	  idVec2( 32, 48 ),
 	  /*AIFL_NOPAIN|AIFL_WALKFORWARD|*/ AIFL_NO_RELOAD,
 	  &ai_ZombieAbilities,
 	  NULL,
@@ -214,7 +216,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "warrior/crypt2",
 	  { WP_MONSTER_ATTACK1, WP_MONSTER_ATTACK2, WP_MONSTER_ATTACK3 },
 	  BBOX_SMALL,
-	  { 10, 48 }, // very low defense position
+	  idVec2( 10, 48 ), // very low defense position
 	  AIFL_NO_RELOAD,
 	  &ai_WarZombieAbilities,
 	  NULL,
@@ -261,7 +263,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "venom/default",
 	  { WP_FLAMETHROWER },
 	  BBOX_SMALL,
-	  { 32, 48 },
+	  idVec2( 32, 48 ),
 	  AIFL_NO_FLAME_DAMAGE | AIFL_WALKFORWARD | AIFL_NO_RELOAD, // |AIFL_NO_HEADSHOT_DMG,
 	  NULL,
 	  NULL,
@@ -309,7 +311,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "loper/default",
 	  { /*WP_MONSTER_ATTACK1,*/ WP_MONSTER_ATTACK2, WP_MONSTER_ATTACK3 },
 	  BBOX_LARGE,
-	  { 32, 32 }, // large is for wide characters
+	  idVec2( 32, 32 ), // large is for wide characters
 	  AIFL_NO_RELOAD,
 	  &ai_LoperAbilities,
 	  "sound/world/electloop.wav",
@@ -356,7 +358,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "eliteguard/default",
 	  { WP_SILENCER }, //----(SA)	TODO: replace w/ "silenced luger"
 	  BBOX_SMALL,
-	  { 32, 48 },
+	  idVec2( 32, 48 ),
 	  AIFL_CATCH_GRENADE | AIFL_STAND_IDLE2,
 	  NULL,
 	  NULL,
@@ -403,7 +405,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "stim/default",
 	  { WP_MONSTER_ATTACK2 }, // TODO: dual machinegun attack
 	  BBOX_LARGE,
-	  { 48, 64 },
+	  idVec2( 48, 64 ),
 	  AIFL_NO_RELOAD,
 	  NULL,
 	  NULL,
@@ -450,7 +452,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "stim/default",
 	  { WP_MP40, WP_MONSTER_ATTACK1 }, // attack1 is leaping rocket attack
 	  BBOX_LARGE,
-	  { 48, 64 },
+	  idVec2( 48, 64 ),
 	  AIFL_NO_RELOAD,
 	  &ai_StimRocketAbilities,
 	  NULL,
@@ -497,7 +499,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "stim/default",
 	  { WP_MP40, WP_TESLA }, // no monster_attack1, since that's only used for the jumping rocket attack
 	  BBOX_LARGE,
-	  { 48, 64 },
+	  idVec2( 48, 64 ),
 	  AIFL_NO_RELOAD,
 	  &ai_StimTeslaAbilities,
 	  NULL,
@@ -544,7 +546,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "supersoldier/default",
 	  { WP_VENOM },
 	  BBOX_LARGE,
-	  { 48, 64 },
+	  idVec2( 48, 64 ),
 	  AIFL_NO_RELOAD | AIFL_NO_FLAME_DAMAGE | AIFL_NO_TESLA_DAMAGE,
 	  NULL,
 	  NULL,
@@ -592,7 +594,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  //		{WP_MP40, WP_GRENADE_LAUNCHER, WP_MONSTER_ATTACK1},	// attack1 is melee kick
 	  { WP_FG42, WP_FG42SCOPE, WP_GRENADE_LAUNCHER, WP_MONSTER_ATTACK1 }, // attack1 is melee kick
 	  BBOX_SMALL,
-	  { 32, 48 },
+	  idVec2( 32, 48 ),
 	  AIFL_CATCH_GRENADE | AIFL_FLIP_ANIM | AIFL_STAND_IDLE2,
 	  &ai_BlackGuardAbilities,
 	  NULL,
@@ -639,7 +641,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "protosoldier/default",
 	  { WP_VENOM },
 	  BBOX_LARGE,
-	  { 48, 64 },
+	  idVec2( 48, 64 ),
 	  AIFL_NO_TESLA_DAMAGE | AIFL_NO_FLAME_DAMAGE | AIFL_WALKFORWARD | AIFL_NO_RELOAD,
 	  NULL,
 	  NULL,
@@ -686,7 +688,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "frogman/default",
 	  { 0 },
 	  BBOX_SMALL,
-	  { 32, 48 }, // bbox, crouch/stand height
+	  idVec2( 32, 48 ), // bbox, crouch/stand height
 	  0,
 	  NULL,
 	  NULL,
@@ -733,7 +735,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "beast/default", // default model/skin
 	  { WP_MONSTER_ATTACK1, WP_MONSTER_ATTACK2 /*,WP_MONSTER_ATTACK3*/ }, // starting weapons
 	  BBOX_LARGE,
-	  { 90, 90 }, // bbox, crouch/stand height
+	  idVec2( 90, 90 ), // bbox, crouch/stand height
 	  AIFL_WALKFORWARD | AIFL_NO_RELOAD,
 	  &ai_HelgaAbilities,
 	  NULL,
@@ -780,7 +782,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "heinrich/default",
 	  { WP_MONSTER_ATTACK1, WP_MONSTER_ATTACK2, WP_MONSTER_ATTACK3 }, // attack3 is given to him by scripting
 	  BBOX_LARGE,
-	  { 72, 72 }, // (SA) height is not exact.  just eyeballed.
+	  idVec2( 72, 72 ), // (SA) height is not exact.  just eyeballed.
 	  AIFL_NO_FLAME_DAMAGE | AIFL_WALKFORWARD | AIFL_NO_RELOAD,
 	  &ai_HeinrichAbilities,
 	  NULL,
@@ -827,7 +829,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "partisan/default",
 	  { WP_THOMPSON },
 	  BBOX_SMALL,
-	  { 32, 48 },
+	  idVec2( 32, 48 ),
 	  AIFL_CATCH_GRENADE | AIFL_STAND_IDLE2,
 	  NULL,
 	  NULL,
@@ -874,7 +876,7 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 	  "civilian/default",
 	  { 0 },
 	  BBOX_SMALL,
-	  { 32, 48 },
+	  idVec2( 32, 48 ),
 	  AIFL_CATCH_GRENADE | AIFL_STAND_IDLE2,
 	  NULL,
 	  NULL,
@@ -889,8 +891,8 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 
 //---------------------------------------------------------------------------
 // Bounding boxes
-static vec3_t bbmins[2] = { { -18, -18, -24 }, { -32, -32, -24 } };
-static vec3_t bbmaxs[2] = { { 18, 18, 48 }, { 32, 32, 68 } };
+static idVec3 bbmins[2] = { idVec3( -18, -18, -24 ), idVec3( -32, -32, -24 ) };
+static idVec3 bbmaxs[2] = { idVec3( 18, 18, 48 ), idVec3( 32, 32, 68 ) };
 //static float crouchMaxZ[2] = {32,48};	// same as player, will head be ok? // TTimo: unused
 //---------------------------------------------------------------------------
 
@@ -908,16 +910,16 @@ AIChar_SetBBox
 ============
 */
 void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
-	vec3_t bbox[2];
+	idVec3 bbox[2];
 	trace_t tr;
 	orientation_t orent ;
 
 	if ( !useHeadTag ) {
-		VectorCopy( bbmins[cs->aasWorldIndex], ent->client->ps.mins );
-		VectorCopy( bbmaxs[cs->aasWorldIndex], ent->client->ps.maxs );
+		ent->client->ps.mins = bbmins[cs->aasWorldIndex];
+		ent->client->ps.maxs = bbmaxs[cs->aasWorldIndex];
 		ent->client->ps.maxs[2] = aiDefaults[cs->aiCharacter].crouchstandZ[1];
-		VectorCopy( ent->client->ps.mins, ent->r.mins );
-		VectorCopy( ent->client->ps.maxs, ent->r.maxs );
+		ent->r.mins = ent->client->ps.mins;
+		ent->r.maxs = ent->client->ps.maxs;
 		ent->client->ps.crouchMaxZ = aiDefaults[cs->aiCharacter].crouchstandZ[0];
 		ent->s.density = cs->aasWorldIndex;
 	} else if ( trap_GetTag( ent->s.number, "tag_head", &orent ) ) { // if not found, then just leave it
@@ -933,8 +935,8 @@ void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
 		memset( &tr, 0, sizeof( tr ) );
 
 		// check that the new height is ok first, otherwise leave it alone
-		VectorCopy( bbmins[cs->aasWorldIndex], bbox[0] );
-		VectorCopy( bbmaxs[cs->aasWorldIndex], bbox[1] );
+		bbox[0] = bbmins[cs->aasWorldIndex];
+		bbox[1] = bbmaxs[cs->aasWorldIndex];
 		// set the head tag height
 		bbox[1][2] = orent.origin[2];
 
@@ -945,10 +947,10 @@ void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
 		}
 
 		if ( !tr.startsolid && !tr.allsolid ) {
-			VectorCopy( bbox[0], ent->client->ps.mins );
-			VectorCopy( bbox[1], ent->client->ps.maxs );
-			VectorCopy( ent->client->ps.mins, ent->r.mins );
-			VectorCopy( ent->client->ps.maxs, ent->r.maxs );
+			ent->client->ps.mins = bbox[0];
+			ent->client->ps.maxs = bbox[1];
+			ent->r.mins = ent->client->ps.mins;
+			ent->r.maxs = ent->client->ps.maxs;
 			ent->client->ps.crouchMaxZ = aiDefaults[cs->aiCharacter].crouchstandZ[0];
 			ent->s.density = cs->aasWorldIndex;
 		}
@@ -999,7 +1001,7 @@ void AIChar_Death( gentity_t *ent, gentity_t *attacker, int damage, int mod ) { 
 AIChar_GetPainLocation
 =============
 */
-int AIChar_GetPainLocation( gentity_t *ent, vec3_t point ) {
+int AIChar_GetPainLocation( gentity_t *ent, const idVec3 &point ) {
 	static char *painTagNames[] = {
 		"tag_head",	   "tag_chest",	   "tag_torso",	  "tag_groin", "tag_armright",
 		"tag_armleft", "tag_legright", "tag_legleft", NULL,
@@ -1018,7 +1020,7 @@ int AIChar_GetPainLocation( gentity_t *ent, vec3_t point ) {
 	for ( tagIndex = 0, bestDist = 0, bestTag = -1; painTagNames[tagIndex]; tagIndex++ ) {
 		// grab the tag with this name
 		if ( trap_GetTag( ent->s.number, painTagNames[tagIndex], &orent ) ) {
-			dist = VectorDistance( orent.origin, point );
+			dist = ( orent.origin - point ).Length();
 			if ( !bestDist || dist < bestDist ) {
 				bestTag = tagIndex;
 				bestDist = dist;
@@ -1038,7 +1040,7 @@ int AIChar_GetPainLocation( gentity_t *ent, vec3_t point ) {
 AIChar_Pain
 ============
 */
-void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point ) {
+void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, const idVec3 &point ) {
 #define PAIN_THRESHOLD 25
 #define STUNNED_THRESHOLD 30
 	cast_state_t *cs;
@@ -1085,7 +1087,7 @@ void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point 
 	//	return;
 	//}
 
-	if ( !Q_stricmp( attacker->classname, "props_statue" ) ) {
+	if ( !idStr::Icmp( attacker->classname, "props_statue" ) ) {
 		damage = 99999; // try and force a stun
 		forceStun = qtrue;
 	}
@@ -1121,7 +1123,7 @@ void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point 
 	// adjust the new damage with distance, if they are really close, scale it down, to make it
 	// harder to get through the game by continually rushing the enemies
 	if ( ( attacker->s.weapon != WP_TESLA ) &&
-		 ( ( dist = VectorDistance( ent->r.currentOrigin, attacker->r.currentAngles ) ) < 384 ) ) {
+		 ( ( dist = ( ent->r.currentOrigin - attacker->r.currentAngles ).Length() ) < 384 ) ) {
 		damage -= (int)( (float)damage * ( 1.0 - ( dist / 384.0 ) ) * ( 0.5 + 0.5 * g_gameskill.value / GSKILL_MAX ) );
 	}
 
@@ -1149,7 +1151,7 @@ void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point 
 		if ( attacker->client ) {
 			BG_UpdateConditionValue( ent->s.number, ANIM_COND_ENEMY_WEAPON, attacker->s.weapon, qtrue );
 		}
-		if ( point ) {
+		if ( point != vec3_origin ) {
 			// location
 			BG_UpdateConditionValue( ent->s.number, ANIM_COND_IMPACT_POINT, AIChar_GetPainLocation( ent, point ),
 									 qtrue );

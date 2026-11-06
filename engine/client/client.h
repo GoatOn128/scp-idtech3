@@ -131,7 +131,7 @@ typedef struct {
 	// the server sends a delta each frame which is added to the locally
 	// tracked view angles to account for standing on rotating objects,
 	// and teleport direction changes
-	vec3_t viewangles;
+	idVec3 viewangles;
 
 	int serverId;                   // included in each client message so the server
 									// can tell if it is for a prior map_restart
@@ -491,11 +491,11 @@ char *Key_KeynumToString( int keynum, qboolean bTranslate );
 extern int cl_connectedToPureServer;
 
 void CL_SystemInfoChanged( void );
-void CL_ParseServerMessage( msg_t *msg );
+void CL_ParseServerMessage( idBitMsg *msg );
 
 //====================================================================
 
-void    CL_ServerInfoPacket( netadr_t from, msg_t *msg );
+void    CL_ServerInfoPacket( netadr_t from, idBitMsg *msg );
 void    CL_LocalServers_f( void );
 void    CL_GlobalServers_f( void );
 void    CL_FavoriteServers_f( void );
@@ -540,7 +540,7 @@ void    SCR_DrawPic( float x, float y, float width, float height, qhandle_t hSha
 void    SCR_DrawNamedPic( float x, float y, float width, float height, const char *picname );
 
 void    SCR_DrawBigString( int x, int y, const char *s, float alpha );          // draws a string with embedded color control characters with fade
-void    SCR_DrawBigStringColor( int x, int y, const char *s, vec4_t color );    // ignores embedded color control characters
+void    SCR_DrawBigStringColor( int x, int y, const char *s, idVec4 color );    // ignores embedded color control characters
 void    SCR_DrawSmallStringExt( int x, int y, const char *string, float *setColor, qboolean forceColor );
 void    SCR_DrawSmallChar( int x, int y, int ch );
 
@@ -587,6 +587,6 @@ void LAN_SaveServersToCache();
 //
 // cl_net_chan.c
 //
-void CL_Netchan_Transmit( netchan_t *chan, msg_t* msg ); //int length, const byte *data );
+void CL_Netchan_Transmit( netchan_t *chan, idBitMsg* msg ); //int length, const byte *data );
 void CL_Netchan_TransmitNextFragment( netchan_t *chan );
-qboolean CL_Netchan_Process( netchan_t *chan, msg_t *msg );
+qboolean CL_Netchan_Process( netchan_t *chan, idBitMsg *msg );

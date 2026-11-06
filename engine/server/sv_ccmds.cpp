@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "server.h"
 
@@ -69,13 +71,13 @@ static client_t *SV_GetPlayerByName( void ) {
 		if ( !cl->state ) {
 			continue;
 		}
-		if ( !Q_stricmp( cl->name, s ) ) {
+		if ( !idStr::Icmp( cl->name, s ) ) {
 			return cl;
 		}
 
-		Q_strncpyz( cleanName, cl->name, sizeof( cleanName ) );
-		Q_CleanStr( cleanName );
-		if ( !Q_stricmp( cleanName, s ) ) {
+		idStr::Copynz( cleanName, cl->name, sizeof( cleanName ) );
+		idStr::Clean( cleanName );
+		if ( !idStr::Icmp( cleanName, s ) ) {
 			return cl;
 		}
 	}
@@ -181,16 +183,16 @@ static void SV_Map_f( void ) {
 			return;
 		}
 
-		//buffer = Hunk_AllocateTempMemory(size);
+		//buffer = Mem_ClearedAlloc( size, TAG_IDLIB );
 		FS_ReadFile( savemap, (void **)&buffer );
 
-		if ( Q_stricmp( savemap, "save/current.svg" ) != 0 ) {
+		if ( idStr::Icmp( savemap, "save/current.svg" ) != 0 ) {
 			// copy it to the current savegame file
 			FS_WriteFile( "save/current.svg", buffer, size );
 			// make sure it is the correct size
 			csize = FS_ReadFile( "save/current.svg", NULL );
 			if ( csize != size ) {
-				Hunk_FreeTempMemory( buffer );
+				Mem_Free( buffer );
 				FS_Delete( "save/current.svg" );
 // TTimo
 #ifdef __linux__
@@ -209,7 +211,7 @@ static void SV_Map_f( void ) {
 
 		// the mapname is at the very start of the savegame file
 		Com_sprintf( savemap, sizeof( savemap ), ( char * )( buffer + sizeof( int ) ) );  // skip the version
-		Q_strncpyz( smapname, savemap, sizeof( smapname ) );
+		idStr::Copynz( smapname, savemap, sizeof( smapname ) );
 		map = smapname;
 
 		savegameTime = *( int * )( buffer + sizeof( int ) + MAX_QPATH );
@@ -218,7 +220,7 @@ static void SV_Map_f( void ) {
 			svs.time = savegameTime;
 		}
 
-		Hunk_FreeTempMemory( buffer );
+		Mem_Free( buffer );
 	} else {
 		Cvar_Set( "savegame_loading", "0" );  // make sure it's turned off
 		// set the filename
@@ -248,20 +250,20 @@ static void SV_Map_f( void ) {
 	Cvar_SetValue( "g_episode", 0 ); //----(SA) added
 
 	cmd = Cmd_Argv( 0 );
-	if ( Q_stricmpn( cmd, "sp", 2 ) == 0 ) {
+	if ( idStr::Icmpn( cmd, "sp", 2 ) == 0 ) {
 		Cvar_SetValue( "g_gametype", GT_SINGLE_PLAYER );
 		Cvar_SetValue( "g_doWarmup", 0 );
 		// may not set sv_maxclients directly, always set latched
 		Cvar_SetLatched( "sv_maxclients", "32" ); // Ridah, modified this
 		cmd += 2;
 		killBots = qtrue;
-		if ( !Q_stricmp( cmd, "devmap" ) ) {
+		if ( !idStr::Icmp( cmd, "devmap" ) ) {
 			cheat = qtrue;
 		} else {
 			cheat = qfalse;
 		}
 	} else {
-		if ( !Q_stricmp( cmd, "devmap" ) ) {
+		if ( !idStr::Icmp( cmd, "devmap" ) ) {
 			cheat = qtrue;
 			killBots = qtrue;
 		} else {
@@ -276,7 +278,7 @@ static void SV_Map_f( void ) {
 
 	// save the map name here cause on a map restart we reload the q3config.cfg
 	// and thus nuke the arguments of the map command
-	Q_strncpyz( mapname, map, sizeof( mapname ) );
+	idStr::Copynz( mapname, map, sizeof( mapname ) );
 
 	// start up the map
 	SV_SpawnServer( mapname, killBots );
@@ -334,7 +336,7 @@ static void SV_MapRestart_f( void ) {
 	}
 	if ( delay && !Cvar_VariableValue( "g_doWarmup" ) ) {
 		sv.restartTime = svs.time + delay * 1000;
-		SV_SetConfigstring( CS_WARMUP, va( "%i", sv.restartTime ) );
+		SV_SetConfigstring( CS_WARMUP, idStr::FormatString( "%i", sv.restartTime ) );
 		return;
 	}
 
@@ -345,7 +347,7 @@ static void SV_MapRestart_f( void ) {
 
 		Com_Printf( "variable change -- restarting.\n" );
 		// restart the map the slow way
-		Q_strncpyz( mapname, Cvar_VariableString( "mapname" ), sizeof( mapname ) );
+		idStr::Copynz( mapname, Cvar_VariableString( "mapname" ), sizeof( mapname ) );
 
 		SV_SpawnServer( mapname, qfalse );
 		return;
@@ -364,7 +366,7 @@ static void SV_MapRestart_f( void ) {
 			return;
 		}
 
-		//buffer = Hunk_AllocateTempMemory(size);
+		//buffer = Mem_ClearedAlloc( size, TAG_IDLIB );
 		FS_ReadFile( savemap, (void **)&buffer );
 
 		// the mapname is at the very start of the savegame file
@@ -374,7 +376,7 @@ static void SV_MapRestart_f( void ) {
 			svs.time = savegameTime;
 		}
 
-		Hunk_FreeTempMemory( buffer );
+		Mem_Free( buffer );
 	}
 	// done.
 
@@ -385,7 +387,7 @@ static void SV_MapRestart_f( void ) {
 	// generate a new serverid
 	sv.restartedServerId = sv.serverId;
 	sv.serverId = com_frameTime;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar_Set( "sv_serverid", idStr::FormatString( "%i", sv.serverId ) );
 
 	// reset all the vm data in place without changing memory allocation
 	// note that we do NOT set sv.state = SS_LOADING, so configstrings that
@@ -462,17 +464,17 @@ void    SV_LoadGame_f( void ) {
 		return;
 	}
 
-	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
+	idStr::Copynz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
 	if ( !filename[0] ) {
 		Com_Printf( "You must specify a savegame to load\n" );
 		return;
 	}
-	if ( Q_strncmp( filename, "save/", 5 ) && Q_strncmp( filename, "save\\", 5 ) ) {
-		Q_strncpyz( filename, va( "save/%s", filename ), sizeof( filename ) );
+	if ( idStr::Cmpn( filename, "save/", 5 ) && idStr::Cmpn( filename, "save\\", 5 ) ) {
+		idStr::Copynz( filename, idStr::FormatString( "save/%s", filename ), sizeof( filename ) );
 	}
 	// enforce .svg extension
-	if ( !strstr( filename, "." ) || Q_strncmp( strstr( filename, "." ) + 1, "svg", 3 ) ) {
-		Q_strcat( filename, sizeof( filename ), ".svg" );
+	if ( !strstr( filename, "." ) || idStr::Cmpn( strstr( filename, "." ) + 1, "svg", 3 ) ) {
+		{ idStr s = filename; s += ".svg"; idStr::Copynz( filename, s.c_str(), sizeof( filename ) ); }
 	}
 	// use '/' instead of '\' for directories
 	while ( strstr( filename, "\\" ) ) {
@@ -485,7 +487,7 @@ void    SV_LoadGame_f( void ) {
 		return;
 	}
 
-	//buffer = Hunk_AllocateTempMemory(size);
+	//buffer = Mem_ClearedAlloc( size, TAG_IDLIB );
 	FS_ReadFile( filename, (void **)&buffer );
 
 	// read the mapname, if it is the same as the current map, then do a fast load
@@ -493,14 +495,14 @@ void    SV_LoadGame_f( void ) {
 
 	if ( com_sv_running->integer && ( com_frameTime != sv.serverId ) ) {
 		// check mapname
-		if ( !Q_stricmp( mapname, sv_mapname->string ) ) {    // same
+		if ( !idStr::Icmp( mapname, sv_mapname->string ) ) {    // same
 
-			if ( Q_stricmp( filename, "save/current.svg" ) != 0 ) {
+			if ( idStr::Icmp( filename, "save/current.svg" ) != 0 ) {
 				// copy it to the current savegame file
 				FS_WriteFile( "save/current.svg", buffer, size );
 			}
 
-			Hunk_FreeTempMemory( buffer );
+			Mem_Free( buffer );
 
 			Cvar_Set( "savegame_loading", "2" );  // 2 means it's a restart, so stop rendering until we are loaded
 			// set the filename
@@ -512,13 +514,13 @@ void    SV_LoadGame_f( void ) {
 		}
 	}
 
-	Hunk_FreeTempMemory( buffer );
+	Mem_Free( buffer );
 
 	// otherwise, do a slow load
 	if ( Cvar_VariableIntegerValue( "sv_cheats" ) ) {
-		Cbuf_ExecuteText( EXEC_APPEND, va( "spdevmap %s", filename ) );
+		Cbuf_ExecuteText( EXEC_APPEND, idStr::FormatString( "spdevmap %s", filename ) );
 	} else {    // no cheats
-		Cbuf_ExecuteText( EXEC_APPEND, va( "spmap %s", filename ) );
+		Cbuf_ExecuteText( EXEC_APPEND, idStr::FormatString( "spmap %s", filename ) );
 	}
 }
 
@@ -549,7 +551,7 @@ static void SV_Kick_f( void ) {
 
 	cl = SV_GetPlayerByName();
 	if ( !cl ) {
-		if ( !Q_stricmp( Cmd_Argv( 1 ), "all" ) ) {
+		if ( !idStr::Icmp( Cmd_Argv( 1 ), "all" ) ) {
 			for ( i = 0, cl = svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {
 				if ( !cl->state ) {
 					continue;
@@ -560,7 +562,7 @@ static void SV_Kick_f( void ) {
 				SV_DropClient( cl, "was kicked" );
 				cl->lastPacketTime = svs.time;  // in case there is a funny zombie
 			}
-		} else if ( !Q_stricmp( Cmd_Argv( 1 ), "allbots" ) )        {
+		} else if ( !idStr::Icmp( Cmd_Argv( 1 ), "allbots" ) )        {
 			for ( i = 0, cl = svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {
 				if ( !cl->state ) {
 					continue;

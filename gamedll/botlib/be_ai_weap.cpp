@@ -35,13 +35,11 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
 #include "l_libvar.h"
 #include "l_log.h"
-#include "l_memory.h"
-#include "l_utils.h"
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "aasfile.h"
 #include "../game/botlib.h"
@@ -199,10 +197,10 @@ void DumpWeaponConfig( weaponconfig_t *wc ) {
 //===========================================================================
 weaponconfig_t *LoadWeaponConfig( char *filename ) {
 	int max_weaponinfo, max_projectileinfo;
-	token_t token;
-	char path[MAX_PATH];
+	idToken token;
+	char path[MAX_QPATH];
 	int i, j;
-	source_t *source;
+	idParser *source;
 	weaponconfig_t *wc;
 	weaponinfo_t weaponinfo;
 
@@ -218,64 +216,65 @@ weaponconfig_t *LoadWeaponConfig( char *filename ) {
 		max_projectileinfo = 32;
 		LibVarSet( "max_projectileinfo", "32" );
 	} //end if
-	strncpy( path, filename, MAX_PATH );
-	source = LoadSourceFile( path );
-	if ( !source ) {
+	strncpy( path, filename, MAX_QPATH );
+	source = new idParser( path );
+	if ( !source->IsLoaded() ) {
+		delete source;
 		botimport.Print( PRT_ERROR, "counldn't load %s\n", path );
 		return NULL;
 	} //end if
 	  //initialize weapon config
-	wc = (weaponconfig_t *) GetClearedHunkMemory( sizeof( weaponconfig_t ) +
+	wc = (weaponconfig_t *) Mem_ClearedAlloc( sizeof( weaponconfig_t ) +
 												  max_weaponinfo * sizeof( weaponinfo_t ) +
-												  max_projectileinfo * sizeof( projectileinfo_t ) );
+												  max_projectileinfo * sizeof( projectileinfo_t ), TAG_BOTLIB );
 	wc->weaponinfo = ( weaponinfo_t * )( (char *) wc + sizeof( weaponconfig_t ) );
 	wc->projectileinfo = ( projectileinfo_t * )( (char *) wc->weaponinfo +
 												 max_weaponinfo * sizeof( weaponinfo_t ) );
 	wc->numweapons = max_weaponinfo;
 	wc->numprojectiles = 0;
 	//parse the source file
-	while ( PC_ReadToken( source, &token ) )
+	while ( source->ReadToken( &token ) )
 	{
-		if ( !strcmp( token.string, "weaponinfo" ) ) {
+		if ( !strcmp( token.c_str(), "weaponinfo" ) ) {
 			memset( &weaponinfo, 0, sizeof( weaponinfo_t ) );
 			if ( !ReadStructure( source, &weaponinfo_struct, (char *) &weaponinfo ) ) {
-				FreeMemory( wc );
-				FreeSource( source );
+				Mem_Free( wc );
+				delete source;
 				return NULL;
 			} //end if
 			if ( weaponinfo.number < 0 || weaponinfo.number >= max_weaponinfo ) {
 				botimport.Print( PRT_ERROR, "weapon info number %d out of range in %s\n", weaponinfo.number, path );
-				FreeMemory( wc );
-				FreeSource( source );
+				Mem_Free( wc );
+				delete source;
 				return NULL;
 			} //end if
 			memcpy( &wc->weaponinfo[weaponinfo.number], &weaponinfo, sizeof( weaponinfo_t ) );
 			wc->weaponinfo[weaponinfo.number].valid = qtrue;
 		} //end if
-		else if ( !strcmp( token.string, "projectileinfo" ) ) {
+		else if ( !strcmp( token.c_str(), "projectileinfo" ) ) {
 			if ( wc->numprojectiles >= max_projectileinfo ) {
 				botimport.Print( PRT_ERROR, "more than %d projectiles defined in %s\n", max_projectileinfo, path );
-				FreeMemory( wc );
-				FreeSource( source );
+				Mem_Free( wc );
+				delete source;
 				return NULL;
 			} //end if
 			memset( &wc->projectileinfo[wc->numprojectiles], 0, sizeof( projectileinfo_t ) );
 			if ( !ReadStructure( source, &projectileinfo_struct, (char *) &wc->projectileinfo[wc->numprojectiles] ) ) {
-				FreeMemory( wc );
-				FreeSource( source );
+				Mem_Free( wc );
+				delete source;
 				return NULL;
 			} //end if
 			wc->numprojectiles++;
 		} //end if
 		else
 		{
-			botimport.Print( PRT_ERROR, "unknown definition %s in %s\n", token.string, path );
-			FreeMemory( wc );
-			FreeSource( source );
+			botimport.Print( PRT_ERROR, "unknown definition %s in %s\n", token.c_str(), path );
+			Mem_Free( wc );
+			delete source;
 			return NULL;
 		} //end else
 	} //end while
-	FreeSource( source );
+	delete source;
 	//fix up weapons
 	for ( i = 0; i < wc->numweapons; i++ )
 	{
@@ -284,12 +283,12 @@ weaponconfig_t *LoadWeaponConfig( char *filename ) {
 		}
 		if ( !wc->weaponinfo[i].name[0] ) {
 			botimport.Print( PRT_ERROR, "weapon %d has no name in %s\n", i, path );
-			FreeMemory( wc );
+			Mem_Free( wc );
 			return NULL;
 		} //end if
 		if ( !wc->weaponinfo[i].projectile[0] ) {
 			botimport.Print( PRT_ERROR, "weapon %s has no projectile in %s\n", wc->weaponinfo[i].name, path );
-			FreeMemory( wc );
+			Mem_Free( wc );
 			return NULL;
 		} //end if
 		  //find the projectile info and copy it to the weapon info
@@ -302,7 +301,7 @@ weaponconfig_t *LoadWeaponConfig( char *filename ) {
 		} //end for
 		if ( j == wc->numprojectiles ) {
 			botimport.Print( PRT_ERROR, "weapon %s uses undefined projectile in %s\n", wc->weaponinfo[i].name, path );
-			FreeMemory( wc );
+			Mem_Free( wc );
 			return NULL;
 		} //end if
 	} //end for
@@ -322,7 +321,7 @@ int *WeaponWeightIndex( weightconfig_t *wwc, weaponconfig_t *wc ) {
 	int *index, i;
 
 	//initialize item weight index
-	index = (int *) GetClearedMemory( sizeof( int ) * wc->numweapons );
+	index = (int *) Mem_ClearedAlloc( sizeof( int ) * wc->numweapons, TAG_BOTLIB );
 
 	for ( i = 0; i < wc->numweapons; i++ )
 	{
@@ -347,7 +346,7 @@ void BotFreeWeaponWeights( int weaponstate ) {
 		FreeWeightConfig( ws->weaponweightconfig );
 	}
 	if ( ws->weaponweightindex ) {
-		FreeMemory( ws->weaponweightindex );
+		Mem_Free( ws->weaponweightindex );
 	}
 } //end of the function BotFreeWeaponWeights
 //===========================================================================
@@ -476,7 +475,7 @@ int BotAllocWeaponState( void ) {
 	for ( i = 1; i <= MAX_CLIENTS; i++ )
 	{
 		if ( !botweaponstates[i] ) {
-			botweaponstates[i] = (bot_weaponstate_t *) GetClearedMemory( sizeof( bot_weaponstate_t ) );
+			botweaponstates[i] = (bot_weaponstate_t *) Mem_ClearedAlloc( sizeof( bot_weaponstate_t ), TAG_BOTLIB );
 			return i;
 		} //end if
 	} //end for
@@ -498,7 +497,7 @@ void BotFreeWeaponState( int handle ) {
 		return;
 	} //end if
 	BotFreeWeaponWeights( handle );
-	FreeMemory( botweaponstates[handle] );
+	Mem_Free( botweaponstates[handle] );
 	botweaponstates[handle] = NULL;
 } //end of the function BotFreeWeaponState
 //===========================================================================
@@ -533,7 +532,7 @@ void BotShutdownWeaponAI( void ) {
 	int i;
 
 	if ( weaponconfig ) {
-		FreeMemory( weaponconfig );
+		Mem_Free( weaponconfig );
 	}
 	weaponconfig = NULL;
 

@@ -28,8 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // common.c -- misc functions used in client and server
 
-#include "q_shared.h"
-#include "qcommon.h"
+#include "precompiled.h"
+#pragma hdrstop
+
 #include <setjmp.h>
 
 #define MAXPRINTMSG 4096
@@ -83,7 +84,6 @@ cvar_t  *com_recommendedSet;
 // Rafael Notebook
 cvar_t  *cl_notebook;
 
-cvar_t  *com_hunkused;      // Ridah
 
 // com_speeds times
 int time_game;
@@ -145,7 +145,7 @@ void QDECL Com_Printf( const char *fmt, ... ) {
 	static qboolean opening_qconsole = qfalse;
 
 	va_start( argptr,fmt );
-	vsnprintf( msg, sizeof( msg ), fmt, argptr );
+	idStr::vsnPrintf( msg, sizeof( msg ), fmt, argptr );
 	va_end( argptr );
 
 	if ( rd_buffer ) {
@@ -153,7 +153,9 @@ void QDECL Com_Printf( const char *fmt, ... ) {
 			rd_flush( rd_buffer );
 			*rd_buffer = 0;
 		}
-		Q_strcat( rd_buffer, rd_buffersize, msg );
+		idStr rd = rd_buffer;
+		rd += msg;
+		idStr::Copynz( rd_buffer, rd.c_str(), rd_buffersize );
 		// show_bug.cgi?id=51
 		// only flush the rcon buffer when it's necessary, avoid fragmenting
 		//rd_flush(rd_buffer);
@@ -222,7 +224,7 @@ void QDECL Com_DPrintf( const char *fmt, ... ) {
 	}
 
 	va_start( argptr,fmt );
-	vsnprintf( msg, sizeof( msg ), fmt, argptr );
+	idStr::vsnPrintf( msg, sizeof( msg ), fmt, argptr );
 	va_end( argptr );
 
 	Com_Printf( "%s", msg );
@@ -282,7 +284,7 @@ void QDECL Com_Error( int code, const char *fmt, ... ) {
 	com_errorEntered = qtrue;
 
 	va_start( argptr,fmt );
-	vsnprintf( com_errorMessage, sizeof( com_errorMessage ), fmt, argptr );
+	idStr::vsnPrintf( com_errorMessage, sizeof( com_errorMessage ), fmt, argptr );
 	va_end( argptr );
 
 	if ( code != ERR_DISCONNECT && code != ERR_NEED_CD && code != ERR_ENDGAME ) {
@@ -305,7 +307,7 @@ void QDECL Com_Error( int code, const char *fmt, ... ) {
 		longjmp( abortframe, -1 );
 	} else if ( code == ERR_DROP || code == ERR_DISCONNECT ) {
 		Com_Printf( "********************\nERROR: %s\n********************\n", com_errorMessage );
-		SV_Shutdown( va( "Server crashed: %s\n",  com_errorMessage ) );
+		SV_Shutdown( idStr::FormatString( "Server crashed: %s\n",  com_errorMessage ) );
 		CL_Disconnect( qtrue );
 		CL_FlushMemory();
 		com_errorEntered = qfalse;
@@ -323,7 +325,7 @@ void QDECL Com_Error( int code, const char *fmt, ... ) {
 		longjmp( abortframe, -1 );
 	} else {
 		CL_Shutdown();
-		SV_Shutdown( va( "Server fatal crashed: %s\n", com_errorMessage ) );
+		SV_Shutdown( idStr::FormatString( "Server fatal crashed: %s\n", com_errorMessage ) );
 	}
 
 	Com_Shutdown();
@@ -414,8 +416,8 @@ qboolean Com_SafeMode( void ) {
 
 	for ( i = 0 ; i < com_numConsoleLines ; i++ ) {
 		Cmd_TokenizeString( com_consoleLines[i] );
-		if ( !Q_stricmp( Cmd_Argv( 0 ), "safe" )
-			 || !Q_stricmp( Cmd_Argv( 0 ), "cvar_restart" ) ) {
+		if ( !idStr::Icmp( Cmd_Argv( 0 ), "safe" )
+			 || !idStr::Icmp( Cmd_Argv( 0 ), "cvar_restart" ) ) {
 			com_consoleLines[i][0] = 0;
 			return qtrue;
 		}
@@ -480,7 +482,7 @@ qboolean Com_AddStartupCommands( void ) {
 		}
 
 		// set commands won't override menu startup
-		if ( Q_stricmpn( com_consoleLines[i], "set", 3 ) ) {
+		if ( idStr::Icmpn( com_consoleLines[i], "set", 3 ) ) {
 			added = qtrue;
 		}
 		Cbuf_AddText( com_consoleLines[i] );
@@ -731,707 +733,12 @@ int Com_RealTime( qtime_t *qtime ) {
 
 
 /*
-==============================================================================
-
-						ZONE MEMORY ALLOCATION
-
-==============================================================================
-
-  The old zone is gone, mallocs replaced it. To keep the widespread code changes down to a bare minimum
-  Z_Malloc and Z_Free still work.
-*/
-
-
-/*
-========================
-Z_Free
-========================
-*/
-void Z_Free( void *ptr ) {
-	free( ptr );
-}
-
-
-/*
-================
-Z_Malloc
-================
-*/
-void *Z_Malloc( int size ) {
-	void *buf = malloc( size );
-	Com_Memset( buf, 0, size );
-	return buf;
-}
-
-#if 0
-/*
-================
-Z_TagMalloc
-================
-*/
-void *Z_TagMalloc( int size, int tag ) {
-
-	if ( tag != TAG_RENDERER ) {
-		assert( 0 );
-	}
-
-	if ( g_numTaggedAllocs < MAX_TAG_ALLOCS ) {
-		void *ptr = Z_Malloc( size );
-		g_taggedAllocations[g_numTaggedAllocs++] = ptr;
-		return ptr;
-	} else {
-		Com_Error( ERR_FATAL, "Z_TagMalloc: out of tagged allocation space\n" );
-	}
-	return NULL;
-}
-
-/*
-================
-Z_FreeTags
-================
-*/
-void Z_FreeTags( int tag ) {
-	int i;
-
-	if ( tag != TAG_RENDERER ) {
-		assert( 0 );
-	}
-
-	for ( i = 0; i < g_numTaggedAllocs; i++ ) {
-		free( g_taggedAllocations[i] );
-	}
-
-	g_numTaggedAllocs = 0;
-}
-
-#endif
-
-/*
 ========================
 CopyString
-
- NOTE:	never write over the memory CopyString returns because
-		memory from a memstatic_t might be returned
 ========================
 */
 char *CopyString( const char *in ) {
-	char    *out;
-
-	out = (char *) Z_Malloc( strlen( in ) + 1 );
-	strcpy( out, in );
-	return out;
-}
-
-/*
-==============================================================================
-
-Goals:
-	reproducable without history effects -- no out of memory errors on weird map to map changes
-	allow restarting of the client without fragmentation
-	minimize total pages in use at run time
-	minimize total pages needed during load time
-
-  Single block of memory with stack allocators coming from both ends towards the middle.
-
-  One side is designated the temporary memory allocator.
-
-  Temporary memory can be allocated and freed in any order.
-
-  A highwater mark is kept of the most in use at any time.
-
-  When there is no temporary memory allocated, the permanent and temp sides
-  can be switched, allowing the already touched temp memory to be used for
-  permanent storage.
-
-  Temp memory must never be allocated on two ends at once, or fragmentation
-  could occur.
-
-  If we have any in-use temp memory, additional temp allocations must come from
-  that side.
-
-  If not, we can choose to make either side the new temp side and push future
-  permanent allocations to the other side.  Permanent allocations should be
-  kept on the side that has the current greatest wasted highwater mark.
-
-==============================================================================
-*/
-
-
-#define HUNK_MAGIC  0x89537892
-#define HUNK_FREE_MAGIC 0x89537893
-
-typedef struct {
-	int magic;
-	int size;
-} hunkHeader_t;
-
-typedef struct {
-	int mark;
-	int permanent;
-	int temp;
-	int tempHighwater;
-} hunkUsed_t;
-
-typedef struct hunkblock_s {
-	int size;
-	byte printed;
-	struct hunkblock_s *next;
-	char *label;
-	char *file;
-	int line;
-} hunkblock_t;
-
-static hunkblock_t *hunkblocks;
-
-static hunkUsed_t hunk_low, hunk_high;
-static hunkUsed_t  *hunk_permanent, *hunk_temp;
-
-static byte    *s_hunkData = NULL;
-static int s_hunkTotal;
-
-static int s_zoneTotal;
-//static	int		s_smallZoneTotal; // TTimo: unused
-
-
-/*
-=================
-Com_Meminfo_f
-=================
-*/
-void Com_Meminfo_f( void ) {
-	int unused;
-
-	Com_Printf( "%8i bytes total hunk\n", s_hunkTotal );
-	Com_Printf( "%8i bytes total zone\n", s_zoneTotal );
-	Com_Printf( "\n" );
-	Com_Printf( "%8i low mark\n", hunk_low.mark );
-	Com_Printf( "%8i low permanent\n", hunk_low.permanent );
-	if ( hunk_low.temp != hunk_low.permanent ) {
-		Com_Printf( "%8i low temp\n", hunk_low.temp );
-	}
-	Com_Printf( "%8i low tempHighwater\n", hunk_low.tempHighwater );
-	Com_Printf( "\n" );
-	Com_Printf( "%8i high mark\n", hunk_high.mark );
-	Com_Printf( "%8i high permanent\n", hunk_high.permanent );
-	if ( hunk_high.temp != hunk_high.permanent ) {
-		Com_Printf( "%8i high temp\n", hunk_high.temp );
-	}
-	Com_Printf( "%8i high tempHighwater\n", hunk_high.tempHighwater );
-	Com_Printf( "\n" );
-	Com_Printf( "%8i total hunk in use\n", hunk_low.permanent + hunk_high.permanent );
-	unused = 0;
-	if ( hunk_low.tempHighwater > hunk_low.permanent ) {
-		unused += hunk_low.tempHighwater - hunk_low.permanent;
-	}
-	if ( hunk_high.tempHighwater > hunk_high.permanent ) {
-		unused += hunk_high.tempHighwater - hunk_high.permanent;
-	}
-	Com_Printf( "%8i unused highwater\n", unused );
-	Com_Printf( "\n" );
-
-	//Com_Printf( "        %i number of tagged renderer allocations\n", g_numTaggedAllocs);
-}
-
-/*
-===============
-Com_TouchMemory
-
-Touch all known used data to make sure it is paged in
-===============
-*/
-void Com_TouchMemory( void ) {
-	int start, end;
-	int i, j;
-	int sum;
-
-	start = Sys_Milliseconds();
-
-	sum = 0;
-
-	j = hunk_low.permanent >> 2;
-	for ( i = 0 ; i < j ; i += 64 ) {         // only need to touch each page
-		sum += ( (int *)s_hunkData )[i];
-	}
-
-	i = ( s_hunkTotal - hunk_high.permanent ) >> 2;
-	j = hunk_high.permanent >> 2;
-	for (  ; i < j ; i += 64 ) {          // only need to touch each page
-		sum += ( (int *)s_hunkData )[i];
-	}
-
-	end = Sys_Milliseconds();
-
-	Com_Printf( "Com_TouchMemory: %i msec\n", end - start );
-}
-
-
-
-
-void Com_InitZoneMemory( void ) {
-	//memset(g_taggedAllocations, 0, sizeof(g_taggedAllocations));
-	//g_numTaggedAllocs = 0;
-}
-
-/*
-=================
-Hunk_Log
-=================
-*/
-void Hunk_Log( void ) {
-	hunkblock_t *block;
-	char buf[4096];
-	int size, numBlocks;
-
-	if ( !logfile || !FS_Initialized() ) {
-		return;
-	}
-	size = 0;
-	numBlocks = 0;
-	Com_sprintf( buf, sizeof( buf ), "\r\n================\r\nHunk log\r\n================\r\n" );
-	FS_Write( buf, strlen( buf ), logfile );
-	for ( block = hunkblocks ; block; block = block->next ) {
-#ifdef HUNK_DEBUG
-		Com_sprintf( buf, sizeof( buf ), "size = %8d: %s, line: %d (%s)\r\n", block->size, block->file, block->line, block->label );
-		FS_Write( buf, strlen( buf ), logfile );
-#endif
-		size += block->size;
-		numBlocks++;
-	}
-	Com_sprintf( buf, sizeof( buf ), "%d Hunk memory\r\n", size );
-	FS_Write( buf, strlen( buf ), logfile );
-	Com_sprintf( buf, sizeof( buf ), "%d hunk blocks\r\n", numBlocks );
-	FS_Write( buf, strlen( buf ), logfile );
-}
-
-/*
-=================
-Hunk_SmallLog
-=================
-*/
-void Hunk_SmallLog( void ) {
-	hunkblock_t *block, *block2;
-	char buf[4096];
-	int size, locsize, numBlocks;
-
-	if ( !logfile || !FS_Initialized() ) {
-		return;
-	}
-	for ( block = hunkblocks ; block; block = block->next ) {
-		block->printed = qfalse;
-	}
-	size = 0;
-	numBlocks = 0;
-	Com_sprintf( buf, sizeof( buf ), "\r\n================\r\nHunk Small log\r\n================\r\n" );
-	FS_Write( buf, strlen( buf ), logfile );
-	for ( block = hunkblocks; block; block = block->next ) {
-		if ( block->printed ) {
-			continue;
-		}
-		locsize = block->size;
-		for ( block2 = block->next; block2; block2 = block2->next ) {
-			if ( block->line != block2->line ) {
-				continue;
-			}
-			if ( Q_stricmp( block->file, block2->file ) ) {
-				continue;
-			}
-			size += block2->size;
-			locsize += block2->size;
-			block2->printed = qtrue;
-		}
-#ifdef HUNK_DEBUG
-		Com_sprintf( buf, sizeof( buf ), "size = %8d: %s, line: %d (%s)\r\n", locsize, block->file, block->line, block->label );
-		FS_Write( buf, strlen( buf ), logfile );
-#endif
-		size += block->size;
-		numBlocks++;
-	}
-	Com_sprintf( buf, sizeof( buf ), "%d Hunk memory\r\n", size );
-	FS_Write( buf, strlen( buf ), logfile );
-	Com_sprintf( buf, sizeof( buf ), "%d hunk blocks\r\n", numBlocks );
-	FS_Write( buf, strlen( buf ), logfile );
-}
-
-/*
-=================
-Com_InitZoneMemory
-=================
-*/
-void Com_InitHunkMemory( void ) {
-	cvar_t  *cv;
-	int nMinAlloc;
-	char *pMsg = NULL;
-
-	// make sure the file system has allocated and "not" freed any temp blocks
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redunant routines in the file system utilizing different
-	// memory systems
-	if ( FS_LoadStack() != 0 ) {
-		Com_Error( ERR_FATAL, "Hunk initialization failed. File system load stack not zero" );
-	}
-
-	// allocate the stack based hunk allocator
-	cv = Cvar_Get( "com_hunkMegs", DEF_COMHUNKMEGS, CVAR_LATCH | CVAR_ARCHIVE );
-
-	// if we are not dedicated min allocation is 56, otherwise min is 1
-	if ( com_dedicated && com_dedicated->integer ) {
-		nMinAlloc = MIN_DEDICATED_COMHUNKMEGS;
-		pMsg = "Minimum com_hunkMegs for a dedicated server is %i, allocating %i megs.\n";
-	} else {
-		nMinAlloc = MIN_COMHUNKMEGS;
-		pMsg = "Minimum com_hunkMegs is %i, allocating %i megs.\n";
-	}
-
-	if ( cv->integer < nMinAlloc ) {
-		s_hunkTotal = 1024 * 1024 * nMinAlloc;
-		Com_Printf( pMsg, nMinAlloc, s_hunkTotal / ( 1024 * 1024 ) );
-	} else {
-		s_hunkTotal = cv->integer * 1024 * 1024;
-	}
-
-
-	s_hunkData = (byte *) malloc( s_hunkTotal + 31 );
-	if ( !s_hunkData ) {
-		Com_Error( ERR_FATAL, "Hunk data failed to allocate %i megs", s_hunkTotal / ( 1024 * 1024 ) );
-	}
-	// cacheline align
-	s_hunkData = ( byte * )( ( (intptr_t)s_hunkData + 31 ) & ~(intptr_t)31 );
-	Hunk_Clear();
-
-	Cmd_AddCommand( "meminfo", Com_Meminfo_f );
-#ifdef HUNK_DEBUG
-	Cmd_AddCommand( "hunklog", Hunk_Log );
-	Cmd_AddCommand( "hunksmalllog", Hunk_SmallLog );
-#endif
-}
-
-/*
-====================
-Hunk_MemoryRemaining
-====================
-*/
-int Hunk_MemoryRemaining( void ) {
-	int low, high;
-
-	low = hunk_low.permanent > hunk_low.temp ? hunk_low.permanent : hunk_low.temp;
-	high = hunk_high.permanent > hunk_high.temp ? hunk_high.permanent : hunk_high.temp;
-
-	return s_hunkTotal - ( low + high );
-}
-
-/*
-===================
-Hunk_SetMark
-
-The server calls this after the level and game VM have been loaded
-===================
-*/
-void Hunk_SetMark( void ) {
-	hunk_low.mark = hunk_low.permanent;
-	hunk_high.mark = hunk_high.permanent;
-}
-
-/*
-=================
-Hunk_ClearToMark
-
-The client calls this before starting a vid_restart or snd_restart
-=================
-*/
-void Hunk_ClearToMark( void ) {
-	hunk_low.permanent = hunk_low.temp = hunk_low.mark;
-	hunk_high.permanent = hunk_high.temp = hunk_high.mark;
-}
-
-/*
-=================
-Hunk_CheckMark
-=================
-*/
-qboolean Hunk_CheckMark( void ) {
-	if ( hunk_low.mark || hunk_high.mark ) {
-		return qtrue;
-	}
-	return qfalse;
-}
-
-void CL_ShutdownCGame( void );
-void CL_ShutdownUI( void );
-void SV_ShutdownGameProgs( void );
-
-/*
-=================
-Hunk_Clear
-
-The server calls this before shutting down or loading a new map
-=================
-*/
-void Hunk_Clear( void ) {
-
-#ifndef DEDICATED
-	CL_ShutdownCGame();
-	CL_ShutdownUI();
-#endif
-	SV_ShutdownGameProgs();
-#ifndef DEDICATED
-	CIN_CloseAllVideos();
-#endif
-	hunk_low.mark = 0;
-	hunk_low.permanent = 0;
-	hunk_low.temp = 0;
-	hunk_low.tempHighwater = 0;
-
-	hunk_high.mark = 0;
-	hunk_high.permanent = 0;
-	hunk_high.temp = 0;
-	hunk_high.tempHighwater = 0;
-
-	hunk_permanent = &hunk_low;
-	hunk_temp = &hunk_high;
-
-	Cvar_Set( "com_hunkused", va( "%i", hunk_low.permanent + hunk_high.permanent ) );
-	Com_Printf( "Hunk_Clear: reset the hunk ok\n" );
-#ifdef HUNK_DEBUG
-	hunkblocks = NULL;
-#endif
-}
-
-static void Hunk_SwapBanks( void ) {
-	hunkUsed_t  *swap;
-
-	// can't swap banks if there is any temp already allocated
-	if ( hunk_temp->temp != hunk_temp->permanent ) {
-		return;
-	}
-
-	// if we have a larger highwater mark on this side, start making
-	// our permanent allocations here and use the other side for temp
-	if ( hunk_temp->tempHighwater - hunk_temp->permanent >
-		 hunk_permanent->tempHighwater - hunk_permanent->permanent ) {
-		swap = hunk_temp;
-		hunk_temp = hunk_permanent;
-		hunk_permanent = swap;
-	}
-}
-
-/*
-=================
-Hunk_Alloc
-
-Allocate permanent (until the hunk is cleared) memory
-=================
-*/
-#ifdef HUNK_DEBUG
-void *Hunk_AllocDebug( int size, ha_pref preference, char *label, char *file, int line ) {
-#else
-void *Hunk_Alloc( int size, ha_pref preference ) {
-#endif
-	void    *buf;
-
-	if ( s_hunkData == NULL ) {
-		Com_Error( ERR_FATAL, "Hunk_Alloc: Hunk memory system not initialized" );
-	}
-
-	Hunk_SwapBanks();
-
-#ifdef HUNK_DEBUG
-	size += sizeof( hunkblock_t );
-#endif
-
-	// round to cacheline
-	size = ( size + 31 ) & ~31;
-
-	if ( hunk_low.temp + hunk_high.temp + size > s_hunkTotal ) {
-#ifdef HUNK_DEBUG
-		Hunk_Log();
-		Hunk_SmallLog();
-#endif
-		Com_Error( ERR_DROP, "Hunk_Alloc failed on %i", size );
-	}
-
-	if ( hunk_permanent == &hunk_low ) {
-		buf = ( void * )( s_hunkData + hunk_permanent->permanent );
-		hunk_permanent->permanent += size;
-	} else {
-		hunk_permanent->permanent += size;
-		buf = ( void * )( s_hunkData + s_hunkTotal - hunk_permanent->permanent );
-	}
-
-	hunk_permanent->temp = hunk_permanent->permanent;
-
-	memset( buf, 0, size );
-
-#ifdef HUNK_DEBUG
-	{
-		hunkblock_t *block;
-
-		block = (hunkblock_t *) buf;
-		block->size = size - sizeof( hunkblock_t );
-		block->file = file;
-		block->label = label;
-		block->line = line;
-		block->next = hunkblocks;
-		hunkblocks = block;
-		buf = ( (byte *) buf ) + sizeof( hunkblock_t );
-	}
-#endif
-	// Ridah, update the com_hunkused cvar in increments, so we don't update it too often, since this cvar call isn't very efficent
-	if ( ( hunk_low.permanent + hunk_high.permanent ) > com_hunkused->integer + 10000 ) {
-		Cvar_Set( "com_hunkused", va( "%i", hunk_low.permanent + hunk_high.permanent ) );
-	}
-
-	return buf;
-}
-
-/*
-=================
-Hunk_AllocateTempMemory
-
-This is used by the file loading system.
-Multiple files can be loaded in temporary memory.
-When the files-in-use count reaches zero, all temp memory will be deleted
-=================
-*/
-void *Hunk_AllocateTempMemory( int size ) {
-	void        *buf;
-	hunkHeader_t    *hdr;
-
-	// return a Z_Malloc'd block if the hunk has not been initialized
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redunant routines in the file system utilizing different
-	// memory systems
-	if ( s_hunkData == NULL ) {
-		return Z_Malloc( size );
-	}
-
-	Hunk_SwapBanks();
-
-	size = ( ( size + 3 ) & ~3 ) + sizeof( hunkHeader_t );
-
-	if ( hunk_temp->temp + hunk_permanent->permanent + size > s_hunkTotal ) {
-		Com_Error( ERR_DROP, "Hunk_AllocateTempMemory: failed on %i", size );
-	}
-
-	if ( hunk_temp == &hunk_low ) {
-		buf = ( void * )( s_hunkData + hunk_temp->temp );
-		hunk_temp->temp += size;
-	} else {
-		hunk_temp->temp += size;
-		buf = ( void * )( s_hunkData + s_hunkTotal - hunk_temp->temp );
-	}
-
-	if ( hunk_temp->temp > hunk_temp->tempHighwater ) {
-		hunk_temp->tempHighwater = hunk_temp->temp;
-	}
-
-	hdr = (hunkHeader_t *)buf;
-	buf = ( void * )( hdr + 1 );
-
-	hdr->magic = HUNK_MAGIC;
-	hdr->size = size;
-
-	// don't bother clearing, because we are going to load a file over it
-	return buf;
-}
-
-
-/*
-==================
-Hunk_FreeTempMemory
-==================
-*/
-void Hunk_FreeTempMemory( void *buf ) {
-	hunkHeader_t    *hdr;
-
-	// free with Z_Free if the hunk has not been initialized
-	// this allows the config and product id files ( journal files too ) to be loaded
-	// by the file system without redunant routines in the file system utilizing different
-	// memory systems
-	if ( s_hunkData == NULL ) {
-		Z_Free( buf );
-		return;
-	}
-
-
-	hdr = ( (hunkHeader_t *)buf ) - 1;
-	if ( hdr->magic != HUNK_MAGIC ) {
-		Com_Error( ERR_FATAL, "Hunk_FreeTempMemory: bad magic" );
-	}
-
-	hdr->magic = HUNK_FREE_MAGIC;
-
-	// this only works if the files are freed in stack order,
-	// otherwise the memory will stay around until Hunk_ClearTempMemory
-	if ( hunk_temp == &hunk_low ) {
-		if ( hdr == ( void * )( s_hunkData + hunk_temp->temp - hdr->size ) ) {
-			hunk_temp->temp -= hdr->size;
-		} else {
-			Com_Printf( "Hunk_FreeTempMemory: not the final block\n" );
-		}
-	} else {
-		if ( hdr == ( void * )( s_hunkData + s_hunkTotal - hunk_temp->temp ) ) {
-			hunk_temp->temp -= hdr->size;
-		} else {
-			Com_Printf( "Hunk_FreeTempMemory: not the final block\n" );
-		}
-	}
-}
-
-
-/*
-=================
-Hunk_ClearTempMemory
-
-The temp space is no longer needed.  If we have left more
-touched but unused memory on this side, have future
-permanent allocs use this side.
-=================
-*/
-void Hunk_ClearTempMemory( void ) {
-	if ( s_hunkData != NULL ) {
-		hunk_temp->temp = hunk_temp->permanent;
-	}
-}
-
-/*
-=================
-Hunk_Trash
-=================
-*/
-void Hunk_Trash( void ) {
-	int length, i, rnd;
-	char *buf, value;
-
-	return;
-
-	if ( s_hunkData == NULL ) {
-		return;
-	}
-
-#ifdef _DEBUG
-	Com_Error( ERR_DROP, "hunk trashed\n" );
-	return;
-#endif
-
-	Cvar_Set( "com_jp", "1" );
-	Hunk_SwapBanks();
-
-	if ( hunk_permanent == &hunk_low ) {
-		buf = (char *) ( void * )( s_hunkData + hunk_permanent->permanent );
-	} else {
-		buf = (char *) ( void * )( s_hunkData + s_hunkTotal - hunk_permanent->permanent );
-	}
-	length = hunk_permanent->permanent;
-
-	if ( length > 0x7FFFF ) {
-		//randomly trash data within buf
-		rnd = random() * ( length - 0x7FFFF );
-		value = 31;
-		for ( i = 0; i < 0x7FFFF; i++ ) {
-			value *= 109;
-			buf[rnd + i] ^= value;
-		}
-	}
+	return Mem_CopyString( in );
 }
 
 /*
@@ -1505,7 +812,7 @@ sysEvent_t  Com_GetRealEvent( void ) {
 			Com_Error( ERR_FATAL, "Error reading from journal file" );
 		}
 		if ( ev.evPtrLength ) {
-			ev.evPtr = Z_Malloc( ev.evPtrLength );
+			ev.evPtr = Mem_ClearedAlloc( ev.evPtrLength, TAG_IDLIB );
 			r = FS_Read( ev.evPtr, ev.evPtrLength, com_journalFile );
 			if ( r != ev.evPtrLength ) {
 				Com_Error( ERR_FATAL, "Error reading from journal file" );
@@ -1570,7 +877,7 @@ void Com_PushEvent( sysEvent_t *event ) {
 		}
 
 		if ( ev->evPtr ) {
-			Z_Free( ev->evPtr );
+			Mem_Free( ev->evPtr );
 		}
 		com_pushedEventsTail++;
 	} else {
@@ -1599,7 +906,7 @@ sysEvent_t  Com_GetEvent( void ) {
 Com_RunAndTimeServerPacket
 =================
 */
-void Com_RunAndTimeServerPacket( netadr_t *evFrom, msg_t *buf ) {
+void Com_RunAndTimeServerPacket( netadr_t *evFrom, idBitMsg *buf ) {
 	int t1, t2, msec;
 
 	t1 = 0;
@@ -1630,9 +937,9 @@ int Com_EventLoop( void ) {
 	sysEvent_t ev;
 	netadr_t evFrom;
 	byte bufData[MAX_MSGLEN];
-	msg_t buf;
+	idBitMsg buf;
 
-	MSG_Init( &buf, bufData, sizeof( bufData ) );
+	buf.InitWrite( bufData, sizeof( bufData  ) );
 
 	while ( 1 ) {
 		ev = Com_GetEvent();
@@ -1683,25 +990,25 @@ int Com_EventLoop( void ) {
 			// drop a lot of packets.  Note that loopback connections
 			// don't go through here at all.
 			if ( com_dropsim->value > 0 ) {
-				static int seed;
+				static idRandom rnd;
 
-				if ( Q_random( &seed ) < com_dropsim->value ) {
+				if ( rnd.RandomFloat() < com_dropsim->value ) {
 					break;      // drop this packet
 				}
 			}
 
 			evFrom = *(netadr_t *)ev.evPtr;
-			buf.cursize = ev.evPtrLength - sizeof( evFrom );
+			buf.GetSize() = ev.evPtrLength - sizeof( evFrom );
 
 			// we must copy the contents of the message out, because
 			// the event buffers are only large enough to hold the
 			// exact payload, but channel messages need to be large
 			// enough to hold fragment reassembly
-			if ( (unsigned)buf.cursize > buf.maxsize ) {
+			if ( (unsigned)buf.GetSize() > buf.GetMaxSize() ) {
 				Com_Printf( "Com_EventLoop: oversize packet\n" );
 				continue;
 			}
-			memcpy( buf.data, ( byte * )( (netadr_t *)ev.evPtr + 1 ), buf.cursize );
+			memcpy( buf.data, ( byte * )( (netadr_t *)ev.evPtr + 1 ), buf.GetSize() );
 			if ( com_sv_running->integer ) {
 				Com_RunAndTimeServerPacket( &evFrom, &buf );
 			} else {
@@ -1712,7 +1019,7 @@ int Com_EventLoop( void ) {
 
 		// free any block data
 		if ( ev.evPtr ) {
-			Z_Free( ev.evPtr );
+			Mem_Free( ev.evPtr );
 		}
 	}
 
@@ -1815,19 +1122,19 @@ void Com_ReadCDKey( const char *filename ) {
 
 	FS_SV_FOpenFileRead( fbuffer, &f );
 	if ( !f ) {
-		Q_strncpyz( cl_cdkey, "                ", 17 );
+		idStr::Copynz( cl_cdkey, "                ", 17 );
 		return;
 	}
 
-	Com_Memset( buffer, 0, sizeof( buffer ) );
+	memset( buffer, 0, sizeof( buffer ) );
 
 	FS_Read( buffer, 16, f );
 	FS_FCloseFile( f );
 
 	if ( CL_CDKeyValidate( buffer, NULL ) ) {
-		Q_strncpyz( cl_cdkey, buffer, 17 );
+		idStr::Copynz( cl_cdkey, buffer, 17 );
 	} else {
-		Q_strncpyz( cl_cdkey, "                ", 17 );
+		idStr::Copynz( cl_cdkey, "                ", 17 );
 	}
 }
 
@@ -1845,11 +1152,11 @@ void Com_AppendCDKey( const char *filename ) {
 
 	FS_SV_FOpenFileRead( fbuffer, &f );
 	if ( !f ) {
-		Q_strncpyz( &cl_cdkey[16], "                ", 17 );
+		idStr::Copynz( &cl_cdkey[16], "                ", 17 );
 		return;
 	}
 
-	Com_Memset( buffer, 0, sizeof( buffer ) );
+	memset( buffer, 0, sizeof( buffer ) );
 
 	FS_Read( buffer, 16, f );
 	FS_FCloseFile( f );
@@ -1857,7 +1164,7 @@ void Com_AppendCDKey( const char *filename ) {
 	if ( CL_CDKeyValidate( buffer, NULL ) ) {
 		strcat( &cl_cdkey[16], buffer );
 	} else {
-		Q_strncpyz( &cl_cdkey[16], "                ", 17 );
+		idStr::Copynz( &cl_cdkey[16], "                ", 17 );
 	}
 }
 
@@ -1876,7 +1183,7 @@ static void Com_WriteCDKey( const char *filename, const char *ikey ) {
 	sprintf( fbuffer, "%s/rtcwkey", filename );
 
 
-	Q_strncpyz( key, ikey, 17 );
+	idStr::Copynz( key, ikey, 17 );
 
 	if ( !CL_CDKeyValidate( key, NULL ) ) {
 		return;
@@ -1955,7 +1262,7 @@ Com_Init
 =================
 */
 void Com_Init( char *commandLine ) {
-	char    *s;
+	idStr s;
 
 	Com_Printf( "%s %s %s\n", Q3_VERSION, CPUSTRING, __DATE__ );
 
@@ -1978,7 +1285,6 @@ void Com_Init( char *commandLine ) {
 	Swap_Init();
 	Cbuf_Init();
 
-	Com_InitZoneMemory();
 	Cmd_Init();
 
 	// override anything from the config files with command line args
@@ -2016,8 +1322,6 @@ void Com_Init( char *commandLine ) {
 #else
 	com_dedicated = Cvar_Get( "dedicated", "0", CVAR_LATCH );
 #endif
-	// allocate the stack based hunk allocator
-	Com_InitHunkMemory();
 
 	// if any archived cvars are modified after this, we will trigger a writing
 	// of the config file
@@ -2056,7 +1360,6 @@ void Com_Init( char *commandLine ) {
 	com_noErrorInterrupt = Cvar_Get( "com_noErrorInterrupt", "0", 0 );
 #endif
 
-	com_hunkused = Cvar_Get( "com_hunkused", "0", 0 );
 
 	if ( com_dedicated->integer ) {
 		if ( !com_viewlog->integer ) {
@@ -2070,10 +1373,9 @@ void Com_Init( char *commandLine ) {
 		Cmd_AddCommand( "freeze", Com_Freeze_f );
 	}
 	Cmd_AddCommand( "quit", Com_Quit_f );
-	Cmd_AddCommand( "changeVectors", MSG_ReportChangeVectors_f );
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
 
-	s = va( "%s %s %s", Q3_VERSION, CPUSTRING, __DATE__ );
+	s = idStr::FormatString( "%s %s %s", Q3_VERSION, CPUSTRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_ROM | CVAR_SERVERINFO );
 
 	Sys_Init();
@@ -2197,17 +1499,17 @@ Write the config file to a specific name
 ===============
 */
 void Com_WriteConfig_f( void ) {
-	char filename[MAX_QPATH];
+	idStr filename;
 
 	if ( Cmd_Argc() != 2 ) {
 		Com_Printf( "Usage: writeconfig <filename>\n" );
 		return;
 	}
 
-	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
-	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
-	Com_Printf( "Writing %s.\n", filename );
-	Com_WriteConfigToFile( filename );
+	filename = Cmd_Argv( 1 );
+	filename.DefaultFileExtension( ".cfg" );
+	Com_Printf( "Writing %s.\n", filename.c_str() );
+	Com_WriteConfigToFile( filename.c_str() );
 }
 
 /*
@@ -2452,345 +1754,6 @@ void Com_Shutdown( void ) {
 
 }
 
-#if !defined( _MSC_VER ) || ( !id386 )
-// plain C everywhere except MSVC on x86, which uses the assembly path below
-// (gcc and clang cannot build the MSVC inline asm)
-
-void Com_Memcpy( void* dest, const void* src, const size_t count ) {
-	memcpy( dest, src, count );
-}
-
-void Com_Memset( void* dest, const int val, const size_t count ) {
-	memset( dest, val, count );
-}
-
-#else
-
-typedef enum
-{
-	PRE_READ,                                   // prefetch assuming that buffer is used for reading only
-	PRE_WRITE,                                  // prefetch assuming that buffer is used for writing only
-	PRE_READ_WRITE                              // prefetch assuming that buffer is used for both reading and writing
-} e_prefetch;
-
-void Com_Prefetch( const void *s, const unsigned int bytes, e_prefetch type );
-
-#define EMMS_INSTRUCTION    __asm emms
-
-void _copyDWord( unsigned int* dest, const unsigned int constant, const unsigned int count ) {
-	__asm
-	{
-		mov edx,dest
-		mov eax,constant
-		mov ecx,count
-		and     ecx,~7
-		jz padding
-		sub ecx,8
-		jmp loopu
-		align   16
-loopu:
-		test    [edx + ecx * 4 + 28],ebx        // fetch next block destination to L1 cache
-		mov     [edx + ecx * 4 + 0],eax
-		mov     [edx + ecx * 4 + 4],eax
-		mov     [edx + ecx * 4 + 8],eax
-		mov     [edx + ecx * 4 + 12],eax
-		mov     [edx + ecx * 4 + 16],eax
-		mov     [edx + ecx * 4 + 20],eax
-		mov     [edx + ecx * 4 + 24],eax
-		mov     [edx + ecx * 4 + 28],eax
-		sub ecx,8
-		jge loopu
-padding:    mov ecx,count
-		mov ebx,ecx
-		and     ecx,7
-		jz outta
-		and     ebx,~7
-		lea edx,[edx + ebx * 4]                 // advance dest pointer
-		test    [edx + 0],eax                   // fetch destination to L1 cache
-		cmp ecx,4
-		jl skip4
-		mov     [edx + 0],eax
-		mov     [edx + 4],eax
-		mov     [edx + 8],eax
-		mov     [edx + 12],eax
-		add edx,16
-		sub ecx,4
-skip4:      cmp ecx,2
-		jl skip2
-		mov     [edx + 0],eax
-		mov     [edx + 4],eax
-		add edx,8
-		sub ecx,2
-skip2:      cmp ecx,1
-		jl outta
-		mov     [edx + 0],eax
-outta:
-	}
-}
-
-// optimized memory copy routine that handles all alignment
-// cases and block sizes efficiently
-void Com_Memcpy( void* dest, const void* src, const size_t count ) {
-	Com_Prefetch( src, count, PRE_READ );
-	__asm
-	{
-		push edi
-		push esi
-		mov ecx,count
-		cmp ecx,0                           // count = 0 check (just to be on the safe side)
-		je outta
-		mov edx,dest
-		mov ebx,src
-		cmp ecx,32                          // padding only?
-		jl padding
-
-		mov edi,ecx
-		and     edi,~31                 // edi = count&~31
-		sub edi,32
-
-		align 16
-loopMisAligned:
-		mov eax,[ebx + edi + 0 + 0 * 8]
-		mov esi,[ebx + edi + 4 + 0 * 8]
-		mov     [edx + edi + 0 + 0 * 8],eax
-		mov     [edx + edi + 4 + 0 * 8],esi
-		mov eax,[ebx + edi + 0 + 1 * 8]
-		mov esi,[ebx + edi + 4 + 1 * 8]
-		mov     [edx + edi + 0 + 1 * 8],eax
-		mov     [edx + edi + 4 + 1 * 8],esi
-		mov eax,[ebx + edi + 0 + 2 * 8]
-		mov esi,[ebx + edi + 4 + 2 * 8]
-		mov     [edx + edi + 0 + 2 * 8],eax
-		mov     [edx + edi + 4 + 2 * 8],esi
-		mov eax,[ebx + edi + 0 + 3 * 8]
-		mov esi,[ebx + edi + 4 + 3 * 8]
-		mov     [edx + edi + 0 + 3 * 8],eax
-		mov     [edx + edi + 4 + 3 * 8],esi
-		sub edi,32
-		jge loopMisAligned
-
-		mov edi,ecx
-		and     edi,~31
-		add ebx,edi                     // increase src pointer
-		add edx,edi                     // increase dst pointer
-		and     ecx,31                  // new count
-		jz outta                        // if count = 0, get outta here
-
-padding:
-		cmp ecx,16
-		jl skip16
-		mov eax,dword ptr [ebx]
-		mov dword ptr [edx],eax
-		mov eax,dword ptr [ebx + 4]
-		mov dword ptr [edx + 4],eax
-		mov eax,dword ptr [ebx + 8]
-		mov dword ptr [edx + 8],eax
-		mov eax,dword ptr [ebx + 12]
-		mov dword ptr [edx + 12],eax
-		sub ecx,16
-		add ebx,16
-		add edx,16
-skip16:
-		cmp ecx,8
-		jl skip8
-		mov eax,dword ptr [ebx]
-		mov dword ptr [edx],eax
-		mov eax,dword ptr [ebx + 4]
-		sub ecx,8
-		mov dword ptr [edx + 4],eax
-		add ebx,8
-		add edx,8
-skip8:
-		cmp ecx,4
-		jl skip4
-		mov eax,dword ptr [ebx]     // here 4-7 bytes
-		add ebx,4
-		sub ecx,4
-		mov dword ptr [edx],eax
-		add edx,4
-skip4:                          // 0-3 remaining bytes
-		cmp ecx,2
-		jl skip2
-		mov ax,word ptr [ebx]       // two bytes
-		cmp ecx,3                   // less than 3?
-		mov word ptr [edx],ax
-		jl outta
-		mov al,byte ptr [ebx + 2]   // last byte
-		mov byte ptr [edx + 2],al
-		jmp outta
-skip2:
-		cmp ecx,1
-		jl outta
-		mov al,byte ptr [ebx]
-		mov byte ptr [edx],al
-outta:
-		pop esi
-		pop edi
-	}
-}
-
-void Com_Memset( void* dest, const int val, const size_t count ) {
-	unsigned int fillval;
-
-	if ( count < 8 ) {
-		__asm
-		{
-			mov edx,dest
-			mov eax, val
-			mov ah,al
-			mov ebx,eax
-			and     ebx, 0xffff
-			shl eax,16
-			add eax,ebx                 // eax now contains pattern
-			mov ecx,count
-			cmp ecx,4
-			jl skip4
-			mov     [edx],eax           // copy first dword
-			add edx,4
-			sub ecx,4
-skip4:  cmp ecx,2
-			jl skip2
-			mov word ptr [edx],ax       // copy 2 bytes
-			add edx,2
-			sub ecx,2
-skip2:  cmp ecx,0
-			je skip1
-			mov byte ptr [edx],al       // copy single byte
-skip1:
-		}
-		return;
-	}
-
-	fillval = val;
-
-	fillval = fillval | ( fillval << 8 );
-	fillval = fillval | ( fillval << 16 );        // fill dword with 8-bit pattern
-
-	_copyDWord( (unsigned int*)( dest ),fillval, count / 4 );
-
-	__asm                                   // padding of 0-3 bytes
-	{
-		mov ecx,count
-		mov eax,ecx
-		and     ecx,3
-		jz skipA
-		and     eax,~3
-		mov ebx,dest
-		add ebx,eax
-		mov eax,fillval
-		cmp ecx,2
-		jl skipB
-		mov word ptr [ebx],ax
-		cmp ecx,2
-		je skipA
-		mov byte ptr [ebx + 2],al
-		jmp skipA
-skipB:
-		cmp ecx,0
-		je skipA
-		mov byte ptr [ebx],al
-skipA:
-	}
-}
-
-qboolean Com_Memcmp( const void *src0, const void *src1, const unsigned int count ) {
-	unsigned int i;
-	// MMX version anyone?
-
-	if ( count >= 16 ) {
-		unsigned int *dw = (unsigned int*)( src0 );
-		unsigned int *sw = (unsigned int*)( src1 );
-
-		unsigned int nm2 = count / 16;
-		for ( i = 0; i < nm2; i += 4 )
-		{
-			unsigned int tmp = ( dw[i + 0] - sw[i + 0] ) | ( dw[i + 1] - sw[i + 1] ) |
-							   ( dw[i + 2] - sw[i + 2] ) | ( dw[i + 3] - sw[i + 3] );
-			if ( tmp ) {
-				return qfalse;
-			}
-		}
-	}
-	if ( count & 15 ) {
-		byte *d = (byte*)src0;
-		byte *s = (byte*)src1;
-		for ( i = count & 0xfffffff0; i < count; i++ )
-			if ( d[i] != s[i] ) {
-				return qfalse;
-			}
-	}
-
-	return qtrue;
-}
-
-void Com_Prefetch( const void *s, const unsigned int bytes, e_prefetch type ) {
-	// write buffer prefetching is performed only if
-	// the processor benefits from it. Read and read/write
-	// prefetching is always performed.
-
-	switch ( type )
-	{
-	case PRE_WRITE: break;
-	case PRE_READ:
-	case PRE_READ_WRITE:
-
-		__asm
-		{
-			mov ebx,s
-			mov ecx,bytes
-			cmp ecx,4096                    // clamp to 4kB
-			jle skipClamp
-			mov ecx,4096
-skipClamp:
-			add ecx,0x1f
-			shr ecx,5                       // number of cache lines
-			jz skip
-			jmp loopie
-
-			align 16
-loopie: test byte ptr [ebx],al
-			add ebx,32
-			dec ecx
-			jnz loopie
-skip:
-		}
-
-		break;
-	}
-}
-
-#endif // bk001208 - memset/memcpy assembly
-//------------------------------------------------------------------------
-
-
-/*
-=====================
-Q_acos
-
-the msvc acos doesn't always return a value between -PI and PI:
-
-int i;
-i = 1065353246;
-acos(*(float*) &i) == -1.#IND0
-
-	This should go in q_math but it is too late to add new traps
-	to game and ui
-=====================
-*/
-float Q_acos( float c ) {
-	float angle;
-
-	angle = acos( c );
-
-	if ( angle > M_PI ) {
-		return (float)M_PI;
-	}
-	if ( angle < -M_PI ) {
-		return (float)M_PI;
-	}
-	return angle;
-}
-
 /*
 ===========================================
 command line completion
@@ -2823,12 +1786,12 @@ FindMatches
 static void FindMatches( const char *s ) {
 	int i;
 
-	if ( Q_stricmpn( s, completionString, strlen( completionString ) ) ) {
+	if ( idStr::Icmpn( s, completionString, strlen( completionString ) ) ) {
 		return;
 	}
 	matchCount++;
 	if ( matchCount == 1 ) {
-		Q_strncpyz( shortestMatch, s, sizeof( shortestMatch ) );
+		idStr::Copynz( shortestMatch, s, sizeof( shortestMatch ) );
 		return;
 	}
 
@@ -2847,7 +1810,7 @@ PrintMatches
 ===============
 */
 static void PrintMatches( const char *s ) {
-	if ( !Q_stricmpn( s, shortestMatch, strlen( shortestMatch ) ) ) {
+	if ( !idStr::Icmpn( s, shortestMatch, strlen( shortestMatch ) ) ) {
 		Com_Printf( "    %s\n", s );
 	}
 }
@@ -2857,18 +1820,18 @@ static void keyConcatArgs( void ) {
 	char    *arg;
 
 	for ( i = 1 ; i < Cmd_Argc() ; i++ ) {
-		Q_strcat( completionField->buffer, sizeof( completionField->buffer ), " " );
+		{ idStr s = completionField->buffer; s += " "; idStr::Copynz( completionField->buffer, s.c_str(), sizeof( completionField->buffer ) ); }
 		arg = Cmd_Argv( i );
 		while ( *arg ) {
 			if ( *arg == ' ' ) {
-				Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  "\"" );
+				{ idStr s = completionField->buffer; s += "\""; idStr::Copynz( completionField->buffer, s.c_str(), sizeof( completionField->buffer ) ); }
 				break;
 			}
 			arg++;
 		}
-		Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  Cmd_Argv( i ) );
+		{ idStr s = completionField->buffer; s += Cmd_Argv( i ); idStr::Copynz( completionField->buffer, s.c_str(), sizeof( completionField->buffer ) ); }
 		if ( *arg == ' ' ) {
-			Q_strcat( completionField->buffer, sizeof( completionField->buffer ),  "\"" );
+			{ idStr s = completionField->buffer; s += "\""; idStr::Copynz( completionField->buffer, s.c_str(), sizeof( completionField->buffer ) ); }
 		}
 	}
 }
@@ -2883,7 +1846,7 @@ static void ConcatRemaining( const char *src, const char *start ) {
 	}
 
 	str += strlen( start );
-	Q_strcat( completionField->buffer, sizeof( completionField->buffer ), str );
+	{ idStr s = completionField->buffer; s += str; idStr::Copynz( completionField->buffer, s.c_str(), sizeof( completionField->buffer ) ); }
 }
 
 /*
@@ -2920,12 +1883,12 @@ void Field_CompleteCommand( field_t *field ) {
 		return; // no matches
 	}
 
-	Com_Memcpy( &temp, completionField, sizeof( field_t ) );
+	memcpy( &temp, completionField, sizeof( field_t ) );
 
 	if ( matchCount == 1 ) {
 		Com_sprintf( completionField->buffer, sizeof( completionField->buffer ), "\\%s", shortestMatch );
 		if ( Cmd_Argc() == 1 ) {
-			Q_strcat( completionField->buffer, sizeof( completionField->buffer ), " " );
+			{ idStr s = completionField->buffer; s += " "; idStr::Copynz( completionField->buffer, s.c_str(), sizeof( completionField->buffer ) ); }
 		} else {
 			ConcatRemaining( temp.buffer, completionString );
 		}
@@ -2944,4 +1907,3 @@ void Field_CompleteCommand( field_t *field ) {
 	Cmd_CommandCompletion( PrintMatches );
 	Cvar_CommandCompletion( PrintMatches );
 }
-

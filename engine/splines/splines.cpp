@@ -26,7 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "q_splineshared.h"
+#include "../precompiled.h"
+
+#include "../qcommon/q_shared.h"
 #include "splines.h"
 
 int FS_Write( const void *buffer, int len, fileHandle_t h );
@@ -46,7 +48,7 @@ void Cbuf_Execute( void );
 
 idCameraDef camera[MAX_CAMERAS];
 
-int loadCamera( int camNum, const char *name ) {
+qboolean loadCamera( int camNum, const char *name ) {
 	if ( camNum < 0 || camNum >= MAX_CAMERAS ) {
 		return qfalse;
 	}
@@ -55,20 +57,16 @@ int loadCamera( int camNum, const char *name ) {
 	return (qboolean)( camera[camNum].load( name ) );
 }
 
-int getCameraInfo( int camNum, int time, float *origin, float *angles, float *fov ) {
+qboolean getCameraInfo( int camNum, int time, idVec3 *origin, idVec3 *angles, float *fov ) {
 	idVec3 dir, org;
 	if ( camNum < 0 || camNum >= MAX_CAMERAS ) {
 		return qfalse;
 	}
-	org[0] = origin[0];
-	org[1] = origin[1];
-	org[2] = origin[2];
+	org = *origin;
 	if ( camera[camNum].getCameraInfo( time, org, dir, fov ) ) {
-		origin[0] = org[0];
-		origin[1] = org[1];
-		origin[2] = org[2];
-		angles[1] = atan2( dir[1], dir[0] ) * 180 / 3.14159;
-		angles[0] = asin( dir[2] ) * 180 / 3.14159;
+		*origin = org;
+		( *angles )[1] = atan2( dir[1], dir[0] ) * 180 / 3.14159;
+		( *angles )[0] = asin( dir[2] ) * 180 / 3.14159;
 		return qtrue;
 	}
 	return qfalse;
@@ -92,16 +90,16 @@ idCameraDef *g_splineList = &splineList;
 idVec3 idSplineList::zero( 0,0,0 );
 
 void glLabeledPoint( idVec3 &color, idVec3 &point, float size, const char *label ) {
-	qglColor3fv( color );
+	qglColor3fv( color.ToFloatPtr() );
 	qglPointSize( size );
 	qglBegin( GL_POINTS );
-	qglVertex3fv( point );
+	qglVertex3fv( point.ToFloatPtr() );
 	qglEnd();
 	idVec3 v = point;
 	v.x += 1;
 	v.y += 1;
 	v.z += 1;
-	qglRasterPos3fv( v );
+	qglRasterPos3fv( v.ToFloatPtr() );
 	qglCallLists( strlen( label ), GL_UNSIGNED_BYTE, label );
 }
 
@@ -115,7 +113,7 @@ void glBox( idVec3 &color, idVec3 &point, float size ) {
 	maxs[0] += size;
 	maxs[1] -= size;
 	maxs[2] += size;
-	qglColor3fv( color );
+	qglColor3fv( color.ToFloatPtr() );
 	qglBegin( GL_LINE_LOOP );
 	qglVertex3f( mins[0],mins[1],mins[2] );
 	qglVertex3f( maxs[0],mins[1],mins[2] );
@@ -171,8 +169,8 @@ void idSplineList::addToRenderer() {
 	int i;
 
 	for ( i = 0; i < controlPoints.Num(); i++ ) {
-		VectorCopy( *controlPoints[i], mins );
-		VectorCopy( mins, maxs );
+		mins = *controlPoints[i];
+		maxs = mins;
 		mins[0] -= 8;
 		mins[1] += 8;
 		mins[2] -= 8;
@@ -251,12 +249,12 @@ void idSplineList::draw( bool edit ) {
 	}
 
 
-	qglColor3fv( controlColor );
+	qglColor3fv( controlColor.ToFloatPtr() );
 	qglPointSize( 5 );
 
 	qglBegin( GL_POINTS );
 	for ( i = 0; i < controlPoints.Num(); i++ ) {
-		qglVertex3fv( *controlPoints[i] );
+		qglVertex3fv( (*controlPoints[i]).ToFloatPtr() );
 	}
 	qglEnd();
 
@@ -267,20 +265,20 @@ void idSplineList::draw( bool edit ) {
 	}
 
 	//Draw the curve
-	qglColor3fv( pathColor );
+	qglColor3fv( pathColor.ToFloatPtr() );
 	qglBegin( GL_LINE_STRIP );
 	int count = splinePoints.Num();
 	for ( i = 0; i < count; i++ ) {
-		qglVertex3fv( *splinePoints[i] );
+		qglVertex3fv( (*splinePoints[i]).ToFloatPtr() );
 	}
 	qglEnd();
 
 	if ( edit ) {
-		qglColor3fv( segmentColor );
+		qglColor3fv( segmentColor.ToFloatPtr() );
 		qglPointSize( 3 );
 		qglBegin( GL_POINTS );
 		for ( i = 0; i < count; i++ ) {
-			qglVertex3fv( *splinePoints[i] );
+			qglVertex3fv( (*splinePoints[i]).ToFloatPtr() );
 		}
 		qglEnd();
 	}
@@ -288,7 +286,7 @@ void idSplineList::draw( bool edit ) {
 		//assert(activeSegment >=0 && activeSegment < count);
 		if ( activeSegment >= 0 && activeSegment < count ) {
 			glBox( activeColor, *splinePoints[activeSegment], 6 );
-			glBox( yellow, *splinePoints[activeSegment], 8 );
+			glBox( yellow.ToVec3(), *splinePoints[activeSegment], 8 );
 		}
 	}
 
@@ -367,7 +365,7 @@ float idSplineList::calcSpline( int step, float tension ) {
 void idSplineList::updateSelection( const idVec3 &move ) {
 	if ( selected ) {
 		dirty = true;
-		VectorAdd( *selected, move, *selected );
+		*selected += move;
 	}
 }
 
@@ -420,67 +418,76 @@ const idVec3 *idSplineList::getPosition( long t ) {
 	return splinePoints[count - 1];
 }
 
-void idSplineList::parse( const char *( *text )  ) {
-	const char *token;
-	//Com_MatchToken( text, "{" );
+void idSplineList::parse( idLexer &src ) {
+	idToken token;
+	//src.ExpectTokenString( "{" );
 	do {
-		token = Com_Parse( text );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
 		}
-		if ( !Q_stricmp( token, "}" ) ) {
+		if ( !idStr::Icmp( token, "}" ) ) {
 			break;
 		}
 
 		do {
 			// if token is not a brace, it is a key for a key/value pair
-			if ( !token[0] || !Q_stricmp( token, "(" ) || !Q_stricmp( token, "}" ) ) {
+			if ( !token[0] || !idStr::Icmp( token, "(" ) || !idStr::Icmp( token, "}" ) ) {
 				break;
 			}
 
-			Com_UngetToken();
-			idStr key = Com_ParseOnLine( text );
-			token = Com_Parse( text );
-			if ( Q_stricmp( key.c_str(), "granularity" ) == 0 ) {
-				granularity = atof( token );
-			} else if ( Q_stricmp( key.c_str(), "name" ) == 0 ) {
-				name = token;
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
 			}
-			token = Com_Parse( text );
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
+			if ( idStr::Icmp( key.c_str(), "granularity" ) == 0 ) {
+				granularity = atof( token.c_str() );
+			} else if ( idStr::Icmp( key.c_str(), "name" ) == 0 ) {
+				name = token.c_str();
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
-		if ( !Q_stricmp( token, "}" ) ) {
+		if ( !idStr::Icmp( token, "}" ) ) {
 			break;
 		}
 
-		Com_UngetToken();
+		src.UnreadToken( &token );
 		// read the control point
 		idVec3 point;
-		Com_Parse1DMatrix( text, 3, point );
+		src.Parse1DMatrix( 3, point.ToFloatPtr() );
 		addPoint( point.x, point.y, point.z );
 	} while ( 1 );
 
 	//Com_UngetToken();
-	//Com_MatchToken( text, "}" );
+	//src.ExpectTokenString( "}" );
 	dirty = true;
 }
 
 void idSplineList::write( fileHandle_t file, const char *p ) {
-	idStr s = va( "\t\t%s {\n", p );
-	FS_Write( s.c_str(), s.length(), file );
+	idStr s = idStr::FormatString( "\t\t%s {\n", p );
+	FS_Write( s.c_str(), s.Length(), file );
 	//s = va("\t\tname %s\n", name.c_str());
-	//FS_Write(s.c_str(), s.length(), file);
-	s = va( "\t\t\tgranularity %f\n", granularity );
-	FS_Write( s.c_str(), s.length(), file );
+	//FS_Write(s.c_str(), s.Length(), file);
+	s = idStr::FormatString( "\t\t\tgranularity %f\n", granularity );
+	FS_Write( s.c_str(), s.Length(), file );
 	int count = controlPoints.Num();
 	for ( int i = 0; i < count; i++ ) {
-		s = va( "\t\t\t( %f %f %f )\n", controlPoints[i]->x, controlPoints[i]->y, controlPoints[i]->z );
-		FS_Write( s.c_str(), s.length(), file );
+		s = idStr::FormatString( "\t\t\t( %f %f %f )\n", controlPoints[i]->x, controlPoints[i]->y, controlPoints[i]->z );
+		FS_Write( s.c_str(), s.Length(), file );
 	}
 	s = "\t\t}\n";
-	FS_Write( s.c_str(), s.length(), file );
+	FS_Write( s.c_str(), s.Length(), file );
 }
 
 
@@ -549,11 +556,11 @@ bool idCameraDef::getCameraInfo( long time, idVec3 &origin, idVec3 &direction, f
 				//*fv = fov = atof(events[i]->getParam());
 			} else if ( events[i]->getType() == idCameraEvent::EVENT_FADEIN ) {
 				float fadeTime = atof( events[i]->getParam() );
-				Cbuf_AddText( va( "fade 0 0 0 0 %f", fadeTime ) );
+				Cbuf_AddText( idStr::FormatString( "fade 0 0 0 0 %f", fadeTime ) );
 				Cbuf_Execute();
 			} else if ( events[i]->getType() == idCameraEvent::EVENT_FADEOUT ) {
 				float fadeTime = atof( events[i]->getParam() );
-				Cbuf_AddText( va( "fade 0 0 0 255 %f", fadeTime ) );
+				Cbuf_AddText( idStr::FormatString( "fade 0 0 0 255 %f", fadeTime ) );
 				Cbuf_Execute();
 			} else if ( events[i]->getType() == idCameraEvent::EVENT_CAMERA ) {
 				memset( buff, 0, sizeof( buff ) );
@@ -562,10 +569,10 @@ bool idCameraDef::getCameraInfo( long time, idVec3 &origin, idVec3 &direction, f
 				const char *param2 = strtok( NULL, " \t,\0" );
 
 				if ( param2 ) {
-					loadCamera( atoi( param1 ), va( "cameras/%s.camera", param2 ) );
+					loadCamera( atoi( param1 ), idStr::FormatString( "cameras/%s.camera", param2 ) );
 					startCamera( time );
 				} else {
-					loadCamera( 0, va( "cameras/%s.camera", events[i]->getParam() ) );
+					loadCamera( 0, idStr::FormatString( "cameras/%s.camera", events[i]->getParam() ) );
 					startCamera( time );
 				}
 				return true;
@@ -577,7 +584,7 @@ bool idCameraDef::getCameraInfo( long time, idVec3 &origin, idVec3 &direction, f
 
 	origin = *cameraPosition->getPosition( time );
 
-	CHECK_NAN_VEC( origin );
+	assert( IsValid( origin ) );
 
 	*fv = fov.getFOV( time );
 
@@ -767,47 +774,49 @@ void idCameraDef::startCamera( long t ) {
 }
 
 
-void idCameraDef::parse( const char *( *text )  ) {
+void idCameraDef::parse( idLexer &src ) {
 
-	const char  *token;
+	idToken token;
 	do {
-		token = Com_Parse( text );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
 		}
-		if ( !Q_stricmp( token, "}" ) ) {
+		if ( !idStr::Icmp( token, "}" ) ) {
 			break;
 		}
 
-		if ( Q_stricmp( token, "time" ) == 0 ) {
-			baseTime = Com_ParseFloat( text );
-		} else if ( Q_stricmp( token, "camera_fixed" ) == 0 )        {
+		if ( idStr::Icmp( token, "time" ) == 0 ) {
+			baseTime = src.ParseFloat();
+		} else if ( idStr::Icmp( token, "camera_fixed" ) == 0 )        {
 			cameraPosition = new idFixedPosition();
-			cameraPosition->parse( text );
-		} else if ( Q_stricmp( token, "camera_interpolated" ) == 0 )        {
+			cameraPosition->parse( src );
+		} else if ( idStr::Icmp( token, "camera_interpolated" ) == 0 )        {
 			cameraPosition = new idInterpolatedPosition();
-			cameraPosition->parse( text );
-		} else if ( Q_stricmp( token, "camera_spline" ) == 0 )        {
+			cameraPosition->parse( src );
+		} else if ( idStr::Icmp( token, "camera_spline" ) == 0 )        {
 			cameraPosition = new idSplinePosition();
-			cameraPosition->parse( text );
-		} else if ( Q_stricmp( token, "target_fixed" ) == 0 )        {
+			cameraPosition->parse( src );
+		} else if ( idStr::Icmp( token, "target_fixed" ) == 0 )        {
 			idFixedPosition *pos = new idFixedPosition();
-			pos->parse( text );
+			pos->parse( src );
 			targetPositions.Append( pos );
-		} else if ( Q_stricmp( token, "target_interpolated" ) == 0 )        {
+		} else if ( idStr::Icmp( token, "target_interpolated" ) == 0 )        {
 			idInterpolatedPosition *pos = new idInterpolatedPosition();
-			pos->parse( text );
+			pos->parse( src );
 			targetPositions.Append( pos );
-		} else if ( Q_stricmp( token, "target_spline" ) == 0 )        {
+		} else if ( idStr::Icmp( token, "target_spline" ) == 0 )        {
 			idSplinePosition *pos = new idSplinePosition();
-			pos->parse( text );
+			pos->parse( src );
 			targetPositions.Append( pos );
-		} else if ( Q_stricmp( token, "fov" ) == 0 )        {
-			fov.parse( text );
-		} else if ( Q_stricmp( token, "event" ) == 0 )        {
+		} else if ( idStr::Icmp( token, "fov" ) == 0 )        {
+			fov.parse( src );
+		} else if ( idStr::Icmp( token, "event" ) == 0 )        {
 			idCameraEvent *event = new idCameraEvent();
-			event->parse( text );
+			event->parse( src );
 			addEvent( event );
 		}
 
@@ -820,25 +829,22 @@ void idCameraDef::parse( const char *( *text )  ) {
 		cameraPosition = new idFixedPosition();
 	}
 
-	Com_UngetToken();
-	Com_MatchToken( text, "}" );
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 
 }
 
 bool idCameraDef::load( const char *filename ) {
 	char *buf;
-	const char *buf_p;
-	// TTimo: unused (int length = FS_ReadFile( filename, (void **)&buf );)
-	FS_ReadFile( filename, (void **)&buf );
-	if ( !buf ) {
+	int len = FS_ReadFile( filename, (void **)&buf );
+	if ( !buf || len <= 0 ) {
 		return false;
 	}
 
 	clear();
-	Com_BeginParseSession( filename );
-	buf_p = buf;
-	parse( &buf_p );
-	Com_EndParseSession();
+	idLexer src;
+	src.LoadMemory( buf, len, filename );
+	parse( src );
 	FS_FreeFile( buf );
 
 	return true;
@@ -849,14 +855,14 @@ void idCameraDef::save( const char *filename ) {
 	if ( file ) {
 		int i;
 		idStr s = "cameraPathDef { \n";
-		FS_Write( s.c_str(), s.length(), file );
-		s = va( "\ttime %f\n", baseTime );
-		FS_Write( s.c_str(), s.length(), file );
+		FS_Write( s.c_str(), s.Length(), file );
+		s = idStr::FormatString( "\ttime %f\n", baseTime );
+		FS_Write( s.c_str(), s.Length(), file );
 
-		cameraPosition->write( file, va( "camera_%s",cameraPosition->typeStr() ) );
+		cameraPosition->write( file, idStr::FormatString( "camera_%s",cameraPosition->typeStr() ) );
 
 		for ( i = 0; i < numTargets(); i++ ) {
-			targetPositions[i]->write( file, va( "target_%s", targetPositions[i]->typeStr() ) );
+			targetPositions[i]->write( file, idStr::FormatString( "target_%s", targetPositions[i]->typeStr() ) );
 		}
 
 		for ( i = 0; i < events.Num(); i++ ) {
@@ -866,7 +872,7 @@ void idCameraDef::save( const char *filename ) {
 		fov.write( file, "fov" );
 
 		s = "}\n";
-		FS_Write( s.c_str(), s.length(), file );
+		FS_Write( s.c_str(), s.Length(), file );
 	}
 	FS_FCloseFile( file );
 }
@@ -912,61 +918,70 @@ const char *idCameraEvent::eventStr[] = {
 	"FEATHER"
 };
 
-void idCameraEvent::parse( const char *( *text )  ) {
-	const char *token;
-	Com_MatchToken( text, "{" );
+void idCameraEvent::parse( idLexer &src ) {
+	idToken token;
+	src.ExpectTokenString( "{" );
 	do {
-		token = Com_Parse( text );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
 		}
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 		// here we may have to jump over brush epairs ( only used in editor )
 		do {
 			// if token is not a brace, it is a key for a key/value pair
-			if ( !token[0] || !strcmp( token, "(" ) || !strcmp( token, "}" ) ) {
+			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
 
-			Com_UngetToken();
-			idStr key = Com_ParseOnLine( text );
-			token = Com_Parse( text );
-			if ( Q_stricmp( key.c_str(), "type" ) == 0 ) {
-				type = static_cast<idCameraEvent::eventType>( atoi( token ) );
-			} else if ( Q_stricmp( key.c_str(), "param" ) == 0 ) {
-				paramStr = token;
-			} else if ( Q_stricmp( key.c_str(), "time" ) == 0 ) {
-				time = atoi( token );
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
 			}
-			token = Com_Parse( text );
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
+			if ( idStr::Icmp( key.c_str(), "type" ) == 0 ) {
+				type = static_cast<idCameraEvent::eventType>( atoi( token.c_str() ) );
+			} else if ( idStr::Icmp( key.c_str(), "param" ) == 0 ) {
+				paramStr = token.c_str();
+			} else if ( idStr::Icmp( key.c_str(), "time" ) == 0 ) {
+				time = atoi( token.c_str() );
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 	} while ( 1 );
 
-	Com_UngetToken();
-	Com_MatchToken( text, "}" );
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
 void idCameraEvent::write( fileHandle_t file, const char *name ) {
-	idStr s = va( "\t%s {\n", name );
-	FS_Write( s.c_str(), s.length(), file );
-	s = va( "\t\ttype %d\n", static_cast<int>( type ) );
-	FS_Write( s.c_str(), s.length(), file );
-	s = va( "\t\tparam \"%s\"\n", paramStr.c_str() );
-	FS_Write( s.c_str(), s.length(), file );
-	s = va( "\t\ttime %d\n", time );
-	FS_Write( s.c_str(), s.length(), file );
+	idStr s = idStr::FormatString( "\t%s {\n", name );
+	FS_Write( s.c_str(), s.Length(), file );
+	s = idStr::FormatString( "\t\ttype %d\n", static_cast<int>( type ) );
+	FS_Write( s.c_str(), s.Length(), file );
+	s = idStr::FormatString( "\t\tparam \"%s\"\n", paramStr.c_str() );
+	FS_Write( s.c_str(), s.Length(), file );
+	s = idStr::FormatString( "\t\ttime %d\n", time );
+	FS_Write( s.c_str(), s.Length(), file );
 	s = "\t}\n";
-	FS_Write( s.c_str(), s.length(), file );
+	FS_Write( s.c_str(), s.Length(), file );
 }
 
 
@@ -1022,295 +1037,344 @@ const idVec3 *idInterpolatedPosition::getPosition( long t ) {
 }
 
 
-void idCameraFOV::parse( const char *( *text )  ) {
-	const char *token;
-	Com_MatchToken( text, "{" );
+void idCameraFOV::parse( idLexer &src ) {
+	idToken token;
+	src.ExpectTokenString( "{" );
 	do {
-		token = Com_Parse( text );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
 		}
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 		// here we may have to jump over brush epairs ( only used in editor )
 		do {
 			// if token is not a brace, it is a key for a key/value pair
-			if ( !token[0] || !strcmp( token, "(" ) || !strcmp( token, "}" ) ) {
+			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
 
-			Com_UngetToken();
-			idStr key = Com_ParseOnLine( text );
-			token = Com_Parse( text );
-			if ( Q_stricmp( key.c_str(), "fov" ) == 0 ) {
-				fov = atof( token );
-			} else if ( Q_stricmp( key.c_str(), "startFOV" ) == 0 ) {
-				startFOV = atof( token );
-			} else if ( Q_stricmp( key.c_str(), "endFOV" ) == 0 ) {
-				endFOV = atof( token );
-			} else if ( Q_stricmp( key.c_str(), "time" ) == 0 ) {
-				time = atoi( token );
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
 			}
-			token = Com_Parse( text );
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
+			if ( idStr::Icmp( key.c_str(), "fov" ) == 0 ) {
+				fov = atof( token.c_str() );
+			} else if ( idStr::Icmp( key.c_str(), "startFOV" ) == 0 ) {
+				startFOV = atof( token.c_str() );
+			} else if ( idStr::Icmp( key.c_str(), "endFOV" ) == 0 ) {
+				endFOV = atof( token.c_str() );
+			} else if ( idStr::Icmp( key.c_str(), "time" ) == 0 ) {
+				time = atoi( token.c_str() );
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 	} while ( 1 );
 
-	Com_UngetToken();
-	Com_MatchToken( text, "}" );
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
-bool idCameraPosition::parseToken( const char *key, const char *( *text ) ) {
-	const char *token = Com_Parse( text );
-	if ( Q_stricmp( key, "time" ) == 0 ) {
-		time = atol( token );
+bool idCameraPosition::parseToken( const char *key, idLexer &src ) {
+	idToken token;
+	if ( !src.ReadToken( &token ) ) {
+		token.Empty();
+	}
+	if ( idStr::Icmp( key, "time" ) == 0 ) {
+		time = atol( token.c_str() );
 		return true;
-	} else if ( Q_stricmp( key, "type" ) == 0 ) {
-		type = static_cast<idCameraPosition::positionType>( atoi( token ) );
+	} else if ( idStr::Icmp( key, "type" ) == 0 ) {
+		type = static_cast<idCameraPosition::positionType>( atoi( token.c_str() ) );
 		return true;
-	} else if ( Q_stricmp( key, "velocity" ) == 0 ) {
-		long t = atol( token );
-		token = Com_Parse( text );
-		long d = atol( token );
-		token = Com_Parse( text );
-		float s = atof( token );
+	} else if ( idStr::Icmp( key, "velocity" ) == 0 ) {
+		long t = atol( token.c_str() );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
+		long d = atol( token.c_str() );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
+		float s = atof( token.c_str() );
 		addVelocity( t, d, s );
 		return true;
-	} else if ( Q_stricmp( key, "baseVelocity" ) == 0 ) {
-		baseVelocity = atof( token );
+	} else if ( idStr::Icmp( key, "baseVelocity" ) == 0 ) {
+		baseVelocity = atof( token.c_str() );
 		return true;
-	} else if ( Q_stricmp( key, "name" ) == 0 ) {
-		name = token;
+	} else if ( idStr::Icmp( key, "name" ) == 0 ) {
+		name = token.c_str();
 		return true;
-	} else if ( Q_stricmp( key, "time" ) == 0 ) {
-		time = atoi( token );
+	} else if ( idStr::Icmp( key, "time" ) == 0 ) {
+		time = atoi( token.c_str() );
 		return true;
 	}
-	Com_UngetToken();
+	src.UnreadToken( &token );
 	return false;
 }
 
 
 
-void idFixedPosition::parse( const char *( *text )  ) {
-	const char *token;
-	Com_MatchToken( text, "{" );
+void idFixedPosition::parse( idLexer &src ) {
+	idToken token;
+	src.ExpectTokenString( "{" );
 	do {
-		token = Com_Parse( text );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
 		}
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 		// here we may have to jump over brush epairs ( only used in editor )
 		do {
 			// if token is not a brace, it is a key for a key/value pair
-			if ( !token[0] || !strcmp( token, "(" ) || !strcmp( token, "}" ) ) {
+			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
 
-			Com_UngetToken();
-			idStr key = Com_ParseOnLine( text );
-
-			token = Com_Parse( text );
-			if ( Q_stricmp( key.c_str(), "pos" ) == 0 ) {
-				Com_UngetToken();
-				Com_Parse1DMatrix( text, 3, pos );
-			} else {
-				Com_UngetToken();
-				idCameraPosition::parseToken( key.c_str(), text );
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
 			}
-			token = Com_Parse( text );
+
+			if ( !src.ReadToken( &token ) ) {
+
+				token.Empty();
+
+			}
+			if ( idStr::Icmp( key.c_str(), "pos" ) == 0 ) {
+				src.UnreadToken( &token );
+				src.Parse1DMatrix( 3, pos.ToFloatPtr() );
+			} else {
+				src.UnreadToken( &token );
+				idCameraPosition::parseToken( key.c_str(), src );
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 	} while ( 1 );
 
-	Com_UngetToken();
-	Com_MatchToken( text, "}" );
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
-void idInterpolatedPosition::parse( const char *( *text )  ) {
-	const char *token;
-	Com_MatchToken( text, "{" );
+void idInterpolatedPosition::parse( idLexer &src ) {
+	idToken token;
+	src.ExpectTokenString( "{" );
 	do {
-		token = Com_Parse( text );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
 		}
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 		// here we may have to jump over brush epairs ( only used in editor )
 		do {
 			// if token is not a brace, it is a key for a key/value pair
-			if ( !token[0] || !strcmp( token, "(" ) || !strcmp( token, "}" ) ) {
+			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
 
-			Com_UngetToken();
-			idStr key = Com_ParseOnLine( text );
-
-			token = Com_Parse( text );
-			if ( Q_stricmp( key.c_str(), "startPos" ) == 0 ) {
-				Com_UngetToken();
-				Com_Parse1DMatrix( text, 3, startPos );
-			} else if ( Q_stricmp( key.c_str(), "endPos" ) == 0 ) {
-				Com_UngetToken();
-				Com_Parse1DMatrix( text, 3, endPos );
-			} else {
-				Com_UngetToken();
-				idCameraPosition::parseToken( key.c_str(), text );
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
 			}
-			token = Com_Parse( text );
+
+			if ( !src.ReadToken( &token ) ) {
+
+				token.Empty();
+
+			}
+			if ( idStr::Icmp( key.c_str(), "startPos" ) == 0 ) {
+				src.UnreadToken( &token );
+				src.Parse1DMatrix( 3, startPos.ToFloatPtr() );
+			} else if ( idStr::Icmp( key.c_str(), "endPos" ) == 0 ) {
+				src.UnreadToken( &token );
+				src.Parse1DMatrix( 3, endPos.ToFloatPtr() );
+			} else {
+				src.UnreadToken( &token );
+				idCameraPosition::parseToken( key.c_str(), src );
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 	} while ( 1 );
 
-	Com_UngetToken();
-	Com_MatchToken( text, "}" );
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
 
-void idSplinePosition::parse( const char *( *text )  ) {
-	const char *token;
-	Com_MatchToken( text, "{" );
+void idSplinePosition::parse( idLexer &src ) {
+	idToken token;
+	src.ExpectTokenString( "{" );
 	do {
-		token = Com_Parse( text );
+		if ( !src.ReadToken( &token ) ) {
+			token.Empty();
+		}
 
 		if ( !token[0] ) {
 			break;
 		}
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 		// here we may have to jump over brush epairs ( only used in editor )
 		do {
 			// if token is not a brace, it is a key for a key/value pair
-			if ( !token[0] || !strcmp( token, "(" ) || !strcmp( token, "}" ) ) {
+			if ( !token[0] || !idStr::Cmp( token, "(" ) || !idStr::Cmp( token, "}" ) ) {
 				break;
 			}
 
-			Com_UngetToken();
-			idStr key = Com_ParseOnLine( text );
-
-			token = Com_Parse( text );
-			if ( Q_stricmp( key.c_str(), "target" ) == 0 ) {
-				target.parse( text );
-			} else {
-				Com_UngetToken();
-				idCameraPosition::parseToken( key.c_str(), text );
+			src.UnreadToken( &token );
+			idToken key;
+			if ( !src.ReadTokenOnLine( &key ) ) {
+				key.Empty();
 			}
-			token = Com_Parse( text );
+
+			if ( !src.ReadToken( &token ) ) {
+
+				token.Empty();
+
+			}
+			if ( idStr::Icmp( key.c_str(), "target" ) == 0 ) {
+				target.parse( src );
+			} else {
+				src.UnreadToken( &token );
+				idCameraPosition::parseToken( key.c_str(), src );
+			}
+			if ( !src.ReadToken( &token ) ) {
+				token.Empty();
+			}
 
 		} while ( 1 );
 
-		if ( !strcmp( token, "}" ) ) {
+		if ( !idStr::Cmp( token, "}" ) ) {
 			break;
 		}
 
 	} while ( 1 );
 
-	Com_UngetToken();
-	Com_MatchToken( text, "}" );
+	src.UnreadToken( &token );
+	src.ExpectTokenString( "}" );
 }
 
 
 
 void idCameraFOV::write( fileHandle_t file, const char *p ) {
-	idStr s = va( "\t%s {\n", p );
-	FS_Write( s.c_str(), s.length(), file );
+	idStr s = idStr::FormatString( "\t%s {\n", p );
+	FS_Write( s.c_str(), s.Length(), file );
 
-	s = va( "\t\tfov %f\n", fov );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\tfov %f\n", fov );
+	FS_Write( s.c_str(), s.Length(), file );
 
-	s = va( "\t\tstartFOV %f\n", startFOV );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\tstartFOV %f\n", startFOV );
+	FS_Write( s.c_str(), s.Length(), file );
 
-	s = va( "\t\tendFOV %f\n", endFOV );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\tendFOV %f\n", endFOV );
+	FS_Write( s.c_str(), s.Length(), file );
 
-	s = va( "\t\ttime %i\n", time );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\ttime %i\n", time );
+	FS_Write( s.c_str(), s.Length(), file );
 
 	s = "\t}\n";
-	FS_Write( s.c_str(), s.length(), file );
+	FS_Write( s.c_str(), s.Length(), file );
 }
 
 
 void idCameraPosition::write( fileHandle_t file, const char *p ) {
 
-	idStr s = va( "\t\ttime %i\n", time );
-	FS_Write( s.c_str(), s.length(), file );
+	idStr s = idStr::FormatString( "\t\ttime %i\n", time );
+	FS_Write( s.c_str(), s.Length(), file );
 
-	s = va( "\t\ttype %i\n", static_cast<int>( type ) );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\ttype %i\n", static_cast<int>( type ) );
+	FS_Write( s.c_str(), s.Length(), file );
 
-	s = va( "\t\tname %s\n", name.c_str() );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\tname %s\n", name.c_str() );
+	FS_Write( s.c_str(), s.Length(), file );
 
-	s = va( "\t\tbaseVelocity %f\n", baseVelocity );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\tbaseVelocity %f\n", baseVelocity );
+	FS_Write( s.c_str(), s.Length(), file );
 
 	for ( int i = 0; i < velocities.Num(); i++ ) {
-		s = va( "\t\tvelocity %i %i %f\n", velocities[i]->startTime, velocities[i]->time, velocities[i]->speed );
-		FS_Write( s.c_str(), s.length(), file );
+		s = idStr::FormatString( "\t\tvelocity %i %i %f\n", velocities[i]->startTime, velocities[i]->time, velocities[i]->speed );
+		FS_Write( s.c_str(), s.Length(), file );
 	}
 
 }
 
 void idFixedPosition::write( fileHandle_t file, const char *p ) {
-	idStr s = va( "\t%s {\n", p );
-	FS_Write( s.c_str(), s.length(), file );
+	idStr s = idStr::FormatString( "\t%s {\n", p );
+	FS_Write( s.c_str(), s.Length(), file );
 	idCameraPosition::write( file, p );
-	s = va( "\t\tpos ( %f %f %f )\n", pos.x, pos.y, pos.z );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\tpos ( %f %f %f )\n", pos.x, pos.y, pos.z );
+	FS_Write( s.c_str(), s.Length(), file );
 	s = "\t}\n";
-	FS_Write( s.c_str(), s.length(), file );
+	FS_Write( s.c_str(), s.Length(), file );
 }
 
 void idInterpolatedPosition::write( fileHandle_t file, const char *p ) {
-	idStr s = va( "\t%s {\n", p );
-	FS_Write( s.c_str(), s.length(), file );
+	idStr s = idStr::FormatString( "\t%s {\n", p );
+	FS_Write( s.c_str(), s.Length(), file );
 	idCameraPosition::write( file, p );
-	s = va( "\t\tstartPos ( %f %f %f )\n", startPos.x, startPos.y, startPos.z );
-	FS_Write( s.c_str(), s.length(), file );
-	s = va( "\t\tendPos ( %f %f %f )\n", endPos.x, endPos.y, endPos.z );
-	FS_Write( s.c_str(), s.length(), file );
+	s = idStr::FormatString( "\t\tstartPos ( %f %f %f )\n", startPos.x, startPos.y, startPos.z );
+	FS_Write( s.c_str(), s.Length(), file );
+	s = idStr::FormatString( "\t\tendPos ( %f %f %f )\n", endPos.x, endPos.y, endPos.z );
+	FS_Write( s.c_str(), s.Length(), file );
 	s = "\t}\n";
-	FS_Write( s.c_str(), s.length(), file );
+	FS_Write( s.c_str(), s.Length(), file );
 }
 
 void idSplinePosition::write( fileHandle_t file, const char *p ) {
-	idStr s = va( "\t%s {\n", p );
-	FS_Write( s.c_str(), s.length(), file );
+	idStr s = idStr::FormatString( "\t%s {\n", p );
+	FS_Write( s.c_str(), s.Length(), file );
 	idCameraPosition::write( file, p );
 	target.write( file, "target" );
 	s = "\t}\n";
-	FS_Write( s.c_str(), s.length(), file );
+	FS_Write( s.c_str(), s.Length(), file );
 }
 
 void idCameraDef::addTarget( const char *n, idCameraPosition::positionType type ) {
@@ -1401,4 +1465,3 @@ const idVec3 *idSplinePosition::getPosition( long t ) {
 	return &interpolatedPos;
 
 }
-

@@ -35,10 +35,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
-#include "l_memory.h"
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "../game/botlib.h"
 #include "be_interface.h"
@@ -56,7 +55,8 @@ bot_input_t *botinputs;
 // Changes Globals:		-
 //===========================================================================
 void EA_Say( int client, char *str ) {
-	botimport.BotClientCommand( client, va( "say %s", str ) );
+	idStr command = idStr::FormatString( "say %s", str );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_Say
 //===========================================================================
 //
@@ -65,7 +65,8 @@ void EA_Say( int client, char *str ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_SayTeam( int client, char *str ) {
-	botimport.BotClientCommand( client, va( "say_team %s", str ) );
+	idStr command = idStr::FormatString( "say_team %s", str );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_SayTeam
 //===========================================================================
 //
@@ -74,7 +75,8 @@ void EA_SayTeam( int client, char *str ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_UseItem( int client, char *it ) {
-	botimport.BotClientCommand( client, va( "use %s", it ) );
+	idStr command = idStr::FormatString( "use %s", it );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_UseItem
 //===========================================================================
 //
@@ -83,7 +85,8 @@ void EA_UseItem( int client, char *it ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_DropItem( int client, char *it ) {
-	botimport.BotClientCommand( client, va( "drop %s", it ) );
+	idStr command = idStr::FormatString( "drop %s", it );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_DropItem
 //===========================================================================
 //
@@ -92,7 +95,8 @@ void EA_DropItem( int client, char *it ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_UseInv( int client, char *inv ) {
-	botimport.BotClientCommand( client, va( "invuse %s", inv ) );
+	idStr command = idStr::FormatString( "invuse %s", inv );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_UseInv
 //===========================================================================
 //
@@ -101,7 +105,8 @@ void EA_UseInv( int client, char *inv ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_DropInv( int client, char *inv ) {
-	botimport.BotClientCommand( client, va( "invdrop %s", inv ) );
+	idStr command = idStr::FormatString( "invdrop %s", inv );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_DropInv
 //===========================================================================
 //
@@ -351,12 +356,12 @@ void EA_MoveRight( int client ) {
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-void EA_Move( int client, vec3_t dir, float speed ) {
+void EA_Move( int client, const idVec3 &dir, float speed ) {
 	bot_input_t *bi;
 
 	bi = &botinputs[client];
 
-	VectorCopy( dir, bi->dir );
+	bi->dir = dir;
 	//cap speed
 	if ( speed > MAX_USERMOVE ) {
 		speed = MAX_USERMOVE;
@@ -371,12 +376,12 @@ void EA_Move( int client, vec3_t dir, float speed ) {
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-void EA_View( int client, vec3_t viewangles ) {
+void EA_View( int client, const idVec3 &viewangles ) {
 	bot_input_t *bi;
 
 	bi = &botinputs[client];
 
-	VectorCopy( viewangles, bi->viewangles );
+	bi->viewangles = viewangles;
 } //end of the function EA_View
 //===========================================================================
 //
@@ -397,7 +402,7 @@ void EA_EndRegular( int client, float thinktime ) {
 	botimport.BotInput(client, bi);
 
 	bi->thinktime = 0;
-	VectorClear(bi->dir);
+	bi->dir.Zero();
 	bi->speed = 0;
 	jumped = bi->actionflags & ACTION_JUMP;
 	bi->actionflags = 0;
@@ -419,11 +424,11 @@ void EA_GetInput( int client, float thinktime, bot_input_t *input ) {
 //	bi->actionflags &= ~ACTION_JUMPEDLASTFRAME;
 
 	bi->thinktime = thinktime;
-	memcpy( input, bi, sizeof( bot_input_t ) );
+	*input = *bi;
 
 	/*
 	bi->thinktime = 0;
-	VectorClear(bi->dir);
+	bi->dir.Zero();
 	bi->speed = 0;
 	jumped = bi->actionflags & ACTION_JUMP;
 	bi->actionflags = 0;
@@ -444,7 +449,7 @@ void EA_ResetInput( int client, bot_input_t *init ) {
 	bi->actionflags &= ~ACTION_JUMPEDLASTFRAME;
 
 	bi->thinktime = 0;
-	VectorClear( bi->dir );
+	bi->dir.Zero();
 	bi->speed = 0;
 	jumped = bi->actionflags & ACTION_JUMP;
 	bi->actionflags = 0;
@@ -464,8 +469,8 @@ void EA_ResetInput( int client, bot_input_t *init ) {
 //===========================================================================
 int EA_Setup( void ) {
 	//initialize the bot inputs
-	botinputs = (bot_input_t *) GetClearedHunkMemory(
-		botlibglobals.maxclients * sizeof( bot_input_t ) );
+	botinputs = (bot_input_t *) Mem_ClearedAlloc(
+		botlibglobals.maxclients * sizeof( bot_input_t ), TAG_BOTLIB );
 	return BLERR_NOERROR;
 } //end of the function EA_Setup
 //===========================================================================
@@ -475,6 +480,6 @@ int EA_Setup( void ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_Shutdown( void ) {
-	FreeMemory( botinputs );
+	Mem_Free( botinputs );
 	botinputs = NULL;
 } //end of the function EA_Shutdown

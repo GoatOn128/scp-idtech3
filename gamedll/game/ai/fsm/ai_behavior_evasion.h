@@ -28,9 +28,9 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 #include "../ai_actor.h"
 
 char *AIFunc_BattleRoll( cast_state_t *cs );
-char *AIFunc_BattleRollStart( cast_state_t *cs, vec3_t vec );
-char *AIFunc_BattleDiveStart( cast_state_t *cs, vec3_t vec );
+char *AIFunc_BattleRollStart( cast_state_t *cs, const idVec3 &vec );
+char *AIFunc_BattleDiveStart( cast_state_t *cs, const idVec3 &vec );
 char *AIFunc_FlipMove( cast_state_t *cs );
-char *AIFunc_FlipMoveStart( cast_state_t *cs, vec3_t vec );
+char *AIFunc_FlipMoveStart( cast_state_t *cs, const idVec3 &vec );
 
 #endif

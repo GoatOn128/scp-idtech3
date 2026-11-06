@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -125,7 +127,7 @@ int AICast_ScanForEnemies( cast_state_t *cs, int *enemies ) {
 
 	// sort the enemies by distance
 	for ( i = 0; i < enemyCount; i++ ) {
-		distances[i] = Distance( cs->clientState->origin, g_entities[enemies[i]].client->ps.origin );
+		distances[i] = ( cs->clientState->origin - g_entities[enemies[i]].client->ps.origin ).Length();
 		if ( !distances[i] ) {
 			G_Printf( "WARNING: zero distance between enemies:\n%s at %s, %s at %s\n", g_entities[cs->entityNum].aiName,
 					  vtos( cs->clientState->origin ), g_entities[enemies[i]].aiName,

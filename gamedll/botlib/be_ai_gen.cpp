@@ -35,12 +35,10 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
-#include "l_memory.h"
 #include "l_log.h"
-#include "l_utils.h"
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "aasfile.h"
 #include "../game/botlib.h"
@@ -70,7 +68,7 @@ int GeneticSelection( int numranks, float *rankings ) {
 	if ( sum > 0 ) {
 		//select a bot where the ones with the higest rankings have
 		//the highest chance of being selected
-		select = random() * sum;
+		select = botlibRandom.RandomFloat() * sum;
 		for ( i = 0; i < numranks; i++ )
 		{
 			if ( rankings[i] < 0 ) {
@@ -83,7 +81,7 @@ int GeneticSelection( int numranks, float *rankings ) {
 		} //end for
 	} //end if
 	  //select a bot randomly
-	index = random() * numranks;
+	index = botlibRandom.RandomFloat() * numranks;
 	for ( i = 0; i < numranks; i++ )
 	{
 		if ( rankings[index] >= 0 ) {

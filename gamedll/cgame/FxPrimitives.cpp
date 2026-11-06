@@ -1,4 +1,6 @@
 // this include must remain at the top of every CPP file
+#include "../precompiled.h"
+
 #include "FxWolf.h"
 
 #if !defined(FX_SCHEDULER_H_INC)
@@ -6,8 +8,6 @@
 #endif
 
 
-
-static long myftol(float f) { return static_cast<long>(f); }
 
 extern int drawnFx;
 extern int mParticles;
@@ -17,14 +17,14 @@ extern int mTails;
 
 // Helper function
 //-------------------------
-void ClampVec( vec3_t dat, byte *res )
+void ClampVec( const idVec3 &dat, byte *res )
 {
 	int r;
 
 	// clamp all vec values, then multiply the normalized values by 255 to maximize the result
 	for ( int i = 0; i < 3; i++ )
 	{
-		r = myftol(dat[i] * 255.0f);
+		r = idMath::Ftoi( dat[i] * 255.0f );
 
 		if ( r < 0 )
 		{
@@ -39,7 +39,7 @@ void ClampVec( vec3_t dat, byte *res )
 	}	
 }
 
-void GetOrigin( int clientID, vec3_t org )
+void GetOrigin( int clientID, idVec3 &org )
 {
 	if ( clientID >=0 )
 	{
@@ -47,12 +47,12 @@ void GetOrigin( int clientID, vec3_t org )
 
 		if ( cent->currentValid )
 		{
-			VectorCopy( cent->lerpOrigin, org );
+			( org = cent->lerpOrigin );
 		}
 	}
 }
 
-void GetDir( int clientID, vec3_t org )
+void GetDir( int clientID, idVec3 &org )
 {
 	if ( clientID >=0 )
 	{
@@ -60,7 +60,7 @@ void GetDir( int clientID, vec3_t org )
 
 		if ( cent->currentValid )
 		{
-			AngleVectors( cent->lerpAngles, org, NULL, NULL );
+			idAngles( cent->lerpAngles ).ToVectors( &( org ), NULL, NULL );
 		}
 	}
 }
@@ -82,11 +82,11 @@ void CParticle::Die()
 {
 	if ( mFlags & FX_DEATH_RUNS_FX && !(mFlags & FX_KILL_ON_IMPACT) )
 	{
-		vec3_t	norm;
+		idVec3	norm;
 
 		// Man, this just seems so, like, uncool and stuff...
-		VectorSet( norm, crandom(), crandom(), crandom());
-		VectorNormalize( norm );
+		norm.Set( cgRandom.CRandomFloat(), cgRandom.CRandomFloat(), cgRandom.CRandomFloat() );
+		norm.Normalize();
 
 		theFxScheduler.PlayEffect( mDeathFxID, mOrigin1, norm );
 	}
@@ -96,18 +96,18 @@ void CParticle::Die()
 bool CParticle::Cull()
 {
 	if ( mRefEnt.reType == RT_SCREEN_PARTICLE ) { return false; }
-	vec3_t	dir;
+	idVec3	dir;
 
 	// Get the direction to the view
-	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
+	( dir = mOrigin1 - cg.refdef.vieworg );
 
 	// Check if it's behind the viewer
-	if ( (DotProduct( cg.refdef.viewaxis[0], dir )) < 0 )
+	if ( (( cg.refdef.viewaxis[0] * dir )) < 0 )
 	{
 		return true;
 	}
 
-	float len = VectorLengthSquared( dir );
+	float len = ( dir.LengthSqr() );
 
 	// Can't be too close
 	if ( len < 16 * 16 )
@@ -130,7 +130,7 @@ void CParticle::Draw()
 	}
 
 	// Add our refEntity to the scene
-	VectorCopy( mOrigin1, mRefEnt.origin );
+	( mRefEnt.origin = mOrigin1 );
 	theFxHelper.AddFxToScene( &mRefEnt );
 
 	drawnFx++;
@@ -162,43 +162,44 @@ bool CParticle::Update()
 			return false;
 		}
 
-		vec3_t	dir, org;
-		vec3_t 	realVel, realAccel;
+		idVec3	dir, org;
+		idVec3 	realVel, realAccel;
 		float	time = (theFxHelper.mTime - mTimeStart) * 0.001f;
 
 		// Get our current position and direction
 		GetOrigin( mClientID, org );
 		GetDir( mClientID, dir );
 	
-		vec3_t ang, ax[3];
+		idAngles ang;
 
-		vectoangles( dir, ang );
-		AngleVectors( ang, ax[0], ax[1], ax[2] );
+		idVec3 ax[3];
+		ang = dir.ToAngles();
+		ang.ToVectors( &( ax[0] ), &( ax[1] ), &( ax[2] ) );
 //		VectorCopy( dir, ax[0] );
 
 //		CrossProduct( up, ax[0], ax[1] );
 //		VectorNormalize( ax[1] );
 //		CrossProduct( ax[0], ax[1], ax[2] );
 
-		VectorMA( org, mOrgOffset[0], ax[0], org );
-		VectorMA( org, mOrgOffset[1], ax[1], org );
-		VectorMA( org, mOrgOffset[2], ax[2], org );
+		( org = org + ax[0] * mOrgOffset[0] );
+		( org = org + ax[1] * mOrgOffset[1] );
+		( org = org + ax[2] * mOrgOffset[2] );
 
 		// calc the real velocity and accel vectors
-		VectorScale( ax[0], mVel[0], realVel );
-		VectorMA( realVel, mVel[1], ax[1], realVel );
-		VectorMA( realVel, mVel[2], ax[2], realVel );
+		( realVel = ax[0] * mVel[0] );
+		( realVel = realVel + ax[1] * mVel[1] );
+		( realVel = realVel + ax[2] * mVel[2] );
 		realVel[2] += 0.5f * mGravity * time;
 
-		VectorScale( ax[0], mAccel[0], realAccel );
-		VectorMA( realAccel, mAccel[1], ax[1], realAccel );
-		VectorMA( realAccel, mAccel[2], ax[2], realAccel );
+		( realAccel = ax[0] * mAccel[0] );
+		( realAccel = realAccel + ax[1] * mAccel[1] );
+		( realAccel = realAccel + ax[2] * mAccel[2] );
 
 		// Get our real velocity at the current time, taking into account the effects of acceleartion.  NOTE: not sure if this is even 100% correct math-wise
-		VectorMA( realVel, time, realAccel, realVel );
+		( realVel = realVel + realAccel * time );
 
 		// Now move us to where we should be at the given time
-		VectorMA( org, time, realVel, mOrigin1 );
+		( mOrigin1 = org + realVel * time );
 		
 	}
 	else if (( mTimeStart < theFxHelper.mTime ) && UpdateOrigin() == false )
@@ -225,7 +226,7 @@ bool CParticle::Update()
 //----------------------------
 bool CParticle::UpdateOrigin()
 {
-	vec3_t	new_origin;
+	idVec3	new_origin;
 //	float	ftime, time2;
 
 	UpdateVelocity();
@@ -266,7 +267,7 @@ bool CParticle::UpdateOrigin()
 			}
 			else
 			{
-				theFxHelper.Trace( &trace, mOrigin1, NULL, NULL, new_origin, -1, mCollisionMask );
+				theFxHelper.Trace( &trace, mOrigin1, vec3_origin, vec3_origin, new_origin, -1, mCollisionMask );
 			}
 
 			// Hit something
@@ -283,33 +284,33 @@ bool CParticle::UpdateOrigin()
 					return false;
 				}
 
-				VectorMA( mVel, theFxHelper.mFloatFrameTime * trace.fraction, mAccel, mVel );
+				( mVel = mVel + mAccel * theFxHelper.mFloatFrameTime * trace.fraction );
 
-				dot = DotProduct( mVel, trace.plane.normal );
+				dot = ( mVel * trace.plane.normal );
 
-				VectorMA( mVel, -2 * dot, trace.plane.normal, mVel );
+				( mVel = mVel + trace.plane.normal * -2 * dot );
 
-				VectorScale( mVel, mElasticity, mVel );
+				( mVel = mVel * mElasticity );
 
 				// If the velocity is too low, make it stop moving, rotating, and turn off physics to avoid
 				//	doing expensive operations when they aren't needed
 				if ( trace.plane.normal[2] > 0 && mVel[2] < 4 )
 				{
-					VectorClear( mVel );
-					VectorClear( mAccel );
+					mVel.Zero();
+					mAccel.Zero();
 
 					mFlags &= ~(FX_APPLY_PHYSICS|FX_IMPACT_RUNS_FX);
 				}
 
 				// Set the origin to the exact impact point
-				VectorCopy( trace.endpos, mOrigin1 );
+				( mOrigin1 = trace.endpos );
 				return true;
 			}
 		}
 	}
 
 	// No physics were done to this object, move it
-	VectorCopy( new_origin, mOrigin1 );
+	( mOrigin1 = new_origin );
 
 	return true;
 }
@@ -353,7 +354,7 @@ void CParticle::UpdateSize()
 	else if (( mFlags & FX_SIZE_PARM_MASK ) == FX_SIZE_WAVE )
 	{ 
 		// wave gen, with parm being the frequency multiplier
-		perc1 = perc1 * (float)cos( (theFxHelper.mTime - mTimeStart) * mSizeParm );
+		perc1 = perc1 * (float)idMath::Cos( (theFxHelper.mTime - mTimeStart) * mSizeParm );
 	}
 	else if (( mFlags & FX_SIZE_PARM_MASK ) == FX_SIZE_CLAMP )
 	{
@@ -384,7 +385,7 @@ void CParticle::UpdateSize()
 	if (( mFlags & FX_SIZE_RAND ))
 	{ 
 		// Random simply modulates the existing value
-		perc1 = random() * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	mRefEnt.radius = (mSizeStart * perc1) + (mSizeEnd * (1.0f - perc1));
@@ -397,7 +398,7 @@ void CParticle::UpdateRGB()
 {
 	// completely biased towards start if it doesn't get overridden
 	float	perc1 = 1.0f, perc2 = 1.0f; 
-	vec3_t	res;
+	idVec3	res;
 
 	if ( (mFlags & FX_RGB_LINEAR) )
 	{ 
@@ -430,7 +431,7 @@ void CParticle::UpdateRGB()
 	else if (( mFlags & FX_RGB_PARM_MASK ) == FX_RGB_WAVE )
 	{ 
 		// wave gen, with parm being the frequency multiplier
-		perc1 = perc1 * (float)cos(( theFxHelper.mTime - mTimeStart ) * mRGBParm );
+		perc1 = perc1 * (float)idMath::Cos( ( theFxHelper.mTime - mTimeStart ) * mRGBParm );
 	}
 	else if (( mFlags & FX_RGB_PARM_MASK ) == FX_RGB_CLAMP )
 	{
@@ -461,12 +462,12 @@ void CParticle::UpdateRGB()
 	if (( mFlags & FX_RGB_RAND ))
 	{ 
 		// Random simply modulates the existing value
-		perc1 = random() * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	// Now get the correct color 
-	VectorScale( mRGBStart, perc1, res );
-	VectorMA( res, (1.0f - perc1), mRGBEnd, mRefEnt.angles ); // angles is a temp storage, will get clamped to a byte in the UpdateAlpha section
+	( res = mRGBStart * perc1 );
+	( mRefEnt.angles = res + mRGBEnd * (1.0f - perc1) ); // angles is a temp storage, will get clamped to a byte in the UpdateAlpha section
 }
 
 
@@ -509,7 +510,7 @@ void CParticle::UpdateAlpha()
 	else if (( mFlags & FX_ALPHA_PARM_MASK ) == FX_ALPHA_WAVE )
 	{ 
 		// wave gen, with parm being the frequency multiplier
-		perc1 = perc1 * (float)cos( (theFxHelper.mTime - mTimeStart) * mAlphaParm );
+		perc1 = perc1 * (float)idMath::Cos( (theFxHelper.mTime - mTimeStart) * mAlphaParm );
 	}
 	else if (( mFlags & FX_ALPHA_PARM_MASK ) == FX_ALPHA_CLAMP )
 	{
@@ -556,7 +557,7 @@ void CParticle::UpdateAlpha()
 	if ( (mFlags & FX_ALPHA_RAND) )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = random() * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	if ( mFlags & FX_USE_ALPHA )
@@ -568,7 +569,7 @@ void CParticle::UpdateAlpha()
 	else
 	{
 		// Modulate the rgb fields by the alpha value to do the fade, works fine for additive blending
-		VectorScale( mRefEnt.angles, perc1, mRefEnt.angles );
+		( mRefEnt.angles = mRefEnt.angles * perc1 );
 		ClampVec( mRefEnt.angles, (byte*)(&mRefEnt.shaderRGBA) );
 	}
 }
@@ -584,18 +585,18 @@ void CParticle::UpdateAlpha()
 bool COrientedParticle::Cull()
 {
 	if ( mRefEnt.reType == RT_SCREEN_DECAL ) { return false; }
-	vec3_t	dir;
+	idVec3	dir;
 
 	// Get the direction to the view
-	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
+	( dir = mOrigin1 - cg.refdef.vieworg );
 
 	// Check if it's behind the viewer
-	if ( (DotProduct( cg.refdef.viewaxis[0], dir )) < 0 )
+	if ( (( cg.refdef.viewaxis[0] * dir )) < 0 )
 	{
 		return true;
 	}
 
-	float len = VectorLengthSquared( dir );
+	float len = ( dir.LengthSqr() );
 
 	// Can't be too close
 	if ( len < 24 * 24 )
@@ -618,8 +619,8 @@ void COrientedParticle::Draw()
 	}
 
 	// Add our refEntity to the scene
-	VectorCopy( mOrigin1, mRefEnt.origin );
-	VectorCopy( mNormal, mRefEnt.axis[0] );
+	( mRefEnt.origin = mOrigin1 );
+	( mRefEnt.axis[0] = mNormal );
 	theFxHelper.AddFxToScene( &mRefEnt );
 
 	drawnFx++;
@@ -673,8 +674,8 @@ void CLine::Draw()
 		mRefEnt.renderfx |= RF_DEPTHHACK;
 	}
 
-	VectorCopy( mOrigin1, mRefEnt.origin );
-	VectorCopy( mOrigin2, mRefEnt.oldorigin );
+	( mRefEnt.origin = mOrigin1 );
+	( mRefEnt.oldorigin = mOrigin2 );
 
 	theFxHelper.AddFxToScene( &mRefEnt );
 
@@ -699,7 +700,7 @@ bool CLine::Update()
 			return false;
 		}
 
-		vec3_t	dir, end;
+		idVec3	dir, end;
 		trace_t	trace;
 
 		// Get our current position and direction
@@ -708,11 +709,11 @@ bool CLine::Update()
 
 		if ( mFlags & FX_APPLY_PHYSICS )
 		{
-			VectorMA( mOrigin1, 2048, dir, end );
+			( end = mOrigin1 + dir * 2048 );
 
-			theFxHelper.Trace( &trace, mOrigin1, NULL, NULL, end, mClientID, MASK_SHOT );
+			theFxHelper.Trace( &trace, mOrigin1, vec3_origin, vec3_origin, end, mClientID, MASK_SHOT );
 
-			VectorCopy( trace.endpos, mOrigin2 );
+			( mOrigin2 = trace.endpos );
 
 			if ( mImpactFxID > 0 )
 			{
@@ -721,7 +722,7 @@ bool CLine::Update()
 		}
 		else
 		{
-			VectorMA( mOrigin1, mOrgOffset[0], dir, mOrigin2 );
+			( mOrigin2 = mOrigin1 + dir * mOrgOffset[0] );
 		}
 	}
 
@@ -742,7 +743,7 @@ bool CLine::Update()
 //----------------------------
 void CElectricity::Initialize()
 {
-	mRefEnt.frame = random() * 1265536;
+	mRefEnt.frame = cgRandom.RandomFloat() * 1265536;
 	mRefEnt.endTime = cg.time + (mTimeEnd - mTimeStart);
 
 	if ( mFlags & FX_DEPTH_HACK )
@@ -769,8 +770,8 @@ void CElectricity::Initialize()
 //----------------------------
 void CElectricity::Draw()
 {
-	VectorCopy( mOrigin1, mRefEnt.origin );
-	VectorCopy( mOrigin2, mRefEnt.oldorigin );
+	( mRefEnt.origin = mOrigin1 );
+	( mRefEnt.oldorigin = mOrigin2 );
 	mRefEnt.angles[0] = mChaos;
 	mRefEnt.angles[1] = mTimeEnd - mTimeStart;
 
@@ -806,13 +807,13 @@ bool CElectricity::Update()
 //----------------------------
 bool CTail::Cull()
 {
-	vec3_t	dir;
+	idVec3	dir;
 
 	// Get the direction to the view
-	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
+	( dir = mOrigin1 - cg.refdef.vieworg );
 
 	// Check if it's behind the viewer
-	if ( (DotProduct( cg.refdef.viewaxis[0], dir )) < 0 )
+	if ( (( cg.refdef.viewaxis[0] * dir )) < 0 )
 	{
 		return true;
 	}
@@ -829,7 +830,7 @@ void CTail::Draw()
 		mRefEnt.renderfx |= RF_DEPTHHACK;
 	}
 
-	VectorCopy( mOrigin1, mRefEnt.origin );
+	( mRefEnt.origin = mOrigin1 );
 
 	theFxHelper.AddFxToScene( &mRefEnt );
 
@@ -848,7 +849,7 @@ bool CTail::Update()
 	
 	if ( !fx_freeze.integer )
 	{
-		VectorCopy( mOrigin1, mOldOrigin );
+		( mOldOrigin = mOrigin1 );
 	}
 
 	if ( mFlags & FX_RELATIVE )
@@ -859,41 +860,42 @@ bool CTail::Update()
 			return false;
 		}
 
-		vec3_t	dir, org;
-//		vec3_t	right, up;
-		vec3_t 	realVel, realAccel;
+		idVec3	dir, org;
+//		idVec3	right, up;
+		idVec3 	realVel, realAccel;
 
 		// Get our current position and direction
 		GetOrigin( mClientID, org );
 		GetDir( mClientID, dir );
 
-		vec3_t ang, ax[3];
+		idAngles ang;
+		idVec3 ax[3];
 
-		vectoangles( dir, ang );
-		AngleVectors( ang, ax[0], ax[1], ax[2] );
+		ang = dir.ToAngles();
+		ang.ToVectors( &( ax[0] ), &( ax[1] ), &( ax[2] ) );
 
-		VectorMA( org, mOrgOffset[0], ax[0], org );
-		VectorMA( org, mOrgOffset[1], ax[1], org );
-		VectorMA( org, mOrgOffset[2], ax[2], org );
+		( org = org + ax[0] * mOrgOffset[0] );
+		( org = org + ax[1] * mOrgOffset[1] );
+		( org = org + ax[2] * mOrgOffset[2] );
 
 		// calc the real velocity and accel vectors
 		// FIXME: if you want right and up movement in addition to the forward movement, you'll have to convert dir into a set of perp. axes and do some extra work
-		VectorScale( ax[0], mVel[0], realVel );
-		VectorMA( realVel, mVel[1], ax[1], realVel );
-		VectorMA( realVel, mVel[2], ax[2], realVel );
+		( realVel = ax[0] * mVel[0] );
+		( realVel = realVel + ax[1] * mVel[1] );
+		( realVel = realVel + ax[2] * mVel[2] );
 
-		VectorScale( ax[0], mAccel[0], realAccel );
-		VectorMA( realAccel, mAccel[1], ax[1], realAccel );
-		VectorMA( realAccel, mAccel[2], ax[2], realAccel );
+		( realAccel = ax[0] * mAccel[0] );
+		( realAccel = realAccel + ax[1] * mAccel[1] );
+		( realAccel = realAccel + ax[2] * mAccel[2] );
 
 		// Get our real velocity at the current time, taking into account the effects of acceleration.  NOTE: not sure if this is even 100% correct math-wise
-		VectorMA( realVel, (theFxHelper.mTime - mTimeStart) * 0.001f, realAccel, realVel );
+		( realVel = realVel + realAccel * (theFxHelper.mTime - mTimeStart) * 0.001f );
 
 		// Now move us to where we should be at the given time
-		VectorMA( org, (theFxHelper.mTime - mTimeStart) * 0.001f, realVel, mOrigin1 );
+		( mOrigin1 = org + realVel * (theFxHelper.mTime - mTimeStart) * 0.001f );
 
 		// Just calc an old point some time in the past, doesn't really matter when
-		VectorMA( org, ((theFxHelper.mTime - mTimeStart) - 3) * 0.001f, realVel, mOldOrigin );
+		( mOldOrigin = org + realVel * ((theFxHelper.mTime - mTimeStart) - 3) * 0.001f );
 	}
 	else if (( mTimeStart < theFxHelper.mTime ) && UpdateOrigin() == false )
 	{
@@ -953,7 +955,7 @@ void CTail::UpdateLength()
 	else if (( mFlags & FX_LENGTH_PARM_MASK ) == FX_LENGTH_WAVE )
 	{ 
 		// wave gen, with parm being the frequency multiplier
-		perc1 = perc1 * (float)cos( (theFxHelper.mTime - mTimeStart) * mLengthParm );
+		perc1 = perc1 * (float)idMath::Cos( (theFxHelper.mTime - mTimeStart) * mLengthParm );
 	}
 	else if (( mFlags & FX_LENGTH_PARM_MASK ) == FX_LENGTH_CLAMP )
 	{
@@ -984,7 +986,7 @@ void CTail::UpdateLength()
 	if ( mFlags & FX_LENGTH_RAND )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = random() * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	mLength = (mLengthStart * perc1) + (mLengthEnd * (1.0f - perc1));
@@ -993,15 +995,15 @@ void CTail::UpdateLength()
 //----------------------------
 void CTail::CalcNewEndpoint()
 {
-	vec3_t temp;
+	idVec3 temp;
 
 	// FIXME:  Hmmm, this looks dumb when physics are on and a bounce happens
-	VectorSubtract( mOldOrigin, mOrigin1, temp );
+	( temp = mOldOrigin - mOrigin1 );
 
 	// I wish we didn't have to do a VectorNormalize every frame.....
-	VectorNormalize( temp );
+	temp.Normalize();
 
-	VectorMA( mOrigin1, mLength, temp, mRefEnt.oldorigin );
+	( mRefEnt.oldorigin = mOrigin1 + temp * mLength );
 }
 
 
@@ -1018,8 +1020,8 @@ void CCylinder::Draw()
 		mRefEnt.renderfx |= RF_DEPTHHACK;
 	}
 
-	VectorCopy( mOrigin1, mRefEnt.origin );
-	VectorMA( mOrigin1, mLength, mRefEnt.axis[0], mRefEnt.oldorigin );
+	( mRefEnt.origin = mOrigin1 );
+	( mRefEnt.oldorigin = mOrigin1 + mRefEnt.axis[0] * mLength );
 
 	theFxHelper.AddFxToScene( &mRefEnt );
 
@@ -1065,7 +1067,7 @@ void CCylinder::UpdateSize2()
 	else if (( mFlags & FX_SIZE2_PARM_MASK ) == FX_SIZE2_WAVE )
 	{ 
 		// wave gen, with parm being the frequency multiplier
-		perc1 = perc1 * (float)cos( (theFxHelper.mTime - mTimeStart) * mSize2Parm );
+		perc1 = perc1 * (float)idMath::Cos( (theFxHelper.mTime - mTimeStart) * mSize2Parm );
 	}
 	else if (( mFlags & FX_SIZE2_PARM_MASK ) == FX_SIZE2_CLAMP )
 	{
@@ -1096,7 +1098,7 @@ void CCylinder::UpdateSize2()
 	if ( mFlags & FX_SIZE2_RAND )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = random() * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	mRefEnt.backlerp = (mSize2Start * perc1) + (mSize2End * (1.0f - perc1));
@@ -1139,12 +1141,12 @@ void CEmitter::Draw()
 	{
 		mRefEnt.nonNormalizedAxes = qtrue;
 
-		VectorCopy( mOrigin1, mRefEnt.origin );
+		( mRefEnt.origin = mOrigin1 );
 
 		// ensure that we are sized
 		for ( int i = 0; i < 3; i++ )
 		{
-			VectorScale( mRefEnt.axis[i], mRefEnt.radius, mRefEnt.axis[i] );
+			( mRefEnt.axis[i] = mRefEnt.axis[i] * mRefEnt.radius );
 		}
 
 		theFxHelper.AddFxToScene( &mRefEnt );
@@ -1154,7 +1156,7 @@ void CEmitter::Draw()
 	//	either choke up the effects system on a fast machine, or look really nasty on a low end one.
 	if ( mFlags & FX_EMIT_FX )
 	{
-		vec3_t	org, v;
+		idVec3	org, v;
 		float	ftime, time2, 
 				step;
 		int		i, t, dif;
@@ -1162,7 +1164,7 @@ void CEmitter::Draw()
 #define TRAIL_RATE		8 // we "think" at about a 60hz rate
 
 		// Pick a target step distance and square it
-		step = mDensity + crandom() * mVariance;
+		step = mDensity + cgRandom.CRandomFloat() * mVariance;
 		step *= step;
 
 		dif = 0;
@@ -1172,7 +1174,7 @@ void CEmitter::Draw()
 			dif += TRAIL_RATE;
 
 			// ?Not sure if it's better to update this before or after updating the origin
-			VectorMA( mOldVelocity, dif * 0.001f, mAccel, v );
+			( v = mOldVelocity + mAccel * dif * 0.001f );
 
 			// Calc the time differences
 			ftime = dif * 0.001f;
@@ -1209,7 +1211,7 @@ void CEmitter::Draw()
 					}
 					else
 					{
-						theFxHelper.Trace( &trace, mOldOrigin, NULL, NULL, org, -1, MASK_SHOT );
+						theFxHelper.Trace( &trace, mOldOrigin, vec3_origin, vec3_origin, org, -1, MASK_SHOT );
 					}
 
 					// Hit something
@@ -1221,17 +1223,17 @@ void CEmitter::Draw()
 			}
 
 			// Is it time to draw an effect?
-			if ( DistanceSquared( org, mOldOrigin ) >= step )
+			if ( ( org - mOldOrigin ).LengthSqr() >= step )
 			{ 
 				// Pick a new target step distance and square it
-				step = mDensity + crandom() * mVariance;
+				step = mDensity + cgRandom.CRandomFloat() * mVariance;
 				step *= step;
 
 				// We met the step criteria so, we should add in the effect
 				theFxScheduler.PlayEffect( mEmitterFxID, org, mRefEnt.axis );
 
-				VectorCopy( org, mOldOrigin );
-				VectorCopy( v, mOldVelocity );
+				( mOldOrigin = org );
+				( mOldVelocity = v );
 				dif = 0;
 				mOldTime = t;
 			}
@@ -1251,8 +1253,8 @@ bool CEmitter::Update()
 	}
 		
 	// Use this to track if we've stopped moving
-	VectorCopy( mOrigin1, mOldOrigin );
-	VectorCopy( mVel, mOldVelocity );
+	( mOldOrigin = mOrigin1 );
+	( mOldVelocity = mVel );
 
 	if (( mTimeStart < theFxHelper.mTime ) && UpdateOrigin() == false )
 	{
@@ -1262,9 +1264,9 @@ bool CEmitter::Update()
 
 	// If the thing is no longer moving, kill the angle delta, but don't do it too quickly or it will
 	//	look very artificial.  Don't do it too slowly or it will look like there is no friction.
-	if ( VectorCompare( mOldOrigin, mOrigin1 ))
+	if ( ( mOldOrigin == mOrigin1 ))
 	{
-		VectorScale( mAngleDelta, 0.7f, mAngleDelta );
+		( mAngleDelta = mAngleDelta * 0.7f );
 	}
 
 	UpdateAngles();
@@ -1280,8 +1282,8 @@ bool CEmitter::Update()
 //----------------------------
 void CEmitter::UpdateAngles()
 {
-	VectorMA( mAngles, theFxHelper.mFrameTime * 0.01f, mAngleDelta, mAngles ); // was 0.001f, but then you really have to jack up the delta to even notice anything
-	AnglesToAxis( mAngles, mRefEnt.axis );
+	( mAngles = mAngles + mAngleDelta * theFxHelper.mFrameTime * 0.01f ); // was 0.001f, but then you really have to jack up the delta to even notice anything
+	idAngles( mAngles[0], mAngles[1], mAngles[2] ).ToVectors( &mRefEnt.axis[0], &mRefEnt.axis[1], &mRefEnt.axis[2] );
 }
 
 
@@ -1348,7 +1350,7 @@ void CLight::UpdateSize()
 	else if (( mFlags & FX_SIZE_PARM_MASK ) == FX_SIZE_WAVE )
 	{ 
 		// wave gen, with parm being the frequency multiplier
-		perc1 = perc1 * (float)cos( (theFxHelper.mTime - mTimeStart) * mSizeParm );
+		perc1 = perc1 * (float)idMath::Cos( (theFxHelper.mTime - mTimeStart) * mSizeParm );
 	}
 	else if (( mFlags & FX_SIZE_PARM_MASK ) == FX_SIZE_CLAMP )
 	{
@@ -1379,7 +1381,7 @@ void CLight::UpdateSize()
 	if ( mFlags & FX_SIZE_RAND )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = random() * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	mRefEnt.radius = (mSizeStart * perc1) + (mSizeEnd * (1.0f - perc1));
@@ -1392,7 +1394,7 @@ void CLight::UpdateRGB()
 {
 	// completely biased towards start if it doesn't get overridden
 	float	perc1 = 1.0f, perc2 = 1.0f; 
-	vec3_t	res;
+	idVec3	res;
 
 	if ( mFlags & FX_RGB_LINEAR )
 	{ 
@@ -1425,7 +1427,7 @@ void CLight::UpdateRGB()
 	else if (( mFlags & FX_RGB_PARM_MASK ) == FX_RGB_WAVE )
 	{ 
 		// wave gen, with parm being the frequency multiplier
-		perc1 = perc1 * (float)cos(( theFxHelper.mTime - mTimeStart ) * mRGBParm );
+		perc1 = perc1 * (float)idMath::Cos( ( theFxHelper.mTime - mTimeStart ) * mRGBParm );
 	}
 	else if (( mFlags & FX_RGB_PARM_MASK ) == FX_RGB_CLAMP )
 	{
@@ -1456,11 +1458,11 @@ void CLight::UpdateRGB()
 	if ( mFlags & FX_RGB_RAND )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = random() * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	// Now get the correct color 
-	VectorScale( mRGBStart, perc1, res );
+	( res = mRGBStart * perc1 );
 
 	mRefEnt.lightingOrigin[0] = res[0] + ( 1.0f - perc1 ) * mRGBEnd[0];
 	mRefEnt.lightingOrigin[1] = res[1] + ( 1.0f - perc1 ) * mRGBEnd[1];
@@ -1480,18 +1482,18 @@ void CLight::UpdateRGB()
 //--------------------------
 bool CPoly::Cull()
 {
-	vec3_t	dir;
+	idVec3	dir;
 
 	// Get the direction to the view
-	VectorSubtract( mOrigin1, cg.refdef.vieworg, dir );
+	( dir = mOrigin1 - cg.refdef.vieworg );
 
 	// Check if it's behind the viewer
-	if ( (DotProduct( cg.refdef.viewaxis[0], dir )) < 0 )
+	if ( (( cg.refdef.viewaxis[0] * dir )) < 0 )
 	{
 		return true;
 	}
 
-	float len = VectorLengthSquared( dir );
+	float len = ( dir.LengthSqr() );
 
 	// Can't be too close
 	if ( len < 24 * 24 )
@@ -1510,7 +1512,7 @@ void CPoly::Draw()
 	for ( int i = 0; i < mCount; i++ )
 	{
 		// Add our midpoint and vert offset to get the actual vertex
-		VectorAdd( mOrigin1, mOrg[i], verts[i].xyz );
+		( verts[i].xyz = mOrigin1 + mOrg[i] );
 
 		// Assign the same color to each vert
 		verts[i].modulate[0] = mRefEnt.shaderRGBA[0];
@@ -1519,7 +1521,8 @@ void CPoly::Draw()
 		verts[i].modulate[3] = mRefEnt.shaderRGBA[3];
 
 		// Copy the ST coords
-		Vector2Copy( mST[i], verts[i].st );
+		verts[i].st[0] = mST[i].x;
+		verts[i].st[1] = mST[i].y;
 	}
 
 	// Add this poly
@@ -1537,12 +1540,12 @@ void CPoly::CalcRotateMatrix()
 
 	// rotate around Z
 	rad = DEG2RAD( mRotDelta[YAW] * theFxHelper.mFrameTime * 0.01f );
-	cosZ = cos( rad );
-	sinZ = sin( rad );
+	cosZ = idMath::Cos( rad );
+	sinZ = idMath::Sin( rad );
 	// rotate around X
 	rad = DEG2RAD( mRotDelta[PITCH] * theFxHelper.mFrameTime * 0.01f );
-	cosX = cos( rad );
-	sinX = sin( rad );
+	cosX = idMath::Cos( rad );
+	sinX = idMath::Sin( rad );
 
 /*Pitch - aroundx  Yaw - around z
 1 0  0			 c -s 0
@@ -1572,8 +1575,8 @@ Roll
 //--------------------------------
 void CPoly::Rotate()
 {
-	vec3_t	temp[MAX_CPOLY_VERTS];
-	float	dif = fabs( mLastFrameTime - theFxHelper.mFrameTime );
+	idVec3	temp[MAX_CPOLY_VERTS];
+	float	dif = idMath::Fabs( mLastFrameTime - theFxHelper.mFrameTime );
 
 	// Very generous check with frameTimes
 	if ( dif > 0.5f * mLastFrameTime )
@@ -1584,8 +1587,12 @@ void CPoly::Rotate()
 	// Multiply our rotation matrix by each of the offset verts to get their new position
 	for ( int i = 0; i < mCount; i++ )
 	{
-		VectorRotate( mOrg[i], mRot, temp[i] );
-		VectorCopy( temp[i], mOrg[i] );
+		// rotate by the matrix rows, matching Q3's VectorRotate
+		for ( int j = 0; j < 3; j++ )
+		{
+			temp[i][j] = mOrg[i][0] * mRot[j][0] + mOrg[i][1] * mRot[j][1] + mOrg[i][2] * mRot[j][2];
+		}
+		mOrg[i] = temp[i];
 	}
 }
 
@@ -1594,7 +1601,7 @@ void CPoly::Rotate()
 //----------------------------
 bool CPoly::Update()
 {
-	vec3_t mOldOrigin;
+	idVec3 mOldOrigin;
 	
 	// Game pausing can cause dumb time things to happen, so kill the effect in this instance
 	if ( mTimeStart > theFxHelper.mTime )
@@ -1605,7 +1612,7 @@ bool CPoly::Update()
 	// If our timestamp hasn't exired yet, we won't even consider doing any kind of motion
 	if ( theFxHelper.mTime > mTimeStamp )
 	{
-		VectorCopy( mOrigin1, mOldOrigin );
+		( mOldOrigin = mOrigin1 );
 
 		if (( mTimeStart < theFxHelper.mTime ) && UpdateOrigin() == false )
 		{
@@ -1620,7 +1627,7 @@ bool CPoly::Update()
 		if ( theFxHelper.mTime > mTimeStamp )
 		{
 			// Only rotate whilst moving
-			if ( !VectorCompare( mOldOrigin, mOrigin1 ))
+			if ( !( mOldOrigin == mOrigin1 ))
 			{
 				Rotate();
 			}
@@ -1644,24 +1651,24 @@ void CPoly::PolyInit()
 	}
 
 	int		i;
-	vec3_t	org={0,0,0};
+	idVec3	org(0,0,0);
 
 	// Find our midpoint
 	for ( i = 0; i < mCount; i++ )
 	{
-		VectorAdd( org, mOrg[i], org );
+		( org = org + mOrg[i] );
 	}
 
-	VectorScale( org, (float)(1.0f / mCount), org );
+	( org = org * (float)(1.0f / mCount) );
 
 	// now store our midpoint for physics purposes
-	VectorCopy( org, mOrigin1 );
+	( mOrigin1 = org );
 
 	// Now we process the passed in points and make it so that they aren't actually the point...
 	//	rather, they are the offset from mOrigin1.
 	for ( i = 0; i < mCount; i++ )
 	{
-		VectorSubtract( mOrg[i], mOrigin1, mOrg[i] );
+		( mOrg[i] = mOrg[i] - mOrigin1 );
 	}
 
 	CalcRotateMatrix();
@@ -1698,30 +1705,30 @@ bool CBezier::Update( void )
 }
 
 //----------------------------
-inline void CBezier::DrawSegment( vec3_t start, vec3_t end, float texcoord1, float texcoord2 )
+inline void CBezier::DrawSegment( const idVec3 &start, const idVec3 &end, float texcoord1, float texcoord2 )
 {
-	vec3_t			lineDir, cross, viewDir;
-	static vec3_t	lastEnd[2];
+	idVec3			lineDir, cross, viewDir;
+	static idVec3	lastEnd[2];
 	polyVert_t		verts[4];
 	float			scale;
 
-	VectorSubtract( end, start, lineDir );
-	VectorSubtract( end, cg.refdef.vieworg, viewDir );
-	CrossProduct( lineDir, viewDir, cross );
-	VectorNormalize( cross );
+	( lineDir = end - start );
+	( viewDir = end - cg.refdef.vieworg );
+	( cross = lineDir.Cross( viewDir ) );
+	cross.Normalize();
 
 	scale = mRefEnt.radius * 0.5f;
 
 	//Construct the oriented quad
 	if ( mInit )
 	{
-		VectorCopy( lastEnd[0], verts[0].xyz );
-		VectorCopy( lastEnd[1], verts[1].xyz );
+		( verts[0].xyz = lastEnd[0] );
+		( verts[1].xyz = lastEnd[1] );
 	}
 	else
 	{
-		VectorMA( start, -scale, cross, verts[0].xyz );
-		VectorMA( start, scale, cross, verts[1].xyz );
+		( verts[0].xyz = start + cross * -scale );
+		( verts[1].xyz = start + cross * scale );
 	}
 
 	verts[0].st[0] = 0.0f;
@@ -1751,7 +1758,7 @@ inline void CBezier::DrawSegment( vec3_t start, vec3_t end, float texcoord1, flo
 		verts[1].modulate[3] = 0;
 	}
 
-	VectorMA( end, scale, cross, verts[2].xyz );
+	( verts[2].xyz = end + cross * scale );
 	verts[2].st[0] = 1.0f;
 	verts[2].st[1] = texcoord2;
 	verts[2].modulate[0] = mRefEnt.shaderRGBA[0] * ( 1.0f - texcoord2 );
@@ -1759,7 +1766,7 @@ inline void CBezier::DrawSegment( vec3_t start, vec3_t end, float texcoord1, flo
 	verts[2].modulate[2] = mRefEnt.shaderRGBA[2] * ( 1.0f - texcoord2 );
 	verts[2].modulate[3] = mRefEnt.shaderRGBA[3];
 
-	VectorMA( end, -scale, cross, verts[3].xyz );
+	( verts[3].xyz = end + cross * -scale );
 	verts[3].st[0] = 0.0f;
 	verts[3].st[1] = texcoord2;
 	verts[3].modulate[0] = mRefEnt.shaderRGBA[0] * ( 1.0f - texcoord2 );
@@ -1769,8 +1776,8 @@ inline void CBezier::DrawSegment( vec3_t start, vec3_t end, float texcoord1, flo
 
 	trap_R_AddPolyToScene( mRefEnt.customShader, 4, verts );
 
-	VectorCopy( verts[2].xyz, lastEnd[1] );
-	VectorCopy( verts[3].xyz, lastEnd[0] );
+	( lastEnd[1] = verts[2].xyz );
+	( lastEnd[0] = verts[3].xyz );
 
 	mInit = true;
 }
@@ -1780,12 +1787,12 @@ const	float	BEZIER_RESOLUTION	= 16.0f;
 //----------------------------
 void CBezier::Draw( void )	
 {
-	vec3_t	pos, old_pos;
+	idVec3	pos, old_pos;
     float	mu, mum1;
 	float	incr = 1.0f / BEZIER_RESOLUTION, tex = 1.0f, tc1, tc2;
 	int		i;
 
-	VectorCopy( mOrigin1, old_pos );
+	( old_pos = mOrigin1 );
 
 	mInit = false;	//Signify a new batch for vert gluing
 
@@ -1827,7 +1834,7 @@ void CBezier::Draw( void )
 		//Draw it
 		DrawSegment( old_pos, pos, tc1, tc2 );
 
-		VectorCopy( pos, old_pos );
+		( old_pos = pos );
 		tc1 = tc2;
 	}
 
@@ -1855,13 +1862,13 @@ bool CFlash::Update( void )
 //----------------------------
 void CFlash::Init( void )
 {
-	vec3_t	dif;
+	idVec3	dif;
 	float	mod = 1.0f, dis;
 
-	VectorSubtract( mOrigin1, cg.refdef.vieworg, dif );
-	dis = VectorNormalize( dif );
+	( dif = mOrigin1 - cg.refdef.vieworg );
+	dis = dif.Normalize();
 
-	mod = DotProduct( dif, cg.refdef.viewaxis[0] );
+	mod = ( dif * cg.refdef.viewaxis[0] );
 
 	if ( dis > 600 || ( mod < 0.5f && dis > 100 ))
 	{
@@ -1874,8 +1881,8 @@ void CFlash::Init( void )
 
 	mod *= (1.0f - ((dis * dis) / (600.0f * 600.0f)));
 
-	VectorScale( mRGBStart, mod, mRGBStart );
-	VectorScale( mRGBEnd, mod, mRGBEnd );
+	( mRGBStart = mRGBStart * mod );
+	( mRGBEnd = mRGBEnd * mod );
 }
 
 //----------------------------
@@ -1899,8 +1906,8 @@ void CFlash::Draw( void )
 	mRefEnt.shaderRGBA[2] = mRefEnt.lightingOrigin[2] * 255; 
 	mRefEnt.shaderRGBA[3] = 255;
 
-	VectorCopy( cg.refdef.vieworg, mRefEnt.origin );
-	VectorMA( mRefEnt.origin, 8, cg.refdef.viewaxis[0], mRefEnt.origin );
+	( mRefEnt.origin = cg.refdef.vieworg );
+	( mRefEnt.origin = mRefEnt.origin + cg.refdef.viewaxis[0] * 8 );
 	mRefEnt.radius = 12.0f;
 
 	theFxHelper.AddFxToScene( &mRefEnt );
@@ -1924,8 +1931,8 @@ void CParticle::Configure( const CPrimitiveTemplate &definition ) {
 }
 
 void CParticle::UpdateAnimation() {
-    if ( !mAnimation.empty() ) {
-        int count = static_cast<int>(mAnimation.size());
+    if ( mAnimation.Num() > 0 ) {
+        int count = static_cast<int>(mAnimation.Num());
         float age = static_cast<float>(theFxHelper.mTime - mTimeStart) / (mTimeEnd - mTimeStart);
         int frame = static_cast<int>(age * count);
         frame = frame < 0 ? 0 : (frame >= count ? count - 1 : frame);
@@ -1937,7 +1944,7 @@ void CParticle::UpdateAnimation() {
     }
 }
 
-void CParticle::GroupMessage( int group, int action, const vec3_t value ) {
+void CParticle::GroupMessage( int group, int action, const idVec3 &value ) {
     if ( mGroup < 0 || mGroup != group ) { return; }
     if ( action == 0 && mRepeat == 1 ) { mVisible = value[0] != 0; }
     if ( action == 1 && mRepeat == 2 ) { SetVel(value); }

@@ -237,7 +237,7 @@ struct gentity_s {
 	gentity_t   *nextTrain;
 	gentity_t   *prevTrain;
 	// JOSEPH 1-26-00
-	vec3_t pos1, pos2, pos3;
+	idVec3 pos1, pos2, pos3;
 	// END JOSEPH
 
 	char        *message;
@@ -255,12 +255,12 @@ struct gentity_s {
 
 	float speed;
 	float closespeed;           // for movers that close at a different speed than they open
-	vec3_t movedir;
+	idVec3 movedir;
 
 	int gDuration;
 	int gDurationBack;
-	vec3_t gDelta;
-	vec3_t gDeltaBack;
+	idVec3 gDelta;
+	idVec3 gDeltaBack;
 
 	int nextthink;
 	void ( *think )( gentity_t *self );
@@ -268,7 +268,7 @@ struct gentity_s {
 	void ( *blocked )( gentity_t *self, gentity_t *other );
 	void ( *touch )( gentity_t *self, gentity_t *other, trace_t *trace );
 	void ( *use )( gentity_t *self, gentity_t *other, gentity_t *activator );
-	void ( *pain )( gentity_t *self, gentity_t *attacker, int damage, vec3_t point );
+	void ( *pain )( gentity_t *self, gentity_t *attacker, int damage, idVec3 &point );
 	void ( *die )( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod );
 
 	int pain_debounce_time;
@@ -310,8 +310,8 @@ struct gentity_s {
 	// JOSEPH 10-11-99
 	int TargetFlag;
 	float duration;
-	vec3_t rotate;
-	vec3_t TargetAngles;
+	idVec3 rotate;
+	idVec3 TargetAngles;
 	// END JOSEPH
 
 	gitem_t     *item;          // for bonus items
@@ -328,7 +328,7 @@ struct gentity_s {
 	char        *aiSkin;
 	char        *aihSkin;
 
-	vec3_t dl_color;
+	idVec3 dl_color;
 	char        *dl_stylestring;
 	char        *dl_shader;
 	int dl_atten;
@@ -535,14 +535,14 @@ struct gclient_s {
 	int wbuttons;
 	int oldwbuttons;
 	int latched_wbuttons;
-	vec3_t oldOrigin;
+	idVec3 oldOrigin;
 
 	// sum up damage over an entire frame, so
 	// shotgun blasts give a single big kick
 	int damage_armor;               // damage absorbed by armor
 	int damage_blood;               // damage taken out of health
 	int damage_knockback;           // impact damage
-	vec3_t damage_from;             // origin for vector calculation
+	idVec3 damage_from;             // origin for vector calculation
 	qboolean damage_fromWorld;      // if true, don't use the damage_from vector
 
 	int accurateCount;              // for "impressive" reward sound
@@ -590,7 +590,7 @@ struct gclient_s {
 	int invulnerabilityTime;
 
 	gentity_t   *cameraPortal;              // grapple hook if out
-	vec3_t cameraOrigin;
+	idVec3 cameraOrigin;
 
 	int limboDropWeapon;         // JPW NERVE weapon to drop in limbo
 	int deployQueueNumber;         // JPW NERVE player order in reinforcement FIFO queue
@@ -680,8 +680,8 @@ typedef struct {
 	char        *changemap;
 	qboolean readyToExit;               // at least one client wants to exit
 	int exitTime;
-	vec3_t intermission_origin;         // also used for spectator spawns
-	vec3_t intermission_angle;
+	idVec3 intermission_origin;         // also used for spectator spawns
+	idVec3 intermission_angle;
 
 	qboolean locationLinked;            // target_locations get linked
 	gentity_t   *locationHead;          // head of the location list
@@ -715,7 +715,7 @@ typedef struct {
 // JPW NERVE
 	int redReinforceTime, blueReinforceTime;         // last time reinforcements arrived in ms
 	int redNumWaiting, blueNumWaiting;         // number of reinforcements in queue
-	vec3_t spawntargets[MAX_MULTI_SPAWNTARGETS];      // coordinates of spawn targets
+	idVec3 spawntargets[MAX_MULTI_SPAWNTARGETS];      // coordinates of spawn targets
 	int numspawntargets;         // # spawntargets in this map
 // jpw
 
@@ -769,7 +769,7 @@ void RespawnItem( gentity_t *ent );
 void UseHoldableItem( gentity_t *ent, int item );
 void PrecacheItem( gitem_t *it );
 gentity_t *Drop_Item( gentity_t *ent, gitem_t *item, float angle, qboolean novelocity );
-gentity_t *LaunchItem( gitem_t *item, vec3_t origin, vec3_t velocity );
+gentity_t *LaunchItem( gitem_t *item, idVec3 &origin, idVec3 &velocity );
 void SetRespawn( gentity_t *ent, float delay );
 void G_SpawnItem( gentity_t *ent, gitem_t *item );
 void FinishSpawningItem( gentity_t *ent );
@@ -801,13 +801,13 @@ void    G_KillBox( gentity_t *ent );
 gentity_t *G_Find( gentity_t *from, int fieldofs, const char *match );
 gentity_t *G_PickTarget( char *targetname );
 void    G_UseTargets( gentity_t *ent, gentity_t *activator );
-void    G_SetMovedir( vec3_t angles, vec3_t movedir );
+void    G_SetMovedir( idVec3 &angles, idVec3 &movedir );
 
 void    G_InitGentity( gentity_t *e );
 gentity_t   *G_Spawn( void );
-gentity_t *G_TempEntity( vec3_t origin, int event );
+gentity_t *G_TempEntity( idVec3 &origin, int event );
 void    G_Sound( gentity_t *ent, int soundIndex );
-void    G_AnimScriptSound( int soundIndex, vec3_t org, int client );
+void    G_AnimScriptSound( int soundIndex, const idVec3 *org, int client );
 void    G_FreeEntity( gentity_t *e );
 //qboolean	G_EntitiesFree( void );
 
@@ -815,14 +815,14 @@ void    G_TouchTriggers( gentity_t *ent );
 void    G_TouchSolids( gentity_t *ent );
 
 float   *tv( float x, float y, float z );
-char    *vtos( const vec3_t v );
+char    *vtos( const idVec3 &v );
 
 void G_AddPredictableEvent( gentity_t *ent, int event, int eventParm );
 void G_AddEvent( gentity_t *ent, int event, int eventParm );
-void G_SetOrigin( gentity_t *ent, vec3_t origin );
+void G_SetOrigin( gentity_t *ent, idVec3 &origin );
 void AddRemap( const char *oldShader, const char *newShader, float timeOffset );
 const char *BuildShaderStateConfig();
-void G_SetAngle( gentity_t *ent, vec3_t angle );
+void G_SetAngle( gentity_t *ent, idVec3 &angle );
 
 qboolean infront( gentity_t *self, gentity_t *other );
 
@@ -831,9 +831,9 @@ void G_ProcessTagConnect( gentity_t *ent, qboolean clearAngles );
 //
 // g_combat.c
 //
-qboolean CanDamage( gentity_t *targ, vec3_t origin );
-void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, vec3_t dir, vec3_t point, int damage, int dflags, int mod );
-qboolean G_RadiusDamage( vec3_t origin, gentity_t *attacker, float damage, float radius, gentity_t *ignore, int mod );
+qboolean CanDamage( gentity_t *targ, idVec3 &origin );
+void G_Damage( gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, idVec3 &dir, idVec3 &point, int damage, int dflags, int mod );
+qboolean G_RadiusDamage( idVec3 &origin, gentity_t *attacker, float damage, float radius, gentity_t *ignore, int mod );
 void body_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int meansOfDeath );
 void TossClientItems( gentity_t *self );
 
@@ -849,7 +849,7 @@ void TossClientItems( gentity_t *self );
 // g_missile.c
 //
 void G_RunMissile( gentity_t *ent );
-int G_PredictMissile( gentity_t *ent, int duration, vec3_t endPos, qboolean allowBounce );
+int G_PredictMissile( gentity_t *ent, int duration, idVec3 &endPos, qboolean allowBounce );
 
 // Rafael zombiespit
 void G_RunSpit( gentity_t *ent );
@@ -858,20 +858,20 @@ void G_RunDebris( gentity_t *ent );
 void G_RunCrowbar( gentity_t *ent );
 
 //----(SA) removed unused q3a weapon firing
-gentity_t *fire_grenade( gentity_t *self, vec3_t start, vec3_t aimdir, int grenadeWPID );
-gentity_t *fire_rocket( gentity_t *self, vec3_t start, vec3_t dir );
+gentity_t *fire_grenade( gentity_t *self, idVec3 &start, idVec3 &aimdir, int grenadeWPID );
+gentity_t *fire_rocket( gentity_t *self, idVec3 &start, idVec3 &dir );
 
 
 // Rafael sniper
-void fire_lead( gentity_t *self,  vec3_t start, vec3_t dir, int damage );
+void fire_lead( gentity_t *self,  idVec3 &start, idVec3 &dir, int damage );
 qboolean visible( gentity_t *self, gentity_t *other );
 
-gentity_t *fire_mortar( gentity_t *self, vec3_t start, vec3_t dir );
+gentity_t *fire_mortar( gentity_t *self, idVec3 &start, idVec3 &dir );
 
-gentity_t *fire_zombiespit( gentity_t *self, vec3_t start, vec3_t dir );
-gentity_t *fire_zombiespirit( gentity_t *self, gentity_t *bolt, vec3_t start, vec3_t dir );
-gentity_t *fire_crowbar( gentity_t *self, vec3_t start, vec3_t dir );
-gentity_t *fire_flamebarrel( gentity_t *self, vec3_t start, vec3_t dir );
+gentity_t *fire_zombiespit( gentity_t *self, idVec3 &start, idVec3 &dir );
+gentity_t *fire_zombiespirit( gentity_t *self, gentity_t *bolt, idVec3 &start, idVec3 &dir );
+gentity_t *fire_crowbar( gentity_t *self, idVec3 &start, idVec3 &dir );
+gentity_t *fire_flamebarrel( gentity_t *self, idVec3 &start, idVec3 &dir );
 // done
 
 //
@@ -897,15 +897,15 @@ void Reached_Tramcar( gentity_t *ent );
 //
 // g_misc.c
 //
-void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles );
+void TeleportPlayer( gentity_t *player, idVec3 &origin, idVec3 &angles );
 
 
 //
 // g_weapon.c
 //
 qboolean LogAccuracyHit( gentity_t *target, gentity_t *attacker );
-void CalcMuzzlePoint( gentity_t *ent, int weapon, vec3_t forward, vec3_t right, vec3_t up, vec3_t muzzlePoint );
-void SnapVectorTowards( vec3_t v, vec3_t to );
+void CalcMuzzlePoint( gentity_t *ent, int weapon, idVec3 &forward, idVec3 &right, idVec3 &up, idVec3 &muzzlePoint );
+void SnapVectorTowards( idVec3 &v, idVec3 &to );
 trace_t *CheckMeleeAttack( gentity_t *ent, float dist, qboolean isTest );
 gentity_t *weapon_grenadelauncher_fire( gentity_t *ent, int grenadeWPID );
 // Rafael
@@ -917,15 +917,15 @@ void CalcMuzzlePoints( gentity_t *ent, int weapon );
 //void Weapon_HookThink (gentity_t *ent);
 
 // Rafael - for activate
-void CalcMuzzlePointForActivate( gentity_t *ent, vec3_t forward, vec3_t right, vec3_t up, vec3_t muzzlePoint );
+void CalcMuzzlePointForActivate( gentity_t *ent, idVec3 &forward, idVec3 &right, idVec3 &up, idVec3 &muzzlePoint );
 // done.
 
 //
 // g_client.c
 //
 team_t PickTeam( int ignoreClientNum );
-void SetClientViewAngle( gentity_t *ent, vec3_t angle );
-gentity_t *SelectSpawnPoint( vec3_t avoidPoint, vec3_t origin, vec3_t angles );
+void SetClientViewAngle( gentity_t *ent, idVec3 &angle );
+gentity_t *SelectSpawnPoint( idVec3 &avoidPoint, idVec3 &origin, idVec3 &angles );
 void respawn( gentity_t *ent );
 void BeginIntermission( void );
 void InitClientPersistant( gclient_t *client );
@@ -1048,6 +1048,7 @@ void Props_Chair_Skyboxtouch( gentity_t *ent );
 
 
 extern level_locals_t level;
+extern idRandom gameRandom;
 extern gentity_t g_entities[MAX_GENTITIES];
 extern gentity_t       *g_camEnt;
 
@@ -1168,36 +1169,36 @@ void    trap_GetUserinfo( int num, char *buffer, int bufferSize );
 void    trap_SetUserinfo( int num, const char *buffer );
 void    trap_GetServerinfo( char *buffer, int bufferSize );
 void    trap_SetBrushModel( gentity_t *ent, const char *name );
-void    trap_Trace( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask );
-void    trap_TraceCapsule( trace_t *results, const vec3_t start, const vec3_t mins, const vec3_t maxs, const vec3_t end, int passEntityNum, int contentmask );
-int     trap_PointContents( const vec3_t point, int passEntityNum );
-qboolean trap_InPVS( const vec3_t p1, const vec3_t p2 );
-qboolean trap_InPVSIgnorePortals( const vec3_t p1, const vec3_t p2 );
+void    trap_Trace( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask );
+void    trap_TraceCapsule( trace_t *results, const idVec3 &start, const idVec3 &mins, const idVec3 &maxs, const idVec3 &end, int passEntityNum, int contentmask );
+int     trap_PointContents( const idVec3 &point, int passEntityNum );
+qboolean trap_InPVS( const idVec3 &p1, const idVec3 &p2 );
+qboolean trap_InPVSIgnorePortals( const idVec3 &p1, const idVec3 &p2 );
 void    trap_AdjustAreaPortalState( gentity_t *ent, qboolean open );
 qboolean trap_AreasConnected( int area1, int area2 );
 void    trap_LinkEntity( gentity_t *ent );
 void    trap_UnlinkEntity( gentity_t *ent );
-int     trap_EntitiesInBox( const vec3_t mins, const vec3_t maxs, int *entityList, int maxcount );
-qboolean trap_EntityContact( const vec3_t mins, const vec3_t maxs, const gentity_t *ent );
-qboolean trap_EntityContactCapsule( const vec3_t mins, const vec3_t maxs, const gentity_t *ent );
+int     trap_EntitiesInBox( const idVec3 &mins, const idVec3 &maxs, int *entityList, int maxcount );
+qboolean trap_EntityContact( const idVec3 &mins, const idVec3 &maxs, const gentity_t *ent );
+qboolean trap_EntityContactCapsule( const idVec3 &mins, const idVec3 &maxs, const gentity_t *ent );
 int     trap_BotAllocateClient( void );
 void    trap_BotFreeClient( int clientNum );
 void    trap_GetUsercmd( int clientNum, usercmd_t *cmd );
 qboolean    trap_GetEntityToken( char *buffer, int bufferSize );
 qboolean trap_GetTag( int clientNum, char *tagName, orientation_t *orent );
 
-int     trap_DebugPolygonCreate( int color, int numPoints, vec3_t *points );
+int     trap_DebugPolygonCreate( int color, int numPoints, idVec3 *points );
 void    trap_DebugPolygonDelete( int id );
 
 int     trap_BotLibSetup( void );
 int     trap_BotLibShutdown( void );
 int     trap_BotLibVarSet( char *var_name, char *value );
 int     trap_BotLibVarGet( char *var_name, char *value, int size );
-int     trap_BotLibDefine( char *string );
+int     trap_BotLibDefine( const char *string );
 int     trap_BotLibStartFrame( float time );
 int     trap_BotLibLoadMap( const char *mapname );
 int     trap_BotLibUpdateEntity( int ent, struct bot_entitystate_s *bue );
-int     trap_BotLibTest( int parm0, char *parm1, vec3_t parm2, vec3_t parm3 );
+int     trap_BotLibTest( int parm0, char *parm1, idVec3 &parm2, idVec3 &parm3 );
 
 int     trap_BotGetSnapshotEntity( int clientNum, int sequence );
 int     trap_BotGetServerCommand( int clientNum, char *message, int size );
@@ -1207,36 +1208,36 @@ void    trap_BotUserCommand( int client, usercmd_t *ucmd );
 void        trap_AAS_EntityInfo( int entnum, struct aas_entityinfo_s *info );
 
 int         trap_AAS_Initialized( void );
-void        trap_AAS_PresenceTypeBoundingBox( int presencetype, vec3_t mins, vec3_t maxs );
+void        trap_AAS_PresenceTypeBoundingBox( int presencetype, idVec3 &mins, idVec3 &maxs );
 float       trap_AAS_Time( void );
 
 // Ridah
 void        trap_AAS_SetCurrentWorld( int index );
 // done.
 
-int         trap_AAS_PointAreaNum( vec3_t point );
-int         trap_AAS_TraceAreas( vec3_t start, vec3_t end, int *areas, vec3_t *points, int maxareas );
+int         trap_AAS_PointAreaNum( const idVec3 &point );
+int         trap_AAS_TraceAreas( const idVec3 &start, idVec3 &end, int *areas, idVec3 *points, int maxareas );
 
-int         trap_AAS_PointContents( vec3_t point );
+int         trap_AAS_PointContents( idVec3 &point );
 int         trap_AAS_NextBSPEntity( int ent );
 int         trap_AAS_ValueForBSPEpairKey( int ent, char *key, char *value, int size );
-int         trap_AAS_VectorForBSPEpairKey( int ent, char *key, vec3_t v );
+int         trap_AAS_VectorForBSPEpairKey( int ent, char *key, idVec3 &v );
 int         trap_AAS_FloatForBSPEpairKey( int ent, char *key, float *value );
 int         trap_AAS_IntForBSPEpairKey( int ent, char *key, int *value );
 
 int         trap_AAS_AreaReachability( int areanum );
 
-int         trap_AAS_AreaTravelTimeToGoalArea( int areanum, vec3_t origin, int goalareanum, int travelflags );
+int         trap_AAS_AreaTravelTimeToGoalArea( int areanum, idVec3 &origin, int goalareanum, int travelflags );
 
-int         trap_AAS_Swimming( vec3_t origin );
-int         trap_AAS_PredictClientMovement( struct aas_clientmove_s *move, int entnum, vec3_t origin, int presencetype, int onground, vec3_t velocity, vec3_t cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize );
+int         trap_AAS_Swimming( idVec3 &origin );
+int         trap_AAS_PredictClientMovement( struct aas_clientmove_s *move, int entnum, idVec3 &origin, int presencetype, int onground, idVec3 &velocity, idVec3 &cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize );
 
 // Ridah, route-tables
-void        trap_AAS_RT_ShowRoute( vec3_t srcpos, int srcnum, int destnum );
-qboolean    trap_AAS_RT_GetHidePos( vec3_t srcpos, int srcnum, int srcarea, vec3_t destpos, int destnum, int destarea, vec3_t returnPos );
+void        trap_AAS_RT_ShowRoute( const const idVec3 &srcpos, int srcnum, int destnum );
+qboolean    trap_AAS_RT_GetHidePos( const const idVec3 &srcpos, int srcnum, int srcarea, const idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos );
 int         trap_AAS_FindAttackSpotWithinRange( int srcnum, int rangenum, int enemynum, float rangedist, int travelflags, float *outpos );
-qboolean    trap_AAS_GetRouteFirstVisPos( vec3_t srcpos, vec3_t destpos, int travelflags, vec3_t retpos );
-void        trap_AAS_SetAASBlockingEntity( vec3_t absmin, vec3_t absmax, qboolean blocking );
+qboolean    trap_AAS_GetRouteFirstVisPos( idVec3 &srcpos, idVec3 &destpos, int travelflags, idVec3 &retpos );
+void        trap_AAS_SetAASBlockingEntity( idVec3 &absmin, idVec3 &absmax, qboolean blocking );
 // done.
 
 void    trap_EA_Say( int client, char *str );
@@ -1263,8 +1264,8 @@ void    trap_EA_MoveForward( int client );
 void    trap_EA_MoveBack( int client );
 void    trap_EA_MoveLeft( int client );
 void    trap_EA_MoveRight( int client );
-void    trap_EA_Move( int client, vec3_t dir, float speed );
-void    trap_EA_View( int client, vec3_t viewangles );
+void    trap_EA_Move( int client, idVec3 &dir, float speed );
+void    trap_EA_View( int client, idVec3 &viewangles );
 
 void    trap_EA_EndRegular( int client, float thinktime );
 void    trap_EA_GetInput( int client, float thinktime, struct bot_input_s *input );
@@ -1310,10 +1311,10 @@ void    trap_BotDumpGoalStack( int goalstate );
 void    trap_BotGoalName( int number, char *name, int size );
 int     trap_BotGetTopGoal( int goalstate, struct bot_goal_s *goal );
 int     trap_BotGetSecondGoal( int goalstate, struct bot_goal_s *goal );
-int     trap_BotChooseLTGItem( int goalstate, vec3_t origin, int *inventory, int travelflags );
-int     trap_BotChooseNBGItem( int goalstate, vec3_t origin, int *inventory, int travelflags, struct bot_goal_s *ltg, float maxtime );
-int     trap_BotTouchingGoal( vec3_t origin, struct bot_goal_s *goal );
-int     trap_BotItemGoalInVisButNotVisible( int viewer, vec3_t eye, vec3_t viewangles, struct bot_goal_s *goal );
+int     trap_BotChooseLTGItem( int goalstate, idVec3 &origin, int *inventory, int travelflags );
+int     trap_BotChooseNBGItem( int goalstate, idVec3 &origin, int *inventory, int travelflags, struct bot_goal_s *ltg, float maxtime );
+int     trap_BotTouchingGoal( idVec3 &origin, struct bot_goal_s *goal );
+int     trap_BotItemGoalInVisButNotVisible( int viewer, idVec3 &eye, idVec3 &viewangles, struct bot_goal_s *goal );
 int     trap_BotGetNextCampSpotGoal( int num, struct bot_goal_s *goal );
 int     trap_BotGetMapLocationGoal( char *name, struct bot_goal_s *goal );
 int     trap_BotGetLevelItemGoal( int index, char *classname, struct bot_goal_s *goal );
@@ -1330,12 +1331,12 @@ void    trap_BotFreeGoalState( int handle );
 
 void    trap_BotResetMoveState( int movestate );
 void    trap_BotMoveToGoal( struct bot_moveresult_s *result, int movestate, struct bot_goal_s *goal, int travelflags );
-int     trap_BotMoveInDirection( int movestate, vec3_t dir, float speed, int type );
+int     trap_BotMoveInDirection( int movestate, idVec3 &dir, float speed, int type );
 void    trap_BotResetAvoidReach( int movestate );
 void    trap_BotResetLastAvoidReach( int movestate );
-int     trap_BotReachabilityArea( vec3_t origin, int testground );
-int     trap_BotMovementViewTarget( int movestate, struct bot_goal_s *goal, int travelflags, float lookahead, vec3_t target );
-int     trap_BotPredictVisiblePosition( vec3_t origin, int areanum, struct bot_goal_s *goal, int travelflags, vec3_t target );
+int     trap_BotReachabilityArea( idVec3 &origin, int testground );
+int     trap_BotMovementViewTarget( int movestate, struct bot_goal_s *goal, int travelflags, float lookahead, idVec3 &target );
+int     trap_BotPredictVisiblePosition( idVec3 &origin, int areanum, struct bot_goal_s *goal, int travelflags, idVec3 &target );
 int     trap_BotAllocMoveState( void );
 void    trap_BotFreeMoveState( int handle );
 void    trap_BotInitMoveState( int handle, struct bot_initmove_s *initmove );
@@ -1352,7 +1353,7 @@ void    trap_BotResetWeaponState( int weaponstate );
 
 int     trap_GeneticParentsAndChildSelection( int numranks, float *ranks, int *parent1, int *parent2, int *child );
 
-void    trap_SnapVector( float *v );
+void    trap_SnapVector( idVec3 &v );
 
 typedef enum
 {

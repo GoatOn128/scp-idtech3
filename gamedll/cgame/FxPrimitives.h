@@ -90,7 +90,7 @@ class CEffect
 {
 protected:
 
-	vec3_t		mOrigin1;
+	idVec3		mOrigin1;
 
 	int			mTimeStart;
 	int			mTimeEnd;
@@ -98,8 +98,8 @@ protected:
 	unsigned int	mFlags;
 
 	// Size of our object, useful for things that have physics
-	vec3_t		mMin;
-	vec3_t		mMax;
+	idVec3		mMin;
+	idVec3		mMax;
 
 	int			mImpactFxID;		// if we have an impact event, we may have to call an effect
 	int			mDeathFxID;			// if we have a death event, we may have to call an effect
@@ -109,10 +109,10 @@ protected:
 
 public:
 
-	CEffect() : mTimeStart(0), mTimeEnd(0), mFlags(0), mImpactFxID(0), mDeathFxID(0) { VectorClear(mOrigin1); VectorClear(mMin); VectorClear(mMax); memset( &mRefEnt, 0, sizeof( FxRefEntity )); }
+	CEffect() : mTimeStart(0), mTimeEnd(0), mFlags(0), mImpactFxID(0), mDeathFxID(0) { mOrigin1.Zero(); mMin.Zero(); mMax.Zero(); memset( &mRefEnt, 0, sizeof( FxRefEntity )); }
 	virtual ~CEffect() {}
 	virtual void Die() {}
-	virtual void GroupMessage( int group, int action, const vec3_t value ) {}
+	virtual void GroupMessage( int group, int action, const idVec3 &value ) {}
 
 	virtual bool Update()
 	{	// Game pausing can cause dumb time things to happen, so kill the effect in this instance
@@ -124,12 +124,15 @@ public:
 
 	inline void SetSTScale(float s,float t)	{ mRefEnt.shaderTexCoord[0]=s;mRefEnt.shaderTexCoord[1]=t;}
 
-	inline void SetMin( const vec3_t min )		{ if(min){VectorCopy(min,mMin);}else{VectorClear(mMin);}			}
-	inline void SetMax( const vec3_t max )		{ if(max){VectorCopy(max,mMax);}else{VectorClear(mMax);}			}
+	inline void SetMin( const idVec3 &min )		{ mMin = min;			}
+	inline void SetMin( const idVec3 *min )		{ if ( min ) { mMin = *min; } else { mMin.Zero(); }		}
+	inline void SetMax( const idVec3 &max )		{ mMax = max;			}
+	inline void SetMax( const idVec3 *max )		{ if ( max ) { mMax = *max; } else { mMax.Zero(); }		}
 	inline void SetFlags( int flags )		{ mFlags = flags;				}
 	inline void AddFlags( int flags )		{ mFlags |= flags;				}
 	inline void ClearFlags( int flags )		{ mFlags &= ~flags;				}
-	inline void SetOrigin1( const vec3_t org )	{ if(org){VectorCopy(org,mOrigin1);}else{VectorClear(mOrigin1);}	}
+	inline void SetOrigin1( const idVec3 &org )	{ mOrigin1 = org;	}
+	inline void SetOrigin1( const idVec3 *org )	{ if ( org ) { mOrigin1 = *org; } else { mOrigin1.Zero(); }	}
 	inline void SetTimeStart( int time )	{ mTimeStart = time; if (mFlags&FX_SET_SHADER_TIME) { mRefEnt.shaderTime = cg.time * 0.001f; }}
 	inline void	SetTimeEnd( int time )		{ mTimeEnd = time;				}
 	inline void SetImpactFxID( int id )		{ mImpactFxID = id;				}
@@ -145,8 +148,8 @@ protected:
 	float		mSizeEnd;
 	float		mSizeParm;
 
-	vec3_t		mRGBStart;
-	vec3_t		mRGBEnd;
+	idVec3		mRGBStart;
+	idVec3		mRGBEnd;
 	float		mRGBParm;
 
 
@@ -169,8 +172,10 @@ public:
 	inline void SetSizeEnd( float sz )		{ mSizeEnd = sz;			}
 	inline void SetSizeParm( float parm )	{ mSizeParm = parm;			}
 
-	inline void SetRGBStart( vec3_t rgb )	{ if(rgb){VectorCopy(rgb,mRGBStart);}else{VectorClear(mRGBStart);}	}
-	inline void SetRGBEnd( vec3_t rgb )		{ if(rgb){VectorCopy(rgb,mRGBEnd);}else{VectorClear(mRGBEnd);}		}
+	inline void SetRGBStart( const idVec3 &rgb )	{ mRGBStart = rgb;	}
+	inline void SetRGBStart( const idVec3 *rgb )	{ if ( rgb ) { mRGBStart = *rgb; } else { mRGBStart.Zero(); }	}
+	inline void SetRGBEnd( const idVec3 &rgb )		{ mRGBEnd = rgb;		}
+	inline void SetRGBEnd( const idVec3 *rgb )		{ if ( rgb ) { mRGBEnd = *rgb; } else { mRGBEnd.Zero(); }		}
 	inline void SetRGBParm( float parm )	{ mRGBParm = parm;			}
 };
 
@@ -198,7 +203,7 @@ class CPrimitiveTemplate;
 class CParticle : public CEffect
 {
 protected:
-    std::vector<qhandle_t> mAnimation;
+    idList<qhandle_t> mAnimation;
     int mRepeat = 0, mGroup = -1, mRemoveAt = 0;
     float mHeightMin = 0, mHeightMax = 0;
     bool mVisible = true;
@@ -207,18 +212,18 @@ protected:
     void UpdateAnimation();
 
 
-	vec3_t		mOrgOffset;
+	idVec3		mOrgOffset;
 
-	vec3_t		mVel;
-	vec3_t		mAccel;
+	idVec3		mVel;
+	idVec3		mAccel;
 	float		mGravity;
 
 	float		mSizeStart;
 	float		mSizeEnd;
 	float		mSizeParm;
 
-	vec3_t		mRGBStart;
-	vec3_t		mRGBEnd;
+	idVec3		mRGBStart;
+	idVec3		mRGBEnd;
 	float		mRGBParm;
 	
 	float		mAlphaStart;
@@ -231,7 +236,7 @@ protected:
 	int			mClientID;
 
 	bool		UpdateOrigin();
-	void		UpdateVelocity() {VectorMA( mVel, theFxHelper.mFloatFrameTime, mAccel, mVel ); }
+	void		UpdateVelocity() {( mVel = mVel + mAccel * theFxHelper.mFloatFrameTime ); }
 
 	void		UpdateSize();
 	void		UpdateRGB();
@@ -244,7 +249,7 @@ protected:
 public:
 
 	void Configure( const CPrimitiveTemplate &definition );
-    void GroupMessage( int group, int action, const vec3_t value ) override;
+    void GroupMessage( int group, int action, const idVec3 &value ) override;
     inline CParticle() { mRefEnt.reType = RT_SPRITE; mClientID = -1; }
 	virtual ~CParticle() {}
 
@@ -253,17 +258,22 @@ public:
 
 	inline void SetShader( qhandle_t sh )	{ mRefEnt.customShader = sh;				}
 
-	inline void SetOrgOffset( const vec3_t o )	{ if(o){VectorCopy(o,mOrgOffset);}else{VectorClear(mOrgOffset);}}
-	inline void SetVel( const vec3_t vel )		{ if(vel){VectorCopy(vel,mVel);}else{VectorClear(mVel);}	}
-	inline void SetAccel( const vec3_t ac )		{ if(ac){VectorCopy(ac,mAccel);}else{VectorClear(mAccel);}	}
+	inline void SetOrgOffset( const idVec3 &o )	{ mOrgOffset = o; }
+	inline void SetOrgOffset( const idVec3 *o )	{ if ( o ) { mOrgOffset = *o; } else { mOrgOffset.Zero(); }}
+	inline void SetVel( const idVec3 &vel )		{ mVel = vel;			}
+	inline void SetVel( const idVec3 *vel )		{ if ( vel ) { mVel = *vel; } else { mVel.Zero(); }	}
+	inline void SetAccel( const idVec3 &ac )		{ mAccel = ac;			}
+	inline void SetAccel( const idVec3 *ac )		{ if ( ac ) { mAccel = *ac; } else { mAccel.Zero(); }	}
 	inline void SetGravity( float grav )	{ mGravity = grav;			}
 
 	inline void SetSizeStart( float sz )	{ mSizeStart = sz;			}
 	inline void SetSizeEnd( float sz )		{ mSizeEnd = sz;			}
 	inline void SetSizeParm( float parm )	{ mSizeParm = parm;			}
 
-	inline void SetRGBStart( const vec3_t rgb )	{ if(rgb){VectorCopy(rgb,mRGBStart);}else{VectorClear(mRGBStart);}	}
-	inline void SetRGBEnd( const vec3_t rgb )		{ if(rgb){VectorCopy(rgb,mRGBEnd);}else{VectorClear(mRGBEnd);}		}
+	inline void SetRGBStart( const idVec3 &rgb )	{ mRGBStart = rgb;	}
+	inline void SetRGBStart( const idVec3 *rgb )	{ if ( rgb ) { mRGBStart = *rgb; } else { mRGBStart.Zero(); }	}
+	inline void SetRGBEnd( const idVec3 &rgb )		{ mRGBEnd = rgb;		}
+	inline void SetRGBEnd( const idVec3 *rgb )		{ if ( rgb ) { mRGBEnd = *rgb; } else { mRGBEnd.Zero(); }		}
 	inline void SetRGBParm( float parm )	{ mRGBParm = parm;			}
 
 	inline void SetAlphaStart( float al )	{ mAlphaStart = al;			}
@@ -283,7 +293,7 @@ class CLine : public CParticle
 {
 protected:
 
-	vec3_t	mOrigin2;
+	idVec3	mOrigin2;
 
 	virtual void Draw();
 
@@ -292,11 +302,11 @@ public:
 	CLine() { mRefEnt.reType = RT_LINE;}
 	virtual ~CLine() {}
 	virtual void Die() {}
-	virtual void GroupMessage( int group, int action, const vec3_t value ) {}
+	virtual void GroupMessage( int group, int action, const idVec3 &value ) {}
 	virtual bool Update();
 
 
-	inline void SetOrigin2( const vec3_t org2 )	{ VectorCopy( org2, mOrigin2 ); }
+	inline void SetOrigin2( const idVec3 &org2 )	{ mOrigin2 = org2; }
 };
 
 //------------------------------
@@ -304,11 +314,11 @@ class CBezier : public CLine
 {
 protected:
 
-	vec3_t	mControl1;
-	vec3_t	mControl1Vel;
+	idVec3	mControl1;
+	idVec3	mControl1Vel;
 
-	vec3_t	mControl2;
-	vec3_t	mControl2Vel;
+	idVec3	mControl2;
+	idVec3	mControl2Vel;
 
 	bool	mInit;
 
@@ -319,14 +329,14 @@ public:
 	CBezier(){ mInit = false; }
 	virtual ~CBezier() {}
 	virtual void Die() {}
-	virtual void GroupMessage( int group, int action, const vec3_t value ) {}
+	virtual void GroupMessage( int group, int action, const idVec3 &value ) {}
 
 	virtual bool Update();
 	
-	void DrawSegment( vec3_t start, vec3_t end, float texcoord1, float texcoord2 );
+	void DrawSegment( const idVec3 &start, const idVec3 &end, float texcoord1, float texcoord2 );
 
-	inline void SetControlPoints( const vec3_t ctrl1, const vec3_t ctrl2 )	{ VectorCopy( ctrl1, mControl1 ); VectorCopy( ctrl2, mControl2 ); }
-	inline void SetControlVel( const vec3_t ctrl1v, const vec3_t ctrl2v )	{ VectorCopy( ctrl1v, mControl1Vel ); VectorCopy( ctrl2v, mControl2Vel ); }
+	inline void SetControlPoints( const idVec3 &ctrl1, const idVec3 &ctrl2 )	{ mControl1 = ctrl1; mControl2 = ctrl2; }
+	inline void SetControlVel( const idVec3 &ctrl1v, const idVec3 &ctrl2v )	{ mControl1Vel = ctrl1v; mControl2Vel = ctrl2v; }
 };
 
 
@@ -344,7 +354,7 @@ public:
 	CElectricity() { mRefEnt.reType = RT_ELECTRICITY; }
 	virtual ~CElectricity() {}
 	virtual void Die() {}
-	virtual void GroupMessage( int group, int action, const vec3_t value ) {}
+	virtual void GroupMessage( int group, int action, const idVec3 &value ) {}
 
 	virtual bool Update();
 
@@ -360,7 +370,7 @@ class COrientedParticle : public CParticle
 {
 protected:
 
-	vec3_t	mNormal;
+	idVec3	mNormal;
 
 	virtual bool Cull();
 	virtual void Draw();
@@ -372,7 +382,7 @@ public:
 
 	virtual bool Update();
 
-	inline void SetNormal( const vec3_t norm )	{ VectorCopy( norm, mNormal );	}
+	inline void SetNormal( const idVec3 &norm )	{ mNormal = norm;	}
 };
 
 //------------------------------
@@ -380,7 +390,7 @@ class CTail : public CParticle
 {
 protected:
 
-	vec3_t	mOldOrigin;
+	idVec3	mOldOrigin;
 
 	float	mLengthStart;
 	float	mLengthEnd;
@@ -431,7 +441,7 @@ public:
 	inline void SetSize2End( float sz )		{ mSize2End = sz;			}
 	inline void SetSize2Parm( float parm )	{ mSize2Parm = parm;		}
 
-	inline void SetNormal( const vec3_t norm )	{ VectorCopy( norm, mRefEnt.axis[0] ); }
+	inline void SetNormal( const idVec3 &norm )	{ mRefEnt.axis[0] = norm; }
 };
 
 
@@ -442,13 +452,13 @@ class CEmitter : public CParticle
 {
 protected:
 
-	vec3_t		mOldOrigin;		// we use these to do some nice
-	vec3_t		mLastOrigin;	//	tricks...
-	vec3_t		mOldVelocity;	//	
+	idVec3		mOldOrigin;		// we use these to do some nice
+	idVec3		mLastOrigin;	//	tricks...
+	idVec3		mOldVelocity;	//	
 	int			mOldTime;
 
-	vec3_t		mAngles;		// for a rotating thing, using a delta  
-	vec3_t		mAngleDelta;	//	as opposed to an end angle is probably much easier
+	idVec3		mAngles;		// for a rotating thing, using a delta  
+	idVec3		mAngleDelta;	//	as opposed to an end angle is probably much easier
 
 	int			mEmitterFxID;	// if we have emitter fx, this is our id
 
@@ -471,14 +481,18 @@ public:
 	virtual bool Update();
 
 	inline void SetModel( qhandle_t model )		{ mRefEnt.hModel = model;	}
-	inline void SetAngles( const vec3_t ang )	{ if(ang){VectorCopy(ang,mAngles);}else{VectorClear(mAngles);}			}
-	inline void SetAngleDelta( const vec3_t ang){ if(ang){VectorCopy(ang,mAngleDelta);}else{VectorClear(mAngleDelta);}	}
+	inline void SetAngles( const idVec3 &ang )	{ mAngles = ang;			}
+	inline void SetAngles( const idVec3 *ang )	{ if ( ang ) { mAngles = *ang; } else { mAngles.Zero(); }		}
+	inline void SetAngleDelta( const idVec3 &ang){ mAngleDelta = ang;	}
+	inline void SetAngleDelta( const idVec3 *ang){ if ( ang ) { mAngleDelta = *ang; } else { mAngleDelta.Zero(); }	}
 	inline void SetEmitterFxID( int id )		{ mEmitterFxID = id;		}
 	inline void SetDensity( float density )		{ mDensity = density;		}
 	inline void SetVariance( float var )		{ mVariance = var;			}
 	inline void SetOldTime( int time )			{ mOldTime = time;			}
-	inline void SetLastOrg( const vec3_t org )	{ if(org){VectorCopy(org,mLastOrigin);}else{VectorClear(mLastOrigin);}	}
-	inline void SetLastVel( const vec3_t vel )	{ if(vel){VectorCopy(vel,mOldVelocity);}else{VectorClear(mOldVelocity);}}
+	inline void SetLastOrg( const idVec3 &org )	{ mLastOrigin = org;	}
+	inline void SetLastOrg( const idVec3 *org )	{ if ( org ) { mLastOrigin = *org; } else { mLastOrigin.Zero(); }	}
+	inline void SetLastVel( const idVec3 &vel )	{ mOldVelocity = vel;	}
+	inline void SetLastVel( const idVec3 *vel )	{ if ( vel ) { mOldVelocity = *vel; } else { mOldVelocity.Zero(); }}
 
 };
 
@@ -493,7 +507,7 @@ class CPoly : public CParticle
 protected:
 
 	int		mCount;
-	vec3_t	mRotDelta;
+	idVec3	mRotDelta;
 	int		mTimeStamp;
 
 	virtual bool Cull();
@@ -501,8 +515,8 @@ protected:
 
 public:
 
-	vec3_t	mOrg[MAX_CPOLY_VERTS];
-	vec2_t	mST[MAX_CPOLY_VERTS];
+	idVec3	mOrg[MAX_CPOLY_VERTS];
+	idVec2	mST[MAX_CPOLY_VERTS];
 
 	float	mRot[3][3];
 	int		mLastFrameTime;
@@ -518,7 +532,8 @@ public:
 	void Rotate();
 
 	inline void SetNumVerts( int c )					{ mCount = c;			}
-	inline void SetRot( vec3_t r )						{ if(r){VectorCopy(r,mRotDelta);}else{VectorClear(mRotDelta);}}
+	inline void SetRot( const idVec3 &r )						{ mRotDelta = r; }
+	inline void SetRot( const idVec3 *r )						{ if ( r ) { mRotDelta = *r; } else { mRotDelta.Zero(); }}
 	inline void SetMotionTimeStamp( int t )				{ mTimeStamp = theFxHelper.mTime + t; }
 	inline int	GetMotionTimeStamp()					{ return mTimeStamp; }
 };

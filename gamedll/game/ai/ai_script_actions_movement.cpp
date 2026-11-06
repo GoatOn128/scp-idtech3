@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -33,9 +35,10 @@ AICast_ScriptAction_GotoMarker
 */
 qboolean AICast_ScriptAction_GotoMarker( cast_state_t *cs, char *params ) {
 #define SCRIPT_REACHGOAL_DIST 8
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	gentity_t *ent;
-	vec3_t vec, org;
+	idVec3 vec, org;
 	int i, diff;
 	qboolean slowApproach;
 
@@ -50,8 +53,8 @@ qboolean AICast_ScriptAction_GotoMarker( cast_state_t *cs, char *params ) {
 		return qfalse;
 	}
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_movement" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI scripting: gotomarker must have an targetname\n" );
 	}
@@ -60,41 +63,44 @@ qboolean AICast_ScriptAction_GotoMarker( cast_state_t *cs, char *params ) {
 	if ( cs->script.castScriptStatus.scriptGotoEnt >= 0 &&
 		 cs->script.castScriptStatus.scriptGotoId == cs->thinkFuncChangeTime ) {
 		ent = &g_entities[cs->script.castScriptStatus.scriptGotoEnt];
-		if ( ent->targetname && !Q_strcasecmp( ent->targetname, token ) ) {
+		if ( ent->targetname && !idStr::Icmp( ent->targetname, token.c_str() ) ) {
 			// if we're not slowing down, then check for passing the marker, otherwise check distance only
-			VectorSubtract( ent->r.currentOrigin, cs->clientState->origin, vec );
+			vec = ent->r.currentOrigin - cs->clientState->origin;
 			//
-			if ( cs->navigation.followSlowApproach && VectorLength( vec ) < cs->navigation.followDist ) {
+			if ( cs->navigation.followSlowApproach && vec.Length() < cs->navigation.followDist ) {
 				cs->navigation.followTime = 0;
 				AIFunc_IdleStart( cs ); // resume normal AI
 				return qtrue;
 			} else if ( !cs->navigation.followSlowApproach &&
-						VectorLength( vec ) < 64 /*&& DotProduct(cs->clientState->cur_ps.velocity, vec) < 0*/ ) {
+						vec.Length() < 64 /*&& ( cs->clientState->cur_ps.velocity * vec ) < 0*/ ) {
 				cs->navigation.followTime = 0;
 				AIFunc_IdleStart( cs ); // resume normal AI
 				return qtrue;
 			} else {
 				// do we have a firetarget ?
-				token = COM_ParseExt( &pString, qfalse );
-				if ( !token[0] || !Q_stricmp( token, "nostop" ) ) {
+				lexer.ReadTokenOnLine( &token );
+				if ( !token[0] || !idStr::Icmp( token.c_str(), "nostop" ) ) {
 					AICast_NoAttackIfNotHurtSinceLastScriptAction( cs );
 				} else { // yes we do
 					// find this targetname
-					ent = G_Find( NULL, FOFS( targetname ), token );
+					ent = G_Find( NULL, FOFS( targetname ), ( char * ) token.c_str() );
 					if ( !ent ) {
-						ent = AICast_FindEntityForName( token );
+						ent = AICast_FindEntityForName( ( char * ) token.c_str() );
 						if ( !ent ) {
-							G_Error( "AI Scripting: gotomarker cannot find targetname \"%s\"\n", token );
+							G_Error( "AI Scripting: gotomarker cannot find targetname \"%s\"\n", token.c_str() );
 						}
 					}
 					// set the view angle manually
 					BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
-					VectorSubtract( org, cs->clientState->origin, vec );
-					VectorNormalize( vec );
-					vectoangles( vec, cs->ideal_viewangles );
+					vec = org - cs->clientState->origin;
+					vec.Normalize();
+					{
+						const idAngles convertedAngles = vec.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					// noattack?
-					token = COM_ParseExt( &pString, qfalse );
-					if ( !token[0] || Q_stricmp( token, "noattack" ) ) {
+					lexer.ReadTokenOnLine( &token );
+					if ( !token[0] || idStr::Icmp( token.c_str(), "noattack" ) ) {
 						qboolean fire = qtrue;
 						// if it's an AI, and they aren't visible, dont shoot
 						if ( ent->r.svFlags & SVF_CASTAI ) {
@@ -131,16 +137,16 @@ qboolean AICast_ScriptAction_GotoMarker( cast_state_t *cs, char *params ) {
 	// find the ai_marker with the given "targetname"
 	// TTimo: gcc: suggest () around assignment used as truth value
 	while ( ( ent = G_Find( ent, FOFS( classname ), "ai_marker" ) ) ) {
-		if ( ent->targetname && !Q_strcasecmp( ent->targetname, token ) ) {
+		if ( ent->targetname && !idStr::Icmp( ent->targetname, token.c_str() ) ) {
 			break;
 		}
 	}
 
 	if ( !ent ) {
-		G_Error( "AI Scripting: can't find ai_marker with \"targetname\" = \"%s\"\n", token );
+		G_Error( "AI Scripting: can't find ai_marker with \"targetname\" = \"%s\"\n", token.c_str() );
 	}
 
-	if ( Distance( cs->clientState->origin, ent->r.currentOrigin ) < SCRIPT_REACHGOAL_DIST ) { // we made it
+	if ( ( cs->clientState->origin - ent->r.currentOrigin ).Length() < SCRIPT_REACHGOAL_DIST ) { // we made it
 		return qtrue;
 	}
 
@@ -180,7 +186,7 @@ qboolean AICast_ScriptAction_WalkToMarker( cast_state_t *cs, char *params ) {
 		return qfalse;
 	}
 	if ( !AICast_ScriptAction_GotoMarker( cs, params ) ||
-		 ( !strstr( params, " nostop" ) && VectorLength( cs->clientState->cur_ps.velocity ) ) ) {
+		 ( !strstr( params, " nostop" ) && cs->clientState->cur_ps.velocity.Length() ) ) {
 		cs->movestate = MS_WALK;
 		cs->movestateType = MSTYPE_TEMPORARY;
 		AICast_NoAttackIfNotHurtSinceLastScriptAction( cs );
@@ -207,7 +213,7 @@ qboolean AICast_ScriptAction_CrouchToMarker( cast_state_t *cs, char *params ) {
 		return qfalse;
 	}
 	if ( !AICast_ScriptAction_GotoMarker( cs, params ) ||
-		 ( !strstr( params, " nostop" ) && VectorLength( cs->clientState->cur_ps.velocity ) ) ) {
+		 ( !strstr( params, " nostop" ) && cs->clientState->cur_ps.velocity.Length() ) ) {
 		cs->movestate = MS_CROUCH;
 		cs->movestateType = MSTYPE_TEMPORARY;
 		AICast_NoAttackIfNotHurtSinceLastScriptAction( cs );
@@ -302,22 +308,22 @@ AICast_ScriptAction_Movetype
 =================
 */
 qboolean AICast_ScriptAction_Movetype( cast_state_t *cs, char *params ) {
-	if ( !Q_strcasecmp( params, "walk" ) ) {
+	if ( !idStr::Icmp( params, "walk" ) ) {
 		cs->movestate = MS_WALK;
 		cs->movestateType = MSTYPE_PERMANENT;
 		return qtrue;
 	}
-	if ( !Q_strcasecmp( params, "run" ) ) {
+	if ( !idStr::Icmp( params, "run" ) ) {
 		cs->movestate = MS_RUN;
 		cs->movestateType = MSTYPE_PERMANENT;
 		return qtrue;
 	}
-	if ( !Q_strcasecmp( params, "crouch" ) ) {
+	if ( !idStr::Icmp( params, "crouch" ) ) {
 		cs->movestate = MS_CROUCH;
 		cs->movestateType = MSTYPE_PERMANENT;
 		return qtrue;
 	}
-	if ( !Q_strcasecmp( params, "default" ) ) {
+	if ( !idStr::Icmp( params, "default" ) ) {
 		cs->movestate = MS_DEFAULT;
 		cs->movestateType = MSTYPE_NONE;
 		return qtrue;
@@ -339,9 +345,9 @@ qboolean AICast_ScriptAction_ExplicitRouting( cast_state_t *cs, char *params ) {
 		G_Error( "AI Scripting: explicit_routing requires an on/off specifier\n" );
 	}
 
-	if ( !Q_stricmp( params, "on" ) ) {
+	if ( !idStr::Icmp( params, "on" ) ) {
 		cs->aiFlags |= AIFL_EXPLICIT_ROUTING;
-	} else if ( !Q_stricmp( params, "off" ) ) {
+	} else if ( !idStr::Icmp( params, "off" ) ) {
 		cs->aiFlags &= ~AIFL_EXPLICIT_ROUTING;
 	} else {
 		G_Error( "AI Scripting: explicit_routing requires an on/off specifier\n" );
@@ -359,7 +365,8 @@ AICast_ScriptAction_PushAway
 */
 qboolean AICast_ScriptAction_PushAway( cast_state_t *cs, char *params ) {
 	gentity_t *pushed;
-	vec3_t v, ang, f, r;
+	idVec3 v, f, r;
+	idAngles ang;
 
 	if ( !params || !params[0] ) {
 		G_Error( "AI_Scripting: syntax: pushaway <ainame>" );
@@ -370,14 +377,14 @@ qboolean AICast_ScriptAction_PushAway( cast_state_t *cs, char *params ) {
 		G_Error( "AI_Scripting: pushaway: cannot find \"%s\"", params );
 	}
 	// calc the vecs
-	VectorSubtract( pushed->s.pos.trBase, cs->clientState->origin, v );
-	VectorNormalize( v );
-	vectoangles( v, ang );
-	AngleVectors( ang, f, r, NULL );
+	v = pushed->s.pos.trBase - cs->clientState->origin;
+	v.Normalize();
+	ang = v.ToAngles();
+	ang.ToVectors( &f, &r, NULL );
 	// push them away and to the side
-	VectorScale( f, 200, v );
-	VectorMA( v, ( level.time % 5000 < 2500 ? 200 : 200 ), r, v );
-	VectorAdd( pushed->client->ps.velocity, v, pushed->client->ps.velocity );
+	v = f * 200;
+	v = v + ( level.time % 5000 < 2500 ? 200 : 200 ) * r;
+	pushed->client->ps.velocity = pushed->client->ps.velocity + v;
 	//
 	return qtrue;
 }

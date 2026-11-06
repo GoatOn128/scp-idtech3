@@ -43,76 +43,9 @@ If you have questions concerning this license or the applicable additional terms
 #define NEW_ANIMS
 #define MAX_TEAMNAME    32
 
-#ifdef _WIN32
-
-#pragma warning(disable : 4018) // signed/unsigned mismatch
-#pragma warning(disable : 4032)
-#pragma warning(disable : 4051)
-#pragma warning(disable : 4057) // slightly different base types
-#pragma warning(disable : 4100) // unreferenced formal parameter
-#pragma warning(disable : 4115)
-#pragma warning(disable : 4125) // decimal digit terminates octal escape sequence
-#pragma warning(disable : 4127) // conditional expression is constant
-#pragma warning(disable : 4136)
-#pragma warning(disable	: 4152) // nonstandard extension, function/data pointer conversion in expression
-#pragma warning(disable : 4201)
-#pragma warning(disable : 4214)
-#pragma warning(disable : 4244)
-//#pragma warning(disable	: 4142)		// benign redefinition
-#pragma warning(disable : 4305) // truncation from const double to float
-//#pragma warning(disable : 4310)		// cast truncates constant value
-//#pragma warning(disable :	4505)		// unreferenced local function has been removed
-#pragma warning(disable : 4514)
-#pragma warning(disable : 4702) // unreachable code
-#pragma warning(disable : 4711) // selected for automatic inline expansion
-#pragma warning(disable : 4220) // varargs matches remaining parameters
-#endif
-
 #if defined( ppc ) || defined( __ppc ) || defined( __ppc__ ) || defined( __POWERPC__ )
 #define idppc 1
 #endif
-
-/**********************************************************************
-  VM Considerations
-
-  The VM can not use the standard system headers because we aren't really
-  using the compiler they were meant for.  We use bg_lib.h which contains
-  prototypes for the functions we define for our own use in bg_lib.c.
-
-  When writing mods, please add needed headers HERE, do not start including
-  stuff like <stdio.h> in the various .c files that make up each of the VMs
-  since you will be including system headers files can will have issues.
-
-  Remember, if you use a C library function that is not defined in bg_lib.c,
-  you will have to add your own version for support in the VM.
-
- **********************************************************************/
-
-#ifdef Q3_VM
-
-#include "bg_lib.h"
-
-#else
-
-#include <assert.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <ctype.h>
-#include <limits.h>
-#include <stdint.h>
-
-#endif
-
-#ifdef _WIN32
-
-//#pragma intrinsic( memset, memcpy )
-
-#endif
-
 
 // this is the define for determining if we have an asm version of a C function
 #if ( defined _M_IX86 || defined __i386__ ) && !defined __sun__  && !defined __LCC__
@@ -120,12 +53,6 @@ If you have questions concerning this license or the applicable additional terms
 #else
 #define id386   0
 #endif
-
-// MAC_STATIC, QDECL, CPUSTRING, PATH_SEP and the *_HARD_LINKED macros
-// are no longer defined here: the CMake build provides them
-
-//=============================================================
-
 
 typedef unsigned char byte;
 
@@ -141,14 +68,6 @@ typedef int sfxHandle_t;
 typedef int fileHandle_t;
 typedef int clipHandle_t;
 
-#ifndef ID_INLINE
-#ifdef _WIN32
-#define ID_INLINE __inline
-#else
-#define ID_INLINE inline
-#endif
-#endif
-
 //#define	SND_NORMAL			0x000	// (default) Allow sound to be cut off only by the same sound on this channel
 #define     SND_OKTOCUT         0x001   // Allow sound to be cut off by any following sounds on this channel
 #define     SND_REQUESTCUT      0x002   // Allow sound to be cut off by following sounds on this channel only for sounds who request cutoff
@@ -156,38 +75,8 @@ typedef int clipHandle_t;
 #define     SND_CUTOFF_ALL      0x008   // Cut off all sounds on this channel
 #define     SND_NOCUT           0x010   // Don't cut off.  Always let finish (overridden by SND_CUTOFF_ALL)
 
-
-#ifndef NULL
-#define NULL ( (void *)0 )
-#endif
-
 #define MAX_QINT            0x7fffffff
 #define MIN_QINT            ( -MAX_QINT - 1 )
-
-
-#ifdef __cplusplus
-// min and max as function-like macros corrupt the std::min and std::max
-// declarations in libstdc++ headers whenever a C++ header is included
-// after this one, so C++ gets real functions with the same semantics
-#ifndef min
-template<typename T1, typename T2>
-inline auto min( T1 x, T2 y ) { return x < y ? x : y; }
-#endif
-#ifndef max
-template<typename T1, typename T2>
-inline auto max( T1 x, T2 y ) { return x > y ? x : y; }
-#endif
-#else
-#ifndef max
-#define max( x, y ) ( ( ( x ) > ( y ) ) ? ( x ) : ( y ) )
-#define min( x, y ) ( ( ( x ) < ( y ) ) ? ( x ) : ( y ) )
-#endif
-#endif
-
-// angle indexes
-#define PITCH               0       // up / down
-#define YAW                 1       // left / right
-#define ROLL                2       // fall over
 
 // RF, this is just here so different elements of the engine can be aware of this setting as it changes
 #define MAX_SP_CLIENTS      64      // increasing this will increase memory usage significantly
@@ -281,26 +170,6 @@ typedef enum {
 
 #define UI_SMALLFONT75  0x00100000
 
-#if defined( _DEBUG ) && !defined( BSPC )
-	#define HUNK_DEBUG
-#endif
-
-typedef enum {
-	h_high,
-	h_low,
-	h_dontcare
-} ha_pref;
-
-#ifdef HUNK_DEBUG
-#define Hunk_Alloc( size, preference )              Hunk_AllocDebug( size, preference, # size, __FILE__, __LINE__ )
-void *Hunk_AllocDebug( int size, ha_pref preference, char *label, char *file, int line );
-#else
-void *Hunk_Alloc( int size, ha_pref preference );
-#endif
-
-void Com_Memset( void* dest, const int val, const size_t count );
-void Com_Memcpy( void* dest, const void* src, const size_t count );
-
 #define CIN_system      0x01
 #define CIN_loop        0x02
 #define CIN_hold        0x04
@@ -316,24 +185,6 @@ MATHLIB
 
 ==============================================================
 */
-
-
-typedef float vec_t;
-typedef vec_t vec2_t[2];
-typedef vec_t vec3_t[3];
-typedef vec_t vec4_t[4];
-typedef vec_t vec5_t[5];
-
-typedef int fixed4_t;
-typedef int fixed8_t;
-typedef int fixed16_t;
-
-#ifndef M_PI
-#define M_PI        3.14159265358979323846f // matches value in gcc v2 math.h
-#endif
-
-#define NUMVERTEXNORMALS    162
-extern vec3_t bytedirs[NUMVERTEXNORMALS];
 
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution
@@ -352,258 +203,9 @@ extern vec3_t bytedirs[NUMVERTEXNORMALS];
 #define GIANTCHAR_WIDTH     32
 #define GIANTCHAR_HEIGHT    48
 
-extern vec4_t colorBlack;
-extern vec4_t colorRed;
-extern vec4_t colorGreen;
-extern vec4_t colorBlue;
-extern vec4_t colorYellow;
-extern vec4_t colorMagenta;
-extern vec4_t colorCyan;
-extern vec4_t colorWhite;
-extern vec4_t colorLtGrey;
-extern vec4_t colorMdGrey;
-extern vec4_t colorDkGrey;
 
-#define Q_COLOR_ESCAPE  '^'
-#define Q_IsColorString( p )  ( p && *( p ) == Q_COLOR_ESCAPE && *( ( p ) + 1 ) && *( ( p ) + 1 ) != Q_COLOR_ESCAPE )
-
-#define COLOR_BLACK     '0'
-#define COLOR_RED       '1'
-#define COLOR_GREEN     '2'
-#define COLOR_YELLOW    '3'
-#define COLOR_BLUE      '4'
-#define COLOR_CYAN      '5'
-#define COLOR_MAGENTA   '6'
-#define COLOR_WHITE     '7'
-#define ColorIndex( c )   ( ( ( c ) - '0' ) & 7 )
-
-#define S_COLOR_BLACK   "^0"
-#define S_COLOR_RED     "^1"
-#define S_COLOR_GREEN   "^2"
-#define S_COLOR_YELLOW  "^3"
-#define S_COLOR_BLUE    "^4"
-#define S_COLOR_CYAN    "^5"
-#define S_COLOR_MAGENTA "^6"
-#define S_COLOR_WHITE   "^7"
-
-extern vec4_t g_color_table[8];
-
-#define MAKERGB( v, r, g, b ) v[0] = r; v[1] = g; v[2] = b
-#define MAKERGBA( v, r, g, b, a ) v[0] = r; v[1] = g; v[2] = b; v[3] = a
-
-#define DEG2RAD( a ) ( ( ( a ) * M_PI ) / 180.0F )
-#define RAD2DEG( a ) ( ( ( a ) * 180.0f ) / M_PI )
-
-struct cplane_s;
-
-extern vec3_t vec3_origin;
-extern vec3_t axisDefault[3];
-
-#define nanmask ( 255 << 23 )
-#define IS_NAN( x ) ( ( ( *(int *)&x ) & nanmask ) == nanmask )
-
-// TTimo
-// handy stuff when tracking isnan problems
-#ifndef NDEBUG
-#define CHECK_NAN( x ) assert( !IS_NAN( x ) )
-#define CHECK_NAN_VEC( v ) assert( !IS_NAN( v[0] ) && !IS_NAN( v[1] ) && !IS_NAN( v[2] ) )
-#else
-#define CHECK_NAN
-#define CHECK_NAN_VEC
-#endif
-
-float Q_fabs( float f );
-float Q_rsqrt( float f );       // reciprocal square root
-
-#define SQRTFAST( x ) ( 1.0f / Q_rsqrt( x ) )
-
-signed char ClampChar( int i );
-signed short ClampShort( int i );
-
-// this isn't a real cheap function to call!
-int DirToByte( vec3_t dir );
-void ByteToDir( int b, vec3_t dir );
-
-#if 1
-
-#define DotProduct( x,y )         ( ( x )[0] * ( y )[0] + ( x )[1] * ( y )[1] + ( x )[2] * ( y )[2] )
-#define VectorSubtract( a,b,c )   ( ( c )[0] = ( a )[0] - ( b )[0],( c )[1] = ( a )[1] - ( b )[1],( c )[2] = ( a )[2] - ( b )[2] )
-#define VectorAdd( a,b,c )        ( ( c )[0] = ( a )[0] + ( b )[0],( c )[1] = ( a )[1] + ( b )[1],( c )[2] = ( a )[2] + ( b )[2] )
-#define VectorCopy( a,b )         ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2] )
-#define VectorCopy4( a,b )        ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2],( b )[3] = ( a )[3] )
-#define VectorScale( v, s, o )    ( ( o )[0] = ( v )[0] * ( s ),( o )[1] = ( v )[1] * ( s ),( o )[2] = ( v )[2] * ( s ) )
-#define VectorMA( v, s, b, o )    ( ( o )[0] = ( v )[0] + ( b )[0] * ( s ),( o )[1] = ( v )[1] + ( b )[1] * ( s ),( o )[2] = ( v )[2] + ( b )[2] * ( s ) )
-
-#else
-
-#define DotProduct( x,y )         _DotProduct( x,y )
-#define VectorSubtract( a,b,c )   _VectorSubtract( a,b,c )
-#define VectorAdd( a,b,c )        _VectorAdd( a,b,c )
-#define VectorCopy( a,b )         _VectorCopy( a,b )
-#define VectorScale( v, s, o )    _VectorScale( v,s,o )
-#define VectorMA( v, s, b, o )    _VectorMA( v,s,b,o )
-
-#endif
-
-#ifdef __LCC__
-#ifdef VectorCopy
-#undef VectorCopy
-// this is a little hack to get more efficient copies in our interpreter
-typedef struct {
-	float v[3];
-} vec3struct_t;
-#define VectorCopy( a,b ) * (vec3struct_t *)b = *(vec3struct_t *)a;
-#endif
-#endif
-
-#define VectorClear( a )              ( ( a )[0] = ( a )[1] = ( a )[2] = 0 )
-#define VectorNegate( a,b )           ( ( b )[0] = -( a )[0],( b )[1] = -( a )[1],( b )[2] = -( a )[2] )
-#define VectorSet( v, x, y, z )       ( ( v )[0] = ( x ), ( v )[1] = ( y ), ( v )[2] = ( z ) )
-
-#define Vector4Set( v, x, y, z, n )   ( ( v )[0] = ( x ),( v )[1] = ( y ),( v )[2] = ( z ),( v )[3] = ( n ) )
-#define Vector4Copy( a,b )            ( ( b )[0] = ( a )[0],( b )[1] = ( a )[1],( b )[2] = ( a )[2],( b )[3] = ( a )[3] )
-#define Vector4MA( v, s, b, o )       ( ( o )[0] = ( v )[0] + ( b )[0] * ( s ),( o )[1] = ( v )[1] + ( b )[1] * ( s ),( o )[2] = ( v )[2] + ( b )[2] * ( s ),( o )[3] = ( v )[3] + ( b )[3] * ( s ) )
-#define Vector4Average( v, b, s, o )  ( ( o )[0] = ( ( v )[0] * ( 1 - ( s ) ) ) + ( ( b )[0] * ( s ) ),( o )[1] = ( ( v )[1] * ( 1 - ( s ) ) ) + ( ( b )[1] * ( s ) ),( o )[2] = ( ( v )[2] * ( 1 - ( s ) ) ) + ( ( b )[2] * ( s ) ),( o )[3] = ( ( v )[3] * ( 1 - ( s ) ) ) + ( ( b )[3] * ( s ) ) )
-
-#define SnapVector( v ) {v[0] = ( (int)( v[0] ) ); v[1] = ( (int)( v[1] ) ); v[2] = ( (int)( v[2] ) );}
-
-// just in case you do't want to use the macros
-vec_t _DotProduct( const vec3_t v1, const vec3_t v2 );
-void _VectorSubtract( const vec3_t veca, const vec3_t vecb, vec3_t out );
-void _VectorAdd( const vec3_t veca, const vec3_t vecb, vec3_t out );
-void _VectorCopy( const vec3_t in, vec3_t out );
-void _VectorScale( const vec3_t in, float scale, vec3_t out );
-void _VectorMA( const vec3_t veca, float scale, const vec3_t vecb, vec3_t vecc );
-
-unsigned ColorBytes3( float r, float g, float b );
-unsigned ColorBytes4( float r, float g, float b, float a );
-
-float NormalizeColor( const vec3_t in, vec3_t out );
-
-float RadiusFromBounds( const vec3_t mins, const vec3_t maxs );
-void ClearBounds( vec3_t mins, vec3_t maxs );
-void AddPointToBounds( const vec3_t v, vec3_t mins, vec3_t maxs );
-int VectorCompare( const vec3_t v1, const vec3_t v2 );
-vec_t VectorLength( const vec3_t v );
-vec_t VectorLengthSquared( const vec3_t v );
-vec_t Distance( const vec3_t p1, const vec3_t p2 );
-vec_t DistanceSquared( const vec3_t p1, const vec3_t p2 );
-void CrossProduct( const vec3_t v1, const vec3_t v2, vec3_t cross );
-vec_t VectorNormalize( vec3_t v );       // returns vector length
-void VectorNormalizeFast( vec3_t v );     // does NOT return vector length, uses rsqrt approximation
-vec_t VectorNormalize2( const vec3_t v, vec3_t out );
-void VectorInverse( vec3_t v );
-void Vector4Scale( const vec4_t in, vec_t scale, vec4_t out );
-void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out );
-int Q_log2( int val );
-
-float Q_acos( float c );
-
-int     Q_rand( int *seed );
-float   Q_random( int *seed );
-float   Q_crandom( int *seed );
-
-#define random()    ( ( rand() & 0x7fff ) / ( (float)0x7fff ) )
-#define crandom()   ( 2.0 * ( random() - 0.5 ) )
-
-void vectoangles( const vec3_t value1, vec3_t angles );
-float vectoyaw( const vec3_t vec );
-void AnglesToAxis( const vec3_t angles, vec3_t axis[3] );
-// TTimo: const vec_t ** would require explicit casts for ANSI C conformance
-// see unix/const-arg.c
-void AxisToAngles( /*const*/ vec3_t axis[3], vec3_t angles );
-float VectorDistance( vec3_t v1, vec3_t v2 );
-
-void AxisClear( vec3_t axis[3] );
-void AxisCopy( vec3_t in[3], vec3_t out[3] );
-
-void SetPlaneSignbits( struct cplane_s *out );
-int BoxOnPlaneSide( vec3_t emins, vec3_t emaxs, struct cplane_s *plane );
-
-float   AngleMod( float a );
-float   LerpAngle( float from, float to, float frac );
-float   AngleSubtract( float a1, float a2 );
-void    AnglesSubtract( vec3_t v1, vec3_t v2, vec3_t v3 );
-
-float AngleNormalize360( float angle );
-float AngleNormalize180( float angle );
-float AngleDelta( float angle1, float angle2 );
-
-qboolean PlaneFromPoints( vec4_t plane, const vec3_t a, const vec3_t b, const vec3_t c );
-void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal );
-void RotatePointAroundVector( vec3_t dst, const vec3_t dir, const vec3_t point, float degrees );
-void RotateAroundDirection( vec3_t axis[3], float yaw );
-void MakeNormalVectors( const vec3_t forward, vec3_t right, vec3_t up );
-// perpendicular vector could be replaced by this
-
-int PlaneTypeForNormal( vec3_t normal );
-
-void MatrixMultiply( float in1[3][3], float in2[3][3], float out[3][3] );
-void AngleVectors( const vec3_t angles, vec3_t forward, vec3_t right, vec3_t up );
-void PerpendicularVector( vec3_t dst, const vec3_t src );
-
-// Ridah
-void GetPerpendicularViewVector( const vec3_t point, const vec3_t p1, const vec3_t p2, vec3_t up );
-void ProjectPointOntoVector( vec3_t point, vec3_t vStart, vec3_t vEnd, vec3_t vProj );
-// done.
-
-//=============================================
-
-float Com_Clamp( float min, float max, float value );
-
-char    *COM_SkipPath( char *pathname );
-void    COM_StripExtension( const char *in, char *out );
-void    COM_StripFilename( char *in, char *out );
-void    COM_DefaultExtension( char *path, int maxSize, const char *extension );
-
-void    COM_BeginParseSession( const char *name );
-void    COM_RestoreParseSession( char **data_p );
-void    COM_SetCurrentParseLine( int line );
-int     COM_GetCurrentParseLine( void );
-char    *COM_Parse( char **data_p );
-char    *COM_ParseExt( char **data_p, qboolean allowLineBreak );
-int     COM_Compress( char *data_p );
-void    COM_ParseError( char *format, ... );
-void    COM_ParseWarning( char *format, ... );
-
-// TTimo
-qboolean COM_BitCheck( const int array[], int bitNum );
-void COM_BitSet( int array[], int bitNum );
-void COM_BitClear( int array[], int bitNum );
-
-#define MAX_TOKENLENGTH     1024
-
-#ifndef TT_STRING
-//token types
-#define TT_STRING                   1           // string
-#define TT_LITERAL                  2           // literal
-#define TT_NUMBER                   3           // number
-#define TT_NAME                     4           // name
-#define TT_PUNCTUATION              5           // punctuation
-#endif
-
-typedef struct pc_token_s
-{
-	int type;
-	int subtype;
-	int intvalue;
-	float floatvalue;
-	char string[MAX_TOKENLENGTH];
-} pc_token_t;
-
-// data is an in/out parm, returns a parsed out token
-
-void    COM_MatchToken( char**buf_p, char *match );
-
-void SkipBracedSection( char **program );
-void SkipRestOfLine( char **data );
-
-void Parse1DMatrix( char **buf_p, int x, float *m );
-void Parse2DMatrix( char **buf_p, int y, int x, float *m );
-void Parse3DMatrix( char **buf_p, int z, int y, int x, float *m );
-
+// engine string helper
 void QDECL Com_sprintf( char *dest, int size, const char *fmt, ... );
-
 
 // mode parm for FS_FOpenFile
 typedef enum {
@@ -621,81 +223,9 @@ typedef enum {
 
 //=============================================
 
-int Q_isprint( int c );
-int Q_islower( int c );
-int Q_isupper( int c );
-int Q_isalpha( int c );
-int Q_isnumeric( int c );       //----(SA)	added
-int Q_isalphanumeric( int c );  //----(SA)	added
-int Q_isforfilename( int c );       //----(SA)	added
-
-// portable case insensitive compare
-int     Q_stricmp( const char *s1, const char *s2 );
-int     Q_strncmp( const char *s1, const char *s2, int n );
-int     Q_stricmpn( const char *s1, const char *s2, int n );
-char    *Q_strlwr( char *s1 );
-char    *Q_strupr( char *s1 );
-char    *Q_strrchr( const char* string, int c );
-
-#ifdef _WIN32
-#define Q_putenv _putenv
-#else
-#define Q_putenv putenv
-#endif
-
-// MSVC-only case-insensitive compare names used by the game modules;
-// map them to the POSIX functions on every other platform
-#if !defined( _WIN32 )
-#include <strings.h>
-#define stricmp strcasecmp
-#define strnicmp strncasecmp
-#define strcmpi strcasecmp
-#define _stricmp strcasecmp
-#define _strnicmp strncasecmp
-#endif
-
-// buffer size safe library replacements
-void    Q_strncpyz( char *dest, const char *src, int destsize );
-void    Q_strcat( char *dest, int size, const char *src );
-
-// strlen that discounts Quake color sequences
-int Q_PrintStrlen( const char *string );
-// removes color sequences from string
-char *Q_CleanStr( char *string );
-// Ridah
-int Q_strncasecmp( char *s1, char *s2, int n );
-int Q_strcasecmp( char *s1, char *s2 );
-// done.
 //=============================================
 
-// 64-bit integers for global rankings interface
-// implemented as a struct for qvm compatibility
-typedef struct
-{
-	byte b0;
-	byte b1;
-	byte b2;
-	byte b3;
-	byte b4;
-	byte b5;
-	byte b6;
-	byte b7;
-} qint64;
-
 //=============================================
-
-short   BigShort( short l );
-short   LittleShort( short l );
-int     BigLong( int l );
-int     LittleLong( int l );
-qint64  BigLong64( qint64 l );
-qint64  LittleLong64( qint64 l );
-float   BigFloat( float l );
-float   LittleFloat( float l );
-
-void    Swap_Init( void );
-char    * QDECL va( char *format, ... );
-float   *tv( float x, float y, float z );
 
 //=============================================
 
@@ -840,7 +370,7 @@ PlaneTypeForNormal
 // plane_t structure
 // !!! if this is changed, it must be changed in asm code too !!!
 typedef struct cplane_s {
-	vec3_t normal;
+	idVec3 normal;
 	float dist;
 	byte type;              // for fast side tests: 0,1,2 = axial, 3 = nonaxial
 	byte signbits;          // signx + (signy<<1) + (signz<<2), used as lookup during collision
@@ -853,7 +383,7 @@ typedef struct {
 	qboolean allsolid;      // if true, plane is not valid
 	qboolean startsolid;    // if true, the initial point was in a solid area
 	float fraction;         // time completed, 1.0 = didn't hit anything
-	vec3_t endpos;          // final position
+	idVec3 endpos;          // final position
 	cplane_t plane;         // surface normal at impact, transformed to world space
 	int surfaceFlags;           // surface hit
 	int contents;           // contents on other side of surface hit
@@ -873,8 +403,8 @@ typedef struct {
 
 
 typedef struct {
-	vec3_t origin;
-	vec3_t axis[3];
+	idVec3 origin;
+	idVec3 axis[3];
 } orientation_t;
 
 //=====================================================================
@@ -911,9 +441,6 @@ typedef enum {
 ========================================================================
 */
 #define ANIM_BITS       10
-
-#define ANGLE2SHORT( x )  ( (int)( ( x ) * 65536 / 360 ) & 65535 )
-#define SHORT2ANGLE( x )  ( ( x ) * ( 360.0 / 65536 ) )
 
 #define SNAPFLAG_RATE_DELAYED   1
 #define SNAPFLAG_NOT_ACTIVE     2   // snapshot used during connection and for zombies
@@ -1040,8 +567,8 @@ typedef struct playerState_s {
 	int pm_flags;               // ducked, jump_held, etc
 	int pm_time;
 
-	vec3_t origin;
-	vec3_t velocity;
+	idVec3 origin;
+	idVec3 velocity;
 	int weaponTime;
 	int weaponDelay;            // for weapons that don't fire immediately when 'fire' is hit (grenades, venom, ...)
 	int grenadeTimeLeft;            // for delayed grenade throwing.  this is set to a #define for grenade
@@ -1092,7 +619,7 @@ typedef struct playerState_s {
 	// item info
 	int item;
 
-	vec3_t viewangles;          // for fixed views
+	idVec3 viewangles;          // for fixed views
 	int viewheight;
 
 	// damage feedback
@@ -1111,7 +638,7 @@ typedef struct playerState_s {
 	int weapons[MAX_WEAPONS / ( sizeof( int ) * 8 )];   // 64 bits for weapons held
 
 	// Ridah, allow for individual bounding boxes
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 	float crouchMaxZ;
 	float crouchViewHeight, standViewHeight, deadViewHeight;
 	// variable movement speed
@@ -1279,8 +806,8 @@ typedef struct {
 	int trTime;
 	int trDuration;             // if non 0, trTime + trDuration = stop time
 //----(SA)	removed
-	vec3_t trBase;
-	vec3_t trDelta;             // velocity, etc
+	idVec3 trBase;
+	idVec3 trDelta;             // velocity, etc
 //----(SA)	removed
 } trajectory_t;
 
@@ -1308,11 +835,11 @@ typedef struct entityState_s {
 	int time;
 	int time2;
 
-	vec3_t origin;
-	vec3_t origin2;
+	idVec3 origin;
+	idVec3 origin2;
 
-	vec3_t angles;
-	vec3_t angles2;
+	idVec3 angles;
+	idVec3 angles2;
 
 	int otherEntityNum;     // shotgun sources, etc
 	int otherEntityNum2;

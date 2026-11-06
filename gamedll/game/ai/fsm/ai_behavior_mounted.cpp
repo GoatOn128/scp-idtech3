@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -34,7 +36,8 @@ char *AIFunc_BattleMG42( cast_state_t *cs ) {
 	int numEnemies;
 	ai_client_state_t *bs;
 	gentity_t *mg42, *ent;
-	vec3_t angles, vec, bestangles;
+	idAngles angles, bestangles;
+	idVec3 vec;
 	qboolean unmount = qfalse;
 
 	mg42 = &g_entities[cs->mountedEntity];
@@ -49,7 +52,7 @@ char *AIFunc_BattleMG42( cast_state_t *cs ) {
 	// are we waiting to dismount
 	if ( cs->aiFlags & AIFL_DISMOUNTING ) {
 		// face straight forward
-		VectorCopy( mg42->s.angles, cs->ideal_viewangles );
+		cs->ideal_viewangles = mg42->s.angles;
 		// only dismount when facing forwards
 		if ( fabs( AI_AngleDifference( mg42->s.angles[YAW], cs->viewangles[YAW] ) ) < 10 ) {
 			// try and unmount
@@ -75,18 +78,18 @@ char *AIFunc_BattleMG42( cast_state_t *cs ) {
 	if ( cs->enemyNum >= 0 ) {
 		if ( cs->perception.vislist[cs->enemyNum].real_visible_timestamp &&
 			 cs->perception.vislist[cs->enemyNum].real_visible_timestamp > ( level.time - 5000 ) ) {
-			VectorSubtract( cs->perception.vislist[cs->enemyNum].real_visible_pos, mg42->r.currentOrigin, vec );
+			vec = cs->perception.vislist[cs->enemyNum].real_visible_pos - mg42->r.currentOrigin;
 		} else if ( cs->perception.vislist[cs->enemyNum].visible_timestamp &&
 					cs->perception.vislist[cs->enemyNum].visible_timestamp > ( level.time - 5000 ) ) {
-			VectorSubtract( cs->perception.vislist[cs->enemyNum].visible_pos, mg42->r.currentOrigin, vec );
+			vec = cs->perception.vislist[cs->enemyNum].visible_pos - mg42->r.currentOrigin;
 		} else { // just aim straight forward
-			AngleVectors( mg42->s.angles, vec, NULL, NULL );
+			idAngles( mg42->s.angles ).ToVectors( &vec, NULL, NULL );
 		}
 
-		VectorNormalize( vec );
-		vectoangles( vec, angles );
-		angles[PITCH] = AngleNormalize180( angles[PITCH] );
-		VectorCopy( angles, bestangles );
+		vec.Normalize();
+		angles = vec.ToAngles();
+		angles.pitch = idMath::AngleNormalize180( angles.pitch );
+		bestangles = angles;
 	}
 
 	// check for enemy outside harc
@@ -118,13 +121,13 @@ char *AIFunc_BattleMG42( cast_state_t *cs ) {
 
 				// if they are in the range
 				if ( cs->perception.vislist[enemies[i]].real_visible_timestamp > ( level.time - 5000 ) ) {
-					VectorSubtract( cs->perception.vislist[enemies[i]].real_visible_pos, mg42->r.currentOrigin, vec );
+					vec = cs->perception.vislist[enemies[i]].real_visible_pos - mg42->r.currentOrigin;
 				} else {
-					VectorSubtract( cs->perception.vislist[enemies[i]].visible_pos, mg42->r.currentOrigin, vec );
+					vec = cs->perception.vislist[enemies[i]].visible_pos - mg42->r.currentOrigin;
 				}
-				VectorNormalize( vec );
-				vectoangles( vec, angles );
-				angles[PITCH] = AngleNormalize180( angles[PITCH] );
+				vec.Normalize();
+				angles = vec.ToAngles();
+				angles.pitch = idMath::AngleNormalize180( angles.pitch );
 				if ( !( ( fabs( AI_AngleDifference( angles[YAW], mg42->s.angles[YAW] ) ) > mg42->harc ) ||
 						( angles[YAW] < 0 && angles[YAW] + 2 < -mg42->varc ) ||
 						( angles[YAW] > 0 && angles[YAW] - 2 > 5.0 ) ) ) {
@@ -133,13 +136,13 @@ char *AIFunc_BattleMG42( cast_state_t *cs ) {
 					unmount = qfalse;
 					//
 					if ( AICast_CheckAttack( cs, enemies[i], qfalse ) ) {
-						VectorCopy( angles, bestangles );
+						bestangles = angles;
 						cs->enemyNum = enemies[i];
 						shouldAttack = qtrue;
 						break;
 					} else if ( AICast_CheckAttack( cs, enemies[i], qtrue ) ) {
 						// keep firing at anything behind solids, in case they find a position where they can shoot us, but our checkattack() doesn't find a clear shot
-						VectorCopy( angles, bestangles );
+						bestangles = angles;
 						cs->enemyNum = enemies[i];
 						shouldAttack = qtrue;
 					}
@@ -172,7 +175,7 @@ char *AIFunc_BattleMG42( cast_state_t *cs ) {
 	//
 	// TODO: play a special "holding mg42" torso animation
 	//
-	VectorCopy( angles, cs->ideal_viewangles );
+	cs->ideal_viewangles.Set( angles.pitch, angles.yaw, angles.roll );
 	if ( cs->combat.triggerReleaseTime < level.time ) {
 		trap_EA_Attack( bs->client );
 		cs->bFlags |= AI_FRAME_ATTACKED;

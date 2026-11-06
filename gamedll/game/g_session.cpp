@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 
@@ -47,10 +49,10 @@ Called on game shutdown
 ================
 */
 void G_WriteClientSessionData( gclient_t *client ) {
-	const char  *s;
-	const char  *var;
+	idStr s;
+	idStr var;
 
-	s = va( "%i %i %i %i %i %i %i %i %i %i %i",       // DHM - Nerve
+	s = idStr::FormatString( "%i %i %i %i %i %i %i %i %i %i %i",       // DHM - Nerve
 			client->sess.sessionTeam,
 			client->sess.spectatorTime,
 			client->sess.spectatorState,
@@ -64,7 +66,7 @@ void G_WriteClientSessionData( gclient_t *client ) {
 			client->sess.playerSkin     // DHM - Nerve
 			);
 
-	var = va( "session%i", client - level.clients );
+	var = idStr::FormatString( "session%i", client - level.clients );
 
 	trap_Cvar_Set( var, s );
 }
@@ -78,9 +80,9 @@ Called on a reconnect
 */
 void G_ReadSessionData( gclient_t *client ) {
 	char s[MAX_STRING_CHARS];
-	const char  *var;
+	idStr var;
 
-	var = va( "session%i", client - level.clients );
+	var = idStr::FormatString( "session%i", client - level.clients );
 	trap_Cvar_VariableStringBuffer( var, s, sizeof( s ) );
 
 	sscanf( s, "%i %i %i %i %i %i %i %i %i %i %i",       // DHM - Nerve
@@ -190,7 +192,7 @@ G_WriteSessionData
 void G_WriteSessionData( void ) {
 	int i;
 
-	trap_Cvar_Set( "session", va( "%i", g_gametype.integer ) );
+	trap_Cvar_Set( "session", idStr::FormatString( "%i", g_gametype.integer ) );
 
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		if ( level.clients[i].pers.connected == CON_CONNECTED ) {

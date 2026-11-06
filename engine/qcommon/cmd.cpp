@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // cmd.c -- Quake script command processing module
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "q_shared.h"
 #include "qcommon.h"
 
@@ -80,7 +83,7 @@ Cbuf_Init
 */
 void Cbuf_Init( void ) {
 	cmd_text.data = cmd_text_buf;
-	cmd_text.maxsize = MAX_CMD_BUFFER;
+	cmd_text.GetMaxSize() = MAX_CMD_BUFFER;
 	cmd_text.cmdsize = 0;
 }
 
@@ -96,7 +99,7 @@ void Cbuf_AddText( const char *text ) {
 
 	l = strlen( text );
 
-	if ( cmd_text.cmdsize + l >= cmd_text.maxsize ) {
+	if ( cmd_text.cmdsize + l >= cmd_text.GetMaxSize() ) {
 		Com_Printf( "Cbuf_AddText: overflow\n" );
 		return;
 	}
@@ -118,7 +121,7 @@ void Cbuf_InsertText( const char *text ) {
 	int i;
 
 	len = strlen( text ) + 1;
-	if ( len + cmd_text.cmdsize > cmd_text.maxsize ) {
+	if ( len + cmd_text.cmdsize > cmd_text.GetMaxSize() ) {
 		Com_Printf( "Cbuf_InsertText overflowed\n" );
 		return;
 	}
@@ -245,16 +248,16 @@ Cmd_Exec_f
 void Cmd_Exec_f( void ) {
 	char    *f;
 	int len;
-	char filename[MAX_QPATH];
+	idStr filename;
 
 	if ( Cmd_Argc() != 2 ) {
 		Com_Printf( "exec <filename> : execute a script file\n" );
 		return;
 	}
 
-	Q_strncpyz( filename, Cmd_Argv( 1 ), sizeof( filename ) );
-	COM_DefaultExtension( filename, sizeof( filename ), ".cfg" );
-	len = FS_ReadFile( filename, (void **)&f );
+	filename = Cmd_Argv( 1 );
+	filename.DefaultFileExtension( ".cfg" );
+	len = FS_ReadFile( filename.c_str(), (void **)&f );
 	if ( !f ) {
 		Com_Printf( "couldn't exec %s\n",Cmd_Argv( 1 ) );
 		return;
@@ -283,7 +286,7 @@ void Cmd_Vstr_f( void ) {
 	}
 
 	v = Cvar_VariableString( Cmd_Argv( 1 ) );
-	Cbuf_InsertText( va( "%s\n", v ) );
+	Cbuf_InsertText( idStr::FormatString( "%s\n", v ) );
 }
 
 
@@ -355,7 +358,7 @@ they can't have pointers returned to them
 ============
 */
 void    Cmd_ArgvBuffer( int arg, char *buffer, int bufferLength ) {
-	Q_strncpyz( buffer, Cmd_Argv( arg ), bufferLength );
+	idStr::Copynz( buffer, Cmd_Argv( arg ), bufferLength );
 }
 
 
@@ -415,7 +418,7 @@ they can't have pointers returned to them
 ============
 */
 void    Cmd_ArgsBuffer( char *buffer, int bufferLength ) {
-	Q_strncpyz( buffer, Cmd_Args(), bufferLength );
+	idStr::Copynz( buffer, Cmd_Args(), bufferLength );
 }
 
 
@@ -544,7 +547,7 @@ void    Cmd_AddCommand( const char *cmd_name, xcommand_t function ) {
 	}
 
 	// use a small malloc to avoid zone fragmentation
-	cmd = (cmd_function_t *) Z_Malloc( sizeof( cmd_function_t ) );
+	cmd = (cmd_function_t *) Mem_ClearedAlloc( sizeof( cmd_function_t ), TAG_IDLIB );
 	cmd->name = CopyString( cmd_name );
 	cmd->function = function;
 	cmd->next = cmd_functions;
@@ -569,9 +572,9 @@ void    Cmd_RemoveCommand( const char *cmd_name ) {
 		if ( !strcmp( cmd_name, cmd->name ) ) {
 			*back = cmd->next;
 			if ( cmd->name ) {
-				Z_Free( cmd->name );
+				Mem_Free( cmd->name );
 			}
-			Z_Free( cmd );
+			Mem_Free( cmd );
 			return;
 		}
 		back = &cmd->next;
@@ -612,7 +615,7 @@ void    Cmd_ExecuteString( const char *text ) {
 	// check registered command functions
 	for ( prev = &cmd_functions ; *prev ; prev = &cmd->next ) {
 		cmd = *prev;
-		if ( !Q_stricmp( cmd_argv[0],cmd->name ) ) {
+		if ( !idStr::Icmp( cmd_argv[0],cmd->name ) ) {
 			// rearrange the links so that the command will be
 			// near the head of the list next time it is used
 			*prev = cmd->next;

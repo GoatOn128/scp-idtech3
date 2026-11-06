@@ -29,8 +29,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 
 void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag );
 void AIChar_Death( gentity_t *ent, gentity_t *attacker, int damage, int mod );
-int AIChar_GetPainLocation( gentity_t *ent, vec3_t point );
-void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point );
+int AIChar_GetPainLocation( gentity_t *ent, const idVec3 &point );
+void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, const idVec3 &point );
 void AIChar_Sight( gentity_t *ent, gentity_t *other, int lastSight );
 void AIChar_AttackSound( cast_state_t *cs );
 

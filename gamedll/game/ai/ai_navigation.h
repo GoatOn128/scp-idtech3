@@ -28,12 +28,12 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 #include "ai_actor.h"
 
 float AICast_GetRandomViewAngle( cast_state_t *cs, float tracedist );
-bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, vec3_t pos, int entnum );
+bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, const idVec3 &pos, int entnum );
 float AICast_SpeedScaleForDistance( cast_state_t *cs, float startdist, float idealDist );
 bot_moveresult_t AICast_CombatMove( cast_state_t *cs, int tfl );
-qboolean AICast_GetTakeCoverPos( cast_state_t *cs, int enemyNum, vec3_t enemyPos, vec3_t returnPos );
+qboolean AICast_GetTakeCoverPos( cast_state_t *cs, int enemyNum, const idVec3 &enemyPos, idVec3 &returnPos );
 
-int AI_PointAreaNum( vec3_t origin );
+int AI_PointAreaNum( const idVec3 &origin );
 void AI_SetupMovement( cast_state_t *cs );
 qboolean AI_InSlime( ai_client_state_t *state );
 qboolean AI_InLava( ai_client_state_t *state );

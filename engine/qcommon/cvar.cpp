@@ -28,8 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cvar.c -- dynamic variable tracking
 
-#include "q_shared.h"
-#include "qcommon.h"
+#include "precompiled.h"
+#pragma hdrstop
 
 cvar_t      *cvar_vars;
 cvar_t      *cvar_cheats;
@@ -101,7 +101,7 @@ static cvar_t *Cvar_FindVar( const char *var_name ) {
 	hash = generateHashValue( var_name );
 
 	for ( var = hashTable[hash] ; var ; var = var->hashNext ) {
-		if ( !Q_stricmp( var_name, var->name ) ) {
+		if ( !idStr::Icmp( var_name, var->name ) ) {
 			return var;
 		}
 	}
@@ -169,7 +169,7 @@ void Cvar_VariableStringBuffer( const char *var_name, char *buffer, int bufsize 
 	if ( !var ) {
 		*buffer = 0;
 	} else {
-		Q_strncpyz( buffer, var->string, bufsize );
+		idStr::Copynz( buffer, var->string, bufsize );
 	}
 }
 
@@ -223,7 +223,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 		if ( ( var->flags & CVAR_USER_CREATED ) && !( flags & CVAR_USER_CREATED )
 			 && var_value[0] ) {
 			var->flags &= ~CVAR_USER_CREATED;
-			Z_Free( var->resetString );
+			Mem_Free( var->resetString );
 			var->resetString = CopyString( var_value );
 
 			// ZOID--needs to be set so that cvars the game sets as
@@ -235,7 +235,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 		// only allow one non-empty reset string without a warning
 		if ( !var->resetString[0] ) {
 			// we don't have a reset string yet
-			Z_Free( var->resetString );
+			Mem_Free( var->resetString );
 			var->resetString = CopyString( var_value );
 		} else if ( var_value[0] && strcmp( var->resetString, var_value ) ) {
 			Com_DPrintf( "Warning: cvar \"%s\" given initial values: \"%s\" and \"%s\"\n",
@@ -248,7 +248,7 @@ cvar_t *Cvar_Get( const char *var_name, const char *var_value, int flags ) {
 			s = var->latchedString;
 			var->latchedString = NULL;  // otherwise cvar_set2 would free it
 			Cvar_Set2( var_name, s, qtrue );
-			Z_Free( s );
+			Mem_Free( s );
 		}
 
 // use a CVAR_SET for rom sets, get won't override
@@ -351,7 +351,7 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 				if ( strcmp( value, var->latchedString ) == 0 ) {
 					return var;
 				}
-				Z_Free( var->latchedString );
+				Mem_Free( var->latchedString );
 			} else
 			{
 				if ( strcmp( value, var->string ) == 0 ) {
@@ -374,7 +374,7 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 	} else
 	{
 		if ( var->latchedString ) {
-			Z_Free( var->latchedString );
+			Mem_Free( var->latchedString );
 			var->latchedString = NULL;
 		}
 	}
@@ -386,7 +386,7 @@ cvar_t *Cvar_Set2( const char *var_name, const char *value, qboolean force ) {
 	var->modified = qtrue;
 	var->modificationCount++;
 
-	Z_Free( var->string );   // free the old value string
+	Mem_Free( var->string );   // free the old value string
 
 	var->string = CopyString( value );
 	var->value = atof( var->string );
@@ -509,7 +509,7 @@ void Cvar_Toggle_f( void ) {
 	v = Cvar_VariableValue( Cmd_Argv( 1 ) );
 	v = !v;
 
-	Cvar_Set2( Cmd_Argv( 1 ), va( "%i", v ), qfalse );
+	Cvar_Set2( Cmd_Argv( 1 ), idStr::FormatString( "%i", v ), qfalse );
 }
 
 /*
@@ -638,7 +638,7 @@ void Cvar_WriteVariables( fileHandle_t f ) {
 	char buffer[1024];
 
 	for ( var = cvar_vars ; var ; var = var->next ) {
-		if ( Q_stricmp( var->name, "cl_cdkey" ) == 0 ) {
+		if ( idStr::Icmp( var->name, "cl_cdkey" ) == 0 ) {
 			continue;
 		}
 		if ( var->flags & CVAR_ARCHIVE ) {
@@ -748,16 +748,16 @@ void Cvar_Restart_f( void ) {
 		if ( var->flags & CVAR_USER_CREATED ) {
 			*prev = var->next;
 			if ( var->name ) {
-				Z_Free( var->name );
+				Mem_Free( var->name );
 			}
 			if ( var->string ) {
-				Z_Free( var->string );
+				Mem_Free( var->string );
 			}
 			if ( var->latchedString ) {
-				Z_Free( var->latchedString );
+				Mem_Free( var->latchedString );
 			}
 			if ( var->resetString ) {
-				Z_Free( var->resetString );
+				Mem_Free( var->resetString );
 			}
 			// clear the var completely, since we
 			// can't remove the index from the list
@@ -821,7 +821,7 @@ Cvar_InfoStringBuffer
 =====================
 */
 void Cvar_InfoStringBuffer( int bit, char* buff, int buffsize ) {
-	Q_strncpyz( buff,Cvar_InfoString( bit ),buffsize );
+	idStr::Copynz( buff,Cvar_InfoString( bit ),buffsize );
 }
 
 /*
@@ -875,12 +875,12 @@ void    Cvar_Update( vmCvar_t *vmCvar ) {
 				   strlen( cv->string ),
 				   sizeof( vmCvar->string ) );
 	}
-	// bk001212 - Q_strncpyz guarantees zero padding and dest[MAX_CVAR_VALUE_STRING-1]==0
+	// bk001212 - idStr::Copynz guarantees zero padding and dest[MAX_CVAR_VALUE_STRING-1]==0
 	// bk001129 - paranoia. Never trust the destination string.
 	// bk001129 - beware, sizeof(char*) is always 4 (for cv->string).
 	//            sizeof(vmCvar->string) always MAX_CVAR_VALUE_STRING
-	//Q_strncpyz( vmCvar->string, cv->string, sizeof( vmCvar->string ) ); // id
-	Q_strncpyz( vmCvar->string, cv->string,  MAX_CVAR_VALUE_STRING );
+	//idStr::Copynz( vmCvar->string, cv->string, sizeof( vmCvar->string ) ); // id
+	idStr::Copynz( vmCvar->string, cv->string,  MAX_CVAR_VALUE_STRING );
 
 	vmCvar->value = cv->value;
 	vmCvar->integer = cv->integer;

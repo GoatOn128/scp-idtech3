@@ -35,9 +35,10 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
-#include "snd_local.h"
+#include "precompiled.h"
+#pragma hdrstop
 
-long myftol( float f );
+#include "snd_local.h"
 
 #define C0 0.4829629131445341
 #define C1 0.8365163037378079

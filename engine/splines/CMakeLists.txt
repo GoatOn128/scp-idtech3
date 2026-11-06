@@ -1,14 +1,11 @@
 set(SPLINES_SOURCES
-    math_angles.cpp
-    math_matrix.cpp
-    math_quaternion.cpp
-    math_vector.cpp
-    q_parse.cpp
-    splines.cpp
-    util_str.cpp)
+    splines.cpp)
 
 add_library(Splines STATIC ${SPLINES_SOURCES})
 target_include_directories(Splines PRIVATE "${CMAKE_SOURCE_DIR}/external/glad/include")
 set_target_properties(Splines PROPERTIES FOLDER "libs")
 target_compile_definitions(Splines PRIVATE _LIB)
+target_link_libraries(Splines PRIVATE idlib)
 configure_target(Splines)
+target_precompile_headers(Splines PRIVATE
+    "${CMAKE_SOURCE_DIR}/engine/precompiled.h")
