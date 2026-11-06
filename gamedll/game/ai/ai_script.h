@@ -29,7 +29,7 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 
 qboolean AICast_EventMatch_StringEqual( cast_script_event_t *event, char *eventParm );
 qboolean AICast_EventMatch_IntInRange( cast_script_event_t *event, char *eventParm );
-int AICast_EventForString( char *string );
+int AICast_EventForString( const char *string );
 void AICast_ScriptLoad( void );
 void AICast_ScriptParse( cast_state_t *cs );
 void AICast_ScriptChange( cast_state_t *cs, int newScriptNum );
