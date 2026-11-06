@@ -30,10 +30,10 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 void AICast_SpecialFunc( cast_state_t *cs );
 void AICast_PredictMovement( cast_state_t *cs, int numframes, float frametime, aicast_predictmove_t *move,
 							 usercmd_t *ucmd, int checkHitEnt );
-qboolean AICast_GetAvoid( cast_state_t *cs, bot_goal_t *goal, vec3_t outpos, qboolean reverse, int blockEnt );
+qboolean AICast_GetAvoid( cast_state_t *cs, bot_goal_t *goal, idVec3 &outpos, qboolean reverse, int blockEnt );
 void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activate, bot_goal_t *goal );
 void AICast_EvaluatePmove( int clientnum, pmove_t *pm );
-qboolean AICast_RequestCrouchAttack( cast_state_t *cs, vec3_t org, float time );
+qboolean AICast_RequestCrouchAttack( cast_state_t *cs, const idVec3 &org, float time );
 void AICast_DeadClipWalls( cast_state_t *cs );
 
 #endif
