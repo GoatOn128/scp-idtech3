@@ -56,24 +56,24 @@ typedef struct flameChunk_s
 	float sizeRand;
 	float sizeRate;                 // rate per ms, variable according to speed (larger if moving slower)
 	int sizeTime;
-	vec3_t baseOrg;
+	idVec3 baseOrg;
 	int baseOrgTime;
-	vec3_t velDir;
+	idVec3 velDir;
 	float velSpeed;                 // flame chunks should start with a fast velocity, then slow down if there is nothing behind them pushing them along
 	float rollAngle;
 	qboolean ignitionOnly;
 	int blueLife;
 	float gravity;
-	vec3_t startVelDir;
+	idVec3 startVelDir;
 	float speedScale;
 
 	// current variables
-	vec3_t org;
+	idVec3 org;
 	float size;
 	float lifeFrac;                 // 0.0 (baby) -> 1.0 (aged)
 
 	int lastFriction, lastFrictionTake;
-	vec3_t parentFwd;
+	idVec3 parentFwd;
 } flameChunk_t;
 
 // Stream ownership is handled by FX. This index is only for sound updates.
@@ -108,8 +108,8 @@ public:
 typedef struct centFlameInfo_s
 {
 	int lastClientFrame;            // client frame that we last fired the flamethrower
-	vec3_t lastAngles;              // angles at last firing
-	vec3_t lastOrigin;              // origin at last firing
+	idVec3 lastAngles;              // angles at last firing
+	idVec3 lastOrigin;              // origin at last firing
 	flameChunk_t
 	*lastFlameChunk;                // flame chunk we last spawned
 	int lastSoundUpdate;
@@ -136,15 +136,15 @@ static flameSoundStatus_t centFlameStatus[MAX_GENTITIES];
 
 // procedure defs
 flameChunk_t *CG_SpawnFlameChunk( flameChunk_t *headFlameChunk );
-void CG_FlameCalcOrg( flameChunk_t *f, int time, vec3_t outOrg );
-void CG_FlameGetMuzzlePoint( vec3_t org, vec3_t fwd, vec3_t right, vec3_t up, vec3_t outPos );
+void CG_FlameCalcOrg( flameChunk_t *f, int time, idVec3 outOrg );
+void CG_FlameGetMuzzlePoint( idVec3 org, idVec3 fwd, idVec3 right, idVec3 up, idVec3 outPos );
 
 // these must be globals, since they cannot expand or contract, since that might result in them getting
 //	stuck in geometry. therefore when a chunk hits a surface, we should deflect it away from the surface
 //	slightly, rather than running along it, so that as the chink grows, the sprites don't sink into the
 //	wall too much.
-static vec3_t flameChunkMins = {-4, -4, -4};
-static vec3_t flameChunkMaxs = { 4,  4,  4};
+static idVec3 flameChunkMins(-4, -4, -4);
+static idVec3 flameChunkMaxs(4,  4,  4);
 
 // Continuous motion is Wolf-specific; every authored setting is loaded from FX data.
 struct FxFlameSettings {
@@ -260,9 +260,9 @@ static float FlameSizeSpeed( float size ) { return size / flameSettings.Lifetime
 CG_FlameLerpVec
 ===============
 */
-void CG_FlameLerpVec( const vec3_t oldV, const vec3_t newV, float backLerp, vec3_t outV ) {
-	VectorScale( newV, ( 1.0 - backLerp ), outV );
-	VectorMA( outV, backLerp, oldV, outV );
+void CG_FlameLerpVec( const idVec3 oldV, const idVec3 newV, float backLerp, idVec3 outV ) {
+	( outV = newV * ( 1.0 - backLerp ) );
+	( outV = outV + oldV * backLerp );
 }
 
 /*
@@ -306,18 +306,18 @@ CG_FireFlameChunks
 	2 - silent
 ===============
 */
-void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float speedScale, qboolean firing, int flags ) {
+void CG_FireFlameChunks( centity_t *cent, idVec3 origin, idVec3 angles, float speedScale, qboolean firing, int flags ) {
 	centFlameInfo_t *centInfo;
 	flameChunk_t *f, *of;
-	vec3_t lastFwd, thisFwd, fwd;
-	vec3_t lastUp, thisUp, up;
-	vec3_t lastRight, thisRight, right;
-	vec3_t thisOrg, lastOrg, org;
+	idVec3 lastFwd, thisFwd, fwd;
+	idVec3 lastUp, thisUp, up;
+	idVec3 lastRight, thisRight, right;
+	idVec3 thisOrg, lastOrg, org;
 	double timeInc, backLerp, fracInc;
 	int t;
 	double ft;
 	trace_t trace;
-	vec3_t parentFwd;
+	idVec3 parentFwd;
 	int flameLife;
 #define MAX_CHUNKS_PER_CALL     30
 
@@ -345,12 +345,12 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 	// for any other character or in 3rd person view, use entity angles for friction
 	if ( cent->currentState.number != cg.snap->ps.clientNum || cg_thirdPerson.integer ) {
 		if ( flags & 1 ) { // use 'angles'
-			AngleVectors( angles, parentFwd, NULL, NULL );
+			idAngles( angles ).ToVectors( &( parentFwd ), NULL, NULL );
 		} else {
-			AngleVectors( cent->currentState.angles, parentFwd, NULL, NULL );
+			idAngles( cent->currentState.angles ).ToVectors( &( parentFwd ), NULL, NULL );
 		}
 	} else {
-		AngleVectors( angles, parentFwd, NULL, NULL );
+		idAngles( angles ).ToVectors( &( parentFwd ), NULL, NULL );
 	}
 
 	// tweak the speed of the flame
@@ -359,15 +359,15 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 	//else
 	//	speedScale *= 1.0;
 
-	AngleVectors( angles, thisFwd, thisRight, thisUp );
-	VectorCopy( origin, thisOrg );
+	idAngles( angles ).ToVectors( &( thisFwd ), &( thisRight ), &( thisUp ) );
+	( thisOrg = origin );
 
 	// if this entity was firing last frame, interpolate the angles as we spawn the chunks that
 	// fired over the last frame
 	if (    ( centInfo->lastClientFrame == cent->currentState.frame ) &&
 			( centInfo->lastFlameChunk && centInfo->lastFiring == firing ) ) {
-		AngleVectors( centInfo->lastAngles, lastFwd, lastRight, lastUp );
-		VectorCopy( centInfo->lastOrigin, lastOrg );
+		idAngles( centInfo->lastAngles ).ToVectors( &( lastFwd ), &( lastRight ), &( lastUp ) );
+		( lastOrg = centInfo->lastOrigin );
 		centInfo->lastFiring = firing;
 
 		flameLife = flameSettings.Lifetime() * ( 1.0 / ( 0.5 + 0.5 * speedScale ) );
@@ -400,11 +400,11 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 			}
 
 			CG_FlameLerpVec( lastFwd, thisFwd, backLerp, fwd );
-			VectorNormalize( fwd );
+			fwd.Normalize();
 			CG_FlameLerpVec( lastRight, thisRight, backLerp, right );
-			VectorNormalize( right );
+			right.Normalize();
 			CG_FlameLerpVec( lastUp, thisUp, backLerp, up );
-			VectorNormalize( up );
+			up.Normalize();
 
 			f->timeStart = t;
 			f->timeEnd = t + flameLife; // * (firing ? 1.0 : 0.2);
@@ -421,10 +421,10 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 			}
 			f->sizeRate = FlameBlueSizeSpeed( f->sizeMax * speedScale * ( 1.0 + ( 0.5 * (float)!firing ) ) );
 			f->sizeTime = t;
-			VectorCopy( org, f->baseOrg );
+			( f->baseOrg = org );
 			f->baseOrgTime = t;
-			VectorCopy( fwd, f->velDir );
-			VectorCopy( fwd, f->startVelDir );
+			( f->velDir = fwd );
+			( f->startVelDir = fwd );
 			f->speedScale = speedScale;
 			// randomize the direction slightly
 			/*
@@ -434,10 +434,10 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 				f->velDir[2] += 0.03*cos((float)cg.time/3435);
 			}
 			*/
-			VectorNormalize( f->velDir );
+			f->velDir.Normalize();
 			f->velSpeed = flameSettings.startSpeed * ( flameSettings.speedBase + flameSettings.speedWeight * speedScale );
 			f->ownerCent = cent->currentState.number;
-			f->rollAngle = crandom() * flameSettings.rollRange;
+			f->rollAngle = Q_flrand( -1.0f, 1.0f ) * flameSettings.rollRange;
 			f->ignitionOnly = !firing;
 			if ( !firing ) {
 				f->gravity = flameSettings.ignitionGravity;
@@ -449,7 +449,7 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 			}
 			f->lastFriction = cg.time;
 			f->lastFrictionTake = cg.time;
-			VectorCopy( parentFwd, f->parentFwd );
+			( f->parentFwd = parentFwd );
 
 			ft += timeInc;
 			// always spawn a chunk right on the current time
@@ -458,7 +458,7 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 				t = cg.time;
 				backLerp = 0;
 			} else {
-				t = (int)floor( ft );
+				t = (int)idMath::Floor( ft );
 				backLerp -= fracInc;
 			}
 			centInfo->lastFlameChunk = of = f;
@@ -468,7 +468,7 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 		centInfo->lastFiring = firing;
 		t = cg.time;
 
-		VectorCopy( thisOrg, org );
+		( org = thisOrg );
 
 		// if igniting, play start sound
 		//if (firing) {
@@ -489,9 +489,9 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 			return;
 		}
 
-		VectorCopy( thisFwd, fwd );
-		VectorCopy( thisUp, up );
-		VectorCopy( thisRight, right );
+		( fwd = thisFwd );
+		( up = thisUp );
+		( right = thisRight );
 
 		f->timeStart = cg.time;
 		f->timeEnd = cg.time + flameSettings.Lifetime() * ( 1.0 / ( 0.5 + 0.5 * speedScale ) ); // * (firing ? 1.0 : 0.2);
@@ -509,13 +509,13 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 		//}
 		f->sizeRate = FlameBlueSizeSpeed( f->sizeMax * speedScale );
 		f->sizeTime = cg.time;
-		VectorCopy( org, f->baseOrg );
+		( f->baseOrg = org );
 		f->baseOrgTime = cg.time;
-		VectorCopy( fwd, f->velDir );
-		VectorCopy( fwd, f->startVelDir );
+		( f->velDir = fwd );
+		( f->startVelDir = fwd );
 		f->velSpeed = flameSettings.startSpeed * ( flameSettings.speedBase + flameSettings.speedWeight * speedScale );
 		f->ownerCent = cent->currentState.number;
-		f->rollAngle = crandom() * flameSettings.rollRange;
+		f->rollAngle = Q_flrand( -1.0f, 1.0f ) * flameSettings.rollRange;
 		f->ignitionOnly = !firing;
 		f->speedScale = speedScale;
 		if ( !firing ) {
@@ -527,7 +527,7 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 		}
 		f->lastFriction = cg.time;
 		f->lastFrictionTake = cg.time;
-		VectorCopy( parentFwd, f->parentFwd );
+		( f->parentFwd = parentFwd );
 
 		centInfo->lastFlameChunk = f;
 	}
@@ -542,11 +542,11 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 			if ( f->lastFriction < cg.time - 50 ) {
 				frametime = (float)( cg.time - f->lastFriction ) / 1000.0;
 				f->lastFriction = cg.time;
-				dot = DotProduct( parentFwd, f->parentFwd );
+				dot = ( parentFwd * f->parentFwd );
 				if ( dot >= 0.99 ) {
 					dot -= 0.99;
 					dot *= ( 1.0 / ( 1.0 - 0.99 ) );
-					CG_FlameAdjustSpeed( f, /*(0.3+0.7*f->speedScale) **/ 0.5 * frametime * (flameSettings.frictionScale * flameSettings.startSpeed) * pow( dot,4 ) );
+					CG_FlameAdjustSpeed( f, /*(0.3+0.7*f->speedScale) **/ 0.5 * frametime * (flameSettings.frictionScale * flameSettings.startSpeed) * idMath::Pow( dot, 4 ) );
 				}
 			}
 
@@ -554,8 +554,8 @@ void CG_FireFlameChunks( centity_t *cent, vec3_t origin, vec3_t angles, float sp
 		}
 	}
 
-	VectorCopy( angles, centInfo->lastAngles );
-	VectorCopy( origin, centInfo->lastOrigin );
+	( centInfo->lastAngles = angles );
+	( centInfo->lastOrigin = origin );
 	centInfo->lastClientFrame = cent->currentState.frame;
 }
 
@@ -615,11 +615,11 @@ void CG_MergeFlameChunks( flameChunk_t *f1, flameChunk_t *f2 ) {
 
 	//VectorAdd( f1->velDir, f2->velDir, f1->velDir );
 	//VectorScale( f1->velDir, 0.5, f1->velDir );
-	VectorCopy( f2->velDir, f1->velDir );
+	( f1->velDir = f2->velDir );
 
 	//VectorAdd( f1->baseOrg, f2->baseOrg, f1->baseOrg );
 	//VectorScale( f1->baseOrg, 0.5, f1->baseOrg );
-	VectorCopy( f2->baseOrg, f1->baseOrg );
+	( f1->baseOrg = f2->baseOrg );
 	f1->baseOrgTime = f2->baseOrgTime;
 
 	f1->velSpeed = f2->velSpeed; //(f1->velSpeed + f2->velSpeed) / 2.0;
@@ -636,8 +636,8 @@ void CG_MergeFlameChunks( flameChunk_t *f1, flameChunk_t *f2 ) {
 CG_FlameCalcOrg
 ===============
 */
-void CG_FlameCalcOrg( flameChunk_t *f, int time, vec3_t outOrg ) {
-	VectorMA( f->baseOrg, f->velSpeed * ( (float)( time - f->baseOrgTime ) / 1000 ), f->velDir, outOrg );
+void CG_FlameCalcOrg( flameChunk_t *f, int time, idVec3 outOrg ) {
+	( outOrg = f->baseOrg + f->velDir * f->velSpeed * ( (float)( time - f->baseOrgTime ) / 1000 ) );
 	outOrg[2] -= f->gravity * ( (float)( time - f->timeStart ) / 1000.0 ) * ( (float)( time - f->timeStart ) / 1000.0 );
 }
 
@@ -665,7 +665,7 @@ CG_MoveFlameChunk
 ===============
 */
 void CG_MoveFlameChunk( flameChunk_t *f, int t ) {
-	vec3_t newOrigin, sOrg;
+	idVec3 newOrigin, sOrg;
 	trace_t trace;
 	int jiggleCount;
 	float dot;
@@ -694,7 +694,7 @@ void CG_MoveFlameChunk( flameChunk_t *f, int t ) {
 */
 
 	jiggleCount = 0;
-	VectorCopy( f->baseOrg, sOrg );
+	( sOrg = f->baseOrg );
 	while ( f->velSpeed > 1 && ( ( t - f->baseOrgTime ) > 20 ) ) {
 		CG_FlameCalcOrg( f, t, newOrigin );
 
@@ -723,22 +723,22 @@ void CG_MoveFlameChunk( flameChunk_t *f, int t ) {
 		}
 
 		// moved some distance
-		VectorCopy( trace.endpos, f->baseOrg );
+		( f->baseOrg = trace.endpos );
 		f->baseOrgTime += (int)( (float)( t - f->baseOrgTime ) * trace.fraction );
 
 		if ( trace.fraction == 1.0 ) {
 			// check for hitting client
 			if ( ( f->ownerCent != cg.snap->ps.clientNum ) && !( cg.snap->ps.eFlags & EF_DEAD ) && VectorDistance( newOrigin, cg.snap->ps.origin ) < 32 ) {
-				VectorNegate( f->velDir, trace.plane.normal );
+				( trace.plane.normal = -f->velDir );
 			} else {
 				break;
 			}
 		}
 
 		// reflect off surface
-		dot = DotProduct( f->velDir, trace.plane.normal );
-		VectorMA( f->velDir, -1.3 * dot, trace.plane.normal, f->velDir );
-		VectorNormalize( f->velDir );
+		dot = ( f->velDir * trace.plane.normal );
+		( f->velDir = f->velDir + trace.plane.normal * -1.3 * dot );
+		f->velDir.Normalize();
 		// subtract some speed
 		f->velSpeed *= 0.5 * ( 0.25 + 0.75 * ( ( dot + 1.0 ) * 0.5 ) );
 		if ( f->velSpeed > 20 ) {
@@ -747,9 +747,9 @@ void CG_MoveFlameChunk( flameChunk_t *f, int t ) {
 		// adjust size
 		//f->sizeMax = flameSettings.startMaxSize + ((/*1.0 -*/ (f->velSpeed / flameSettings.startSpeed)) * (flameSettings.maxSize - flameSettings.startMaxSize));
 		//f->sizeRate = FlameSizeSpeed(f->sizeMax);
-		VectorCopy( f->velDir, f->parentFwd );
+		( f->parentFwd = f->velDir );
 
-		VectorCopy( f->baseOrg, sOrg );
+		( sOrg = f->baseOrg );
 	}
 
 	CG_FlameCalcOrg( f, t, f->org );
@@ -761,8 +761,8 @@ void CG_MoveFlameChunk( flameChunk_t *f, int t ) {
 CG_AddFlameSpriteToScene
 ===============
 */
-static vec3_t vright, vup;
-static vec3_t rright, rup;
+static idVec3 vright, vup;
+static idVec3 rright, rup;
 
 static std::vector<qhandle_t> flameShaders;
 static std::vector<qhandle_t> nozzleShaders;
@@ -770,11 +770,11 @@ static std::vector<qhandle_t> nozzleShaders;
 #define MAX_CLIPPED_FLAMES  2       // dont draw more than this many per frame
 static int numClippedFlames;
 
-void CG_FlameDamage( int owner, vec3_t org, float radius ) {
+void CG_FlameDamage( int owner, idVec3 org, float radius ) {
 	centity_t   *cent;
 	int i;
 	trace_t tr;
-	static vec3_t lastPos;
+	static idVec3 lastPos;
 	static int lastTime;
 
 	if ( cg.time == lastTime ) {
@@ -783,7 +783,7 @@ void CG_FlameDamage( int owner, vec3_t org, float radius ) {
 		}
 	}
 	lastTime = cg.time;
-	VectorCopy( org, lastPos );
+	( lastPos = org );
 
 	// check for damage this flame is inflicting on something
 	if ( radius < 24 ) {
@@ -828,16 +828,16 @@ void CG_FlameDamage( int owner, vec3_t org, float radius ) {
 }
 
 void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
-	vec3_t point, p2, projVec, sProj;
+	idVec3 point, p2, projVec, sProj;
 	polyVert_t verts[4];
 	float radius, sdist, x;
 	int frameNum;
-	vec3_t vec, rotate_ang;
+	idVec3 vec, rotate_ang;
 	unsigned char alphaChar;
-	vec2_t fovRadius;
-	vec2_t rdist, rST;
+	idVec2 fovRadius;
+	idVec2 rdist, rST;
 	int rollAngleClamped;
-	static vec3_t lastPos;
+	static idVec3 lastPos;
 
 	CG_FlameDamage( f->ownerCent, f->org, f->size );
 
@@ -863,13 +863,13 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 
 	// find the projected distance from the eye to the projection of the flame origin
 	// onto the view direction vector
-	VectorMA( cg.refdef.vieworg, 1024, cg.refdef.viewaxis[0], p2 );
+	( p2 = cg.refdef.vieworg + cg.refdef.viewaxis[0] * 1024 );
 	ProjectPointOntoVector( f->org, cg.refdef.vieworg, p2, sProj );
 
 	// make sure its infront of us
-	VectorSubtract( sProj, cg.refdef.vieworg, vec );
-	sdist = VectorNormalize( vec );
-	if ( !sdist || DotProduct( vec, cg.refdef.viewaxis[0] ) < 0 ) {
+	( vec = sProj - cg.refdef.vieworg );
+	sdist = vec.Normalize();
+	if ( !sdist || ( vec * cg.refdef.viewaxis[0] ) < 0 ) {
 		return;
 	}
 
@@ -891,136 +891,136 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		if ( flameSettings.rotate ) {
 			vectoangles( cg.refdef.viewaxis[0], rotate_ang );
 			rotate_ang[ROLL] += ( rollAngleClamped = ( (int)( f->rollAngle ) / 90 ) * 90 );
-			AngleVectors( rotate_ang, NULL, rright, rup );
+			idAngles( rotate_ang ).ToVectors( NULL, &( rright ), &( rup ) );
 		} else {
-			VectorCopy( vright, rright );
-			VectorCopy( vup, rup );
+			( rright = vright );
+			( rup = vup );
 		}
 
-		VectorSubtract( sProj, f->org, projVec );
+		( projVec = sProj - f->org );
 
 		// find the distances from the sprite origin to the projection along the refdef axis
-		rdist[0] = -1.0 * DotProduct( rright, projVec );
-		rdist[1] = -1.0 * DotProduct( rup, projVec );
+		rdist[0] = -1.0 * ( rright * projVec );
+		rdist[1] = -1.0 * ( rup * projVec );
 
-		if ( fabs( rdist[0] ) > radius || fabs( rdist[1] ) > radius ) {
+		if ( idMath::Fabs( rdist[0] ) > radius || idMath::Fabs( rdist[1] ) > radius ) {
 			return; // completely off-screen
 
 		}
 		// now set the bounds for clipping
-		fovRadius[0] = tan( DEG2RAD( ( rollAngleClamped % 2 == 0 ? cg.refdef.fov_x : cg.refdef.fov_x ) * 0.52 ) ) * sdist;
-		fovRadius[1] = tan( DEG2RAD( ( rollAngleClamped % 2 == 0 ? cg.refdef.fov_x : cg.refdef.fov_x ) * 0.52 ) ) * sdist;
+		fovRadius[0] = idMath::Tan( DEG2RAD( ( rollAngleClamped % 2 == 0 ? cg.refdef.fov_x : cg.refdef.fov_x ) * 0.52 ) ) * sdist;
+		fovRadius[1] = idMath::Tan( DEG2RAD( ( rollAngleClamped % 2 == 0 ? cg.refdef.fov_x : cg.refdef.fov_x ) * 0.52 ) ) * sdist;
 
 		// BOTTOM LEFT
 		x = ( -radius + rdist[0] );
 		if ( x < -fovRadius[0] ) {    // clip
-			VectorMA( f->org, -radius + ( -fovRadius[0] - x ), rright, point );
+			( point = f->org + rright * -radius + ( -fovRadius[0] - x ) );
 			verts[0].st[0] = 0.0 + ( -fovRadius[0] - x ) / ( radius * 2 );
 		} else {
-			VectorMA( f->org, -radius, rright, point );
+			( point = f->org + rright * -radius );
 			verts[0].st[0] = 0.0;
 		}
 		x = ( -radius + rdist[1] );
 		if ( x < -fovRadius[1] ) {
-			VectorMA( point, -radius + ( -fovRadius[1] - x ), rup, point );
+			( point = point + rup * -radius + ( -fovRadius[1] - x ) );
 			verts[0].st[1] = 0.0 + ( -fovRadius[1] - x ) / ( radius * 2 );
 		} else {
-			VectorMA( point, -radius, rup, point );
+			( point = point + rup * -radius );
 			verts[0].st[1] = 0.0;
 		}
-		VectorCopy( point, verts[0].xyz );
+		( verts[0].xyz = point );
 
 		// TOP LEFT
 		x = ( -radius + rdist[0] );
 		if ( x < -fovRadius[0] ) {    // clip
-			VectorMA( f->org, -radius + ( -fovRadius[0] - x ), rright, point );
+			( point = f->org + rright * -radius + ( -fovRadius[0] - x ) );
 			verts[1].st[0] = 0.0 + ( -fovRadius[0] - x ) / ( radius * 2 );
 		} else {
-			VectorMA( f->org, -radius, rright, point );
+			( point = f->org + rright * -radius );
 			verts[1].st[0] = 0.0;
 		}
 		x = ( radius + rdist[1] );
 		if ( x > fovRadius[1] ) {
-			VectorMA( point, radius + ( fovRadius[1] - x ), rup, point );
+			( point = point + rup * radius + ( fovRadius[1] - x ) );
 			verts[1].st[1] = 1.0 + ( fovRadius[1] - x ) / ( radius * 2 );
 		} else {
-			VectorMA( point, radius, rup, point );
+			( point = point + rup * radius );
 			verts[1].st[1] = 1.0;
 		}
-		VectorCopy( point, verts[1].xyz );
+		( verts[1].xyz = point );
 
 		// TOP RIGHT
 		x = ( radius + rdist[0] );
 		if ( x > fovRadius[0] ) {
-			VectorMA( f->org, radius + ( fovRadius[0] - x ), rright, point );
+			( point = f->org + rright * radius + ( fovRadius[0] - x ) );
 			verts[2].st[0] = 1.0 + ( fovRadius[0] - x ) / ( radius * 2 );
 		} else {
-			VectorMA( f->org, radius, rright, point );
+			( point = f->org + rright * radius );
 			verts[2].st[0] = 1.0;
 		}
 		x = ( radius + rdist[1] );
 		if ( x > fovRadius[1] ) {
-			VectorMA( point, radius + ( fovRadius[1] - x ), rup, point );
+			( point = point + rup * radius + ( fovRadius[1] - x ) );
 			verts[2].st[1] = 1.0 + ( fovRadius[1] - x ) / ( radius * 2 );
 		} else {
-			VectorMA( point, radius, rup, point );
+			( point = point + rup * radius );
 			verts[2].st[1] = 1.0;
 		}
-		VectorCopy( point, verts[2].xyz );
+		( verts[2].xyz = point );
 
 		// BOTTOM RIGHT
 		x = ( radius + rdist[0] );
 		if ( x > fovRadius[0] ) {
-			VectorMA( f->org, radius + ( fovRadius[0] - x ), rright, point );
+			( point = f->org + rright * radius + ( fovRadius[0] - x ) );
 			verts[3].st[0] = 1.0 + ( fovRadius[0] - x ) / ( radius * 2 );
 		} else {
-			VectorMA( f->org, radius, rright, point );
+			( point = f->org + rright * radius );
 			verts[3].st[0] = 1.0;
 		}
 		x = ( -radius + rdist[1] );
 		if ( x < -fovRadius[1] ) {
-			VectorMA( point, -radius + ( -fovRadius[1] - x ), rup, point );
+			( point = point + rup * -radius + ( -fovRadius[1] - x ) );
 			verts[3].st[1] = 0.0 + ( -fovRadius[1] - x ) / ( radius * 2 );
 		} else {
-			VectorMA( point, -radius, rup, point );
+			( point = point + rup * -radius );
 			verts[3].st[1] = 0.0;
 		}
-		VectorCopy( point, verts[3].xyz );
+		( verts[3].xyz = point );
 
 	} else {    // set default values for no clipping
 
 		if ( flameSettings.rotate ) {
 			vectoangles( cg.refdef.viewaxis[0], rotate_ang );
 			rotate_ang[ROLL] += f->rollAngle;
-			AngleVectors( rotate_ang, NULL, rright, rup );
+			idAngles( rotate_ang ).ToVectors( NULL, &( rright ), &( rup ) );
 		} else {
-			VectorCopy( vright, rright );
-			VectorCopy( vup, rup );
+			( rright = vright );
+			( rup = vup );
 		}
 
-		VectorMA( f->org, -rST[1], rup, point );
-		VectorMA( point, -rST[0], rright, point );
-		VectorCopy( point, verts[0].xyz );
+		( point = f->org + rup * -rST[1] );
+		( point = point + rright * -rST[0] );
+		( verts[0].xyz = point );
 		verts[0].st[0] = 0;
 		verts[0].st[1] = 0;
 
-		VectorMA( point, rST[1] * 2, rup, point );
-		VectorCopy( point, verts[1].xyz );
+		( point = point + rup * rST[1] * 2 );
+		( verts[1].xyz = point );
 		verts[1].st[0] = 0;
 		verts[1].st[1] = 1;
 
-		VectorMA( point, rST[0] * 2, rright, point );
-		VectorCopy( point, verts[2].xyz );
+		( point = point + rright * rST[0] * 2 );
+		( verts[2].xyz = point );
 		verts[2].st[0] = 1;
 		verts[2].st[1] = 1;
 
-		VectorMA( point, -rST[1] * 2, rup, point );
-		VectorCopy( point, verts[3].xyz );
+		( point = point + rup * -rST[1] * 2 );
+		( verts[3].xyz = point );
 		verts[3].st[0] = 1;
 		verts[3].st[1] = 0;
 	}
 
-	frameNum = (int)floor( lifeFrac * static_cast<int>(flameShaders.size()) );
+	frameNum = (int)idMath::Floor( lifeFrac * static_cast<int>(flameShaders.size()) );
 	if ( frameNum < 0 ) {
 		frameNum = 0;
 	} else if ( frameNum > static_cast<int>(flameShaders.size()) - 1 )  {
@@ -1028,7 +1028,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 	}
 
 	trap_R_AddPolyToScene( flameShaders[frameNum], 4, verts );
-	VectorCopy( f->org, lastPos );
+	( lastPos = f->org );
 }
 
 /*
@@ -1039,8 +1039,8 @@ CG_AddFlameToScene
 void CG_AddFlameToScene( flameChunk_t *fHead ) {
 	flameChunk_t *f, *fNext;
 	int blueTrailHead = 0, fuelTrailHead = 0;
-	static vec3_t whiteColor = {1,1,1};
-	vec3_t c;
+	static idVec3 whiteColor(1,1,1);
+	idVec3 c;
 	float alpha;
 	float lived;
 	int headTimeStart;
@@ -1054,11 +1054,11 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 
 	flameChunk_t *lastBlueChunk = NULL;
 	qboolean skip = qfalse, droppedTrail;
-	vec3_t v, lastDrawPos;
+	idVec3 v, lastDrawPos;
 
 
 
-	vec3_t lightOrg;                // origin to place light at
+	idVec3 lightOrg;                // origin to place light at
 	float lightSize;
 	float lightFlameCount;
 
@@ -1084,12 +1084,12 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 	//	return;
 	//}
 
-	VectorClear( lightOrg );
+	lightOrg.Zero();
 	lightSize = 0;
 	lightFlameCount = 0;
 
 	lastFuelAlpha = 1.0;
-	VectorClear( lastDrawPos );
+	lastDrawPos.Zero();
 
 	f = fHead;
 	while ( f ) {
@@ -1108,7 +1108,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 		// update the "blow" sound volume (louder as we sway it)
 		vdist = Distance( cg.refdef.vieworg, f->org );  // NOTE: this needs to be here or the flameSound code further below won't work
 		if (    lastBlowChunk && ( centFlameStatus[f->ownerCent].blowVolume < 1.0 ) &&
-				( ( bdot = DotProduct( lastBlowChunk->startVelDir, f->startVelDir ) ) < 1.0 ) ) {
+				( ( bdot = ( lastBlowChunk->startVelDir * f->startVelDir ) ) < 1.0 ) ) {
 			if ( vdist < flameSettings.soundRange ) {
 				centFlameStatus[f->ownerCent].blowVolume += 500.0 * ( 1.0 - bdot ) * ( 1.0 - ( vdist / flameSettings.soundRange ) );
 				if ( centFlameStatus[f->ownerCent].blowVolume > 1.0 ) {
@@ -1118,7 +1118,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 		}
 		lastBlowChunk = f;
 
-		VectorMA( lightOrg, f->size / flameSettings.lightWeightSize, f->org, lightOrg );
+		( lightOrg = lightOrg + f->org * f->size / flameSettings.lightWeightSize );
 		lightSize += f->size;
 		lightFlameCount += f->size / flameSettings.lightWeightSize;
 
@@ -1136,10 +1136,10 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 
 			// if this is backwards from the last chunk, then skip it
 			if ( /*!f->ignitionOnly &&*/ fNext && f != fHead && lastBlueChunk ) {
-				VectorSubtract( f->org, lastBlueChunk->org, v );
-				if ( VectorNormalize( v ) < f->size / flameSettings.fuelWidthDivisor ) {
+				( v = f->org - lastBlueChunk->org );
+				if ( v.Normalize() < f->size / flameSettings.fuelWidthDivisor ) {
 					skip = qtrue;
-				} else if ( DotProduct( v, f->velDir ) < 0 ) {
+				} else if ( ( v * f->velDir ) < 0 ) {
 					skip = qtrue;
 				}
 			}
@@ -1163,7 +1163,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 				lastBlueChunk = f;
 
 				alpha = 1.0;    // new nozzle sprite
-				VectorScale( whiteColor, alpha, c );
+				( c = whiteColor * alpha );
 
 				if ( f->blueLife > lived * ( f->ignitionOnly ? 3.0 : 3.0 ) ) {
 
@@ -1203,7 +1203,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 					if ( !fskip ) {
 						lastFuelAlpha = alpha;
 
-						VectorScale( whiteColor, alpha, c );
+						( c = whiteColor * alpha );
 
 						droppedTrail = qtrue;
 
@@ -1223,15 +1223,15 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 
 			float spriteAlpha, lifeFrac;
 			qboolean skipMerge = qfalse;
-			vec3_t v1, v2;
+			idVec3 v1, v2;
 			float fDist, vDist;
 
 			// should we merge it with the next sprite?
 			while ( fNext && !droppedTrail ) {
 				if (    ( Distance( f->org, fNext->org ) < ( ( 0.2 + 0.8 * f->lifeFrac ) * f->size * ( isClientFlame ? 0.2 : 0.1 ) ) )
-						&&  ( fabs( f->size - fNext->size ) < ( 40.0 ) )
-						&&  ( fabs( f->timeStart - fNext->timeStart ) < 50 )
-						&&  ( DotProduct( f->velDir, fNext->velDir ) > 0.999 )
+						&&  ( idMath::Fabs( f->size - fNext->size ) < ( 40.0 ) )
+						&&  ( idMath::Fabs( f->timeStart - fNext->timeStart ) < 50 )
+						&&  ( ( f->velDir * fNext->velDir ) > 0.999 )
 						) {
 					if ( !droppedTrail ) {
 						CG_MergeFlameChunks( f, fNext );
@@ -1253,12 +1253,12 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 			}
 
 			// should we draw this sprite?
-			if ( !skipMerge && VectorLengthSquared( lastDrawPos ) ) {
-				VectorSubtract( cg.refdef.vieworg, lastDrawPos, v1 );
-				VectorSubtract( f->org, lastDrawPos, v2 );
-				fDist = VectorNormalize( v2 );
-				vDist = VectorNormalize( v1 );
-				if ( ( vDist / f->size ) * fDist * ( flameSettings.spriteCullBase + flameSettings.spriteCullWeight * ( 1.0 - fabs( DotProduct( v1, v2 ) ) ) ) < ( 2.0 * ( f->size / flameSettings.spriteCullSize < 1.0 ? f->size / flameSettings.spriteCullSize : 1.0 ) ) ) {
+			if ( !skipMerge && ( lastDrawPos.LengthSqr() ) ) {
+				( v1 = cg.refdef.vieworg - lastDrawPos );
+				( v2 = f->org - lastDrawPos );
+				fDist = v2.Normalize();
+				vDist = v1.Normalize();
+				if ( ( vDist / f->size ) * fDist * ( flameSettings.spriteCullBase + flameSettings.spriteCullWeight * ( 1.0 - idMath::Fabs( ( v1 * v2 ) ) ) ) < ( 2.0 * ( f->size / flameSettings.spriteCullSize < 1.0 ? f->size / flameSettings.spriteCullSize : 1.0 ) ) ) {
 					skipMerge = qtrue;
 				}
 			}
@@ -1266,7 +1266,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 			if ( !skipMerge ) {
 				// draw the sprite
 				CG_AddFlameSpriteToScene( f, lifeFrac, spriteAlpha );
-				VectorCopy( f->org, lastDrawPos );
+				( lastDrawPos = f->org );
 			}
 			// update the sizeRate
 			f->sizeRate = FlameSizeSpeed( f->sizeMax );
@@ -1285,14 +1285,14 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 	if ( lightSize > flameSettings.lightMax ) {
 		lightSize = flameSettings.lightMax;
 	}
-	lightSize *= 1.0 + flameSettings.lightFlicker * ( sin( cg.time / flameSettings.lightFlickerX ) * cos( cg.time / flameSettings.lightFlickerY ) );
+	lightSize *= 1.0 + flameSettings.lightFlicker * ( idMath::Sin( cg.time / flameSettings.lightFlickerX ) * idMath::Cos( cg.time / flameSettings.lightFlickerY ) );
 	// set the alpha
 	alpha = lightSize / flameSettings.lightMax;
 	if ( alpha > 1.0 ) {
 		alpha = 1.0;
 	}
 	if ( lightFlameCount <= 0 ) { return; }
-	VectorScale( lightOrg, 1.0 / lightFlameCount, lightOrg );
+	( lightOrg = lightOrg * 1.0 / lightFlameCount );
 	// if it's only a nozzle, make it blue
 	if ( fHead->ignitionOnly ) {
 		if ( lightSize > flameSettings.lightMin ) {
@@ -1329,8 +1329,8 @@ CG_FxBeginFlames
 ===============
 */
 void CG_FxBeginFlames( void ) {
-    VectorCopy( cg.refdef.viewaxis[1], vright );
-    VectorCopy( cg.refdef.viewaxis[2], vup );
+    ( vright = cg.refdef.viewaxis[1] );
+    ( vup = cg.refdef.viewaxis[2] );
     memset( centFlameStatus, 0, sizeof( centFlameStatus ) );
     numClippedFlames = 0;
 }
