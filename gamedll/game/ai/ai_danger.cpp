@@ -31,9 +31,9 @@ AICast_SafeMissileFire
   checks to see if firing the missile will be successful, neutral, or dangerous to us or a friendly
 ==============
 */
-int AICast_SafeMissileFire( gentity_t *ent, int duration, int enemyNum, vec3_t enemyPos, int selfNum, vec3_t endPos ) {
+int AICast_SafeMissileFire( gentity_t *ent, int duration, int enemyNum, const idVec3 &enemyPos, int selfNum, idVec3 *endPos ) {
 	int rval;
-	vec3_t org;
+	idVec3 org;
 	gentity_t *trav;
 
 	if ( !G_PredictMissile( ent, duration, org, qtrue ) ) {
@@ -42,7 +42,7 @@ int AICast_SafeMissileFire( gentity_t *ent, int duration, int enemyNum, vec3_t e
 	}
 
 	if ( endPos ) {
-		VectorCopy( org, endPos );
+		*endPos = org;
 	}
 
 	// at end of life, so do radius damage
@@ -93,7 +93,7 @@ AICast_CheckDangerousEntity
 */
 void AICast_CheckDangerousEntity( gentity_t *ent, int dangerFlags, float dangerDist, float tacticalLevel,
 								  float aggressionLevel, qboolean hurtFriendly ) {
-	vec3_t org, fwd, vec;
+	idVec3 org, fwd, vec;
 	cast_state_t *cs, *dcs;
 	gentity_t *trav;
 	int i, endTime;
@@ -108,10 +108,10 @@ void AICast_CheckDangerousEntity( gentity_t *ent, int dangerFlags, float dangerD
 	} else {
 		// just avoid it for a bit, then forget it
 		endTime = level.time + 1000;
-		VectorCopy( ent->r.currentOrigin, org );
+		org = ent->r.currentOrigin;
 	}
 	if ( dangerFlags & DANGER_CLIENTAIM ) {
-		AngleVectors( ent->client->ps.viewangles, fwd, NULL, NULL );
+		idAngles( ent->client->ps.viewangles ).ToVectors( &fwd, NULL, NULL );
 	}
 	//
 	if ( ent->client ) {
@@ -153,9 +153,9 @@ void AICast_CheckDangerousEntity( gentity_t *ent, int dangerFlags, float dangerD
 		}
 		// if they are below alert mode, and the danger is not in FOV, then ignore it
 		if ( cs->aiState < AISTATE_ALERT ) {
-			vec3_t ang, dir;
-			VectorSubtract( ent->r.currentOrigin, cs->clientState->origin, dir );
-			VectorNormalize( dir );
+			idVec3 ang, dir;
+			dir = ent->r.currentOrigin - cs->clientState->origin;
+			dir.Normalize();
 			vectoangles( dir, ang );
 			if ( !AICast_InFieldOfVision( cs->viewangles, cs->attributes[FOV], ang ) ) {
 				// can't see it
@@ -169,12 +169,12 @@ void AICast_CheckDangerousEntity( gentity_t *ent, int dangerFlags, float dangerD
 		}
 		// are they in danger?
 		if ( cs->dangerEntityValidTime < level.time + 50 ) {
-			VectorSubtract( cs->clientState->cur_ps.origin, org, vec );
-			dist = VectorLength( vec );
+			vec = cs->clientState->cur_ps.origin - org;
+			dist = vec.Length();
 			if ( dist < dangerDist ) {
 				if ( dangerFlags & DANGER_CLIENTAIM ) {
 					// also check aiming
-					if ( DotProduct( vec, fwd ) < ( dist * 0.95 - 100 ) ) {
+					if ( ( vec * fwd ) < ( dist * 0.95 - 100 ) ) {
 						continue;
 					}
 				}
@@ -185,7 +185,7 @@ void AICast_CheckDangerousEntity( gentity_t *ent, int dangerFlags, float dangerD
 					continue;
 				}
 				cs->dangerEntity = ent->s.number;
-				VectorCopy( org, cs->dangerEntityPos );
+				cs->dangerEntityPos = org;
 				cs->dangerEntityValidTime = endTime + 50;
 				cs->dangerDist = dangerDist * 1.5; // when we hide from it, get a good distance away
 				cs->dangerEntityTimestamp = level.time;

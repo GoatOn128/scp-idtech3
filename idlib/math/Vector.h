@@ -1949,6 +1949,18 @@ ID_INLINE void ProjectPointOntoVector( const idVec3 &point, const idVec3 &lineSt
 	dst = lineStart + dir * ( ( point - lineStart ) * dir / ( dir * dir ) );
 }
 
+// ported from the old q3 mathlib
+ID_INLINE float Distance( const idVec3 &p1, const idVec3 &p2 ) {
+	idVec3 v = p2 - p1;
+	return v.Length();
+}
+
+// ported from the old q3 mathlib
+ID_INLINE float DistanceSquared( const idVec3 &p1, const idVec3 &p2 ) {
+	idVec3 v = p2 - p1;
+	return v.LengthSqr();
+}
+
 ID_INLINE void SnapVector( idVec3 &v ) {
 	v.Snap();
 }
