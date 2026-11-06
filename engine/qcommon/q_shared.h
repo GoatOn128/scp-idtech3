@@ -47,9 +47,6 @@ If you have questions concerning this license or the applicable additional terms
 #define idppc 1
 #endif
 
-// idlib provides the shared math, container, string and parser library
-#include "precompiled.h"
-
 // this is the define for determining if we have an asm version of a C function
 #if ( defined _M_IX86 || defined __i386__ ) && !defined __sun__  && !defined __LCC__
 #define id386   1
@@ -189,11 +186,6 @@ MATHLIB
 ==============================================================
 */
 
-
-typedef int fixed4_t;
-typedef int fixed8_t;
-typedef int fixed16_t;
-
 // all drawing is done to a 640*480 virtual screen size
 // and will be automatically scaled to the real resolution
 #define SCREEN_WIDTH        640
@@ -211,32 +203,9 @@ typedef int fixed16_t;
 #define GIANTCHAR_WIDTH     32
 #define GIANTCHAR_HEIGHT    48
 
-#define nanmask ( 255 << 23 )
-#define IS_NAN( x ) ( ( ( *(int *)&x ) & nanmask ) == nanmask )
 
-// TTimo
-// handy stuff when tracking isnan problems
-#ifndef NDEBUG
-#define CHECK_NAN( x ) assert( !IS_NAN( x ) )
-#define CHECK_NAN_VEC( v ) assert( !IS_NAN( v[0] ) && !IS_NAN( v[1] ) && !IS_NAN( v[2] ) )
-#else
-#define CHECK_NAN
-#define CHECK_NAN_VEC
-#endif
-
-
-// engine-specific helpers that have no idlib equivalent, implemented in q_shared.cpp
-void SetPlaneSignbits( struct cplane_s *out );
-int BoxOnPlaneSide( const idVec3 &emins, const idVec3 &emaxs, struct cplane_s *plane );
-
-// bit field helpers for arrays wider than 32 bits, implemented in q_shared.cpp
-void COM_BitSet( int array[], int bitNum );
-void COM_BitClear( int array[], int bitNum );
-qboolean COM_BitCheck( const int array[], int bitNum );
-
-// engine string helpers
+// engine string helper
 void QDECL Com_sprintf( char *dest, int size, const char *fmt, ... );
-char * QDECL va( char *format, ... );
 
 // mode parm for FS_FOpenFile
 typedef enum {
@@ -254,41 +223,9 @@ typedef enum {
 
 //=============================================
 
-int Q_isprint( int c );
-int Q_islower( int c );
-int Q_isupper( int c );
-int Q_isalpha( int c );
-int Q_isnumeric( int c );       //----(SA)	added
-int Q_isalphanumeric( int c );  //----(SA)	added
-int Q_isforfilename( int c );       //----(SA)	added
-
-// portable case insensitive compare
-#ifdef _WIN32
-#define Q_putenv _putenv
-#else
-#define Q_putenv putenv
-#endif
-
-// MSVC-only case-insensitive compare names used by the game modules;
-// map them to the POSIX functions on every other platform
-#if !defined( _WIN32 )
-#include <strings.h>
-#define stricmp strcasecmp
-#define strnicmp strncasecmp
-#define strcmpi strcasecmp
-#define _stricmp strcasecmp
-#define _strnicmp strncasecmp
-#endif
-
-// strlen that discounts Quake color sequences
-int Q_PrintStrlen( const char *string );
-// removes color sequences from string
-char *Q_CleanStr( char *string );
 //=============================================
 
 //=============================================
-
-char    * QDECL va( char *format, ... );
 
 //=============================================
 
@@ -504,9 +441,6 @@ typedef enum {
 ========================================================================
 */
 #define ANIM_BITS       10
-
-#define ANGLE2SHORT( x )  ( (int)( ( x ) * 65536 / 360 ) & 65535 )
-#define SHORT2ANGLE( x )  ( ( x ) * ( 360.0 / 65536 ) )
 
 #define SNAPFLAG_RATE_DELAYED   1
 #define SNAPFLAG_NOT_ACTIVE     2   // snapshot used during connection and for zombies

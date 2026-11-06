@@ -38,6 +38,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 
@@ -326,7 +328,7 @@ void Add_Ammo( gentity_t *ent, int weapon, int count, qboolean fillClip ) {
 	case WP_GRENADE_LAUNCHER:       // make sure if he picks up a grenade that he get's the "launcher" too
 	case WP_GRENADE_PINEAPPLE:
 	case WP_DYNAMITE:
-		COM_BitSet( ent->client->ps.weapons, ammoweap );
+		idBitField::Set( ent->client->ps.weapons, ammoweap );
 
 	case WP_TESLA:
 	case WP_FLAMETHROWER:
@@ -415,8 +417,8 @@ int Pickup_Weapon( gentity_t *ent, gentity_t *other ) {
 		} else {
 //----(SA) modified
 //			quantity = ent->item->quantity;
-//			quantity = (random() * (ent->item->quantity - 1)) + 1;	// giving 1-<item default count>
-			quantity = ( random() * ( ammoTable[weapon].maxclip - 4 ) ) + 4;    // giving 4-<item default count>
+//			quantity = (gameRandom.RandomFloat() * (ent->item->quantity - 1)) + 1;	// giving 1-<item default count>
+			quantity = ( gameRandom.RandomFloat() * ( ammoTable[weapon].maxclip - 4 ) ) + 4;    // giving 4-<item default count>
 
 		}
 
@@ -437,32 +439,32 @@ int Pickup_Weapon( gentity_t *ent, gentity_t *other ) {
 	//----(SA)	added
 	// check for special colt->akimbo add (if you've got a colt already, add the second now)
 	if ( weapon == WP_COLT ) {
-		if ( COM_BitCheck( other->client->ps.weapons, WP_COLT ) ) {
+		if ( idBitField::Test( other->client->ps.weapons, WP_COLT ) ) {
 			weapon = WP_AKIMBO;
 		}
 	}
 //----(SA)	end
 
 	// check if player already had the weapon
-	alreadyHave = COM_BitCheck( other->client->ps.weapons, weapon );
+	alreadyHave = idBitField::Test( other->client->ps.weapons, weapon );
 
 	// add the weapon
-	COM_BitSet( other->client->ps.weapons, weapon );
+	idBitField::Set( other->client->ps.weapons, weapon );
 
 //----(SA)	added
 	// snooper/garand
 	if ( weapon == WP_SNOOPERSCOPE ) {
-		COM_BitSet( other->client->ps.weapons, WP_GARAND );
+		idBitField::Set( other->client->ps.weapons, WP_GARAND );
 	} else if ( weapon == WP_GARAND ) {
-		COM_BitSet( other->client->ps.weapons, WP_SNOOPERSCOPE );
+		idBitField::Set( other->client->ps.weapons, WP_SNOOPERSCOPE );
 	}
 	// fg42/scope
 	else if ( weapon == WP_FG42SCOPE ) {
-		COM_BitSet( other->client->ps.weapons, WP_FG42 );
+		idBitField::Set( other->client->ps.weapons, WP_FG42 );
 	} else if ( weapon == WP_FG42 ) {
-		COM_BitSet( other->client->ps.weapons, WP_FG42SCOPE );
+		idBitField::Set( other->client->ps.weapons, WP_FG42SCOPE );
 	} else if ( weapon == WP_SNIPERRIFLE ) {
-		COM_BitSet( other->client->ps.weapons, WP_MAUSER );
+		idBitField::Set( other->client->ps.weapons, WP_MAUSER );
 	}
 
 //----(SA)	end
@@ -785,7 +787,7 @@ void Touch_Item( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 
 	// random can be used to vary the respawn time
 	if ( ent->random ) {
-		respawn += crandom() * ent->random;
+		respawn += gameRandom.CRandomFloat() * ent->random;
 		if ( respawn < 1 ) {
 			respawn = 1;
 		}
@@ -896,7 +898,7 @@ gentity_t *Drop_Item( gentity_t *ent, gitem_t *item, float angle, qboolean novel
 	{
 		idAngles( angles ).ToVectors( &velocity, NULL, NULL );
 		velocity = velocity * 150;
-		velocity[2] += 200 + crandom() * 50;
+		velocity[2] += 200 + gameRandom.CRandomFloat() * 50;
 	}
 
 	return LaunchItem( item, ent->s.pos.trBase, velocity );
@@ -967,7 +969,7 @@ void FinishSpawningItem( gentity_t *ent ) {
 		ent->touch = Touch_Item;    // no auto-pickup, only activate
 	} else if ( ent->item->giType == IT_HOLDABLE )      {
 		if ( ent->item->giTag >= HI_BOOK1 && ent->item->giTag <= HI_BOOK3 ) {
-			G_FindConfigstringIndex( va( "hbook%d", ent->item->giTag - HI_BOOK1 ), CS_CLIPBOARDS, MAX_CLIPBOARD_CONFIGSTRINGS, qtrue );
+			G_FindConfigstringIndex( idStr::FormatString( "hbook%d", ent->item->giTag - HI_BOOK1 ), CS_CLIPBOARDS, MAX_CLIPBOARD_CONFIGSTRINGS, qtrue );
 		}
 //		ent->touch = Touch_Item;	// no auto-pickup, only activate
 	}
@@ -1045,7 +1047,7 @@ void FinishSpawningItem( gentity_t *ent ) {
 	if ( ent->item->giType == IT_POWERUP && g_gametype.integer != GT_SINGLE_PLAYER ) {
 		float respawn;
 
-		respawn = 45 + crandom() * 15;
+		respawn = 45 + gameRandom.CRandomFloat() * 15;
 		ent->flags |= FL_NODRAW;
 		//ent->s.eFlags |= EF_NODRAW;
 		ent->r.contents = 0;
@@ -1218,7 +1220,7 @@ void G_BounceItem( gentity_t *ent, trace_t *trace ) {
 	// check for stop
 	if ( trace->plane.normal[2] > 0 && ent->s.pos.trDelta[2] < 40 ) {
 		trace->endpos[2] += 1.0;    // make sure it is off ground
-		SnapVector( trace->endpos );
+		trace->endpos.Snap();
 		G_SetOrigin( ent, trace->endpos );
 		ent->s.groundEntityNum = trace->entityNum;
 		return;
@@ -1345,4 +1347,3 @@ void G_RunItem( gentity_t *ent ) {
 
 	G_BounceItem( ent, &tr );
 }
-

@@ -26,8 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-#include "cm_local.h"
+#include "precompiled.h"
+#pragma hdrstop
 
+#include "cm_local.h"
 
 /*
 ==================
@@ -159,7 +161,7 @@ void CM_BoxLeafnums_r( leafList_t *ll, int nodenum ) {
 
 		node = &cm.nodes[nodenum];
 		plane = node->plane;
-		s = BoxOnPlaneSide( ll->bounds[0], ll->bounds[1], plane );
+		s = idPlane( plane->normal, plane->dist ).BoxOnSide( ll->bounds[0], ll->bounds[1] );
 		if ( s == 1 ) {
 			nodenum = node->children[0];
 		} else if ( s == 2 ) {
@@ -483,4 +485,3 @@ int CM_WriteAreaBits( byte *buffer, int area ) {
 
 	return bytes;
 }
-

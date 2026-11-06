@@ -28,8 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // common.c -- misc functions used in client and server
 
-#include "q_shared.h"
-#include "qcommon.h"
+#include "precompiled.h"
+#pragma hdrstop
+
 #include <setjmp.h>
 
 #define MAXPRINTMSG 4096
@@ -306,7 +307,7 @@ void QDECL Com_Error( int code, const char *fmt, ... ) {
 		longjmp( abortframe, -1 );
 	} else if ( code == ERR_DROP || code == ERR_DISCONNECT ) {
 		Com_Printf( "********************\nERROR: %s\n********************\n", com_errorMessage );
-		SV_Shutdown( va( "Server crashed: %s\n",  com_errorMessage ) );
+		SV_Shutdown( idStr::FormatString( "Server crashed: %s\n",  com_errorMessage ) );
 		CL_Disconnect( qtrue );
 		CL_FlushMemory();
 		com_errorEntered = qfalse;
@@ -324,7 +325,7 @@ void QDECL Com_Error( int code, const char *fmt, ... ) {
 		longjmp( abortframe, -1 );
 	} else {
 		CL_Shutdown();
-		SV_Shutdown( va( "Server fatal crashed: %s\n", com_errorMessage ) );
+		SV_Shutdown( idStr::FormatString( "Server fatal crashed: %s\n", com_errorMessage ) );
 	}
 
 	Com_Shutdown();
@@ -905,7 +906,7 @@ sysEvent_t  Com_GetEvent( void ) {
 Com_RunAndTimeServerPacket
 =================
 */
-void Com_RunAndTimeServerPacket( netadr_t *evFrom, msg_t *buf ) {
+void Com_RunAndTimeServerPacket( netadr_t *evFrom, idBitMsg *buf ) {
 	int t1, t2, msec;
 
 	t1 = 0;
@@ -936,9 +937,9 @@ int Com_EventLoop( void ) {
 	sysEvent_t ev;
 	netadr_t evFrom;
 	byte bufData[MAX_MSGLEN];
-	msg_t buf;
+	idBitMsg buf;
 
-	MSG_Init( &buf, bufData, sizeof( bufData ) );
+	buf.InitWrite( bufData, sizeof( bufData  ) );
 
 	while ( 1 ) {
 		ev = Com_GetEvent();
@@ -997,17 +998,17 @@ int Com_EventLoop( void ) {
 			}
 
 			evFrom = *(netadr_t *)ev.evPtr;
-			buf.cursize = ev.evPtrLength - sizeof( evFrom );
+			buf.GetSize() = ev.evPtrLength - sizeof( evFrom );
 
 			// we must copy the contents of the message out, because
 			// the event buffers are only large enough to hold the
 			// exact payload, but channel messages need to be large
 			// enough to hold fragment reassembly
-			if ( (unsigned)buf.cursize > buf.maxsize ) {
+			if ( (unsigned)buf.GetSize() > buf.GetMaxSize() ) {
 				Com_Printf( "Com_EventLoop: oversize packet\n" );
 				continue;
 			}
-			memcpy( buf.data, ( byte * )( (netadr_t *)ev.evPtr + 1 ), buf.cursize );
+			memcpy( buf.data, ( byte * )( (netadr_t *)ev.evPtr + 1 ), buf.GetSize() );
 			if ( com_sv_running->integer ) {
 				Com_RunAndTimeServerPacket( &evFrom, &buf );
 			} else {
@@ -1261,7 +1262,7 @@ Com_Init
 =================
 */
 void Com_Init( char *commandLine ) {
-	char    *s;
+	idStr s;
 
 	Com_Printf( "%s %s %s\n", Q3_VERSION, CPUSTRING, __DATE__ );
 
@@ -1372,10 +1373,9 @@ void Com_Init( char *commandLine ) {
 		Cmd_AddCommand( "freeze", Com_Freeze_f );
 	}
 	Cmd_AddCommand( "quit", Com_Quit_f );
-	Cmd_AddCommand( "changeVectors", MSG_ReportChangeVectors_f );
 	Cmd_AddCommand( "writeconfig", Com_WriteConfig_f );
 
-	s = va( "%s %s %s", Q3_VERSION, CPUSTRING, __DATE__ );
+	s = idStr::FormatString( "%s %s %s", Q3_VERSION, CPUSTRING, __DATE__ );
 	com_version = Cvar_Get( "version", s, CVAR_ROM | CVAR_SERVERINFO );
 
 	Sys_Init();
@@ -1907,4 +1907,3 @@ void Field_CompleteCommand( field_t *field ) {
 	Cmd_CommandCompletion( PrintMatches );
 	Cvar_CommandCompletion( PrintMatches );
 }
-

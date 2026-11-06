@@ -27,6 +27,21 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 #include "precompiled.h"
+#include "Huffman.h"
+
+static idHuffman bitMsgHuffman;
+
+static void InitBitMsgHuffman() {
+	static bool initialized = false;
+	if ( initialized ) return;
+	initialized = true;
+	static const int frequencies[256] = { 250315, 41193, 6292, 7106, 3730, 3750, 6110, 23283, 33317, 6950, 7838, 9714, 9257, 17259, 3949, 1778, 8288, 1604, 1590, 1663, 1100, 1213, 1238, 1134, 1749, 1059, 1246, 1149, 1273, 4486, 2805, 3472, 21819, 1159, 1670, 1066, 1043, 1012, 1053, 1070, 1726, 888, 1180, 850, 960, 780, 1752, 3296, 10630, 4514, 5881, 2685, 4650, 3837, 2093, 1867, 2584, 1949, 1972, 940, 1134, 1788, 1670, 1206, 5719, 6128, 7222, 6654, 3710, 3795, 1492, 1524, 2215, 1140, 1355, 971, 2180, 1248, 1328, 1195, 1770, 1078, 1264, 1266, 1168, 965, 1155, 1186, 1347, 1228, 1529, 1600, 2617, 2048, 2546, 3275, 2410, 3585, 2504, 2800, 2675, 6146, 3663, 2840, 14253, 3164, 2221, 1687, 3208, 2739, 3512, 4796, 4091, 3515, 5288, 4016, 7937, 6031, 5360, 3924, 4892, 3743, 4566, 4807, 5852, 6400, 6225, 8291, 23243, 7838, 7073, 8935, 5437, 4483, 3641, 5256, 5312, 5328, 5370, 3492, 2458, 1694, 1821, 2121, 1916, 1149, 1516, 1367, 1236, 1029, 1258, 1104, 1245, 1006, 1149, 1025, 1241, 952, 1287, 997, 1713, 1009, 1187, 879, 1099, 929, 1078, 951, 1656, 930, 1153, 1030, 1262, 1062, 1214, 1060, 1621, 930, 1106, 912, 1034, 892, 1158, 990, 1175, 850, 1121, 903, 1087, 920, 1144, 1056, 3462, 2240, 4397, 12136, 7758, 1345, 1307, 3278, 1950, 886, 1023, 1112, 1077, 1042, 1061, 1071, 1484, 1001, 1096, 915, 1052, 995, 1070, 876, 1111, 851, 1059, 805, 1112, 923, 1103, 817, 1899, 1872, 976, 841, 1127, 956, 1159, 950, 7791, 954, 1289, 933, 1127, 3207, 1020, 927, 1355, 768, 1040, 745, 952, 805, 1073, 740, 1013, 805, 1008, 796, 996, 1057, 11457, 13504 };
+	bitMsgHuffman.Init();
+	for ( int i = 0; i < 256; ++i ) for ( int j = 0; j < frequencies[i]; ++j ) {
+		bitMsgHuffman.AddRef( static_cast<byte>( i ) );
+		bitMsgHuffman.DecodeAddRef( static_cast<byte>( i ) );
+	}
+}
 
 /*
 ================================================================================================
@@ -99,6 +114,7 @@ If the number of bits is negative a sign is included.
 ========================
 */
 void idBitMsg::WriteBits( int value, int numBits ) {
+	InitBitMsgHuffman();
 	if ( !writeData ) {
 		idLib::FatalError( "idBitMsg::WriteBits: cannot write to message" );
 	}
@@ -137,27 +153,40 @@ void idBitMsg::WriteBits( int value, int numBits ) {
 		numBits = -numBits;
 	}
 
+	if ( oob ) {
+		WriteByteAlign();
+		if ( numBits == 8 ) {
+			writeData[curSize++] = static_cast<byte>( value );
+		} else if ( numBits == 16 ) {
+			const uint16 v = LittleShort( static_cast<uint16>( value ) );
+			memcpy( writeData + curSize, &v, sizeof( v ) );
+			curSize += sizeof( v );
+		} else if ( numBits == 32 ) {
+			const uint32 v = LittleLong( static_cast<uint32>( value ) );
+			memcpy( writeData + curSize, &v, sizeof( v ) );
+			curSize += sizeof( v );
+		} else {
+			idLib::FatalError( "idBitMsg: OOB write of %d bits", numBits );
+		}
+		return;
+	}
+
 	// check for msg overflow
 	if ( CheckOverflow( numBits ) ) {
 		return;
 	}
 
-	// Merge value with possible previous leftover
-	tempValue |= (((int64)value) & maskForNumBits64[numBits] ) << writeBit;
-	
-	writeBit += numBits;
-	
-	// Flush 8 bits (1 byte) at a time
-	while ( writeBit >= 8 ) {
-		writeData[curSize++] = tempValue & 255;
-		tempValue >>= 8;
-		writeBit -= 8;
+	value &= maskForNumBits64[numBits];
+	const int literalBits = numBits & 7;
+	for ( int i = 0; i < literalBits; ++i ) {
+		idHuffman::PutBit( value & 1, writeData, &huffWriteBit );
+		value >>= 1;
 	}
-	
-	// Write leftover now, in case this is the last WriteBits call
-	if ( writeBit > 0 ) {
-		writeData[curSize] = tempValue & 255;
+	for ( int i = literalBits; i < numBits; i += 8 ) {
+		bitMsgHuffman.OffsetTransmit( value & 255, writeData, &huffWriteBit );
+		value >>= 8;
 	}
+	curSize = ( huffWriteBit >> 3 ) + 1;
 }
 
 /*
@@ -167,32 +196,17 @@ idBitMsg::WriteString
 */
 void idBitMsg::WriteString( const char * s, int maxLength, bool make7Bit ) {
 	if ( !s ) {
-		WriteData( "", 1 );
+		WriteByte( 0 );
 	} else {
-		int i, l;
-		byte *dataPtr;
-		const byte *bytePtr;
-
-		l = idStr::Length( s );
+		int l = idStr::Length( s );
 		if ( maxLength >= 0 && l >= maxLength ) {
 			l = maxLength - 1;
 		}
-		dataPtr = GetByteSpace( l + 1 );
-		bytePtr = reinterpret_cast< const byte * >( s );
-		if ( make7Bit ) {
-			for ( i = 0; i < l; i++ ) {
-				if ( bytePtr[i] > 127 ) {
-					dataPtr[i] = '.';
-				} else {
-					dataPtr[i] = bytePtr[i];
-				}
-			}
-		} else {
-			for ( i = 0; i < l; i++ ) {
-				dataPtr[i] = bytePtr[i];
-			}
+		for ( int i = 0; i < l; i++ ) {
+			const byte c = static_cast<byte>( s[i] );
+			WriteByte( make7Bit && c > 127 ? '.' : c );
 		}
-		dataPtr[i] = '\0';
+		WriteByte( 0 );
 	}
 }
 
@@ -202,7 +216,14 @@ idBitMsg::WriteData
 ========================
 */
 void idBitMsg::WriteData( const void *data, int length ) {
-	memcpy( GetByteSpace( length ), data, length );
+	if ( oob ) {
+		memcpy( GetByteSpace( length ), data, length );
+		return;
+	}
+	const byte *bytes = static_cast<const byte *>( data );
+	for ( int i = 0; i < length; ++i ) {
+		WriteByte( bytes[i] );
+	}
 }
 
 /*
@@ -265,10 +286,8 @@ If the number of bits is negative a sign is included.
 ========================
 */
 int idBitMsg::ReadBits( int numBits ) const {
+	InitBitMsgHuffman();
 	int		value;
-	int		valueBits;
-	int		get;
-	int		fraction;
 	bool	sgn;
 
 	if ( !readData ) {
@@ -281,7 +300,6 @@ int idBitMsg::ReadBits( int numBits ) const {
 	}
 
 	value = 0;
-	valueBits = 0;
 
 	if ( numBits < 0 ) {
 		numBits = -numBits;
@@ -290,26 +308,37 @@ int idBitMsg::ReadBits( int numBits ) const {
 		sgn = false;
 	}
 
-	// check for overflow
-	if ( numBits > GetRemainingReadBits() ) {
-		return -1;
-	}
-
-	while ( valueBits < numBits ) {
-		if ( readBit == 0 ) {
-			readCount++;
+	if ( oob ) {
+		ReadByteAlign();
+		if ( numBits == 8 ) {
+			value = readData[readCount++];
+		} else if ( numBits == 16 ) {
+			uint16 v;
+			memcpy( &v, readData + readCount, sizeof( v ) );
+			readCount += sizeof( v );
+			value = LittleShort( v );
+		} else if ( numBits == 32 ) {
+			uint32 v;
+			memcpy( &v, readData + readCount, sizeof( v ) );
+			readCount += sizeof( v );
+			value = LittleLong( v );
+		} else {
+			idLib::FatalError( "idBitMsg: OOB read of %d bits", numBits );
 		}
-		get = 8 - readBit;
-		if ( get > (numBits - valueBits) ) {
-			get = (numBits - valueBits);
+	} else {
+		if ( numBits > ( ( curSize << 3 ) - huffReadBit ) ) {
+			return -1;
 		}
-		fraction = readData[readCount - 1];
-		fraction >>= readBit;
-		fraction &= ( 1 << get ) - 1;
-		value |= fraction << valueBits;
-
-		valueBits += get;
-		readBit = ( readBit + get ) & 7;
+		const int literalBits = numBits & 7;
+		for ( int i = 0; i < literalBits; ++i ) {
+			value |= idHuffman::GetBit( const_cast<byte *>( readData ), &huffReadBit ) << i;
+		}
+		for ( int i = literalBits; i < numBits; i += 8 ) {
+			int decoded;
+			bitMsgHuffman.OffsetReceive( &decoded, const_cast<byte *>( readData ), &huffReadBit );
+			value |= decoded << i;
+		}
+		readCount = ( huffReadBit >> 3 ) + 1;
 	}
 
 	if ( sgn ) {
@@ -327,17 +356,18 @@ idBitMsg::ReadString
 ========================
 */
 int idBitMsg::ReadString( char * buffer, int bufferSize ) const {
-	int	l, c;
-	
-	ReadByteAlign();
-	l = 0;
-	while( 1 ) {
+	int l = 0;
+	int c;
+	while ( 1 ) {
 		c = ReadByte();
 		if ( c <= 0 || c >= 255 ) {
 			break;
 		}
 		// translate all fmt spec to avoid crash bugs in string routines
 		if ( c == '%' ) {
+			c = '.';
+		}
+		if ( c > 127 ) {
 			c = '.';
 		}
 
@@ -360,21 +390,26 @@ idBitMsg::ReadString
 ========================
 */
 int idBitMsg::ReadString( idStr & str ) const {
-	ReadByteAlign();
+	char buffer[8192];
+	const int length = ReadString( buffer, sizeof( buffer ) );
+	str = buffer;
+	return length;
+}
 
-	int cnt = 0;
-	for ( int i = readCount; i < curSize; i++ ) {
-		if ( readData[i] == 0 ) {
-			break;
-		}
-		cnt++;
+const char *idBitMsg::ReadString() const {
+	ReadString( stringBuffer, sizeof( stringBuffer ) );
+	return stringBuffer;
+}
+
+const char *idBitMsg::ReadStringLine() const {
+	int length = 0;
+	while ( length < static_cast<int>( sizeof( stringBuffer ) ) - 1 ) {
+		const int c = ReadByte();
+		if ( c < 0 || c == 0 || c == '\n' ) break;
+		stringBuffer[length++] = c == '%' ? '.' : static_cast<char>( c );
 	}
-
-	str.Clear();
-	str.Append( (const char *)readData + readCount, cnt );
-	readCount += cnt + 1;
-
-	return str.Length();
+	stringBuffer[length] = '\0';
+	return stringBuffer;
 }
 
 /*
@@ -383,24 +418,21 @@ idBitMsg::ReadData
 ========================
 */
 int idBitMsg::ReadData( void *data, int length ) const {
-	int cnt;
-
-	ReadByteAlign();
-	cnt = readCount;
-
-	if ( readCount + length > curSize ) {
-		if ( data ) {
-			memcpy( data, readData + readCount, GetRemainingData() );
-		}
-		readCount = curSize;
-	} else {
-		if ( data ) {
-			memcpy( data, readData + readCount, length );
-		}
-		readCount += length;
+	if ( oob ) {
+		ReadByteAlign();
+		const int available = curSize > readCount ? curSize - readCount : 0;
+		const int count = length < available ? length : available;
+		if ( data && count > 0 ) memcpy( data, readData + readCount, count );
+		readCount += count;
+		return count;
 	}
-
-	return ( readCount - cnt );
+	byte *bytes = static_cast<byte *>( data );
+	for ( int i = 0; i < length; ++i ) {
+		const int c = ReadByte();
+		if ( c < 0 ) return i;
+		if ( bytes ) bytes[i] = static_cast<byte>( c );
+	}
+	return length;
 }
 
 /*

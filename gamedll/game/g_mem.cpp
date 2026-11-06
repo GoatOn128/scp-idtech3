@@ -31,6 +31,8 @@ If you have questions concerning this license or the applicable additional terms
 //
 
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 // Ridah, increased this (fixes Dan's crash)

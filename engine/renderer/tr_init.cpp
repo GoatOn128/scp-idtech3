@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_init.c -- functions that are not called every frame
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "tr_renderprog.h"
 
@@ -248,16 +250,16 @@ static void AssertCvarRange( cvar_t *cv, float minVal, float maxVal, qboolean sh
 	if ( shouldBeIntegral ) {
 		if ( ( int ) cv->value != cv->integer ) {
 			ri.Printf( PRINT_WARNING, "WARNING: cvar '%s' must be integral (%f)\n", cv->name, cv->value );
-			ri.Cvar_Set( cv->name, va( "%d", cv->integer ) );
+			ri.Cvar_Set( cv->name, idStr::FormatString( "%d", cv->integer ) );
 		}
 	}
 
 	if ( cv->value < minVal ) {
 		ri.Printf( PRINT_WARNING, "WARNING: cvar '%s' out of range (%f < %f)\n", cv->name, cv->value, minVal );
-		ri.Cvar_Set( cv->name, va( "%f", minVal ) );
+		ri.Cvar_Set( cv->name, idStr::FormatString( "%f", minVal ) );
 	} else if ( cv->value > maxVal )   {
 		ri.Printf( PRINT_WARNING, "WARNING: cvar '%s' out of range (%f > %f)\n", cv->name, cv->value, maxVal );
-		ri.Cvar_Set( cv->name, va( "%f", maxVal ) );
+		ri.Cvar_Set( cv->name, idStr::FormatString( "%f", maxVal ) );
 	}
 }
 
@@ -791,7 +793,7 @@ void GL_SetDefaultState( void ) {
 #endif
 		// cap if necessary
 		if ( r_ati_truform_tess->value > maxtess ) {
-			ri.Cvar_Set( "r_ati_truform_tess", va( "%d", maxtess ) );
+			ri.Cvar_Set( "r_ati_truform_tess", idStr::FormatString( "%d", maxtess ) );
 		}
 
 		// set Wolf defaults
@@ -1116,8 +1118,8 @@ void R_Register( void ) {
 	r_shadows = ri.Cvar_Get( "cg_shadows", "1", 0 );
 	r_portalsky = ri.Cvar_Get( "cg_skybox", "1", 0 );
 
-	r_maxpolys = ri.Cvar_Get( "r_maxpolys", va( "%d", MAX_POLYS ), 0 );
-	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", va( "%d", MAX_POLYVERTS ), 0 );
+	r_maxpolys = ri.Cvar_Get( "r_maxpolys", idStr::FormatString( "%d", MAX_POLYS ), 0 );
+	r_maxpolyverts = ri.Cvar_Get( "r_maxpolyverts", idStr::FormatString( "%d", MAX_POLYVERTS ), 0 );
 
 	r_highQualityVideo = ri.Cvar_Get( "r_highQualityVideo", "1", CVAR_ARCHIVE );
 	// make sure all the commands added here are also
@@ -1189,8 +1191,7 @@ void R_Init( void ) {
 
 	R_Register();
 
-	// Ridah, init the virtual memory
-	R_Hunk_Begin();
+	R_CacheModelInit();
 
 	max_polys = r_maxpolys->integer;
 	if ( max_polys < MAX_POLYS ) {
@@ -1297,8 +1298,7 @@ void RE_Shutdown( qboolean destroyWindow ) {
 	if ( destroyWindow ) {
 		GLimp_Shutdown();
 
-		// Ridah, release the virtual memory
-		R_Hunk_End();
+		R_CacheModelShutdown();
 		R_FreeImageBuffer();
 		//ri.Tag_Free();	// wipe all render alloc'd zone memory
 	}
@@ -1396,4 +1396,3 @@ refexport_t *GetRefAPI( int apiVersion, refimport_t *rimp ) {
 
 	return &re;
 }
-

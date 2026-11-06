@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 ;
@@ -94,7 +96,7 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 			G_Error( "AI Scripting: syntax error\n\nplayanim <animation> <legs/torso/both>\n" );
 		}
 		idStr::Copynz( tokens[0], token.c_str(), sizeof( tokens[0] ) );
-		idStr::Copynz( tokens[0], idStr( tokens[0] ).ToLower().c_str(), sizeof( tokens[0] ) );
+		idStr::ToLower( tokens[0] );
 
 		// read the body part
 		lexer.ReadTokenOnLine( &token );
@@ -102,7 +104,7 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 			G_Error( "AI Scripting: syntax error\n\nplayanim <animation> <legs/torso/both>\n" );
 		}
 		idStr::Copynz( tokens[1], token.c_str(), sizeof( tokens[1] ) );
-		idStr::Copynz( tokens[1], idStr( tokens[1] ).ToLower().c_str(), sizeof( tokens[1] ) );
+		idStr::ToLower( tokens[1] );
 
 		// read the HOLDFRAME (optional)
 		lexer.ReadTokenOnLine( &token );
@@ -141,7 +143,10 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 				BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
 				vec = org - cs->clientState->origin;
 				vec.Normalize();
-				vectoangles( vec, cs->ideal_viewangles );
+				{
+					const idAngles convertedAngles = vec.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 				cs->script.castScriptStatus.playanim_viewangles = cs->ideal_viewangles;
 				setAngles = qtrue;
 			}
@@ -243,7 +248,7 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 			}
 		}
 
-		idStr::Copynz( tokens[2], idStr( tokens[2] ).ToLower().c_str(), sizeof( tokens[2] ) );
+		idStr::ToLower( tokens[2] );
 
 		endtime = cs->script.castScriptStatus.castScriptStackChangeTime + atoi( tokens[1] );
 		duration = endtime - level.time + 200; // so animations don't run out before starting a next animation
@@ -409,7 +414,7 @@ qboolean AICast_ScriptAction_MusicStart( cast_state_t *cs, char *params ) {
 		fadeupTime = atoi( token.c_str() );
 	}
 
-	trap_SendServerCommand( cs->entityNum, va( "mu_start %s %d", cvarName, fadeupTime ) );
+	trap_SendServerCommand( cs->entityNum, idStr::FormatString( "mu_start %s %d", cvarName, fadeupTime ) );
 
 	return qtrue;
 }
@@ -433,7 +438,7 @@ qboolean AICast_ScriptAction_MusicPlay( cast_state_t *cs, char *params ) {
 	}
 	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
-	trap_SendServerCommand( cs->entityNum, va( "mu_play %s %d", cvarName, fadeupTime ) );
+	trap_SendServerCommand( cs->entityNum, idStr::FormatString( "mu_play %s %d", cvarName, fadeupTime ) );
 
 	return qtrue;
 }
@@ -454,7 +459,7 @@ qboolean AICast_ScriptAction_MusicStop( cast_state_t *cs, char *params ) {
 		fadeoutTime = atoi( token.c_str() );
 	}
 
-	trap_SendServerCommand( cs->entityNum, va( "mu_stop %i", fadeoutTime ) );
+	trap_SendServerCommand( cs->entityNum, idStr::FormatString( "mu_stop %i", fadeoutTime ) );
 
 	return qtrue;
 }
@@ -483,7 +488,7 @@ qboolean AICast_ScriptAction_MusicFade( cast_state_t *cs, char *params ) {
 	}
 	fadetime = atoi( token.c_str() );
 
-	trap_SendServerCommand( cs->entityNum, va( "mu_fade %f %i", targetvol, fadetime ) );
+	trap_SendServerCommand( cs->entityNum, idStr::FormatString( "mu_fade %f %i", targetvol, fadetime ) );
 
 	return qtrue;
 }

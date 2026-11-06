@@ -207,15 +207,15 @@ ID_INLINE void idDict::SetHashSize( int hashSize ) {
 }
 
 ID_INLINE void idDict::SetFloat( const char *key, float val ) {
-	Set( key, va( "%f", val ) );
+	Set( key, idStr::FormatString( "%f", val ) );
 }
 
 ID_INLINE void idDict::SetInt( const char *key, int val ) {
-	Set( key, va( "%i", val ) );
+	Set( key, idStr::FormatString( "%i", val ) );
 }
 
 ID_INLINE void idDict::SetBool( const char *key, bool val ) {
-	Set( key, va( "%i", val ) );
+	Set( key, idStr::FormatString( "%i", val ) );
 }
 
 ID_INLINE void idDict::SetVector( const char *key, const idVec3 &val ) {

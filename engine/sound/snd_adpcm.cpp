@@ -26,13 +26,15 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "snd_local.h"
 
 
 void S_AdpcmEncode( short indata[], char outdata[], int len, struct adpcm_state *state ) {
 	// LordHavoc: removed 4-clause BSD code for Intel ADPCM codec
 }
-
 
 void S_AdpcmDecode( const char indata[], short *outdata, int len, struct adpcm_state *state ) {
 	// LordHavoc: removed 4-clause BSD code for Intel ADPCM codec

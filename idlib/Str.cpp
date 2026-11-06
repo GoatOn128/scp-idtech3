@@ -570,13 +570,35 @@ void idStr::Format( const char *fmt, ... ) {
 
 /*
 ========================
+idStr::FormatString
+
+Formats a string into an idStr value.
+========================
+*/
+idStr idStr::FormatString( const char *fmt, ... ) {
+	va_list argptr;
+	char text[MAX_PRINT_MSG];
+
+	va_start( argptr, fmt );
+	int len = idStr::vsnPrintf( text, sizeof( text ) - 1, fmt, argptr );
+	va_end( argptr );
+	text[ sizeof( text ) - 1 ] = '\0';
+
+	if ( (size_t)len >= sizeof( text ) - 1 ) {
+		idLib::common->FatalError( "Tried to format a large buffer using %s", fmt );
+	}
+	return idStr( text );
+}
+
+/*
+========================
 idStr::FormatInt
 
 Formats integers with commas for readability.
 ========================
 */
 idStr idStr::FormatInt( const int num, bool isCash ) {
-	idStr val = va( "%d", num );
+	idStr val = idStr::FormatString( "%d", num );
 	int len = val.Length();
 	for ( int i = 0 ; i < ( ( len - 1 ) / 3 ); i++ ) {
 		int pos = val.Length() - ( ( i + 1 ) * 3 + i );
@@ -1764,7 +1786,7 @@ int idStr::LengthWithoutColors( const char *s ) {
 	len = 0;
 	p = s;
 	while( *p ) {
-		if ( idStr::IsColor( p ) ) {
+		if ( p[0] == C_COLOR_ESCAPE && p[1] != '\0' && p[1] != C_COLOR_ESCAPE ) {
 			p += 2;
 			continue;
 		}
@@ -1798,6 +1820,30 @@ char *idStr::RemoveColors( char *string ) {
 	}
 	*d = '\0';
 
+	return string;
+}
+
+/*
+================
+idStr::Clean
+================
+*/
+char *idStr::Clean( char *string ) {
+	char *dest = string;
+	const char *src = string;
+	int c;
+
+	while ( ( c = *src ) != '\0' ) {
+		if ( src[0] == C_COLOR_ESCAPE && src[1] != '\0' && src[1] != C_COLOR_ESCAPE ) {
+			src += 2;
+			continue;
+		}
+		if ( c >= 0x20 && c <= 0x7E ) {
+			*dest++ = c;
+		}
+		src++;
+	}
+	*dest = '\0';
 	return string;
 }
 
@@ -1894,32 +1940,6 @@ int vsprintf( idStr &string, const char *fmt, va_list argptr ) {
 	string = buffer;
 	return l;
 }
-
-/*
-============
-va
-
-does a varargs printf into a temp buffer
-NOTE: not thread safe
-============
-*/
-char *va( const char *fmt, ... ) {
-	va_list argptr;
-	static int index = 0;
-	static char string[4][16384];	// in case called by nested functions
-	char *buf;
-
-	buf = string[index];
-	index = (index + 1) & 3;
-
-	va_start( argptr, fmt );
-	vsprintf( buf, fmt, argptr );
-	va_end( argptr );
-
-	return buf;
-}
-
-
 
 /*
 ============
@@ -2051,22 +2071,22 @@ idStr idStr::FormatNumber( int number ) {
 
 		if ( li->count ) {
 			if ( !found ) {
-				string += va( "%i,", li->count );
+				string += idStr::FormatString( "%i,", li->count );
 			} else {
-				string += va( "%3.3i,", li->count );
+				string += idStr::FormatString( "%3.3i,", li->count );
 			}
 			found = true;
 		}
 		else if ( found ) {
-			string += va( "%3.3i,", li->count );
+			string += idStr::FormatString( "%3.3i,", li->count );
 		}
 	}
 
 	if ( found ) {
-		string += va( "%3.3i", number );
+		string += idStr::FormatString( "%3.3i", number );
 	}
 	else {
-		string += va( "%i", number );
+		string += idStr::FormatString( "%i", number );
 	}
 
 	// pad to proper size

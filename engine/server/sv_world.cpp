@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // world.c -- world query functions
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "server.h"
 
@@ -273,7 +275,7 @@ void SV_LinkEntity( sharedEntity_t *gEnt ) {
 		float max;
 		int axisIdx;
 
-		max = RadiusFromBounds( gEnt->r.mins, gEnt->r.maxs );
+		max = idBounds( gEnt->r.mins, gEnt->r.maxs ).GetRadius();
 		for ( axisIdx = 0 ; axisIdx < 3 ; axisIdx++ ) {
 			gEnt->r.absmin[axisIdx] = gEnt->r.currentOrigin[axisIdx] - max;
 			gEnt->r.absmax[axisIdx] = gEnt->r.currentOrigin[axisIdx] + max;
@@ -699,5 +701,4 @@ int SV_PointContents( const idVec3 &p, int passEntityNum ) {
 
 	return contents;
 }
-
 

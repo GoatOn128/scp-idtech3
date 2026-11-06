@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "tr_renderprog.h"
 #include <cmath>
@@ -83,11 +85,11 @@ void RB_DrawScreenDecals( void ) {
 		const refEntity_t *entity = &backEnd.refdef.entities[i].e;
 		if ( entity->reType != RT_SCREEN_DECAL || !RB_ScreenEntityVisible( entity ) ) { continue; }
 		float depth = entity->shaderTexCoord[1], aspect = entity->scale[0];
-		if ( !std::isfinite( depth ) || depth <= 0 || !std::isfinite( aspect ) || aspect <= 0 || !std::isfinite( entity->rotation ) ) { continue; }
+		if ( !idMath::IsFinite( depth ) || depth <= 0 || !idMath::IsFinite( aspect ) || aspect <= 0 || !idMath::IsFinite( entity->rotation ) ) { continue; }
 		idVec3 normal, right, up, rotated;
 		normal = entity->axis[0];
 		float length = normal.Normalize();
-		if ( !std::isfinite( length ) || length <= 0 ) { continue; }
+		if ( !idMath::IsFinite( length ) || length <= 0 ) { continue; }
 		right.PerpendicularVector( normal );
 		rotated.RotatePointAroundVector( normal, right, entity->rotation );
 		right = rotated;

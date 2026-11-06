@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -61,7 +63,7 @@ qboolean AICast_ScriptAction_GotoCast( cast_state_t *cs, char *params ) {
 		 cs->script.castScriptStatus.scriptGotoId == cs->thinkFuncChangeTime ) {
 		ent = &g_entities[cs->script.castScriptStatus.scriptGotoEnt];
 		if ( ent->targetname && !idStr::Icmp( ent->targetname, token.c_str() ) ) {
-			if ( Distance( cs->clientState->origin, ent->r.currentOrigin ) < cs->navigation.followDist ) {
+			if ( ( cs->clientState->origin - ent->r.currentOrigin ).Length() < cs->navigation.followDist ) {
 				cs->navigation.followTime = 0;
 				AIFunc_IdleStart( cs ); // resume normal AI
 				return qtrue;
@@ -84,7 +86,10 @@ qboolean AICast_ScriptAction_GotoCast( cast_state_t *cs, char *params ) {
 					BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
 					vec = org - cs->clientState->origin;
 					vec.Normalize();
-					vectoangles( vec, cs->ideal_viewangles );
+					{
+						const idAngles convertedAngles = vec.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					// noattack?
 					lexer.ReadTokenOnLine( &token );
 					if ( !token[0] || idStr::Icmp( token.c_str(), "noattack" ) ) {
@@ -127,7 +132,7 @@ qboolean AICast_ScriptAction_GotoCast( cast_state_t *cs, char *params ) {
 		G_Error( "AI Scripting: can't find AI cast with \"ainame\" = \"%s\"\n", token.c_str() );
 	}
 
-	if ( Distance( cs->clientState->origin, ent->r.currentOrigin ) < SCRIPT_REACHCAST_DIST ) { // we made it
+	if ( ( cs->clientState->origin - ent->r.currentOrigin ).Length() < SCRIPT_REACHCAST_DIST ) { // we made it
 		return qtrue;
 	}
 
@@ -237,7 +242,7 @@ qboolean AICast_ScriptAction_Wait( cast_state_t *cs, char *params ) {
 
 	if ( moverange != 0 ) { // default to 200 if no range given
 		if ( moverange > 0 ) {
-			dist = Distance( cs->clientState->origin, cs->script.castScriptStatus.scriptWaitPos );
+			dist = ( cs->clientState->origin - cs->script.castScriptStatus.scriptWaitPos ).Length();
 			// if we are able to move, and have an enemy
 			if ( ( cs->script.castScriptStatus.scriptWaitMovetime < level.time ) && ( cs->enemyNum >= 0 ) ) {
 
@@ -286,7 +291,10 @@ qboolean AICast_ScriptAction_Wait( cast_state_t *cs, char *params ) {
 		BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
 		vec = org - cs->clientState->origin;
 		vec.Normalize();
-		vectoangles( vec, cs->ideal_viewangles );
+		{
+			const idAngles convertedAngles = vec.ToAngles();
+			cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+		}
 	}
 
 	return ( cs->script.castScriptStatus.castScriptStackChangeTime + duration < level.time );
@@ -593,17 +601,17 @@ qboolean AICast_ScriptAction_MissionFailed( cast_state_t *cs, char *params ) {
 	trap_SetConfigstring( CS_MUSIC_QUEUE, "" );
 
 	// fade all sound out
-	trap_SendServerCommand( -1, va( "snd_fade 0 %d", time * 1000 ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 0 %d", time * 1000 ) );
 
 	if ( mof < 0 ) {
 		mof = 0;
 	}
-	trap_SendServerCommand( -1, va( "cp missionfail%d", mof ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "cp missionfail%d", mof ) );
 
 	// reload the current savegame, after a delay
-	trap_SetConfigstring( CS_SCREENFADE, va( "1 %i %i", level.time + 250, time * 1000 ) );
+	trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i %i", level.time + 250, time * 1000 ) );
 	//	reloading = RELOAD_FAILED;
-	trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_FAILED ) );
+	trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_FAILED ) );
 
 	level.reloadDelayTime = level.time + 1000 + time * 1000;
 
@@ -670,9 +678,9 @@ qboolean AICast_ScriptAction_ObjectiveMet( cast_state_t *cs, char *params ) {
 	player->missionObjectives |= ( 1 << ( lvl - 1 ) ); // make this bitwise
 
 	//set g_objective<n> cvar
-	trap_Cvar_Register( &cvar, va( "g_objective%i", lvl ), "1", CVAR_ROM );
+	trap_Cvar_Register( &cvar, idStr::FormatString( "g_objective%i", lvl ), "1", CVAR_ROM );
 	// set it to make sure
-	trap_Cvar_Set( va( "g_objective%i", lvl ), "1" );
+	trap_Cvar_Set( idStr::FormatString( "g_objective%i", lvl ), "1" );
 
 	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
@@ -771,7 +779,10 @@ qboolean AICast_ScriptAction_Mount( cast_state_t *cs, char *params ) {
 
 	vec = targetEnt->r.currentOrigin - cs->clientState->origin;
 	dist = vec.Normalize();
-	vectoangles( vec, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 
 	if ( dist > 40 ) {
 		// walk towards it
@@ -892,7 +903,8 @@ AICast_ScriptAction_ChangeLevel
 */
 qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	int i;
-	char *pch, *pch2, *newstr;
+	char *pch, *pch2;
+	char newstr[16384];
 	gentity_t *player;
 	qboolean silent = qfalse, endgame = qfalse, savepersist = qfalse;
 	int exitTime = 8000;
@@ -909,7 +921,7 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	}
 
 	// save persistent data if required
-	newstr = va( params );
+	idStr::Copynz( newstr, idStr::FormatString( params ), sizeof( newstr ) );
 	pch = strstr( newstr, " persistent" ); // (SA) whoops, this was mis-spelled
 	if ( pch ) {
 		pch = strstr( newstr, " " );
@@ -918,7 +930,7 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	}
 
 	//
-	newstr = va( params );
+	idStr::Copynz( newstr, idStr::FormatString( params ), sizeof( newstr ) );
 	pch = strstr( newstr, " silent" );
 	if ( pch ) {
 		pch = strstr( newstr, " " );
@@ -927,7 +939,7 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	}
 
 	// make sure we strip any params after the mapname
-	newstr = va( params );
+	idStr::Copynz( newstr, idStr::FormatString( params ), sizeof( newstr ) );
 	pch = strstr( newstr, " " );
 	if ( pch ) {
 		*( pch++ ) = '\0';
@@ -967,16 +979,16 @@ qboolean AICast_ScriptAction_ChangeLevel( cast_state_t *cs, char *params ) {
 	}
 	trap_SetConfigstring( CS_MUSIC_QUEUE, "" ); // don't try to start anything.  no level load music
 
-	trap_SetConfigstring( CS_SCREENFADE, va( "1 %i %i", level.time + 250, 750 + exitTime ) ); // fade out screen
+	trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i %i", level.time + 250, 750 + exitTime ) ); // fade out screen
 
-	trap_SendServerCommand( -1, va( "snd_fade 0 %d", 1000 + exitTime ) ); //----(SA)	added
+	trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 0 %d", 1000 + exitTime ) ); //----(SA)	added
 
 	// load the next map, after a delay
 	level.reloadDelayTime = level.time + 1000 + exitTime;
-	trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_NEXTMAP_WAITING ) );
+	trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_NEXTMAP_WAITING ) );
 
 	if ( endgame ) {
-		trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_ENDGAME ) );
+		trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_ENDGAME ) );
 		return qtrue;
 	}
 
@@ -1242,7 +1254,7 @@ qboolean ScriptStartCam( cast_state_t *cs, char *params, qboolean black ) {
 	ent->r.svFlags &= ~SVF_NOCLIENT;
 
 	// issue a start camera command to the client
-	trap_SendServerCommand( cs->entityNum, va( "startCam %s %d", token.c_str(), (int)black ) );
+	trap_SendServerCommand( cs->entityNum, idStr::FormatString( "startCam %s %d", token.c_str(), (int)black ) );
 
 	return qtrue;
 }

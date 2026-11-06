@@ -1896,8 +1896,8 @@ void CG_ShowResponseHead();
 void CG_SetPrintString( int type, const char *p );
 void CG_InitTeamChat();
 void CG_GetTeamColor( idVec4 *color );
-const char *CG_GetGameStatusText();
-const char *CG_GetKillerText();
+idStr CG_GetGameStatusText();
+idStr CG_GetKillerText();
 void CG_Draw3DModel( float x, float y, float w, float h, qhandle_t model, qhandle_t skin, const idVec3 &origin, const idVec3 &angles );
 void CG_Text_PaintChar( float x, float y, float width, float height, float scale, float s, float t, float s2, float t2, qhandle_t hShader );
 void CG_CheckOrderPending();
@@ -1958,7 +1958,7 @@ void CG_AdjustPositionForMover( const idVec3 &in, int moverNum, int fromTime, in
 
 void CG_PositionEntityOnTag( refEntity_t *entity, const refEntity_t *parent,
 							 const char *tagName, int startIndex, const idVec3 *offset );
-void CG_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_t *parent, char *tagName );
+void CG_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_t *parent, const char *tagName );
 
 
 //----(SA)

@@ -1,6 +1,7 @@
+#include "../precompiled.h"
+
 #include "FxScheduler.h"
 #include "cg_fx.h"
-#include <cmath>
 
 static int fxLastFrameTime = -1;
 
@@ -9,10 +10,12 @@ void CG_FxInit( void ) {
     fileHandle_t file = 0;
     int length = theFxHelper.OpenFile( "effects/wolf/manifest.txt", &file, FS_READ );
     if ( length > 0 && length < 16384 ) {
-        std::vector<char> buffer( length + 1, 0 );
-        theFxHelper.ReadFile( buffer.data(), length, file );
+        idList<char> buffer;
+        buffer.SetNum( length + 1 );
+        buffer[length] = '\0';
+        theFxHelper.ReadFile( buffer.Ptr(), length, file );
         idLexer lexer;
-        lexer.LoadMemory( buffer.data(), length, "effects/wolf/manifest.txt" );
+        lexer.LoadMemory( buffer.Ptr(), length, "effects/wolf/manifest.txt" );
         idToken token;
         while ( lexer.ReadToken( &token ) ) {
             theFxScheduler.RegisterEffect( token.c_str() );
@@ -90,8 +93,14 @@ void CG_FxTest_f( void ) {
 	CG_FxPlay( CG_Argv( 1 ), origin, direction );
 }
 
-static bool FX_Binds( const std::string &bindings, const char *name ) {
-	return ( " " + bindings + " " ).find( " " + std::string( name ) + " " ) != std::string::npos;
+static bool FX_Binds( const idStr &bindings, const char *name ) {
+	idStr padded( " " );
+	padded += bindings;
+	padded += " ";
+	idStr needle( " " );
+	needle += name;
+	needle += " ";
+	return padded.Find( needle.c_str() ) != -1;
 }
 
 static void FX_OffsetRange( CFxRange &range, float offset ) {
@@ -113,7 +122,7 @@ void CG_FxPlayParameters( const char *name, const idVec3 &origin, const idVec3 &
 	if ( !effect || !handle ) { return; }
 	for ( int i = 0; i < effect->mPrimitiveCount; i++ ) {
 		CPrimitiveTemplate &primitive = *effect->mPrimitives[i];
-		const std::string &bindings = primitive.mBindings;
+		const idStr &bindings = primitive.mBindings;
 		if ( FX_Binds( bindings, "life" ) && p.life > 0 ) { primitive.mLife.SetRange( p.life, p.life ); }
 		if ( FX_Binds( bindings, "size" ) && p.size >= 0 ) {
 			FX_ScaleRange( primitive.mSizeStart, p.size );
@@ -131,7 +140,7 @@ void CG_FxPlayParameters( const char *name, const idVec3 &origin, const idVec3 &
 		if ( FX_Binds( bindings, "shader" ) && p.shader ) { primitive.mMediaHandles.SetHandle( p.shader ); }
 		if ( FX_Binds( bindings, "aspect" ) && p.aspect > 0 ) { primitive.mAspect = p.aspect; }
 		if ( FX_Binds( bindings, "pathLength" ) && primitive.mCountSpacing > 0 ) {
-			float count = ceilf( p.pathLength / primitive.mCountSpacing );
+			float count = idMath::Ceil( p.pathLength / primitive.mCountSpacing );
 			count = count < 1 ? 1 : ( count > MAX_EFFECTS ? MAX_EFFECTS : count );
 			primitive.mSpawnCount.SetRange( count, count );
 		}
@@ -178,8 +187,8 @@ void CG_FxPlayParameters( const char *name, const idVec3 &origin, const idVec3 &
 static const FxControllerProperty &CG_FxProperty( const char *effect, const char *property ) {
 	const CPrimitiveTemplate *definition = theFxScheduler.Definition( effect );
 	if ( definition ) {
-		auto found = definition->mProperties.find( property );
-		if ( found != definition->mProperties.end() ) { return found->second; }
+		const FxControllerProperty *found = nullptr;
+		if ( definition->mProperties.Get( property, &found ) ) { return *found; }
 	}
 	CG_Error( "FX: missing required property %s in %s", property, effect );
 	static FxControllerProperty empty;

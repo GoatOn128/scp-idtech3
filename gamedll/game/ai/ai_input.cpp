@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -200,7 +202,7 @@ void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *uc
 	// only move if we are in combat or we are facing where our ideal angles
 	if ( bi->speed ) {
 		if ( ( !( cs->aiFlags & AIFL_WALKFORWARD ) && cs->enemyNum >= 0 ) ||
-			 ( ( ucmd->forwardmove >= 0 ) && fabs( AngleNormalize180( AI_AngleDifference(
+			 ( ( ucmd->forwardmove >= 0 ) && fabs( idMath::AngleNormalize180( AI_AngleDifference(
 												 cs->ideal_viewangles[YAW], cs->viewangles[YAW] ) ) ) < 60 ) ) {
 			//NOTE: movement is relative to the REAL view angles
 			//get the horizontal forward and right vector
@@ -286,7 +288,7 @@ void AICast_UpdateInput( cast_state_t *cs, int time ) {
 
 	//add the delta angles to the bot's current view angles
 	for ( j = 0; j < 3; j++ ) {
-		cs->viewangles[j] = AngleMod( cs->viewangles[j] + SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
+		cs->viewangles[j] = idMath::AngleNormalize360( cs->viewangles[j] + SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
 	}
 	//
 	AICast_ChangeViewAngles( cs, (float)time / 1000 );
@@ -299,7 +301,7 @@ void AICast_UpdateInput( cast_state_t *cs, int time ) {
 		//
 		//subtract the delta angles
 		for ( j = 0; j < 3; j++ ) {
-			cs->viewangles[j] = AngleMod( cs->viewangles[j] - SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
+			cs->viewangles[j] = idMath::AngleNormalize360( cs->viewangles[j] - SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
 		}
 		//
 		return;
@@ -358,7 +360,7 @@ void AICast_UpdateInput( cast_state_t *cs, int time ) {
 	//
 	//subtract the delta angles
 	for ( j = 0; j < 3; j++ ) {
-		cs->viewangles[j] = AngleMod( cs->viewangles[j] - SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
+		cs->viewangles[j] = idMath::AngleNormalize360( cs->viewangles[j] - SHORT2ANGLE( bs->cur_ps.delta_angles[j] ) );
 	}
 	//
 	// make sure the respawn flag is disabled (causes problems after multiple "map xxx" commands)
@@ -549,8 +551,8 @@ float AI_AngleDifference( float ang1, float ang2 ) {
 float AI_ChangeViewAngle( float angle, float ideal_angle, float speed ) {
 	float move;
 
-	angle = AngleMod( angle );
-	ideal_angle = AngleMod( ideal_angle );
+	angle = idMath::AngleNormalize360( angle );
+	ideal_angle = idMath::AngleNormalize360( ideal_angle );
 	if ( angle == ideal_angle ) {
 		return angle;
 	}
@@ -573,5 +575,5 @@ float AI_ChangeViewAngle( float angle, float ideal_angle, float speed ) {
 			move = -speed;
 		}
 	}
-	return AngleMod( angle + move );
+	return idMath::AngleNormalize360( angle + move );
 }

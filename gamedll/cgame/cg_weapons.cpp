@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 
@@ -695,7 +697,9 @@ void CG_RailTrail2( clientInfo_t *ci, const idVec3 &start, const idVec3 &end ) {
 	}
 	le->color[3] = CG_FxValue( "wolf/controller_railtrail2", "le_color_a" );
 
-	AxisClear( re->axis );
+	re->axis[0] = idVec3( 1.0f, 0.0f, 0.0f );
+	re->axis[1] = idVec3( 0.0f, 1.0f, 0.0f );
+	re->axis[2] = idVec3( 0.0f, 0.0f, 1.0f );
 }
 
 //void CG_RailTrailBox( clientInfo_t *ci, idVec3 start, idVec3 end) {
@@ -962,7 +966,7 @@ void CG_RegisterWeapon( int weaponNum ) {
 	if ( item->world_model[W_FP_MODEL] ) {
 		path = item->world_model[W_FP_MODEL];
 		path.StripFilename();
-		if ( !CG_ParseWeaponConfig( va( "%sweapon.cfg", path.c_str() ), weaponInfo ) ) {
+		if ( !CG_ParseWeaponConfig( idStr::FormatString( "%sweapon.cfg", path.c_str() ), weaponInfo ) ) {
 			CG_Error( "Couldn't register weapon %i (%s) (failed to parse weapon.cfg)", weaponNum, path.c_str() );
 		}
 	}
@@ -976,7 +980,7 @@ void CG_RegisterWeapon( int weaponNum ) {
 	}
 
 	weaponInfo->weaponIcon[0] = trap_R_RegisterShader( item->icon );
-	weaponInfo->weaponIcon[1] = trap_R_RegisterShader( va( "%s_select", item->icon ) );    // get the 'selected' icon as well
+	weaponInfo->weaponIcon[1] = trap_R_RegisterShader( idStr::FormatString( "%s_select", item->icon ) );    // get the 'selected' icon as well
 
 	// JOSEPH 4-17-00
 	weaponInfo->ammoIcon = trap_R_RegisterShader( item->ammoicon );
@@ -1027,7 +1031,7 @@ void CG_RegisterWeapon( int weaponNum ) {
 			if ( j == W_PART_1 ) {
 				path += "_barrel.md3";
 			} else {
-				path += va( "_barrel%d.md3", j + 1 );
+				path += idStr::FormatString( "_barrel%d.md3", j + 1 );
 			}
 			weaponInfo->wpPartModels[i][j] = trap_R_RegisterModel( path.c_str() );
 		}
@@ -1338,7 +1342,7 @@ void CG_RegisterItemVisuals( int itemNum ) {
 	if ( item->giType == IT_HOLDABLE ) {
 		// (SA) register alternate icons (since holdables can have multiple uses, they might have different icons to represent how many uses are left)
 		for ( i = 1; i < MAX_ITEM_ICONS; i++ )
-			itemInfo->icons[i] = trap_R_RegisterShader( va( "%s%i", item->icon, i + 1 ) );
+			itemInfo->icons[i] = trap_R_RegisterShader( idStr::FormatString( "%s%i", item->icon, i + 1 ) );
 	}
 
 	if ( item->giType == IT_WEAPON ) {
@@ -1775,7 +1779,7 @@ static float	CG_MachinegunSpinAngle( centity_t *cent ) {
 
 	if ( cent->pe.barrelSpinning == !(cent->currentState.eFlags & EF_FIRING) ) {
 		cent->pe.barrelTime = cg.time;
-		cent->pe.barrelAngle = AngleMod( angle );
+		cent->pe.barrelAngle = idMath::AngleNormalize360( angle );
 		cent->pe.barrelSpinning = !!(cent->currentState.eFlags & EF_FIRING);
 	}
 
@@ -1810,11 +1814,11 @@ static float CG_TeslaSpinAngle( centity_t *cent ) {
 		angle += delta * TESLA_IDLESPEED;
 	}
 
-	cent->pe.barrelAngle = AngleMod( angle );
+	cent->pe.barrelAngle = idMath::AngleNormalize360( angle );
 
 	cent->pe.barrelTime = cg.time;
 
-	return AngleMod( angle );
+	return idMath::AngleNormalize360( angle );
 
 //----(SA)	trying new tesla effect scheme for MK
 //	angle = -(cent->pe.barrelAngle + delta * TESLA_SPINSPEED);
@@ -1825,7 +1829,7 @@ static float CG_TeslaSpinAngle( centity_t *cent ) {
 //	else
 //		cent->pe.barrelAngle += delta * TESLA_IDLESPEED;
 
-	return AngleMod( cent->pe.barrelAngle );
+	return idMath::AngleNormalize360( cent->pe.barrelAngle );
 
 
 
@@ -1847,7 +1851,7 @@ static float CG_TeslaSpinAngle( centity_t *cent ) {
 
 	if ( cent->pe.barrelSpinning == !( cent->currentState.eFlags & EF_FIRING ) ) {
 		cent->pe.barrelTime = cg.time;
-		cent->pe.barrelAngle = AngleMod( angle );
+		cent->pe.barrelAngle = idMath::AngleNormalize360( angle );
 		cent->pe.barrelSpinning = !!( cent->currentState.eFlags & EF_FIRING );
 	}
 
@@ -1899,7 +1903,7 @@ static float CG_VenomSpinAngle( centity_t *cent ) {
 
 	if ( cent->pe.barrelSpinning == !firing ) {
 		cent->pe.barrelTime = cg.time;
-		cent->pe.barrelAngle = AngleMod( angle );
+		cent->pe.barrelAngle = idMath::AngleNormalize360( angle );
 		cent->pe.barrelSpinning = !!firing;
 
 		// just switching between not spinning and spinning, play the appropriate weapon sound
@@ -1985,7 +1989,7 @@ alpha = 1;
 				}
 				gun->shaderRGBA[3] = (unsigned char)(255.0*alpha);
 				// calc the fireRiseDir from the velocity
-				VectorNegate( cg.snap->ps.velocity, gun->fireRiseDir );
+				gun->fireRiseDir = -cg.snap->ps.velocity;
 				gun->fireRiseDir.Normalize();
 				gun->fireRiseDir[2] += 1;
 				if (gun->fireRiseDir.Normalize() < 1) {
@@ -2084,24 +2088,24 @@ void CG_PlayerTeslaCoilFire( centity_t *cent, idVec3 flashorigin ) {
 		(vec).Normalize();
 		if ( ( cent != &cg_entities[cg.snap->ps.clientNum] ) &&
 			 ( cg.snap->ps.teamNum != playerTeam ) &&
-			 ( Distance( tagPos, cg.snap->ps.origin ) < TESLA_LIGHTNING_MAX_DIST ) &&
+			 ( ( tagPos - cg.snap->ps.origin ).Length() < TESLA_LIGHTNING_MAX_DIST ) &&
 			 ( ((viewDir) * (vec)) > 0.8 ) ) {
 			CG_Trace( &tr, traceOrg, NULL, NULL, cg.snap->ps.origin, cg.snap->ps.clientNum, MASK_SHOT & ~( CONTENTS_BODY ) );
 			if ( tr.fraction == 1 || tr.entityNum == cg.snap->ps.clientNum ) {
-				visDists[numEnemies] = Distance( tagPos, cg.snap->ps.origin );
+				visDists[numEnemies] = ( tagPos - cg.snap->ps.origin ).Length();
 				visEnemies[numEnemies++] = cg.snap->ps.clientNum;
 			} else {    // try head
 				vec = cg.snap->ps.origin;
 				vec[2] += cg.snap->ps.viewheight;
 				CG_Trace( &tr, tagPos, NULL, NULL, vec, cg.snap->ps.clientNum, MASK_SHOT & ~( CONTENTS_BODY ) );
 				if ( tr.fraction == 1 || tr.entityNum == cg.snap->ps.clientNum ) {
-					visDists[numEnemies] = Distance( tagPos, cg.snap->ps.origin );
+					visDists[numEnemies] = ( tagPos - cg.snap->ps.origin ).Length();
 					visEnemies[numEnemies++] = cg.snap->ps.clientNum;
 				} else {    // try body, from tag
 					vec = cg.snap->ps.origin;
 					CG_Trace( &tr, tagPos, NULL, NULL, vec, cg.snap->ps.clientNum, MASK_SHOT & ~( CONTENTS_BODY ) );
 					if ( tr.fraction == 1 || tr.entityNum == cg.snap->ps.clientNum ) {
-						visDists[numEnemies] = Distance( tagPos, cg.snap->ps.origin );
+						visDists[numEnemies] = ( tagPos - cg.snap->ps.origin ).Length();
 						visEnemies[numEnemies++] = cg.snap->ps.clientNum;
 					}
 				}
@@ -2123,14 +2127,14 @@ void CG_PlayerTeslaCoilFire( centity_t *cent, idVec3 flashorigin ) {
 					 ( ctrav->currentState.teamNum != playerTeam ) &&
 					 !( ctrav->currentState.eFlags & EF_DEAD ) &&
 					 ctrav->currentValid && // is in the visible frame
-					 ( Distance( tagPos, ctrav->lerpOrigin ) < TESLA_LIGHTNING_MAX_DIST ) ) {
+					 ( ( tagPos - ctrav->lerpOrigin ).Length() < TESLA_LIGHTNING_MAX_DIST ) ) {
 					vec = ctrav->lerpOrigin - traceOrg;
 					(vec).Normalize();
 
 					if ( ((viewDir) * (vec)) > 0.8 ) {
 						CG_Trace( &tr, traceOrg, NULL, NULL, ctrav->lerpOrigin, ctrav->currentState.number, MASK_SHOT & ~CONTENTS_BODY );
 						if ( tr.fraction == 1 || tr.entityNum == ctrav->currentState.number ) {
-							visDists[numEnemies] = Distance( tagPos, ctrav->lerpOrigin );
+							visDists[numEnemies] = ( tagPos - ctrav->lerpOrigin ).Length();
 							visEnemies[numEnemies++] = ctrav->currentState.number;
 						}
 					}
@@ -2585,8 +2589,8 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 					} else { CG_PositionEntityOnTag( &barrel, parent, "tag_barrel", 0, NULL );}
 				} else {
 					if ( spunpart ) {
-						CG_PositionRotatedEntityOnTag( &barrel, parent, va( "tag_barrel%d", i + 1 ) );
-					} else { CG_PositionEntityOnTag( &barrel, parent, va( "tag_barrel%d", i + 1 ), 0, NULL );}
+						CG_PositionRotatedEntityOnTag( &barrel, parent, idStr::FormatString( "tag_barrel%d", i + 1 ) );
+					} else { CG_PositionEntityOnTag( &barrel, parent, idStr::FormatString( "tag_barrel%d", i + 1 ), 0, NULL );}
 				}
 
 				drawpart = CG_GetPartFramesFromWeap( cent, &barrel, parent, i, weapon );
@@ -2613,7 +2617,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	// add the scope model to the rifle if you've got it
 	if ( isPlayer && !cg.renderingThirdPerson ) {      // (SA) for now just do it on the first person weapons
 		if ( weaponNum == WP_MAUSER ) {
-			if ( COM_BitCheck( cg.predictedPlayerState.weapons, WP_SNIPERRIFLE ) ) {
+			if ( idBitField::Test( cg.predictedPlayerState.weapons, WP_SNIPERRIFLE ) ) {
 				barrel.hModel = weapon->modModel[0];
 				if ( barrel.hModel ) {
 					CG_PositionEntityOnTag( &barrel, &gun, "tag_scope", 0, NULL );
@@ -2773,7 +2777,8 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 		} else {
 			if ( weaponNum == WP_FLAMETHROWER ) {
 				idVec3 flameAngles;
-				AxisToAngles( flash.axis, flameAngles );
+				const idAngles axisAngles = idMat3( flash.axis[0], flash.axis[1], flash.axis[2] ).ToAngles();
+				flameAngles.Set( axisAngles.pitch, axisAngles.yaw, axisAngles.roll );
 				CG_FireFlameChunks( cent, flash.origin, flameAngles, 1.0, qfalse, 0 );
 			}
 		}
@@ -3261,7 +3266,7 @@ static qboolean CG_WeaponSelectable( int i ) {
 
 
 	// check for weapon
-	if ( !( COM_BitCheck( cg.predictedPlayerState.weapons, i ) ) ) {
+	if ( !( idBitField::Test( cg.predictedPlayerState.weapons, i ) ) ) {
 		return qfalse;
 	}
 
@@ -5088,7 +5093,7 @@ void CG_MissileHitWall( int weapon, int clientNum, const idVec3 &origin, const i
 		// enough to see it, this way we can leave other marks around a lot
 		// longer, since most of the time we can't actually see the bullet holes
 // (SA) small modification.  only do this for non-rifles (so you can see your shots hitting when you're zooming with a rifle scope)
-		if ( weapon == WP_FG42SCOPE || weapon == WP_SNIPERRIFLE || weapon == WP_SNOOPERSCOPE || ( Distance( cg.refdef.vieworg, origin ) < CG_FxInt( "wolf/controller_missilehitwall", "tuning_29" ) ) ) {
+		if ( weapon == WP_FG42SCOPE || weapon == WP_SNIPERRIFLE || weapon == WP_SNOOPERSCOPE || ( ( cg.refdef.vieworg - origin ).Length() < CG_FxInt( "wolf/controller_missilehitwall", "tuning_29" ) ) ) {
 
 			if ( clientNum ) {
 
@@ -5122,7 +5127,7 @@ void CG_MissileHitWall( int weapon, int clientNum, const idVec3 &origin, const i
 						start = tr.endpos;
 
 						dir = muzzleTrace;
-						VectorNegate (dir, dir);
+						dir = -dir;
 
 						G_SetOrigin (sfx, start);
 						G_SetAngle (sfx, dir);
@@ -5924,7 +5929,7 @@ void CG_Bullet( const idVec3 &end, int sourceEntityNum, const idVec3 &normal, qb
 //							5,	// count
 //							0.5, 80, 16, 0.125, "water_splash" );	// rand scale
 				// only add bubbles if effect is close to viewer
-				if ( Distance( cg.snap->ps.origin, end ) < 1024 ) {
+				if ( ( cg.snap->ps.origin - end ).Length() < 1024 ) {
 					trap_CM_BoxTrace( &trace, start, end, NULL, NULL, 0, CONTENTS_WATER );
 					CG_BubbleTrail( end, trace.endpos, .5, 8 );
 				}
@@ -6107,6 +6112,6 @@ void CG_ClientDamage( int entnum, int enemynum, int id ) {
 	}
 	// -NERVE - SMF
 	else {
-		trap_SendClientCommand( va( "cld %i %i %i", entnum, enemynum, id ) );
+		trap_SendClientCommand( idStr::FormatString( "cld %i %i %i", entnum, enemynum, id ) );
 	}
 }

@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cg_info.c -- display information while data is being loading
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "../ui/ui_shared.h"
 
@@ -79,7 +81,7 @@ void CG_LoadingString( const char *s ) {
 	idStr::Copynz( (char *)cg.infoScreenText, s, sizeof( cg.infoScreenText ) );
 
 	if ( s && s[0] != 0 ) {
-		CG_Printf( va( "LOADING... %s\n",s ) );   //----(SA)	added so you can see from the console what's going on
+		CG_Printf( idStr::FormatString( "LOADING... %s\n",s ) );   //----(SA)	added so you can see from the console what's going on
 
 	}
 	trap_UpdateScreen();
@@ -147,10 +149,10 @@ void CG_LoadingClient( int clientNum ) {
 	}
 
 	idStr::Copynz( personality, Info_ValueForKey( info, "n" ), sizeof( personality ) );
-	Q_CleanStr( personality );
+	idStr::Clean( personality );
 
 	if ( cgs.gametype == GT_SINGLE_PLAYER ) {
-		trap_S_RegisterSound( va( "sound/player/announce/%s.wav", personality ) );
+		trap_S_RegisterSound( idStr::FormatString( "sound/player/announce/%s.wav", personality ) );
 	}
 
 	CG_LoadingString( personality );
@@ -207,7 +209,7 @@ void CG_DrawStats( char *stats ) {
 	#define MAX_STATS_VARS  64
 	int vars[MAX_STATS_VARS];
 	char *str;
-	char *formatStr;
+	idStr formatStr;
 	int varIndex;
 	char string[MAX_QPATH];
 	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
@@ -246,16 +248,16 @@ void CG_DrawStats( char *stats ) {
 			// build the formatStr
 			switch ( statsItems[i].numVars ) {
 			case 1:
-				formatStr = va( statsItems[i].format, vars[varIndex] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex] );
 				break;
 			case 2:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1] );
 				break;
 			case 3:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2] );
 				break;
 			case 4:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2], vars[varIndex + 3] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2], vars[varIndex + 3] );
 				break;
 			}
 
@@ -283,7 +285,7 @@ void CG_DrawExitStats( void ) {
 
 	#define MAX_STATS_VARS  64
 	int vars[MAX_STATS_VARS];
-	char *formatStr = NULL; // TTimo: init
+	idStr formatStr;
 	int varIndex = 0;     // TTimo: init
 
 	char *mstats;
@@ -347,19 +349,19 @@ void CG_DrawExitStats( void ) {
 	color2[3] = (*color)[3];
 //	CG_Text_Paint(280, 120, 2, 0.25f, color2, va("%s", CG_translateString("end_title")), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 	//----(SA)	scale change per MK
-	CG_Text_Paint( 270, 120, 2, 0.313f, color2, va( "%s", CG_translateString( "end_title" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
+	CG_Text_Paint( 270, 120, 2, 0.313f, color2, idStr::FormatString( "%s", CG_translateString( "end_title" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
 
 	color2[0] = color2[1] = color2[2] = 1;
 	if ( cg.cursorHintIcon == HINT_NOEXIT ) {
 		// "exit not available"
 //		CG_Text_Paint(250, 320, 2, 0.3f, color2, va("%s", CG_translateString("end_noexit")), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 		//----(SA)	scale change per MK
-		CG_Text_Paint( 260, 320, 2, 0.225f, color2, va( "%s", CG_translateString( "end_noexit" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
+		CG_Text_Paint( 260, 320, 2, 0.225f, color2, idStr::FormatString( "%s", CG_translateString( "end_noexit" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
 	} else {
 		// "forward to proceed"
 //		CG_Text_Paint(230, 320, 2, 0.3f, color2, va("%s", CG_translateString("end_exit")), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 		//----(SA)	scale change per MK
-		CG_Text_Paint( 250, 320, 2, 0.225f, color2, va( "%s", CG_translateString( "end_exit" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
+		CG_Text_Paint( 250, 320, 2, 0.225f, color2, idStr::FormatString( "%s", CG_translateString( "end_exit" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
 	}
 
 	mstats = (char*)str + 2;    // add offset for 's='
@@ -391,16 +393,16 @@ void CG_DrawExitStats( void ) {
 			// build the formatStr
 			switch ( statsItems[i].numVars ) {
 			case 1:
-				formatStr = va( statsItems[i].format, vars[varIndex] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex] );
 				break;
 			case 2:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1] );
 				break;
 			case 3:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2] );
 				break;
 			case 4:
-				formatStr = va( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2], vars[varIndex + 3] );
+				formatStr = idStr::FormatString( statsItems[i].format, vars[varIndex], vars[varIndex + 1], vars[varIndex + 2], vars[varIndex + 3] );
 				break;
 			}
 
@@ -424,7 +426,7 @@ void CG_DrawExitStats( void ) {
 //		UI_DrawProportionalString( statsItems[i].labelX, y, statsItems[i].label, statsItems[i].labelFlags, *statsItems[i].labelColor );
 
 //		CG_Text_Paint(statsItems[i].labelX, y, 2, 0.3, statsItems[i].labelColor, va("%s:", CG_translateString(statsItems[i].label)), 0, 0, statsItems[i].labelFlags);
-		CG_Text_Paint( statsItems[i].labelX, y, 2, 0.3, color2, va( "%s:", CG_translateString( statsItems[i].label ) ), 0, 0, statsItems[i].labelFlags );
+		CG_Text_Paint( statsItems[i].labelX, y, 2, 0.3, color2, idStr::FormatString( "%s:", CG_translateString( statsItems[i].label ) ), 0, 0, statsItems[i].labelFlags );
 
 	}
 	lexer.ReadToken( &token );
@@ -487,7 +489,7 @@ void CG_DrawInformation( void ) {
 	//----(SA)	just the briefing now
 
 	if ( s && s[0] != 0 ) {  // there is often no 's'
-		levelshot = trap_R_RegisterShaderNoMip( va( "levelshots/%s.tga", s ) );
+		levelshot = trap_R_RegisterShaderNoMip( idStr::FormatString( "levelshots/%s.tga", s ) );
 	}
 
 	if ( !levelshot ) {
@@ -564,7 +566,7 @@ void CG_DrawInformation( void ) {
 	// the first 150 rows are reserved for the client connection
 	// screen to write into
 	if ( cg.infoScreenText[0] ) {
-		UI_DrawProportionalString( 320, 128, va( "Loading... %s", cg.infoScreenText ),
+		UI_DrawProportionalString( 320, 128, idStr::FormatString( "Loading... %s", cg.infoScreenText ),
 								   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 	} else {
 		UI_DrawProportionalString( 320, 128, "Awaiting snapshot...",
@@ -644,7 +646,7 @@ void CG_DrawInformation( void ) {
 
 	value = atoi( Info_ValueForKey( info, "timelimit" ) );
 	if ( value ) {
-		UI_DrawProportionalString( 320, y, va( "timelimit %i", value ),
+		UI_DrawProportionalString( 320, y, idStr::FormatString( "timelimit %i", value ),
 								   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 		y += PROP_HEIGHT;
 	}
@@ -652,7 +654,7 @@ void CG_DrawInformation( void ) {
 	if ( cgs.gametype != GT_CTF && cgs.gametype != GT_SINGLE_PLAYER ) {
 		value = atoi( Info_ValueForKey( info, "fraglimit" ) );
 		if ( value ) {
-			UI_DrawProportionalString( 320, y, va( "fraglimit %i", value ),
+			UI_DrawProportionalString( 320, y, idStr::FormatString( "fraglimit %i", value ),
 									   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 			y += PROP_HEIGHT;
 		}
@@ -661,7 +663,7 @@ void CG_DrawInformation( void ) {
 	if ( cgs.gametype == GT_CTF ) {
 		value = atoi( Info_ValueForKey( info, "capturelimit" ) );
 		if ( value ) {
-			UI_DrawProportionalString( 320, y, va( "capturelimit %i", value ),
+			UI_DrawProportionalString( 320, y, idStr::FormatString( "capturelimit %i", value ),
 									   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 			y += PROP_HEIGHT;
 		}

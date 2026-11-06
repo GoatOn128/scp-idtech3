@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "client.h"
 
 /*
@@ -771,7 +773,7 @@ void Field_VariableSizeDraw( field_t *edit, int x, int y, int width, int size, q
 		cursorChar = 10;
 	}
 
-	i = drawLen - ( Q_PrintStrlen( str ) + 1 );
+	i = drawLen - ( idStr::LengthWithoutColors( str ) + 1 );
 
 	if ( size == SMALLCHAR_WIDTH ) {
 		SCR_DrawSmallChar( x + ( edit->cursor - prestep - i ) * size, y, cursorChar );
@@ -1344,7 +1346,7 @@ int Key_StringToKeynum( char *str ) {
 		int n1, n2;
 
 		n1 = str[2];
-		if ( Q_isnumeric( n1 ) ) {
+		if ( idStr::CharIsNumeric( n1 ) ) {
 			n1 -= '0';
 		} else if ( n1 >= 'a' && n1 <= 'f' ) {
 			n1 = n1 - 'a' + 10;
@@ -1353,7 +1355,7 @@ int Key_StringToKeynum( char *str ) {
 		}
 
 		n2 = str[3];
-		if ( Q_isnumeric( n2 ) ) {
+		if ( idStr::CharIsNumeric( n2 ) ) {
 			n2 -= '0';
 		} else if ( n2 >= 'a' && n2 <= 'f' ) {
 			n2 = n2 - 'a' + 10;

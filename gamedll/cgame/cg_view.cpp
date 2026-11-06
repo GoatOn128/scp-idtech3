@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cg_view.c -- setup all the parameters (position, angle, etc)
 // for a 3D rendering
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 
@@ -1089,7 +1091,7 @@ static int CG_CalcViewValues( void ) {
 			//	return 0;
 
 			oldOrigin = origin;
-			trap_SendClientCommand( va( "setCameraOrigin %f %f %f", origin[0], origin[1], origin[2] ) );
+			trap_SendClientCommand( idStr::FormatString( "setCameraOrigin %f %f %f", origin[0], origin[1], origin[2] ) );
 			return 0;
 
 		} else {

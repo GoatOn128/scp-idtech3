@@ -26,9 +26,10 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
-
 // this is only used for visualization tools in cm_ debug functions
 
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "cm_local.h"
 

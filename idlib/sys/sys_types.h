@@ -103,8 +103,8 @@ struct idNullPtr {
 //#endif
 
 // C99 Standard
-#ifndef nullptr
-		#define nullptr	idNullPtr()		
+#if !defined( nullptr ) && ( !defined( _MSVC_LANG ) || _MSVC_LANG < 201103L ) && ( !defined( __cplusplus ) || __cplusplus < 201103L )
+		#define nullptr	idNullPtr()
 #endif
 
 #ifndef BIT

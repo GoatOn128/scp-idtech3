@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -70,7 +72,7 @@ char *AIFunc_DoorMarker( cast_state_t *cs ) {
 	}
 
 	// they are ready, are they inside range? FIXME: make configurable
-	dist = Distance( destorg, cs->clientState->origin );
+	dist = ( destorg - cs->clientState->origin ).Length();
 	if ( dist < 12 ) {
 		// check for a movement we should be making
 		if ( cs->navigation.obstructingTime > level.time ) {

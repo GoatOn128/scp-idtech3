@@ -98,3 +98,4 @@ if ( APPLE )
 endif()
 
 configure_target(game main)
+target_precompile_headers(game PRIVATE "${CMAKE_SOURCE_DIR}/gamedll/precompiled.h")

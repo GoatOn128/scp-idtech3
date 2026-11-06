@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 
@@ -455,7 +457,7 @@ static qboolean CG_RegisterAcc( clientInfo_t *ci, const char *modelName, const c
 
 	// FIXME: have the check the last 4 chars rather than strstr()
 	if ( !strstr( skinName, ".md3" ) ) {          // try to find a skin in the acc folder that matches
-		*skin = trap_R_RegisterSkin( va( "%s/%s.skin", modelName, skinName ) );
+		*skin = trap_R_RegisterSkin( idStr::FormatString( "%s/%s.skin", modelName, skinName ) );
 
 		if ( *skin ) {
 			if ( trap_R_GetSkinModel( *skin, "md3_part", &namefromskin[0] ) ) {
@@ -644,28 +646,28 @@ static qboolean CG_RegisterClientModelname( clientInfo_t *ci, const char *modelN
 
 	// try all the accessories
 	if ( trap_R_GetSkinModel( ci->legsSkin, "md3_beltr", &namefromskin[0] ) ) {
-		CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_BELT_LEFT], &ci->accSkins[ACC_BELT_LEFT] );
+		CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_BELT_LEFT], &ci->accSkins[ACC_BELT_LEFT] );
 	}
 	if ( trap_R_GetSkinModel( ci->legsSkin, "md3_beltl", &namefromskin[0] ) ) {
-		CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_BELT_RIGHT], &ci->accSkins[ACC_BELT_RIGHT] );
+		CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_BELT_RIGHT], &ci->accSkins[ACC_BELT_RIGHT] );
 	}
 	if ( trap_R_GetSkinModel( ci->torsoSkin, "md3_belt", &namefromskin[0] ) ) {
-		CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_BELT], &ci->accSkins[ACC_BELT] );
+		CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_BELT], &ci->accSkins[ACC_BELT] );
 	}
 	if ( trap_R_GetSkinModel( ci->torsoSkin, "md3_back", &namefromskin[0] ) ) {
-		CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_BACK], &ci->accSkins[ACC_BACK] );
+		CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_BACK], &ci->accSkins[ACC_BACK] );
 	}
 	if ( trap_R_GetSkinModel( ci->torsoSkin, "md3_weapon", &namefromskin[0] ) ) {
-		CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_WEAPON], &ci->accSkins[ACC_WEAPON] );
+		CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_WEAPON], &ci->accSkins[ACC_WEAPON] );
 	}
 	if ( trap_R_GetSkinModel( ci->torsoSkin, "md3_weapon2", &namefromskin[0] ) ) {
-		CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_WEAPON2], &ci->accSkins[ACC_WEAPON2] );
+		CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_WEAPON2], &ci->accSkins[ACC_WEAPON2] );
 	}
 //----(SA)	added
 	// try anim script parts
 	for ( i = 0; i < 8; i++ ) {
-		if ( trap_R_GetSkinModel( ci->torsoSkin, va( "md3_animscript%d", i ), &namefromskin[0] ) ) {
-			CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->partModels[ACC_WEAPON], &ci->partSkins[ACC_WEAPON] );
+		if ( trap_R_GetSkinModel( ci->torsoSkin, idStr::FormatString( "md3_animscript%d", i ), &namefromskin[0] ) ) {
+			CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->partModels[ACC_WEAPON], &ci->partSkins[ACC_WEAPON] );
 		}
 	}
 //----(SA)	end
@@ -1117,9 +1119,9 @@ nodam_rtshin            attached to tag_calfright
 
 	// whoops!  this stuff would never get set if it found one existing already!!
 	if ( !idStr::Icmp( (char *)modelName, "loper" ) ) {
-		ci->partModels[8] = trap_R_RegisterModel( va( "models/players/%s/spinner.md3", modelName ) );
+		ci->partModels[8] = trap_R_RegisterModel( idStr::FormatString( "models/players/%s/spinner.md3", modelName ) );
 	} else if ( !idStr::Icmp( (char *)modelName, "sealoper" ) )      {
-		ci->partModels[8] = trap_R_RegisterModel( va( "models/players/%s/spinner.md3", modelName ) );
+		ci->partModels[8] = trap_R_RegisterModel( idStr::FormatString( "models/players/%s/spinner.md3", modelName ) );
 	}
 
 
@@ -1154,12 +1156,12 @@ static qboolean CG_RegisterClientHeadname( clientInfo_t *ci, const char *modelNa
 	}
 
 	if ( trap_R_GetSkinModel( ci->headSkin, "md3_hat", &namefromskin[0] ) ) {
-		CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_HAT], &ci->accSkins[ACC_HAT] );
+		CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_HAT], &ci->accSkins[ACC_HAT] );
 	}
 
 	for ( i = 0; i < ACC_NUM_MOUTH - 1; i++ ) {
-		if ( trap_R_GetSkinModel( ci->headSkin, va( "md3_hat%d", 2 + i ), &namefromskin[0] ) ) {
-			CG_RegisterAcc( ci, va( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_MOUTH2 + i], &ci->accSkins[ACC_MOUTH2 + i] );
+		if ( trap_R_GetSkinModel( ci->headSkin, idStr::FormatString( "md3_hat%d", 2 + i ), &namefromskin[0] ) ) {
+			CG_RegisterAcc( ci, idStr::FormatString( "models/players/%s", modelName ), namefromskin, &ci->accModels[ACC_MOUTH2 + i], &ci->accSkins[ACC_MOUTH2 + i] );
 		}
 	}
 
@@ -1271,9 +1273,9 @@ void CG_LoadClientInfo( clientInfo_t *ci ) {
 		if ( !s ) {
 			break;
 		}
-		ci->sounds[i] = trap_S_RegisterSound( va( "sound/player/%s/%s", dir, s + 1 ) );
+		ci->sounds[i] = trap_S_RegisterSound( idStr::FormatString( "sound/player/%s/%s", dir, s + 1 ) );
 		if ( !ci->sounds[i] ) {
-			ci->sounds[i] = trap_S_RegisterSound( va( "sound/player/%s/%s", fallback, s + 1 ) );
+			ci->sounds[i] = trap_S_RegisterSound( idStr::FormatString( "sound/player/%s/%s", fallback, s + 1 ) );
 		}
 	}
 
@@ -1904,7 +1906,7 @@ void CG_RunLerpFrameRate( clientInfo_t *ci, lerpFrame_t *lf, int newAnimation, c
 				} else {    // only use x/y axis
 					lf->oldFramePos[2] = cent->lerpOrigin[2];
 				}
-				moveSpeed = Distance( cent->lerpOrigin, lf->oldFramePos ) / ( (float)( cg.time - lf->oldFrameTime ) / 1000.0 );
+				moveSpeed = ( cent->lerpOrigin - lf->oldFramePos ).Length() / ( (float)( cg.time - lf->oldFrameTime ) / 1000.0 );
 			} else {
 				if ( isLadderAnim ) { // only use Z axis for speed
 					lf->oldFramePos[0] = cent->currentState.pos.trBase[0];
@@ -1913,7 +1915,7 @@ void CG_RunLerpFrameRate( clientInfo_t *ci, lerpFrame_t *lf, int newAnimation, c
 				// TTimo
 				// show_bug.cgi?id=407
 				if ( cg.snap != cg.nextSnap ) {
-					moveSpeed = Distance( cent->currentState.pos.trBase, cent->nextState.pos.trBase ) / ( (float)( cg.nextSnap->serverTime - cg.snap->serverTime ) / 1000.0 );
+					moveSpeed = ( cent->currentState.pos.trBase - cent->nextState.pos.trBase ).Length() / ( (float)( cg.nextSnap->serverTime - cg.snap->serverTime ) / 1000.0 );
 				} else
 				{
 					moveSpeed = 0;
@@ -2178,7 +2180,7 @@ static void CG_SwingAngles( float destination, float swingTolerance, float clamp
 
 	if ( !*swinging ) {
 		// see if a swing should be started
-		swing = AngleSubtract( *angle, destination );
+		swing = idMath::AngleDelta( *angle, destination );
 		if ( swing > swingTolerance || swing < -swingTolerance ) {
 			*swinging = qtrue;
 		}
@@ -2190,7 +2192,7 @@ static void CG_SwingAngles( float destination, float swingTolerance, float clamp
 
 	// modify the speed depending on the delta
 	// so it doesn't seem so linear
-	swing = AngleSubtract( destination, *angle );
+	swing = idMath::AngleDelta( destination, *angle );
 	scale = idMath::Fabs( swing );
 	scale *= 0.05;
 	if ( scale < 0.5 ) {
@@ -2206,7 +2208,7 @@ static void CG_SwingAngles( float destination, float swingTolerance, float clamp
 		} else {
 			*swinging = SWING_LEFT;     // left
 		}
-		*angle = AngleMod( *angle + move );
+		*angle = idMath::AngleNormalize360( *angle + move );
 	} else if ( swing < 0 ) {
 		move = cg.frametime * scale * -speed;
 		if ( move <= swing ) {
@@ -2215,15 +2217,15 @@ static void CG_SwingAngles( float destination, float swingTolerance, float clamp
 		} else {
 			*swinging = SWING_RIGHT;    // right
 		}
-		*angle = AngleMod( *angle + move );
+		*angle = idMath::AngleNormalize360( *angle + move );
 	}
 
 	// clamp to no more than tolerance
-	swing = AngleSubtract( destination, *angle );
+	swing = idMath::AngleDelta( destination, *angle );
 	if ( swing > clampTolerance ) {
-		*angle = AngleMod( destination - ( clampTolerance - 1 ) );
+		*angle = idMath::AngleNormalize360( destination - ( clampTolerance - 1 ) );
 	} else if ( swing < -clampTolerance ) {
-		*angle = AngleMod( destination + ( clampTolerance - 1 ) );
+		*angle = idMath::AngleNormalize360( destination + ( clampTolerance - 1 ) );
 	}
 }
 
@@ -2445,7 +2447,7 @@ static void CG_PlayerAngles( centity_t *cent, idVec3 legs[3], idVec3 torso[3], i
 	torsoSet = cent->currentState.torsoAnim & ~ANIM_TOGGLEBIT;
 
 	headAngles = cent->lerpAngles;
-	headAngles[YAW] = AngleMod( headAngles[YAW] );
+	headAngles[YAW] = idMath::AngleNormalize360( headAngles[YAW] );
 	legsAngles.Zero();
 	torsoAngles.Zero();
 
@@ -2649,7 +2651,8 @@ static void CG_BreathPuffs( centity_t *cent, refEntity_t *head ) {
 	}
 
 	CG_GetOriginForTag( cent, head, "tag_mouth", 0, morg, maxis );
-	AxisToAngles( maxis, mang );
+	const idAngles mouthAngles = idMat3( maxis[0], maxis[1], maxis[2] ).ToAngles();
+	mang.Set( mouthAngles.pitch, mouthAngles.yaw, mouthAngles.roll );
 	idAngles(mang).ToVectors(&(forward), NULL, &(up));
 
 	//push the origin out a tad so it's not right in the guys face (tad==4)
@@ -3005,7 +3008,8 @@ static qboolean CG_PlayerShadow( centity_t *cent, float *shadowPlane ) {
 
 				origin[2] = *shadowPlane;
 
-				AxisToAngles( axis, angles );
+				const idAngles shadowAngles = idMat3( axis[0], axis[1], axis[2] ).ToAngles();
+				angles.Set( shadowAngles.pitch, shadowAngles.yaw, shadowAngles.roll );
 
 				CG_ImpactMark( shadowParts[tagIndex].shader, origin, trace.plane.normal,
 							   angles[YAW] /*cent->pe.legs.yawAngle*/, alpha,alpha,alpha,CG_FxInt( "wolf/controller_playershadow", "ImpactMark_value_5" ), qfalse, shadowParts[tagIndex].size * scale, qtrue, -CG_FxInt( "wolf/controller_playershadow", "ImpactMark_value_6" ) );
@@ -3346,7 +3350,8 @@ void CG_AddZombieSpiritEffect( centity_t *cent ) {
 
 		// HACK!!! skull model is back-to-front, need to fix
 		cent->pe.zombieSpiritDir[i] = 1.0f / (cent->pe.zombieSpiritDir[i]);
-		vectoangles( cent->pe.zombieSpiritDir[i], ang );
+		const idAngles spiritAngles = cent->pe.zombieSpiritDir[i].ToAngles();
+		ang.Set( spiritAngles.pitch, spiritAngles.yaw, spiritAngles.roll );
 		cent->pe.zombieSpiritDir[i] = 1.0f / (cent->pe.zombieSpiritDir[i]);
 		idAngles( ang[0], ang[1], ang[2] ).ToVectors( &refent.axis[0], &refent.axis[1], &refent.axis[2] );
 		// create the non-normalized axis so we can size it
@@ -3545,7 +3550,8 @@ void CG_AddZombieFlameEffect( centity_t *cent ) {
 
 	if ( fadeRatio >= 1.0 ) {
 		CG_GetOriginForTag( cent, &cent->pe.headRefEnt, "tag_mouth", 0, morg, maxis );
-		AxisToAngles( maxis, mang );
+		const idAngles flameAngles = idMat3( maxis[0], maxis[1], maxis[2] ).ToAngles();
+		mang.Set( flameAngles.pitch, flameAngles.yaw, flameAngles.roll );
 		CG_FireFlameChunks( cent, morg, mang, ZOMBIE_FLAME_SCALE, qtrue, 0 );
 		trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.flameSound, CG_FxInt( "wolf/controller_addzombieflameeffect", "tuning" ) );
 	}
@@ -3577,7 +3583,8 @@ void CG_AddZombieFlameShort( centity_t *cent ) {
 	}
 
 	CG_GetOriginForTag( cent, &cent->pe.headRefEnt, "tag_mouth", 0, morg, maxis );
-	AxisToAngles( maxis, mang );
+	const idAngles weaponAngles = idMat3( maxis[0], maxis[1], maxis[2] ).ToAngles();
+	mang.Set( weaponAngles.pitch, weaponAngles.yaw, weaponAngles.roll );
 
 	// shoot this only in bursts
 	if ( ( cg.time + cent->currentState.number * CG_FxInt( "wolf/controller_addzombieflameshort", "tuning" ) ) % 1000 > CG_FxInt( "wolf/controller_addzombieflameshort", "tuning_2" ) ) {
@@ -4067,7 +4074,8 @@ void CG_AddHelgaSpiritEffect( centity_t *cent ) {
 
 		// HACK!!! skull model is back-to-front, need to fix
 		//VectorInverse(cent->pe.zombieSpiritDir[i]);
-		vectoangles( cent->pe.zombieSpiritDir[i], ang );
+		const idAngles spiritAngles = cent->pe.zombieSpiritDir[i].ToAngles();
+		ang.Set( spiritAngles.pitch, spiritAngles.yaw, spiritAngles.roll );
 		//VectorInverse(cent->pe.zombieSpiritDir[i]);
 		idAngles( ang[0], ang[1], ang[2] ).ToVectors( &refent.axis[0], &refent.axis[1], &refent.axis[2] );
 /*		// create the non-normalized axis so we can size it
@@ -4306,7 +4314,8 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, int powerups, int team, enti
 
 			//VectorSubtract( ent->origin, cg.snap->ps.origin, ent->fireRiseDir );
 			//VectorNegate( ent->axis[0], ent->fireRiseDir );
-			VectorNormalize2( ent->axis[0], ent->fireRiseDir );
+			ent->fireRiseDir = ent->axis[0];
+			ent->fireRiseDir.Normalize();
 
 			if (cent->pe.zombieDeathFadeEnd > cg.time) {
 
@@ -4666,7 +4675,9 @@ void CG_Player( centity_t *cent ) {
 //----(SA)	end
 
 	// copy the torso rotation to the accessories
-	AxisCopy( torso.axis, acc.axis );
+	acc.axis[0] = torso.axis[0];
+	acc.axis[1] = torso.axis[1];
+	acc.axis[2] = torso.axis[2];
 
 	// calculate client-side conditions
 	CG_AnimPlayerConditions( cent );
@@ -5320,7 +5331,7 @@ int parts[] = { 34,
 			acc.customSkin = ci->partSkins[i];  // and the skin if there is one
 
 		}
-		CG_PositionEntityOnTag( &acc, &legs, va( "tag_animscript%s", i ), 0, NULL );
+		CG_PositionEntityOnTag( &acc, &legs, idStr::FormatString( "tag_animscript%s", i ), 0, NULL );
 		CG_AddRefEntityWithPowerups( &acc, cent->currentState.powerups, ci->team, &cent->currentState, cent->fireRiseDir );
 	}
 
@@ -5444,7 +5455,6 @@ qboolean CG_GetTag( int clientNum, char *tagname, orientation_t *orent ) {
 	clientInfo_t    *ci;
 	centity_t       *cent;
 	refEntity_t     *refent;
-	idVec3 tempAxis[3];
 	idVec3 org;
 	int i;
 
@@ -5481,8 +5491,11 @@ qboolean CG_GetTag( int clientNum, char *tagname, orientation_t *orent ) {
 	//VectorAdd( refent->origin, orent->origin, orent->origin );
 
 	// rotate with entity
-	MatrixMultiply( refent->axis, orent->axis, tempAxis );
-	memcpy( orent->axis, tempAxis, sizeof( idVec3 ) * 3 );
+	const idMat3 combinedAxis = idMat3( refent->axis[0], refent->axis[1], refent->axis[2] ) *
+		idMat3( orent->axis[0], orent->axis[1], orent->axis[2] );
+	orent->axis[0] = combinedAxis[0];
+	orent->axis[1] = combinedAxis[1];
+	orent->axis[2] = combinedAxis[2];
 
 	return qtrue;
 }
@@ -5496,7 +5509,6 @@ qboolean CG_GetWeaponTag( int clientNum, char *tagname, orientation_t *orent ) {
 	clientInfo_t    *ci;
 	centity_t       *cent;
 	refEntity_t     *refent;
-	idVec3 tempAxis[3];
 	idVec3 org;
 	int i;
 
@@ -5537,8 +5549,11 @@ qboolean CG_GetWeaponTag( int clientNum, char *tagname, orientation_t *orent ) {
 	//VectorAdd( refent->origin, orent->origin, orent->origin );
 
 	// rotate with entity
-	MatrixMultiply( refent->axis, orent->axis, tempAxis );
-	memcpy( orent->axis, tempAxis, sizeof( idVec3 ) * 3 );
+	const idMat3 combinedAxis = idMat3( refent->axis[0], refent->axis[1], refent->axis[2] ) *
+		idMat3( orent->axis[0], orent->axis[1], orent->axis[2] );
+	orent->axis[0] = combinedAxis[0];
+	orent->axis[1] = combinedAxis[1];
+	orent->axis[2] = combinedAxis[2];
 
 	return qtrue;
 }

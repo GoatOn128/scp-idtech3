@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_shade.c
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 /*
@@ -1264,7 +1266,7 @@ void RB_StageIteratorGeneric( void ) {
 	if ( r_logFile->integer ) {
 		// don't just call LogComment, or we will get
 		// a call to va() every frame!
-		GLimp_LogComment( va( "--- RB_StageIteratorGeneric( %s ) ---\n", tess.shader->name ) );
+		GLimp_LogComment( const_cast<char *>( idStr::FormatString( "--- RB_StageIteratorGeneric( %s ) ---\n", tess.shader->name ).c_str() ) );
 	}
 
 	// set GL fog
@@ -1407,7 +1409,7 @@ void RB_StageIteratorVertexLitTexture( void ) {
 	if ( r_logFile->integer ) {
 		// don't just call LogComment, or we will get
 		// a call to va() every frame!
-		GLimp_LogComment( va( "--- RB_StageIteratorVertexLitTexturedUnfogged( %s ) ---\n", tess.shader->name ) );
+		GLimp_LogComment( const_cast<char *>( idStr::FormatString( "--- RB_StageIteratorVertexLitTexturedUnfogged( %s ) ---\n", tess.shader->name ).c_str() ) );
 	}
 
 
@@ -1497,7 +1499,7 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	if ( r_logFile->integer ) {
 		// don't just call LogComment, or we will get
 		// a call to va() every frame!
-		GLimp_LogComment( va( "--- RB_StageIteratorLightmappedMultitexture( %s ) ---\n", tess.shader->name ) );
+		GLimp_LogComment( const_cast<char *>( idStr::FormatString( "--- RB_StageIteratorLightmappedMultitexture( %s ) ---\n", tess.shader->name ).c_str() ) );
 	}
 
 	// set GL fog

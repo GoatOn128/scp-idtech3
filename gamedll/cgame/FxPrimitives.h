@@ -203,7 +203,7 @@ class CPrimitiveTemplate;
 class CParticle : public CEffect
 {
 protected:
-    std::vector<qhandle_t> mAnimation;
+    idList<qhandle_t> mAnimation;
     int mRepeat = 0, mGroup = -1, mRemoveAt = 0;
     float mHeightMin = 0, mHeightMax = 0;
     bool mVisible = true;

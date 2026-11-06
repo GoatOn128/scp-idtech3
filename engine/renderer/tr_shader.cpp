@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 // tr_shader.c -- this file deals with the parsing and definition of shaders
@@ -39,6 +41,9 @@ static shader_t shader;
 static texModInfo_t texMods[MAX_SHADER_STAGES][TR_MAX_TEXMODS];
 static qboolean deferLoad;
 
+#ifdef FILE_HASH_SIZE
+#undef FILE_HASH_SIZE
+#endif
 #define FILE_HASH_SIZE      4096
 
 static shader_t*       hashTable[FILE_HASH_SIZE];
@@ -1648,7 +1653,7 @@ static qboolean ParseShader( idLexer *text ) {
 			}
 
 //			R_SetFog(FOG_MAP, 0, fogFar, fogColor[0], fogColor[1], fogColor[2], fogDensity);
-			ri.Cvar_Set( "r_mapFogColor", va( "0 %d %f %f %f %f 0", fogFar, fogDensity, fogColor[0], fogColor[1], fogColor[2] ) );
+			ri.Cvar_Set( "r_mapFogColor", idStr::FormatString( "0 %d %f %f %f %f 0", fogFar, fogDensity, fogColor[0], fogColor[1], fogColor[2] ) );
 //			R_SetFog(FOG_CMD_SWITCHFOG, FOG_MAP, 50, 0, 0, 0, 0);
 
 			continue;

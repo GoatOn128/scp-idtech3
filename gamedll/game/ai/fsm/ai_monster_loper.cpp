@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 //=================================================================================
@@ -183,7 +185,7 @@ static void AI_LoperLeapDamage( cast_state_t *cs ) {
 	}
 	gentity_t *ent = &g_entities[cs->entityNum];
 	gentity_t *target = &g_entities[cs->enemyNum];
-	if ( VectorDistance( cs->clientState->origin, target->client->ps.origin ) >= LOPER_LEAP_RANGE ) {
+	if ( ( cs->clientState->origin - target->client->ps.origin ).Length() >= LOPER_LEAP_RANGE ) {
 		return;
 	}
 	ent->client->ps.eFlags |= EF_MONSTER_EFFECT;
@@ -206,7 +208,7 @@ static void AI_LoperAccelerate( cast_state_t *cs ) {
 	direction = cs->ability.loperLeapVel;
 	direction[2] = 0;
 	direction.Normalize();
-	const float fraction = Com_Clamp( 0.0f, 1.0f, 0.002f * ( level.time - cs->ability.loperPhaseStartedAt ) );
+	const float fraction = idMath::ClampFloat( 0.0f, 1.0f, 0.002f * ( level.time - cs->ability.loperPhaseStartedAt ) );
 	direction = direction * ( LOPER_LEAP_VELOCITY_START + fraction * ( LOPER_LEAP_VELOCITY_END - LOPER_LEAP_VELOCITY_START ) );
 	g_entities[cs->entityNum].s.pos.trDelta[0] = direction[0];
 	g_entities[cs->entityNum].s.pos.trDelta[1] = direction[1];
@@ -255,7 +257,7 @@ char *AIFunc_LoperLeap( cast_state_t *cs ) {
 		}
 		idVec3 direction;
 		idAngles( cs->viewangles ).ToVectors( &direction, NULL, NULL );
-		const float fraction = Com_Clamp( 0.0f, 1.0f, (float)ent->client->ps.legsTimer / LOPER_LAND_DURATION );
+		const float fraction = idMath::ClampFloat( 0.0f, 1.0f, (float)ent->client->ps.legsTimer / LOPER_LAND_DURATION );
 		trap_EA_Move( cs->entityNum, direction, fraction * LOPER_LEAP_LAND_MOMENTUM );
 		return NULL;
 	}
@@ -369,7 +371,7 @@ static qboolean AI_LoperAbilityAvailable( cast_state_t *cs, int weaponNum ) {
 	int delay = -1;
 	float dist = -1;
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 	switch ( weaponNum ) {
 	case WP_MONSTER_ATTACK2: {

@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 #include "ai/ai_combat_tuning.h"   // need these for avoidance
@@ -49,7 +51,7 @@ global pain sound events for all clients.
 void P_DamageFeedback( gentity_t *player ) {
 	gclient_t   *client;
 	float count;
-	idVec3 angles;
+	idAngles angles;
 
 	client = player->client;
 	if ( client->ps.pm_type == PM_DEAD ) {
@@ -76,7 +78,7 @@ void P_DamageFeedback( gentity_t *player ) {
 
 		client->damage_fromWorld = qfalse;
 	} else {
-		vectoangles( client->damage_from, angles );
+		angles = client->damage_from.ToAngles();
 		client->ps.damagePitch = angles[PITCH] / 360.0 * 256;
 		client->ps.damageYaw = angles[YAW] / 360.0 * 256;
 	}
@@ -895,8 +897,8 @@ void ClientThink_real( gentity_t *ent ) {
 /*
 			muzzlebounce[PITCH] -= 2*cos(1.0-(level.time - client->sniperRifleFiredTime)*3/RIFLE_SHAKE_TIME);
 			muzzlebounce[YAW] += client->sniperRifleMuzzleYaw*cos(1.0-(level.time - client->sniperRifleFiredTime)*3/RIFLE_SHAKE_TIME);
-			muzzlebounce[PITCH] -= random()*(1.0f-(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
-			muzzlebounce[YAW] += crandom()*(1.0f-(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
+			muzzlebounce[PITCH] -= gameRandom.RandomFloat()*(1.0f-(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
+			muzzlebounce[YAW] += gameRandom.CRandomFloat()*(1.0f-(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
 */
 
 // JPW per Id request, longer recoil time
@@ -904,15 +906,15 @@ void ClientThink_real( gentity_t *ent ) {
 			// MP method \/
 /*			muzzlebounce[PITCH] -= 2*cos(2.5*(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
 			muzzlebounce[YAW] += 0.5*client->sniperRifleMuzzleYaw*cos(1.0-(level.time - client->sniperRifleFiredTime)*3/RIFLE_SHAKE_TIME);
-			muzzlebounce[PITCH] -= 0.25*random()*(1.0f-(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
-			muzzlebounce[YAW] += 0.5*crandom()*(1.0f-(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
+			muzzlebounce[PITCH] -= 0.25*gameRandom.RandomFloat()*(1.0f-(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
+			muzzlebounce[YAW] += 0.5*gameRandom.CRandomFloat()*(1.0f-(level.time - client->sniperRifleFiredTime)/RIFLE_SHAKE_TIME);
 */
 
 			// NOTE: ----------------- SP uses this method
 			muzzlebounce[PITCH] -= 0.25*client->sniperRifleMuzzlePitch*cos( 2.5*( level.time - client->sniperRifleFiredTime ) / RIFLE_SHAKE_TIME );
 			muzzlebounce[YAW] += 0.2*client->sniperRifleMuzzleYaw*cos( 1.0 - ( level.time - client->sniperRifleFiredTime )*3 / RIFLE_SHAKE_TIME );
-			muzzlebounce[PITCH] -= 0.25*client->sniperRifleMuzzlePitch*random() * ( 1.0f - ( level.time - client->sniperRifleFiredTime ) / RIFLE_SHAKE_TIME );
-			muzzlebounce[YAW] += 0.2 * crandom() * ( 1.0f - ( level.time - client->sniperRifleFiredTime ) / RIFLE_SHAKE_TIME );
+			muzzlebounce[PITCH] -= 0.25*client->sniperRifleMuzzlePitch*gameRandom.RandomFloat() * ( 1.0f - ( level.time - client->sniperRifleFiredTime ) / RIFLE_SHAKE_TIME );
+			muzzlebounce[YAW] += 0.2 * gameRandom.CRandomFloat() * ( 1.0f - ( level.time - client->sniperRifleFiredTime ) / RIFLE_SHAKE_TIME );
 			SetClientViewAngle( ent,muzzlebounce );
 		}
 	}
@@ -1201,8 +1203,8 @@ void ClientThink_real( gentity_t *ent ) {
 	if ( ent->client->ps.groundEntityNum >= 0 && ent->client->ps.groundEntityNum < MAX_CLIENTS
 		 && ( ent->client->ps.velocity.Length() < 200 ) ) {
 		// give them some random velocity
-		ent->client->ps.velocity[0] += crandom() * 100;
-		ent->client->ps.velocity[1] += crandom() * 100;
+		ent->client->ps.velocity[0] += gameRandom.CRandomFloat() * 100;
+		ent->client->ps.velocity[1] += gameRandom.CRandomFloat() * 100;
 		ent->client->ps.velocity[2] += 200;
 	}
 

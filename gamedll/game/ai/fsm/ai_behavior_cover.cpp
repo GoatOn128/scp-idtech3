@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -187,14 +189,14 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 		// NOTE: this is also used by hidepos prediction (below)
 		// if we are going to bump into something soon, abort it
 		AICast_PredictMovement( cs, 1, simTime, &move, &cs->lastucmd, -1 );
-		enemyDist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		enemyDist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 		vec = move.endpos - cs->clientState->origin;
 		moveDist = vec.Normalize();
 		//
 		if ( ( move.numtouch && move.touchents[0] < aicast_maxclients ) // hit something
 			 // or moved closer to the enemy
 			 || ( ( enemyDist < 128 ) &&
-				  ( ( enemyDist - 1 ) > ( Distance( move.endpos, g_entities[cs->enemyNum].s.pos.trBase ) ) ) ) ) {
+				  ( ( enemyDist - 1 ) > ( ( move.endpos - g_entities[cs->enemyNum].s.pos.trBase ).Length() ) ) ) ) {
 			// abort the manouver
 			cs->combat.takeCoverPos.Zero();
 			dist = 0;
@@ -227,7 +229,7 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 		}
 		// do we need to go to our leader?
 		else if ( cs->leaderNum >= 0 &&
-				  Distance( cs->clientState->origin, g_entities[cs->leaderNum].r.currentOrigin ) > MAX_LEADER_DIST ) {
+				  ( cs->clientState->origin - g_entities[cs->leaderNum].r.currentOrigin ).Length() > MAX_LEADER_DIST ) {
 			// wait until we've been hiding for long enough
 			if ( level.time > cs->combat.takeCoverTime ) {
 				return AIFunc_ChaseGoalStart( cs, cs->leaderNum, AICAST_LEADERDIST_MAX, qtrue );
@@ -244,11 +246,17 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 		// if we know who we are hiding from, face them (hack, so they dont face stupid directions)
 		if ( cs->enemyNum >= 0 ) {
 			dir = g_entities[cs->enemyNum].s.pos.trBase - cs->clientState->origin;
-			vectoangles( dir, cs->ideal_viewangles );
+			{
+				const idAngles convertedAngles = dir.ToAngles();
+				cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+			}
 			idleYaw = qfalse;
 		} else if ( cs->lastEnemy >= 0 ) {
 			dir = g_entities[cs->lastEnemy].s.pos.trBase - cs->clientState->origin;
-			vectoangles( dir, cs->ideal_viewangles );
+			{
+				const idAngles convertedAngles = dir.ToAngles();
+				cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+			}
 			idleYaw = qfalse;
 		}
 		// if we can see the place we are hiding from, look at it
@@ -259,7 +267,10 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 			dir[2] = 0;
 			if ( dir.Normalize() > 4 ) {
 				idleYaw = qfalse;
-				vectoangles( dir, cs->ideal_viewangles );
+				{
+					const idAngles convertedAngles = dir.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 			}
 		}
 		//
@@ -279,22 +290,22 @@ char *AIFunc_BattleAmbush( cast_state_t *cs ) {
 
 					cs->idleYaw = AICast_GetRandomViewAngle( cs, 512 );
 
-					if ( fabs( AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] ) ) < 45 ) {
+					if ( fabs( idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] ) ) < 45 ) {
 						cs->nextIdleAngleChange = level.time + 1000 + rand() % 2500;
 					} else { // do really fast
 						cs->nextIdleAngleChange = level.time + 500;
 					}
 
 					// adjust with time
-					cs->idleYawChange = AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
+					cs->idleYawChange = idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
 					/// ((float)(cs->nextIdleAngleChange - level.time) / 1000.0);
 
 					cs->ideal_viewangles[PITCH] = 0;
 				}
 			} else if ( cs->idleYawChange ) {
-				cs->idleYawChange = AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
+				cs->idleYawChange = idMath::AngleDelta( cs->idleYaw, cs->ideal_viewangles[YAW] );
 				cs->ideal_viewangles[YAW] =
-					AngleMod( cs->ideal_viewangles[YAW] + ( cs->idleYawChange * cs->clientState->thinktime ) );
+					idMath::AngleNormalize360( cs->ideal_viewangles[YAW] + ( cs->idleYawChange * cs->clientState->thinktime ) );
 			}
 		}
 	}
@@ -526,14 +537,14 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 		//
 		// if we are going to bump into something soon, abort it
 		AICast_PredictMovement( cs, 1, simTime, &move, &cs->lastucmd, -1 );
-		enemyDist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		enemyDist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 		vec = move.endpos - cs->clientState->origin;
 		moveDist = vec.Normalize();
 		//
 		if ( ( move.numtouch && move.touchents[0] < aicast_maxclients ) // hit something
 			 // or moved closer to the enemy
 			 || ( ( enemyDist < 128 ) &&
-				  ( ( enemyDist - 1 ) > ( Distance( move.endpos, g_entities[cs->enemyNum].s.pos.trBase ) ) ) ) ) {
+				  ( ( enemyDist - 1 ) > ( ( move.endpos - g_entities[cs->enemyNum].s.pos.trBase ).Length() ) ) ) ) {
 			// abort the manouver
 			cs->combat.takeCoverPos.Zero();
 			dist = 0;
@@ -625,7 +636,7 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 		}
 		// do we need to go to our leader?
 		else if ( cs->leaderNum >= 0 &&
-				  Distance( cs->clientState->origin, g_entities[cs->leaderNum].r.currentOrigin ) > MAX_LEADER_DIST ) {
+				  ( cs->clientState->origin - g_entities[cs->leaderNum].r.currentOrigin ).Length() > MAX_LEADER_DIST ) {
 			// wait until we've been hiding for long enough
 			if ( level.time > cs->combat.takeCoverTime ) {
 				return AIFunc_ChaseGoalStart( cs, cs->leaderNum, AICAST_LEADERDIST_MAX, qtrue );
@@ -686,7 +697,10 @@ char *AIFunc_BattleTakeCover( cast_state_t *cs ) {
 				//
 				dir = cs->perception.vislist[cs->lastEnemy].visible_pos - cs->clientState->origin;
 				dir.Normalize();
-				vectoangles( dir, cs->ideal_viewangles );
+				{
+					const idAngles convertedAngles = dir.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 			}
 		} else if ( !cs->crouchHideFlag ) { // no enemy, and no need to crouch, so stop crouching
 			//if (cs->attackcrouch_time > level.time + 1000) {

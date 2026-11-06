@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 //=================================================================================
@@ -98,7 +100,7 @@ char *AIFunc_WarriorZombieMelee( cast_state_t *cs ) {
 		if ( anim < 3 ) { // back handed-swinging, dont allow legs to move
 			// if they are outside range, move forward
 			AICast_PredictMovement( ecs, 2, 0.5, &move, &g_entities[cs->enemyNum].client->pers.cmd, -1 );
-			enemyDist = Distance( move.endpos, cs->clientState->origin );
+			enemyDist = ( move.endpos - cs->clientState->origin ).Length();
 			enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 			enemyDist -= ent->r.maxs[0];
 			if ( enemyDist > 16 ) { // we can get closer
@@ -350,7 +352,7 @@ static qboolean AI_WarZombieAbilityAvailable( cast_state_t *cs, int weaponNum ) 
 	int delay = -1;
 	float dist = -1;
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 	switch ( weaponNum ) {
 	case WP_MONSTER_ATTACK1: {

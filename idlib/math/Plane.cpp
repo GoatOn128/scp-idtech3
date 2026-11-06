@@ -66,6 +66,59 @@ int idPlane::Type() const {
 
 /*
 ================
+idPlane::Signbits
+================
+*/
+int idPlane::Signbits() const {
+	int bits = 0;
+	for ( int i = 0; i < 3; i++ ) {
+		if ( Normal()[i] < 0.0f ) {
+			bits |= 1 << i;
+		}
+	}
+	return bits;
+}
+
+/*
+================
+idPlane::BoxOnSide
+================
+*/
+int idPlane::BoxOnSide( const idVec3 &mins, const idVec3 &maxs ) const {
+	const int type = Type();
+	if ( type >= PLANETYPE_X && type <= PLANETYPE_Z && Normal()[type] == 1.0f ) {
+		if ( Dist() <= mins[type] ) {
+			return 1;
+		}
+		if ( Dist() >= maxs[type] ) {
+			return 2;
+		}
+		return 3;
+	}
+
+	idVec3 nearPoint, farPoint;
+	for ( int i = 0; i < 3; i++ ) {
+		if ( Normal()[i] < 0.0f ) {
+			nearPoint[i] = maxs[i];
+			farPoint[i] = mins[i];
+		} else {
+			nearPoint[i] = mins[i];
+			farPoint[i] = maxs[i];
+		}
+	}
+
+	int sides = 0;
+	if ( Normal() * farPoint >= Dist() ) {
+		sides = 1;
+	}
+	if ( Normal() * nearPoint < Dist() ) {
+		sides |= 2;
+	}
+	return sides;
+}
+
+/*
+================
 idPlane::HeightFit
 ================
 */

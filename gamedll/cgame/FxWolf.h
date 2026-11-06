@@ -1,13 +1,8 @@
 #pragma once
-#include <vector>
 #include <cmath>
-#include <list>
-#include <map>
-#include <string>
 #include <cassert>
 #include <cstdarg>
 #include "cg_local.h"
-#include "genericparser2.h"
 
 // Private FX renderer payload. Never passed across the renderer syscall ABI.
 static const refEntityType_t RT_LINE = static_cast<refEntityType_t>(100);
@@ -22,7 +17,5 @@ struct FxRefEntity : refEntity_t {
     int endTime;
     float aspectRatio;
 };
-inline int Q_irand(int a, int b) { return b <= a ? a : a + rand() % (b - a + 1); }
-inline float Q_flrand(float a, float b) { return a + ( b - a ) * ( rand() / ( float )RAND_MAX ); }
 #define WORLD_SIZE 65536
 #define CHAN_LESS_ATTEN CHAN_AUTO

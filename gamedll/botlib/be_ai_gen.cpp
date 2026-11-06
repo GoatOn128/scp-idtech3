@@ -35,9 +35,10 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
 #include "l_log.h"
-#include "l_utils.h"
 #include "l_struct.h"
 #include "aasfile.h"
 #include "../game/botlib.h"

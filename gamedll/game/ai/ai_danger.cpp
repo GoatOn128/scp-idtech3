@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -46,11 +48,11 @@ int AICast_SafeMissileFire( gentity_t *ent, int duration, int enemyNum, const id
 	}
 
 	// at end of life, so do radius damage
-	rval = ( Distance( org, enemyPos ) < ent->splashRadius ) &&
+	rval = ( ( org - enemyPos ).Length() < ent->splashRadius ) &&
 		   AICast_VisibleFromPos( org, ent->s.number, enemyPos, enemyNum, qfalse );
 	if ( rval ) {
 		// don't hurt ourselves
-		if ( Distance( org, g_entities[selfNum].r.currentOrigin ) < ent->splashRadius * 1.5 ) {
+		if ( ( org - g_entities[selfNum].r.currentOrigin ).Length() < ent->splashRadius * 1.5 ) {
 			return -1;
 		}
 		// make sure we don't injure a friendly
@@ -68,15 +70,15 @@ int AICast_SafeMissileFire( gentity_t *ent, int duration, int enemyNum, const id
 				continue;
 			}
 			if ( AICast_SameTeam( AICast_GetCastState( selfNum ), trav->s.number ) ) {
-				if ( Distance( org, trav->r.currentOrigin ) < ent->splashRadius ) {
+				if ( ( org - trav->r.currentOrigin ).Length() < ent->splashRadius ) {
 					return -1;
 				}
 			}
 		}
 	}
 	// if it overshot the mark
-	if ( !rval && Distance( g_entities[ent->r.ownerNum].r.currentOrigin, org ) >
-					  Distance( g_entities[ent->r.ownerNum].r.currentOrigin, enemyPos ) ) {
+	if ( !rval && ( g_entities[ent->r.ownerNum].r.currentOrigin - org ).Length() >
+					  ( g_entities[ent->r.ownerNum].r.currentOrigin - enemyPos ).Length() ) {
 		return -2; // so the AI can try aiming down a bit next time
 	}
 	//
@@ -156,7 +158,8 @@ void AICast_CheckDangerousEntity( gentity_t *ent, int dangerFlags, float dangerD
 			idVec3 ang, dir;
 			dir = ent->r.currentOrigin - cs->clientState->origin;
 			dir.Normalize();
-			vectoangles( dir, ang );
+			idAngles dangerAngles = dir.ToAngles();
+			ang.Set( dangerAngles.pitch, dangerAngles.yaw, dangerAngles.roll );
 			if ( !AICast_InFieldOfVision( cs->viewangles, cs->attributes[FOV], ang ) ) {
 				// can't see it
 				continue;

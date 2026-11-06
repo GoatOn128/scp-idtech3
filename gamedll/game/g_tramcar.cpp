@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 /*
 	SP_Tramcar
 */
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 // defines
@@ -325,7 +327,8 @@ void Reached_Tramcar( gentity_t *ent ) {
 	}
 
 	if ( !idStr::Icmp( ent->classname, "props_me109" ) ) {
-		idVec3 vec, angles;
+		idVec3 vec;
+		idAngles angles;
 		float diff;
 
 		if ( next->spawnflags & 8 ) { // laps
@@ -364,10 +367,10 @@ void Reached_Tramcar( gentity_t *ent ) {
 		}
 
 		vec = ent->nextTrain->nextTrain->s.origin - ent->r.currentOrigin;
-		vectoangles( vec, angles );
+		angles = vec.ToAngles();
 
 
-		diff = AngleSubtract( ent->r.currentAngles [YAW], angles[YAW] );
+		diff = idMath::AngleDelta( ent->r.currentAngles[YAW], angles[YAW] );
 		// diff = AngleSubtract (ent->TargetAngles [YAW], angles[YAW]);
 
 		ent->rotate[1] = 1;
@@ -424,7 +427,8 @@ void Reached_Tramcar( gentity_t *ent ) {
 			return;
 		} else
 		{
-			idVec3 vec, angles;
+			idVec3 vec;
+			idAngles angles;
 			float diff;
 
 			if ( next->spawnflags & 4 ) { // reverse
@@ -436,9 +440,9 @@ void Reached_Tramcar( gentity_t *ent ) {
 				vec = ent->nextTrain->nextTrain->s.origin - ent->r.currentOrigin;
 			}
 
-			vectoangles( vec, angles );
+			angles = vec.ToAngles();
 
-			diff = AngleSubtract( ent->r.currentAngles [YAW], angles[YAW] );
+			diff = idMath::AngleDelta( ent->r.currentAngles[YAW], angles[YAW] );
 
 			ent->rotate[1] = 1;
 			ent->angle = -diff;
@@ -858,7 +862,8 @@ void ExplodePlaneSndFx( gentity_t *self ) {
 	if ( self->nextTrain && self->nextTrain->spawnflags & 4 ) { // explode the plane
 		// spawn the wing at the player
 		gentity_t   *player;
-		idVec3 vec, ang;
+		idVec3 vec;
+		idAngles ang;
 
 		player = AICast_FindEntityForName( "player" );
 
@@ -867,8 +872,8 @@ void ExplodePlaneSndFx( gentity_t *self ) {
 		}
 
 		vec = player->s.origin - self->r.currentOrigin;
-		vectoangles( vec, ang );
-		idAngles( ang ).ToVectors( &dir, NULL, NULL );
+		ang = vec.ToAngles();
+		ang.ToVectors( &dir, NULL, NULL );
 
 		dir[2] = 1;
 
@@ -894,9 +899,9 @@ void ExplodePlaneSndFx( gentity_t *self ) {
 	{
 		start = self->r.currentOrigin;
 
-		start[0] += crandom() * 64;
-		start[1] += crandom() * 64;
-		start[2] += crandom() * 32;
+		start[0] += gameRandom.CRandomFloat() * 64;
+		start[1] += gameRandom.CRandomFloat() * 64;
+		start[2] += gameRandom.CRandomFloat() * 32;
 
 		part = fire_flamebarrel( temp, start, dir );
 
@@ -1005,14 +1010,14 @@ void props_me109_think( gentity_t *self ) {
 					float len;
 					idVec3 vec;
 					idVec3 forward;
-					idVec3 dir;
+					idAngles dir;
 					idVec3 point;
 
 					point = player->r.currentOrigin;
 					vec = player->r.currentOrigin - self->r.currentOrigin;
 					len = vec.Length();
-					vectoangles( vec, dir );
-					idAngles( dir ).ToVectors( &forward, NULL, NULL );
+					dir = vec.ToAngles();
+					dir.ToVectors( &forward, NULL, NULL );
 					point = point + forward * len * 0.1;
 
 					G_SetOrigin( self->melee, point );
@@ -1423,7 +1428,8 @@ void camera_cam_think( gentity_t *ent ) {
 
 			if ( target ) {
 				vec = target->r.currentOrigin - ent->r.currentOrigin;
-				vectoangles( vec, dang );
+				idAngles viewAngles = vec.ToAngles();
+				dang.Set( viewAngles.pitch, viewAngles.yaw, viewAngles.roll );
 				SetClientViewAngle( player, dang );
 
 				ent->s.pos.trBase = ent->r.currentOrigin;
@@ -1481,7 +1487,8 @@ void camera_cam_firstthink( gentity_t *ent ) {
 
 	if ( target ) {
 		vec = target->s.origin - ent->r.currentOrigin;
-		vectoangles( vec, dang );
+		idAngles cameraAngles = vec.ToAngles();
+		dang.Set( cameraAngles.pitch, cameraAngles.yaw, cameraAngles.roll );
 		G_SetAngle( ent, dang );
 	}
 
@@ -1533,12 +1540,12 @@ defaults are .5 sec
 void screen_fade_use( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 	if ( ent->spawnflags & 1 ) {
 		// fade out
-		trap_SetConfigstring( CS_SCREENFADE, va( "1 %i %i", level.time + 100, (int) ent->wait ) );
+		trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i %i", level.time + 100, (int) ent->wait ) );
 		ent->spawnflags &= ~1;
 	} else
 	{
 		// fade in
-		trap_SetConfigstring( CS_SCREENFADE, va( "0 %i %i", level.time + 100, (int) ent->delay ) );
+		trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "0 %i %i", level.time + 100, (int) ent->delay ) );
 		ent->spawnflags |= 1;
 	}
 

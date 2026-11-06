@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // win_syscon.h
+#include "../../precompiled.h"
+
 #include "../../client/client.h"
 #include "win_local.h"
 #include "resource.h"
@@ -256,7 +258,7 @@ LONG WINAPI InputLineWndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
 			strcat( s_wcd.consoleText, "\n" );
 			SetWindowText( s_wcd.hwndInputLine, "" );
 
-			Sys_Print( va( "]%s\n", inputBuffer ) );
+			Sys_Print( idStr::FormatString( "]%s\n", inputBuffer ) );
 
 			return 0;
 		}

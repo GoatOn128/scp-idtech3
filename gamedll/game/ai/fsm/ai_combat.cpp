@@ -22,7 +22,10 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
+static idRandom aiRandom;
 
 /*
 ============
@@ -61,7 +64,7 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 	//
 	// do we need to go to our leader?
 	if ( cs->leaderNum >= 0 &&
-		 Distance( cs->clientState->origin, g_entities[cs->leaderNum].r.currentOrigin ) > MAX_LEADER_DIST ) {
+		 ( cs->clientState->origin - g_entities[cs->leaderNum].r.currentOrigin ).Length() > MAX_LEADER_DIST ) {
 		return AIFunc_ChaseGoalStart( cs, cs->leaderNum, AICAST_LEADERDIST_MAX, qtrue );
 	}
 	bs = cs->clientState;
@@ -117,7 +120,7 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 				// shot. so, we could fool them by hiding from the position we last saw them from, in the hope that when they
 				// return to fire at us, we won't be in their sight.
 				if ( cs->attributes[TACTICAL] > 0.3 && cs->attributes[AGGRESSION] < 1.0 &&
-					 cs->attributes[AGGRESSION] < ( random() + 0.5 * cs->attributes[TACTICAL] ) &&
+					 cs->attributes[AGGRESSION] < ( aiRandom.RandomFloat() + 0.5 * cs->attributes[TACTICAL] ) &&
 					 ( cs->combat.takeCoverTime < level.time ) &&
 					 AICast_GetTakeCoverPos( cs, cs->enemyNum, cs->perception.vislist[cs->enemyNum].real_visible_pos,
 											 cs->combat.takeCoverPos ) ) {
@@ -131,18 +134,18 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 						   ai_encounter.lastGrenadeFlushTime < level.time - 7000 ) &&
 						 ( cs->aiState >= AISTATE_COMBAT ) &&
 						 ( cs->script.castScriptStatus.castScriptEventIndex < 0 ) &&
-						 ( ( ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_GRENADE_LAUNCHER ) ) &&
+						 ( ( ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_GRENADE_LAUNCHER ) ) &&
 							 ( AICast_GotEnoughAmmoForWeapon( cs, WP_GRENADE_LAUNCHER ) ) &&
 							 ( cs->combat.weaponFireTimes[WP_GRENADE_LAUNCHER] <
 							   level.time - (int)( aicast_skillscale * 3000 ) ) ) ||
-						   ( ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_GRENADE_PINEAPPLE ) ) &&
+						   ( ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_GRENADE_PINEAPPLE ) ) &&
 							 ( AICast_GotEnoughAmmoForWeapon( cs, WP_GRENADE_PINEAPPLE ) ) &&
 							 ( cs->combat.weaponFireTimes[WP_GRENADE_PINEAPPLE] <
 							   level.time - (int)( aicast_skillscale * 3000 ) ) ) ) &&
 						 !( cs->weaponNum && ( cs->script.castScriptStatus.scriptFlags & SFL_NOCHANGEWEAPON ) ) &&
-						 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].real_visible_pos ) >
+						 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].real_visible_pos ).Length() >
 						   100 ) &&
-						 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].real_visible_pos ) <
+						 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].real_visible_pos ).Length() <
 						   1200 ) &&
 						 ( AICast_WantsToChase( cs ) ) ) {
 						// try and flush them out with a grenade
@@ -178,7 +181,7 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 	}
 	// if the enemy is really close, avoid them
 	else if ( ( cs->navigation.obstructingTime < ( level.time - 500 + rand() % 300 ) ) &&
-			  ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].real_visible_pos ) < 100 ) ) {
+			  ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].real_visible_pos ).Length() < 100 ) ) {
 		if ( AICast_GetAvoid( cs, NULL, cs->navigation.obstructingPos, qtrue, cs->enemyNum ) ) {
 			cs->navigation.obstructingTime = level.time + 500;
 		} else {
@@ -237,13 +240,13 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 	if ( ( ai_encounter.lastGrenadeFlushTime > level.time || ai_encounter.lastGrenadeFlushTime < level.time - 7000 ) &&
 		 ( cs->aiState >= AISTATE_COMBAT ) && ( cs->script.castScriptStatus.castScriptEventIndex < 0 ) &&
 		 ( cs->grenade.startGrenadeFlushTime < level.time - 3000 ) &&
-		 ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_GRENADE_LAUNCHER ) ) &&
+		 ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_GRENADE_LAUNCHER ) ) &&
 		 ( AICast_GotEnoughAmmoForWeapon( cs, WP_GRENADE_LAUNCHER ) ) &&
 		 ( cs->combat.weaponFireTimes[WP_GRENADE_LAUNCHER] < level.time - (int)( aicast_skillscale * 3000 ) ) &&
 		 ( ( cs->weaponNum == WP_GRENADE_LAUNCHER ) ||
 		   !( cs->script.castScriptStatus.scriptFlags & SFL_NOCHANGEWEAPON ) ) &&
-		 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].real_visible_pos ) > 100 ) &&
-		 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].real_visible_pos ) < 2000 ) ) {
+		 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].real_visible_pos ).Length() > 100 ) &&
+		 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].real_visible_pos ).Length() < 2000 ) ) {
 		// try and flush them out with a grenade
 		//G_Printf("pineapple?\n");
 		return AIFunc_GrenadeFlushStart( cs );
@@ -251,13 +254,13 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 	if ( ( ai_encounter.lastGrenadeFlushTime > level.time || ai_encounter.lastGrenadeFlushTime < level.time - 7000 ) &&
 		 ( cs->aiState >= AISTATE_COMBAT ) && ( cs->script.castScriptStatus.castScriptEventIndex < 0 ) &&
 		 ( cs->grenade.startGrenadeFlushTime < level.time - 3000 ) &&
-		 ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_GRENADE_PINEAPPLE ) ) &&
+		 ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_GRENADE_PINEAPPLE ) ) &&
 		 ( AICast_GotEnoughAmmoForWeapon( cs, WP_GRENADE_PINEAPPLE ) ) &&
 		 ( cs->combat.weaponFireTimes[WP_GRENADE_PINEAPPLE] < level.time - (int)( aicast_skillscale * 3000 ) ) &&
 		 ( ( cs->weaponNum == WP_GRENADE_PINEAPPLE ) ||
 		   !( cs->script.castScriptStatus.scriptFlags & SFL_NOCHANGEWEAPON ) ) &&
-		 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].real_visible_pos ) > 100 ) &&
-		 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].real_visible_pos ) < 2000 ) ) {
+		 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].real_visible_pos ).Length() > 100 ) &&
+		 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].real_visible_pos ).Length() < 2000 ) ) {
 		// try and flush them out with a grenade
 		//G_Printf("pineapple?\n");
 		return AIFunc_GrenadeFlushStart( cs );
@@ -298,7 +301,7 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 
 			trap_EA_ResetInput( cs->entityNum, &bi_back );
 
-			if ( move.groundEntityNum == ENTITYNUM_WORLD && VectorDistance( move.endpos, cs->clientState->origin ) >
+			if ( move.groundEntityNum == ENTITYNUM_WORLD && ( move.endpos - cs->clientState->origin ).Length() >
 																simTime * cs->attributes[RUNNING_SPEED] * 0.8 ) {
 				// good enough
 				if ( AICast_CheckAttackAtPos(
@@ -350,7 +353,7 @@ char *AI_EnterCombat( cast_state_t *cs ) {
 	cs->combat.combatSpotDelayTime = level.time + 1500 + rand() % 2500;
 	//
 	// start a crouch attack?
-	if ( ( random() * 3.0 + 1.0 < cs->attributes[ATTACK_CROUCH] ) &&
+	if ( ( aiRandom.RandomFloat() * 3.0 + 1.0 < cs->attributes[ATTACK_CROUCH] ) &&
 		 AICast_RequestCrouchAttack( cs, cs->clientState->origin, 0.0 ) ) {
 		cs->aiFlags |= AIFL_ATTACK_CROUCH;
 	} else {
@@ -475,7 +478,7 @@ float AICast_Aggression( cast_state_t *cs ) {
 
 	// gain in confidence the further we are away
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 		//if (dist > 512) {
 		scale += ( dist - 800.0 ) / ( 8000.0 );
 		//}
@@ -550,7 +553,7 @@ int AICast_WantsToTakeCover( cast_state_t *cs, qboolean attacking ) {
 	if ( attacking ) {
 		aggrScale = 1.2;
 	} else {
-		aggrScale = 0.8 /*+ 0.4 * random()*/;
+		aggrScale = 0.8 /*+ 0.4 * aiRandom.RandomFloat()*/;
 	}
 	//
 	// if currently following someone, we should be more aggressive
@@ -631,7 +634,7 @@ qboolean AICast_WantToRetreat( cast_state_t *cs ) {
 	}
 
 	if ( cs->leaderNum < 0 ) {
-		if ( ( cs->attributes[TACTICAL] > 0.11 + random() * 0.5 ) &&
+		if ( ( cs->attributes[TACTICAL] > 0.11 + aiRandom.RandomFloat() * 0.5 ) &&
 			 ( ( cs->clientState->cur_ps.weaponTime > 500 ) ||
 			   ( ( cs->combat.takeCoverTime < level.time - 100 ) && ( AICast_WantsToTakeCover( cs, qtrue ) ) ) ) ) {
 			return qtrue;

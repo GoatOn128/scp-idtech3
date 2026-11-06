@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 trGlobals_t tr;
@@ -897,7 +899,7 @@ void R_SetupFrustum( void ) {
 	for ( i = 0 ; i < 4 ; i++ ) {
 		tr.viewParms.frustum[i].type = PLANE_NON_AXIAL;
 		tr.viewParms.frustum[i].dist = ( tr.viewParms.orent.origin ) * ( tr.viewParms.frustum[i].normal );
-		SetPlaneSignbits( &tr.viewParms.frustum[i] );
+		tr.viewParms.frustum[i].signbits = idPlane( tr.viewParms.frustum[i].normal, tr.viewParms.frustum[i].dist ).Signbits();
 	}
 }
 
@@ -945,7 +947,6 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane ) {
 	srfTriangles_t  *tri;
 	srfPoly_t       *poly;
 	drawVert_t      *v1, *v2, *v3;
-	idVec4 plane4;
 
 	if ( !surfType ) {
 		memset( plane, 0, sizeof( *plane ) );
@@ -961,15 +962,21 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane ) {
 		v1 = tri->verts + tri->indexes[0];
 		v2 = tri->verts + tri->indexes[1];
 		v3 = tri->verts + tri->indexes[2];
-		PlaneFromPoints( plane4, v1->xyz, v2->xyz, v3->xyz );
-		plane->normal = plane4.ToVec3();
-		plane->dist = plane4[3];
+		{
+			idPlane derivedPlane;
+			derivedPlane.FromPoints( v1->xyz, v2->xyz, v3->xyz, false );
+			plane->normal = derivedPlane.Normal();
+			plane->dist = derivedPlane.Dist();
+		}
 		return;
 	case SF_POLY:
 		poly = (srfPoly_t *)surfType;
-		PlaneFromPoints( plane4, poly->verts[0].xyz, poly->verts[1].xyz, poly->verts[2].xyz );
-		plane->normal = plane4.ToVec3();
-		plane->dist = plane4[3];
+		{
+			idPlane derivedPlane;
+			derivedPlane.FromPoints( poly->verts[0].xyz, poly->verts[1].xyz, poly->verts[2].xyz, false );
+			plane->normal = derivedPlane.Normal();
+			plane->dist = derivedPlane.Dist();
+		}
 		return;
 	default:
 		memset( plane, 0, sizeof( *plane ) );
@@ -1061,7 +1068,9 @@ qboolean R_GetPortalOrientations( drawSurf_t *drawSurf, int entityNum,
 
 		// now get the camera origin and orientation
 		camera->origin = e->e.oldorigin;
-		AxisCopy( e->e.axis, camera->axis );
+		camera->axis[0] = e->e.axis[0];
+		camera->axis[1] = e->e.axis[1];
+		camera->axis[2] = e->e.axis[2];
 		camera->axis[0] = vec3_origin - camera->axis[0];
 		camera->axis[1] = vec3_origin - camera->axis[1];
 

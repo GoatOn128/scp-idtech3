@@ -43,12 +43,17 @@ public:
 
 	// both read & write
 	void			InitWrite( byte *data, int length );
+	void			InitWriteOOB( byte *data, int length );
 
 	// read only
 	void			InitRead( const byte *data, int length );
+	void			InitReadOOB( const byte *data, int length );
+	void			SetOOB( bool set );
+	bool			IsOOB() const;
 
 	// get data for writing
 	byte *			GetWriteData();
+	byte *			GetData();
 
 	// get data for reading
 	const byte *	GetReadData() const;
@@ -130,6 +135,8 @@ public:
 
 	// begin writing
 	void			BeginWriting();
+	void			BeginReading();
+	void			BeginReadingOOB();
 
 	// write up to the next byte boundary
 	void			WriteByteAlign();
@@ -207,6 +214,8 @@ public:
 	idVec3			ReadDir( int numBits ) const;
 	int				ReadString( char *buffer, int bufferSize ) const;
 	int				ReadString( idStr & str ) const;
+	const char *	ReadString() const;
+	const char *	ReadStringLine() const;
 	int				ReadData( void *data, int length ) const;
 
 	float			ReadUNorm8() const { return ReadByte() / 255.0f; }
@@ -255,8 +264,12 @@ private:
 	bool			allowOverflow;	// if false, generate error when the message is overflowed
 	bool			overflowed;		// set true if buffer size failed (with allowOverflow set)
 	bool			hasChanged;		// Hack
+	bool			oob;			// byte-aligned, uncompressed wire format
+	mutable char		stringBuffer[8192];
 
 	mutable uint64	tempValue;
+	int				huffWriteBit;
+	mutable int		huffReadBit;
 
 private:
 	bool			CheckOverflow( int numBits );
@@ -279,8 +292,16 @@ ID_INLINE void idBitMsg::InitWrite( byte *data, int length ) {
 	readBit = 0;
 	allowOverflow = false;
 	overflowed = false;
+	oob = false;
 	
 	tempValue = 0;
+	huffWriteBit = 0;
+	huffReadBit = 0;
+}
+
+ID_INLINE void idBitMsg::InitWriteOOB( byte *data, int length ) {
+	InitWrite( data, length );
+	oob = true;
 }
 
 /*
@@ -299,8 +320,24 @@ ID_INLINE void idBitMsg::InitRead( const byte *data, int length ) {
 	readBit = 0;
 	allowOverflow = false;
 	overflowed = false;
+	oob = false;
 
 	tempValue = 0;
+	huffWriteBit = 0;
+	huffReadBit = 0;
+}
+
+ID_INLINE void idBitMsg::InitReadOOB( const byte *data, int length ) {
+	InitRead( data, length );
+	oob = true;
+}
+
+ID_INLINE void idBitMsg::SetOOB( bool set ) {
+	oob = set;
+}
+
+ID_INLINE bool idBitMsg::IsOOB() const {
+	return oob;
 }
 
 /*
@@ -310,6 +347,10 @@ idBitMsg::GetWriteData
 */
 ID_INLINE byte *idBitMsg::GetWriteData() {
 	return writeData;
+}
+
+ID_INLINE byte * idBitMsg::GetData() {
+	return writeData != NULL ? writeData : const_cast<byte *>( readData );
 }
 
 /*
@@ -401,7 +442,7 @@ idBitMsg::GetNumBitsWritten
 ========================
 */
 ID_INLINE int idBitMsg::GetNumBitsWritten() const {
-	return ( curSize << 3 ) + writeBit;
+	return oob ? ( ( curSize << 3 ) + writeBit ) : huffWriteBit;
 }
 
 /*
@@ -489,7 +530,7 @@ idBitMsg::GetNumBitsRead
 ========================
 */
 ID_INLINE int idBitMsg::GetNumBitsRead() const {
-	return ( ( readCount << 3 ) - ( ( 8 - readBit ) & 7 ) );
+	return oob ? ( ( readCount << 3 ) - ( ( 8 - readBit ) & 7 ) ) : huffReadBit;
 }
 
 /*
@@ -508,7 +549,6 @@ idBitMsg::GetRemainingReadBits
 ========================
 */
 ID_INLINE int idBitMsg::GetRemainingReadBits() const {
-	assert( writeBit == 0 );
 	return ( curSize << 3 ) - GetNumBitsRead();
 }
 
@@ -544,6 +584,19 @@ ID_INLINE void idBitMsg::BeginWriting() {
 	overflowed = false;
 	writeBit = 0;
 	tempValue = 0;
+	huffWriteBit = 0;
+}
+
+ID_INLINE void idBitMsg::BeginReading() {
+	readCount = 0;
+	readBit = 0;
+	huffReadBit = 0;
+	oob = false;
+}
+
+ID_INLINE void idBitMsg::BeginReadingOOB() {
+	BeginReading();
+	oob = true;
 }
 
 /*
@@ -552,6 +605,9 @@ idBitMsg::WriteByteAlign
 ========================
 */
 ID_INLINE void idBitMsg::WriteByteAlign() {
+	if ( !oob ) {
+		return;
+	}
 	// it is important that no uninitialized data slips in the msg stream,
 	// because we use memcmp to decide if entities have changed and wether we should transmit them
 	// this function has the potential to leave uninitialized bits into the stream,
@@ -694,6 +750,9 @@ idBitMsg::ReadByteAlign
 ========================
 */
 ID_INLINE void idBitMsg::ReadByteAlign() const {
+	if ( !oob ) {
+		return;
+	}
 	readBit = 0;
 }
 

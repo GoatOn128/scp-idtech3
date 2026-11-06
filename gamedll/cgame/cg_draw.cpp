@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 // cg_draw.c -- draw all of the graphical elements during
 // active (after loading) gameplay
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "../ui/ui_shared.h"
 
@@ -333,7 +335,9 @@ void CG_Draw3DModel( float x, float y, float w, float h, qhandle_t model, qhandl
 
 	refdef.rdflags = RDF_NOWORLDMODEL;
 
-	AxisClear( refdef.viewaxis );
+	refdef.viewaxis[0] = idVec3( 1.0f, 0.0f, 0.0f );
+	refdef.viewaxis[1] = idVec3( 0.0f, 1.0f, 0.0f );
+	refdef.viewaxis[2] = idVec3( 0.0f, 0.0f, 1.0f );
 
 	refdef.fov_x = 30;
 	refdef.fov_y = 30;
@@ -787,11 +791,11 @@ static void CG_DrawStatusBar( void ) {
 			// don't draw ammo value for knife
 			if ( cg.predictedPlayerState.weapon != WP_KNIFE ) {
 				if ( cgs.dmflags & DF_NO_WEAPRELOAD ) {
-					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, va( "%d.", value ), cg_hudAlpha.value );
+					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, idStr::FormatString( "%d.", value ), cg_hudAlpha.value );
 				} else if ( value ) {
-					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, va( "%d/%d", inclip, value ), cg_hudAlpha.value );
+					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, idStr::FormatString( "%d/%d", inclip, value ), cg_hudAlpha.value );
 				} else {
-					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, va( "%d", inclip ), cg_hudAlpha.value );
+					CG_DrawBigString2( ( 580 - 23 + 35 ) + wideOffset, STATUSBARHEIGHT, idStr::FormatString( "%d", inclip ), cg_hudAlpha.value );
 				}
 			}
 
@@ -931,10 +935,10 @@ CG_DrawSnapshot
 ==================
 */
 static float CG_DrawSnapshot( float y ) {
-	char        *s;
+	idStr s;
 	int w;
 
-	s = va( "time:%i snap:%i cmd:%i", cg.snap->serverTime,
+	s = idStr::FormatString( "time:%i snap:%i cmd:%i", cg.snap->serverTime,
 			cg.latestSnapshotNum, cgs.serverCommandSequence );
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
@@ -950,7 +954,7 @@ CG_DrawFPS
 */
 #define FPS_FRAMES  4
 static float CG_DrawFPS( float y ) {
-	char        *s;
+	idStr s;
 	int w;
 	static int previousTimes[FPS_FRAMES];
 	static int index;
@@ -978,7 +982,7 @@ static float CG_DrawFPS( float y ) {
 		}
 		fps = 1000 * FPS_FRAMES / total;
 
-		s = va( "%ifps", fps );
+		s = idStr::FormatString( "%ifps", fps );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
 		CG_DrawBigString( UPPERRIGHT_X - w, y + 2, s, 1.0F );
@@ -993,7 +997,7 @@ CG_DrawTimer
 =================
 */
 static float CG_DrawTimer( float y ) {
-	char        *s;
+	idStr s;
 	int w;
 	int mins, seconds, tens;
 	int msec;
@@ -1012,7 +1016,7 @@ static float CG_DrawTimer( float y ) {
 	tens = seconds / 10;
 	seconds -= tens * 10;
 
-	s = va( "%i:%i%i", mins, tens, seconds );
+	s = idStr::FormatString( "%i:%i%i", mins, tens, seconds );
 	w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH;
 
 	CG_DrawBigString( UPPERRIGHT_X - w, y + 2, s, 1.0F );
@@ -1243,7 +1247,7 @@ Draw the small two score display
 */
 #ifdef OLDWOLFUI
 static float CG_DrawScores( float y ) {
-	const char  *s;
+	idStr s;
 	int s1, s2, score;
 	int x, w;
 	int v;
@@ -1264,7 +1268,7 @@ static float CG_DrawScores( float y ) {
 		color[1] = 0;
 		color[2] = 1;
 		color[3] = 0.33;
-		s = va( "%2i", s2 );
+		s = idStr::FormatString( "%2i", s2 );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 		x -= w;
 		CG_FillRect( x, y - 4,  w, BIGCHAR_HEIGHT + 8, color );
@@ -1278,7 +1282,7 @@ static float CG_DrawScores( float y ) {
 		color[1] = 0;
 		color[2] = 0;
 		color[3] = 0.33;
-		s = va( "%2i", s1 );
+		s = idStr::FormatString( "%2i", s1 );
 		w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 		x -= w;
 		CG_FillRect( x, y - 4,  w, BIGCHAR_HEIGHT + 8, color );
@@ -1293,7 +1297,7 @@ static float CG_DrawScores( float y ) {
 			v = cgs.fraglimit;
 		}
 		if ( v ) {
-			s = va( "%2i", v );
+			s = idStr::FormatString( "%2i", v );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 			x -= w;
 			CG_DrawBigString( x + 4, y, s, 1.0F );
@@ -1313,7 +1317,7 @@ static float CG_DrawScores( float y ) {
 			s2 = score;
 		}
 		if ( s2 != SCORE_NOT_PRESENT ) {
-			s = va( "%2i", s2 );
+			s = idStr::FormatString( "%2i", s2 );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 			x -= w;
 			if ( !spectator && score == s2 && score != s1 ) {
@@ -1335,7 +1339,7 @@ static float CG_DrawScores( float y ) {
 
 		// first place
 		if ( s1 != SCORE_NOT_PRESENT ) {
-			s = va( "%2i", s1 );
+			s = idStr::FormatString( "%2i", s1 );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 			x -= w;
 			if ( !spectator && score == s1 ) {
@@ -1356,7 +1360,7 @@ static float CG_DrawScores( float y ) {
 		}
 
 		if ( cgs.fraglimit ) {
-			s = va( "%2i", cgs.fraglimit );
+			s = idStr::FormatString( "%2i", cgs.fraglimit );
 			w = CG_DrawStrlen( s ) * BIGCHAR_WIDTH + 8;
 			x -= w;
 			CG_DrawBigString( x + 4, y, s, 1.0F );
@@ -2296,7 +2300,7 @@ static void CG_DrawCrosshair( void ) {
 
 	// mauser only gets crosshair if you don't have the scope (I don't like this, but it's a test)
 	if ( cg.weaponSelect == WP_MAUSER ) {
-		if ( COM_BitCheck( cg.predictedPlayerState.weapons, WP_SNIPERRIFLE ) ) {
+		if ( idBitField::Test( cg.predictedPlayerState.weapons, WP_SNIPERRIFLE ) ) {
 			return;
 		}
 	}
@@ -2419,7 +2423,7 @@ CG_DrawDynamiteStatus
 */
 static void CG_DrawDynamiteStatus( void ) {
 	idVec4 color;
-	char        *name;
+	idStr name;
 	int timeleft;
 	float w;
 
@@ -2450,7 +2454,7 @@ static void CG_DrawDynamiteStatus( void ) {
 	timeleft += 5000;
 	timeleft /= 1000;
 
-	name = va( "Timer: %d", timeleft );
+	name = idStr::FormatString( "Timer: %d", timeleft );
 	w = CG_DrawStrlen( name ) * BIGCHAR_WIDTH;
 
 	color[3] *= cg_hudAlpha.value;
@@ -2536,17 +2540,17 @@ static void CG_DrawCrosshairNames( void ) {
 	// -NERVE - SMF
 
 	name = cgs.clientinfo[ cg.crosshairClientNum ].name;
-	w = CG_DrawStrlen( va( "Axis: %s", name ) ) * BIGCHAR_WIDTH;
+	w = CG_DrawStrlen( idStr::FormatString( "Axis: %s", name ) ) * BIGCHAR_WIDTH;
 //	CG_DrawBigString( 320 - w / 2, 170, name, color[3] * 0.5 );
 
 	// NERVE - SMF
 	if ( strlen( name ) ) {
 		if ( ( cgs.clientinfo[ cg.crosshairClientNum ].team == TEAM_RED ) &&
 			 ( cgs.clientinfo[cg.snap->ps.clientNum].team == TEAM_RED ) ) { // JPW NERVE -- only show same team info so people can't pan-search
-			CG_DrawBigStringColor( 320 - w / 2, 170, va( "Axis: %s", name ), teamColor );
+			CG_DrawBigStringColor( 320 - w / 2, 170, idStr::FormatString( "Axis: %s", name ), teamColor );
 		} else if ( ( cgs.clientinfo[ cg.crosshairClientNum ].team == TEAM_BLUE ) &&
 					( cgs.clientinfo[cg.snap->ps.clientNum].team == TEAM_BLUE ) ) { // JPW NERVE -- so's we can't find snipers for free
-			CG_DrawBigStringColor( 320 - w / 2, 170, va( "Ally: %s", name ), teamColor );
+			CG_DrawBigStringColor( 320 - w / 2, 170, idStr::FormatString( "Ally: %s", name ), teamColor );
 		}
 	}
 	// -NERVE - SMF
@@ -2579,7 +2583,7 @@ CG_DrawVote
 =================
 */
 static void CG_DrawVote( void ) {
-	char    *s;
+	idStr s;
 	int sec;
 
 	if ( !cgs.voteTime ) {
@@ -2596,7 +2600,7 @@ static void CG_DrawVote( void ) {
 	if ( sec < 0 ) {
 		sec = 0;
 	}
-	s = va( "VOTE(%i):%s yes(F1):%i no(F2):%i", sec, cgs.voteString, cgs.voteYes, cgs.voteNo );
+	s = idStr::FormatString( "VOTE(%i):%s yes(F1):%i no(F2):%i", sec, cgs.voteString, cgs.voteYes, cgs.voteNo );
 	CG_DrawSmallString( 0, 58, s, 1.0F );
 }
 
@@ -2713,7 +2717,7 @@ CG_DrawAmmoWarning
 =================
 */
 static void CG_DrawAmmoWarning( void ) {
-	const char  *s;
+	idStr s;
 	int w;
 
 //----(SA)	forcing return for now
@@ -2749,7 +2753,7 @@ static void CG_DrawWarmup( void ) {
 	int i;
 	clientInfo_t    *ci1, *ci2;
 	int cw;
-	const char  *s;
+	idStr s;
 
 	if ( cgs.gametype == GT_SINGLE_PLAYER ) {
 		return;     // (SA) don't bother with this stuff in sp
@@ -2783,7 +2787,7 @@ static void CG_DrawWarmup( void ) {
 	}
 
 	if ( ci1 && ci2 ) {
-		s = va( "%s vs %s", ci1->name, ci2->name );
+		s = idStr::FormatString( "%s vs %s", ci1->name, ci2->name );
 		w = CG_DrawStrlen( s );
 		if ( w > 640 / GIANT_WIDTH ) {
 			cw = 640 / w;
@@ -2799,7 +2803,7 @@ static void CG_DrawWarmup( void ) {
 	if ( sec < 0 ) {
 		sec = 0;
 	}
-	s = va( "Starts in: %i", sec + 1 );
+	s = idStr::FormatString( "Starts in: %i", sec + 1 );
 	if ( sec != cg.warmupCount ) {
 		cg.warmupCount = sec;
 		switch ( sec ) {
@@ -3467,7 +3471,7 @@ void CG_CalcShakeCamera() {
 	sx = (float)cg.time / 600.0; // x * (float)(cg.cameraShake[i].length) / 600.0;
 	for ( i = 0; i < MAX_CAMERA_SHAKE; i++ ) {
 		if ( cg.cameraShake[i].time <= cg.time && cg.cameraShake[i].time + cg.cameraShake[i].length > cg.time ) {
-			dist = Distance( cg.cameraShake[i].src, cg.refdef.vieworg );
+			dist = ( cg.cameraShake[i].src - cg.refdef.vieworg ).Length();
 			// fade with distance
 			val = cg.cameraShake[i].scale * ( 1.0f - ( dist / cg.cameraShake[i].radius ) );
 			// fade with time

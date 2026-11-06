@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 // these are processed at snapshot transition time, so there will definately
 // be a valid snapshot this frame
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 #include "../ui/ui_shared.h" // bk001205 - for Q3_ui as well
@@ -129,7 +131,7 @@ void CG_ParseServerinfo( void ) {
 
 	info = CG_ConfigString( CS_SERVERINFO );
 	cgs.gametype = (gametype_t)atoi( Info_ValueForKey( info, "g_gametype" ) );
-	trap_Cvar_Set( "g_gametype", va( "%i", cgs.gametype ) );
+	trap_Cvar_Set( "g_gametype", idStr::FormatString( "%i", cgs.gametype ) );
 	cgs.dmflags = atoi( Info_ValueForKey( info, "dmflags" ) );
 	cgs.teamflags = atoi( Info_ValueForKey( info, "teamflags" ) );
 	cgs.fraglimit = atoi( Info_ValueForKey( info, "fraglimit" ) );
@@ -523,7 +525,7 @@ static void CG_AddToTeamChat( const char *str ) {
 			ls = NULL;
 		}
 
-		if ( Q_IsColorString( str ) ) {
+		if ( idStr::IsColor( str ) ) {
 			*p++ = *str++;
 			lastcolor = *str;
 			*p++ = *str++;
@@ -568,7 +570,7 @@ void CG_SendMoveSpeed( animation_t *animList, int numAnims, char *modelName ) {
 		}
 
 		// add this to the list
-		idStr::Append( text, sizeof( text ), va( " %s %i %.1f", anim->name, anim->moveSpeed, anim->stepGap ) );
+		idStr::Append( text, sizeof( text ), idStr::FormatString( " %s %i %.1f", anim->name, anim->moveSpeed, anim->stepGap ) );
 	}
 
 	// send the movespeeds to the server
@@ -740,9 +742,9 @@ static void CG_MapRestart( void ) {
 //	}
 #ifdef MISSIONPACK
 	if ( cg_singlePlayerActive.integer ) {
-		trap_Cvar_Set( "ui_matchStartTime", va( "%i", cg.time ) );
+		trap_Cvar_Set( "ui_matchStartTime", idStr::FormatString( "%i", cg.time ) );
 		if ( cg_recordSPDemo.integer && cg_recordSPDemoName.string && *cg_recordSPDemoName.string ) {
-			trap_SendConsoleCommand( va( "set g_synchronousclients 1 ; record %s \n", cg_recordSPDemoName.string ) );
+			trap_SendConsoleCommand( idStr::FormatString( "set g_synchronousclients 1 ; record %s \n", cg_recordSPDemoName.string ) );
 		}
 	}
 #endif
@@ -824,7 +826,7 @@ static void CG_ServerCommand( void ) {
 
 	if ( !strcmp( cmd, "dp" ) ) {    // dynamite print (what a hack :(
 
-		CG_CenterPrint( va( "%s %d %s", CG_translateString( "dynamitetimer" ), atoi( CG_Argv( 1 ) ), CG_translateString( "seconds" ) ),
+		CG_CenterPrint( idStr::FormatString( "%s %d %s", CG_translateString( "dynamitetimer" ), atoi( CG_Argv( 1 ) ), CG_translateString( "seconds" ) ),
 						SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
 		return;
 	}

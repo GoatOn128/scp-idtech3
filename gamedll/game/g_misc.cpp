@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 extern void AimAtTarget( gentity_t * self );
@@ -788,13 +790,13 @@ void Use_Shooter( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 
 	if ( ent->s.weapon != WP_SNIPER ) {
 		// randomize a bit
-		PerpendicularVector( up, dir );
+		up.PerpendicularVector( dir );
 		right = up.Cross( dir );
 
-		deg = crandom() * ent->random;
+		deg = gameRandom.CRandomFloat() * ent->random;
 		dir = dir + up * deg;
 
-		deg = crandom() * ent->random;
+		deg = gameRandom.CRandomFloat() * ent->random;
 		dir = dir + right * deg;
 
 		dir.Normalize();
@@ -1250,7 +1252,7 @@ dlight_finish_spawning
 ==============
 */
 void dlight_finish_spawning( gentity_t *ent ) {
-	G_FindConfigstringIndex( va( "%i %s %i %i %i", ent->s.number, ent->dl_stylestring, ent->health, ent->soundLoop, ent->dl_atten ), CS_DLIGHTS, MAX_DLIGHT_CONFIGSTRINGS, qtrue );
+	G_FindConfigstringIndex( idStr::FormatString( "%i %s %i %i %i", ent->s.number, ent->dl_stylestring, ent->health, ent->soundLoop, ent->dl_atten ), CS_DLIGHTS, MAX_DLIGHT_CONFIGSTRINGS, qtrue );
 }
 
 static int dlightstarttime = 0;
@@ -1496,21 +1498,21 @@ void snow_think( gentity_t *ent ) {
 	}
 
 	if ( !idStr::Icmp( ent->classname, "misc_snow256" ) ) {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW256, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW256, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	} else if ( !idStr::Icmp( ent->classname, "misc_snow128" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW128, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW128, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	} else if ( !idStr::Icmp( ent->classname, "misc_snow64" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW64, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW64, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	} else if ( !idStr::Icmp( ent->classname, "misc_snow32" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW32, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_SNOW32, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	} else if ( !idStr::Icmp( ent->classname, "misc_bubbles8" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE8, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE8, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	} else if ( !idStr::Icmp( ent->classname, "misc_bubbles16" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE16, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE16, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	} else if ( !idStr::Icmp( ent->classname, "misc_bubbles32" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE32, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE32, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	} else if ( !idStr::Icmp( ent->classname, "misc_bubbles64" ) )       {
-		G_FindConfigstringIndex( va( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE64, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
+		G_FindConfigstringIndex( idStr::FormatString( "%i %.2f %.2f %.2f %.2f %.2f %.2f %i %i %i", PARTICLE_BUBBLE64, ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], tr.endpos[0], tr.endpos[1], tr.endpos[2], ent->health, turb, ent->s.number ), CS_PARTICLES, MAX_PARTICLES_AREAS, qtrue );
 	}
 
 	ent->think = snowInPVS;
@@ -1645,8 +1647,8 @@ void Fire_Lead( gentity_t *ent, gentity_t *activator, float spread, int damage )
 		lead_muzzle = muzzle;
 	}
 
-	r = crandom() * spread;
-	u = crandom() * spread;
+	r = gameRandom.CRandomFloat() * spread;
+	u = gameRandom.CRandomFloat() * spread;
 	end = lead_muzzle + forward * 8192;
 	end = end + right * r;
 	end = end + up * u;
@@ -1792,9 +1794,9 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, idVec3 &dang ) {
 		if ( fabs( diff ) > self->harc ) {
 			clamped = qtrue;
 			if ( diff > 0 ) {
-				dang[YAW] = AngleMod( self->s.angles[YAW] + self->harc );
+				dang[YAW] = idMath::AngleNormalize360( self->s.angles[YAW] + self->harc );
 			} else {
-				dang[YAW] = AngleMod( self->s.angles[YAW] - self->harc );
+				dang[YAW] = idMath::AngleNormalize360( self->s.angles[YAW] - self->harc );
 			}
 		}
 
@@ -1805,9 +1807,9 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, idVec3 &dang ) {
 			if ( fabs( diff ) > ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) ) {
 				clamped = qtrue;
 				if ( diff > 0 ) {
-					dang[i] = AngleMod( self->r.currentAngles[i] + ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) );
+					dang[i] = idMath::AngleNormalize360( self->r.currentAngles[i] + ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) );
 				} else {
-					dang[i] = AngleMod( self->r.currentAngles[i] - ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) );
+					dang[i] = idMath::AngleNormalize360( self->r.currentAngles[i] - ( yawspeed * ( (float)FRAMETIME / 1000.0 ) ) );
 				}
 			}
 		}
@@ -1825,9 +1827,9 @@ void clamp_hweapontofirearc( gentity_t *self, gentity_t *other, idVec3 &dang ) {
 		clamped = qtrue;
 
 		if ( diff > 0 ) {
-			dang[YAW] = AngleMod( self->s.angles[YAW] + self->harc );
+			dang[YAW] = idMath::AngleNormalize360( self->s.angles[YAW] + self->harc );
 		} else {
-			dang[YAW] = AngleMod( self->s.angles[YAW] - self->harc );
+			dang[YAW] = idMath::AngleNormalize360( self->s.angles[YAW] - self->harc );
 		}
 
 //		G_Printf ("dang %5.2f ang %5.2f diff %5.2f\n", dang[YAW], self->s.angles[YAW], diff);
@@ -1995,7 +1997,7 @@ void mg42_track( gentity_t *self, gentity_t *other ) {
 					}
 				}
 				// snap to integer coordinates for more efficient network bandwidth usage
-				SnapVector( muzzle );
+				muzzle.Snap();
 
 				if ( validshot ) {
 					if ( !( other->r.svFlags & SVF_CASTAI ) ) {
@@ -2029,7 +2031,7 @@ void mg42_track( gentity_t *self, gentity_t *other ) {
 		dang = self->TargetAngles;
 		self->s.apos.trDelta = dang - self->s.apos.trBase;
 		for ( i = 0; i < 3; i++ ) {
-			self->s.apos.trDelta[i] = AngleNormalize180( self->s.apos.trDelta[i] );
+			self->s.apos.trDelta[i] = idMath::AngleNormalize180( self->s.apos.trDelta[i] );
 		}
 		self->s.apos.trDelta = self->s.apos.trDelta * 1000 / 50;
 		self->s.apos.trTime = level.time;
@@ -2175,7 +2177,7 @@ void mg42_think( gentity_t *self ) {
 	// move to the position over the next frame
 	self->s.apos.trDelta = self->s.angles - self->s.apos.trBase;
 	for ( i = 0; i < 3; i++ ) {
-		self->s.apos.trDelta[i] = AngleNormalize180( self->s.apos.trDelta[i] );
+		self->s.apos.trDelta[i] = idMath::AngleNormalize180( self->s.apos.trDelta[i] );
 	}
 	self->s.apos.trDelta = self->s.apos.trDelta * 400 / 50;
 	self->s.apos.trTime = level.time;
@@ -2185,7 +2187,7 @@ void mg42_think( gentity_t *self ) {
 
 	// only let them go when it's pointing forward
 	if ( owner->client ) {
-		if ( fabs( AngleNormalize180( self->s.angles[YAW] - self->s.apos.trBase[YAW] ) ) > 10 ) {
+		if ( fabs( idMath::AngleNormalize180( self->s.angles[YAW] - self->s.apos.trBase[YAW] ) ) > 10 ) {
 			BG_EvaluateTrajectory( &self->s.apos, self->nextthink, owner->client->ps.viewangles );
 			return; // still waiting
 		}

@@ -31,6 +31,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // this file holds commands that can be executed by the server console, but not remote clients
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 
@@ -520,11 +522,11 @@ qboolean    ConsoleCommand( void ) {
 
 	if ( g_dedicated.integer ) {
 		if ( idStr::Icmp( cmd, "say" ) == 0 ) {
-			trap_SendServerCommand( -1, va( "print \"server: %s\"", ConcatArgs( 1 ) ) );
+			trap_SendServerCommand( -1, idStr::FormatString( "print \"server: %s\"", ConcatArgs( 1 ) ) );
 			return qtrue;
 		}
 		// everything else will also be printed as a say command
-		trap_SendServerCommand( -1, va( "print \"server: %s\"", ConcatArgs( 0 ) ) );
+		trap_SendServerCommand( -1, idStr::FormatString( "print \"server: %s\"", ConcatArgs( 0 ) ) );
 		return qtrue;
 	}
 

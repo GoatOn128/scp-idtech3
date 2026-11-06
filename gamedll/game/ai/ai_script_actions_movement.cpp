@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -92,7 +94,10 @@ qboolean AICast_ScriptAction_GotoMarker( cast_state_t *cs, char *params ) {
 					BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
 					vec = org - cs->clientState->origin;
 					vec.Normalize();
-					vectoangles( vec, cs->ideal_viewangles );
+					{
+						const idAngles convertedAngles = vec.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					// noattack?
 					lexer.ReadTokenOnLine( &token );
 					if ( !token[0] || idStr::Icmp( token.c_str(), "noattack" ) ) {
@@ -141,7 +146,7 @@ qboolean AICast_ScriptAction_GotoMarker( cast_state_t *cs, char *params ) {
 		G_Error( "AI Scripting: can't find ai_marker with \"targetname\" = \"%s\"\n", token.c_str() );
 	}
 
-	if ( Distance( cs->clientState->origin, ent->r.currentOrigin ) < SCRIPT_REACHGOAL_DIST ) { // we made it
+	if ( ( cs->clientState->origin - ent->r.currentOrigin ).Length() < SCRIPT_REACHGOAL_DIST ) { // we made it
 		return qtrue;
 	}
 
@@ -360,7 +365,8 @@ AICast_ScriptAction_PushAway
 */
 qboolean AICast_ScriptAction_PushAway( cast_state_t *cs, char *params ) {
 	gentity_t *pushed;
-	idVec3 v, ang, f, r;
+	idVec3 v, f, r;
+	idAngles ang;
 
 	if ( !params || !params[0] ) {
 		G_Error( "AI_Scripting: syntax: pushaway <ainame>" );
@@ -373,8 +379,8 @@ qboolean AICast_ScriptAction_PushAway( cast_state_t *cs, char *params ) {
 	// calc the vecs
 	v = pushed->s.pos.trBase - cs->clientState->origin;
 	v.Normalize();
-	vectoangles( v, ang );
-	idAngles( ang ).ToVectors( &f, &r, NULL );
+	ang = v.ToAngles();
+	ang.ToVectors( &f, &r, NULL );
 	// push them away and to the side
 	v = f * 200;
 	v = v + ( level.time % 5000 < 2500 ? 200 : 200 ) * r;

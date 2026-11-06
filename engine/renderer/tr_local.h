@@ -37,6 +37,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "tr_public.h"
 #include "qgl.h"
 
+#ifdef GL_INDEX_TYPE
+#undef GL_INDEX_TYPE
+#endif
 #define GL_INDEX_TYPE       GL_UNSIGNED_INT
 typedef unsigned int glIndex_t;
 
@@ -617,7 +620,7 @@ typedef struct srfGridMesh_s {
 	int dlightBits[SMP_FRAMES];
 
 	// culling information
-	idVec3 meshBounds[2];
+	idBounds meshBounds;
 	idVec3 localOrigin;
 	float meshRadius;
 
@@ -1760,6 +1763,8 @@ void R_InitTexnumImages( qboolean force );
 
 void *R_CacheModelAlloc( int size );
 void R_CacheModelFree( void *ptr );
+void R_CacheModelInit( void );
+void R_CacheModelShutdown( void );
 void R_PurgeModels( int count );
 void R_BackupModels( void );
 qboolean R_FindCachedModel( const char *name, model_t *newmod );
@@ -1840,9 +1845,6 @@ extern void R_SetFog( int fogvar, int var1, int var2, float r, float g, float b,
 extern int skyboxportal;
 extern int drawskyboxportal;
 
-// Ridah, virtual memory
-void *R_Hunk_Begin( void );
-void R_Hunk_End( void );
 void R_FreeImageBuffer( void );
 
 #endif //TR_LOCAL_H (THIS MUST BE LAST!!)

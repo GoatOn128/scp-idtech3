@@ -42,6 +42,8 @@ If you have questions concerning this license or the applicable additional terms
 #define memmove bg_lib_crt_memmove
 #define tan bg_lib_crt_tan
 #endif
+#include "../precompiled.h"
+
 #include "q_shared.h"
 #ifdef __cplusplus
 #undef qsort
@@ -307,7 +309,7 @@ char *strstr( const char *string, const char *strCharSet ) {
 #if !defined ( _MSC_VER ) && !defined ( __linux__ ) && !defined ( MAC_WOLF2_MP ) && !defined ( MAC_WOLF2_SP ) && !defined ( __APPLE__ )
 
 int tolower( int c ) {
-	if ( Q_isupper( c ) ) {
+	if ( ( c <= 0x7F && idStr::CharIsUpper( c ) ) ) {
 		c += 'a' - 'A';
 	}
 	return c;

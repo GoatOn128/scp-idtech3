@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // Copyright (C) 1999-2000 Id Software, Inc.
 //
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 // Native module bindings supplied through the typed game import table.
@@ -309,11 +311,11 @@ void trap_AAS_SetCurrentWorld( int index ) {
 }
 // done.
 
-int trap_AAS_PointAreaNum( idVec3 &point ) {
+int trap_AAS_PointAreaNum( const idVec3 &point ) {
 	return gameImports->AAS_PointAreaNum( point );
 }
 
-int trap_AAS_TraceAreas( idVec3 &start, idVec3 &end, int *areas, idVec3 *points, int maxareas ) {
+int trap_AAS_TraceAreas( const idVec3 &start, idVec3 &end, int *areas, idVec3 *points, int maxareas ) {
 	return gameImports->AAS_TraceAreas( start, end, areas, points, maxareas );
 }
 
@@ -358,11 +360,11 @@ int trap_AAS_PredictClientMovement( struct aas_clientmove_s *move, int entnum, i
 }
 
 // Ridah, route-tables
-void trap_AAS_RT_ShowRoute( idVec3 &srcpos, int srcnum, int destnum ) {
+void trap_AAS_RT_ShowRoute( const idVec3 &srcpos, int srcnum, int destnum ) {
 	gameImports->AAS_RT_ShowRoute( srcpos, srcnum, destnum );
 }
 
-qboolean trap_AAS_RT_GetHidePos( idVec3 &srcpos, int srcnum, int srcarea, idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos ) {
+qboolean trap_AAS_RT_GetHidePos( const idVec3 &srcpos, int srcnum, int srcarea, const idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos ) {
 	return gameImports->AAS_RT_GetHidePos( srcpos, srcnum, srcarea, destpos, destnum, destarea, returnPos );
 }
 

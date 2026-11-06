@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -113,7 +115,11 @@ void AICast_Pain( gentity_t *targ, gentity_t *attacker, int damage, idVec3 &poin
 
 	AICast_ScriptEvent( cs, "painenemy", attacker->aiName );
 
-	AICast_ScriptEvent( cs, "pain", va( "%d %d", targ->health, targ->health + damage ) );
+	char painParams[MAX_QPATH];
+	idStr::Copynz( painParams,
+				   idStr::FormatString( "%d %d", targ->health, targ->health + damage ).c_str(),
+				   sizeof( painParams ) );
+	AICast_ScriptEvent( cs, "pain", painParams );
 
 	if ( cs->aiFlags & AIFL_DENYACTION ) {
 		// dont play any sounds

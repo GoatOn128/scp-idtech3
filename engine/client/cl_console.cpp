@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // console.c
 
+#include "../precompiled.h"
+
 #include "client.h"
 
 

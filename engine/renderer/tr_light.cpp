@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_light.c
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 #define DLIGHT_AT_RADIUS        16

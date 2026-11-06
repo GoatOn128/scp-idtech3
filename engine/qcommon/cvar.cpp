@@ -28,8 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cvar.c -- dynamic variable tracking
 
-#include "q_shared.h"
-#include "qcommon.h"
+#include "precompiled.h"
+#pragma hdrstop
 
 cvar_t      *cvar_vars;
 cvar_t      *cvar_cheats;
@@ -509,7 +509,7 @@ void Cvar_Toggle_f( void ) {
 	v = Cvar_VariableValue( Cmd_Argv( 1 ) );
 	v = !v;
 
-	Cvar_Set2( Cmd_Argv( 1 ), va( "%i", v ), qfalse );
+	Cvar_Set2( Cmd_Argv( 1 ), idStr::FormatString( "%i", v ), qfalse );
 }
 
 /*

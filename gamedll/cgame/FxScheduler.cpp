@@ -1,4 +1,6 @@
 // this include must remain at the top of every CPP file
+#include "../precompiled.h"
+
 #include "FxWolf.h"
 
 
@@ -22,11 +24,11 @@ CFxScheduler	theFxScheduler;
 //-----------------------------------------------------------
 void CMediaHandles::operator=(const CMediaHandles &that )
 {
-	mMediaList.clear();
+	mMediaList.Clear();
 
-	for ( int i = 0; i < that.mMediaList.size(); i++ )
+	for ( int i = 0; i < that.mMediaList.Num(); i++ )
 	{
-		mMediaList.push_back( that.mMediaList[i] );
+		mMediaList.Append( that.mMediaList[i] );
 	}
 }
 
@@ -68,25 +70,16 @@ void SEffectTemplate::operator=(const SEffectTemplate &that)
 void CFxScheduler::Clean(bool bRemoveTemplates /*= true*/, int idToPreserve /*= 0*/)
 {
 	int								i, j;
-	TScheduledEffect::iterator		itr, next;
 
 	// Ditch any scheduled effects
-	itr = mFxSchedule.begin();
-
-	while ( itr != mFxSchedule.end() )
-	{
-		next = itr;
-		next++;
-
-		CPrimitiveTemplate *primitive = (*itr)->mpTemplate;
+	for ( i = 0; i < mFxSchedule.Num(); ++i ) {
+		CPrimitiveTemplate *primitive = mFxSchedule[i]->mpTemplate;
 		if ( primitive->mCopy && --primitive->mRefCount == 0 ) {
 			delete primitive;
 		}
-		delete *itr;
-		mFxSchedule.erase(itr);
-
-		itr = next;
+		delete mFxSchedule[i];
 	}
+	mFxSchedule.Clear();
 
 	if (bRemoveTemplates)
 	{
@@ -112,27 +105,25 @@ void CFxScheduler::Clean(bool bRemoveTemplates /*= true*/, int idToPreserve /*= 
 
 		if (idToPreserve == 0)
 		{
-			mEffectIDs.clear();
+			mEffectIDs.Clear();
 		}
 		else
 		{
 			// Clear the effect names, but first get the name of the effect to preserve,
 			// and restore it after clearing.
-			fxString_t str;
-			TEffectID::iterator iter;
-
-			for (iter = mEffectIDs.begin(); iter != mEffectIDs.end(); ++iter)
-			{
-				if ((*iter).second == idToPreserve)
-				{
-					str = (*iter).first;
+			idStr str;
+			for ( i = 0; i < mEffectIDs.Num(); ++i ) {
+				const int *effectID = mEffectIDs.GetIndex( i );
+				idStr name;
+				if ( effectID && *effectID == idToPreserve && mEffectIDs.GetIndexKey( i, name ) ) {
+					str = name;
 					break;
 				}
 			}
 
-			mEffectIDs.clear();
-
-			mEffectIDs[str] = idToPreserve;
+			mEffectIDs.Clear();
+			if ( !str.IsEmpty() )
+				mEffectIDs.Set( str, idToPreserve );
 		}
 	}
 }
@@ -189,22 +180,16 @@ int CFxScheduler::RegisterEffect( const char *file, bool bHasCorrectPath /*= fal
 	}
 
 	// see if the specified file is already registered.  If it is, just return the id of that file
-	TEffectID::iterator itr;
-	
-	itr = mEffectIDs.find( sfile );
+	const int *registeredID = nullptr;
+	if ( mEffectIDs.Get( sfile, &registeredID ) )
+		return *registeredID;
 
-	if ( itr != mEffectIDs.end() )
-	{
-		return (*itr).second;
-	}
-
-	CGenericParser2	parser;
+	idParseTree		parser;
 	int				len = 0;
 	fileHandle_t	fh;
 	char			data[65536];
 	char			temp[MAX_QPATH];
 	const char		*pfile;
-	char			*bufParse = 0;
 
 	if (bHasCorrectPath)
 	{
@@ -242,10 +227,8 @@ int CFxScheduler::RegisterEffect( const char *file, bool bHasCorrectPath /*= fal
 	// Get the goods and ensure Null termination
 	theFxHelper.ReadFile( data, len, fh );
 	data[len] = '\0';
-	bufParse = data;
 
-	// Let the generic parser process the whole file
-	if ( !parser.Parse( &bufParse ) ) {
+	if ( !parser.Parse( data, len, pfile ) ) {
 		theFxHelper.CloseFile( fh );
 		theFxHelper.Print( "Malformed effect: %s\n", pfile );
 		return 0;
@@ -254,7 +237,7 @@ int CFxScheduler::RegisterEffect( const char *file, bool bHasCorrectPath /*= fal
 	theFxHelper.CloseFile( fh );
 
 	// Lets convert the effect file into something that we can work with
-	return ParseEffect( sfile, parser.GetBaseParseGroup() );
+	return ParseEffect( sfile, parser.GetRoot() );
 }
 
 
@@ -271,9 +254,9 @@ int CFxScheduler::RegisterEffect( const char *file, bool bHasCorrectPath /*= fal
 // Return:
 //	int handle of the effect
 //------------------------------------------------------
-int CFxScheduler::ParseEffect( const char *file, CGPGroup *base )
+int CFxScheduler::ParseEffect( const char *file, const idParseGroup *base )
 {
-	CGPGroup			*primitiveGroup;
+	const idParseGroup	*primitiveGroup;
 	CPrimitiveTemplate	*prim;
 	const char			*grpName;
 	SEffectTemplate		*effect = 0;
@@ -288,64 +271,64 @@ int CFxScheduler::ParseEffect( const char *file, CGPGroup *base )
 		return 0;
 	}
 
-	primitiveGroup = base->GetSubGroups();
+	primitiveGroup = base->GetSubGroup( 0 );
 
-	while ( primitiveGroup )
+	for ( int i = 0; i < base->GetNumSubGroups(); i++, primitiveGroup = base->GetSubGroup( i ) )
 	{
 		grpName = primitiveGroup->GetName();
 
 		// Huge stricmp lists suxor
-		if ( !stricmp( grpName, "controller" ) ) { type = Controller; }
-		else if ( !stricmp( grpName, "ribbon" ) ) { type = Ribbon; }
-		else if ( ( !stricmp( grpName, "particle" ) || !stricmp( grpName, "screenParticle" ) ))
+		if ( !idStr::Icmp( grpName, "controller" ) ) { type = Controller; }
+		else if ( !idStr::Icmp( grpName, "ribbon" ) ) { type = Ribbon; }
+		else if ( ( !idStr::Icmp( grpName, "particle" ) || !idStr::Icmp( grpName, "screenParticle" ) ))
 		{
 			type = Particle;
 		}
-		else if ( !stricmp( grpName, "line" ))
+		else if ( !idStr::Icmp( grpName, "line" ))
 		{
 			type = Line;
 		}
-		else if ( !stricmp( grpName, "tail" ))
+		else if ( !idStr::Icmp( grpName, "tail" ))
 		{
 			type = Tail;
 		}
-		else if ( !stricmp( grpName, "sound" ))
+		else if ( !idStr::Icmp( grpName, "sound" ))
 		{
 			type = Sound;
 		}
-		else if ( !stricmp( grpName, "cylinder" ))
+		else if ( !idStr::Icmp( grpName, "cylinder" ))
 		{
 			type = Cylinder;
 		}
-		else if ( !stricmp( grpName, "electricity" ))
+		else if ( !idStr::Icmp( grpName, "electricity" ))
 		{
 			type = Electricity;
 		}
-		else if ( !stricmp( grpName, "emitter" ))
+		else if ( !idStr::Icmp( grpName, "emitter" ))
 		{
 			type = Emitter;
 		}
-		else if ( !stricmp( grpName, "decal" ))
+		else if ( !idStr::Icmp( grpName, "decal" ))
 		{
 			type = Decal;
 		}
-		else if ( !stricmp( grpName, "orientedparticle" ) || !stricmp( grpName, "screenDecal" ) )
+		else if ( !idStr::Icmp( grpName, "orientedparticle" ) || !idStr::Icmp( grpName, "screenDecal" ) )
 		{
 			type = OrientedParticle;
 		}
-		else if ( !stricmp( grpName, "fxrunner" ))
+		else if ( !idStr::Icmp( grpName, "fxrunner" ))
 		{
 			type = FxRunner;
 		}
-		else if ( !stricmp( grpName, "light" ))
+		else if ( !idStr::Icmp( grpName, "light" ))
 		{
 			type = Light;
 		}
-		else if ( !stricmp( grpName, "cameraShake" ))
+		else if ( !idStr::Icmp( grpName, "cameraShake" ))
 		{
 			type = CameraShake;
 		}
-		else if ( !stricmp( grpName, "flash" ))
+		else if ( !idStr::Icmp( grpName, "flash" ))
 		{
 			type = ScreenFlash;
 		}
@@ -366,18 +349,17 @@ int CFxScheduler::ParseEffect( const char *file, CGPGroup *base )
 				}
 				effect->mPrimitiveCount = 0;
 				effect->mInUse = false;
-				mEffectIDs.erase( file );
+				mEffectIDs.Remove( file );
 				return 0;
 			}
 
-			if ( !stricmp( grpName, "screenParticle" ) ) { prim->mRenderType = RT_SCREEN_PARTICLE; prim->mFlags |= FX_USE_ALPHA; }
-			if ( !stricmp( grpName, "screenDecal" ) ) { prim->mRenderType = RT_SCREEN_DECAL; prim->mFlags |= FX_USE_ALPHA; }
+			if ( !idStr::Icmp( grpName, "screenParticle" ) ) { prim->mRenderType = RT_SCREEN_PARTICLE; prim->mFlags |= FX_USE_ALPHA; }
+			if ( !idStr::Icmp( grpName, "screenDecal" ) ) { prim->mRenderType = RT_SCREEN_DECAL; prim->mFlags |= FX_USE_ALPHA; }
 
 			// Add our primitive template to the effect list
 			AddPrimitiveToEffect( effect, prim );
 		}
 
-		primitiveGroup = (CGPGroup *)primitiveGroup->GetNext();
 	}
 
 	return handle;
@@ -440,7 +422,7 @@ SEffectTemplate *CFxScheduler::GetNewEffectTemplate( int *id, const char *file )
 			// If we are a copy, we really won't have a name that we care about saving for later
 			if ( file )
 			{
-				mEffectIDs[file] = i;
+				mEffectIDs.Set( file, i );
 				strcpy( effect->mEffectName, file );
 			}
 
@@ -469,7 +451,9 @@ SEffectTemplate *CFxScheduler::GetNewEffectTemplate( int *id, const char *file )
 //------------------------------------------------------
 SEffectTemplate *CFxScheduler::GetEffectCopy( const char *file, int *newHandle )
 {
-	return ( GetEffectCopy( mEffectIDs[file], newHandle ) );
+	const int *effectID = nullptr;
+	mEffectIDs.Get( file, &effectID );
+	return GetEffectCopy( effectID ? *effectID : 0, newHandle );
 }
 
 //------------------------------------------------------
@@ -540,7 +524,7 @@ CPrimitiveTemplate *CFxScheduler::GetPrimitiveCopy( SEffectTemplate *effectCopy,
 
 	for ( int i = 0; i < effectCopy->mPrimitiveCount; i++ )
 	{
-		if ( !stricmp( effectCopy->mPrimitives[i]->mName, componentName ))
+		if ( !idStr::Icmp( effectCopy->mPrimitives[i]->mName, componentName ))
 		{
 			// we found a match, so return it
 			return effectCopy->mPrimitives[i];
@@ -601,7 +585,7 @@ void CFxScheduler::PlayEffect( int id, const idVec3 &origin, const idVec3 &forwa
 
 	// Take the forward vector and create two arbitrary but perpendicular vectors
 	( axis[0] = forward );
-	MakeNormalVectors( forward, axis[1], axis[2] );
+	forward.MakeNormalVectors( axis[1], axis[2] );
 
 	PlayEffect( id, origin, axis );
 }
@@ -635,14 +619,17 @@ void CFxScheduler::PlayEffect( const char *file, const idVec3 &origin, const idV
 		// Packet entities have already computed their interpolated positions.
 	}
 
+	const int *effectID = nullptr;
+	mEffectIDs.Get( sfile, &effectID );
+	const int id = effectID ? *effectID : 0;
 #ifndef FINAL_BUILD
-	if ( mEffectIDs[sfile] == 0 )
+	if ( id == 0 )
 	{
 		theFxHelper.Print( "CFxScheduler::PlayEffect unregistered/non-existent effect: %s\n", sfile );		
 	}
 #endif
 
-	PlayEffect( mEffectIDs[sfile], origin, axis, entNum );
+	PlayEffect( id, origin, axis, entNum );
 }
 
 //------------------------------------------------------
@@ -666,7 +653,8 @@ void CFxScheduler::PlayEffect( const char *file, int clientID )
 	idStr sfileStr( file );
 	sfileStr.StripFileExtension();
 	idStr::Copynz( sfile, sfileStr.c_str(), sizeof( sfile ) );
-	id = mEffectIDs[sfile];
+	const int *effectID = nullptr;
+	id = mEffectIDs.Get( sfile, &effectID ) ? *effectID : 0;
 
 #ifndef FINAL_BUILD
 	if ( id == 0 )
@@ -743,7 +731,7 @@ void CFxScheduler::PlayEffect( const char *file, int clientID )
 				sfx->mpTemplate = prim;
 				sfx->mClientID = clientID;
 
-				mFxSchedule.push_front( sfx );
+				mFxSchedule.Insert( sfx, 0 );
 			}
 		}
 	}
@@ -783,7 +771,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, int clientID, int delay
 	// handle RGB color
 	if ( fx->mSpawnFlags & FX_RGB_COMPONENT_INTERP )
 	{
-		float perc = Q_flrand( 0.0f, 1.0f );
+		float perc = cgRandom.RandomFloat();
 
 		sRGB.Set( fx->mRedStart.GetVal( perc ), fx->mGreenStart.GetVal( perc ), fx->mBlueStart.GetVal( perc ) );
 		eRGB.Set( fx->mRedEnd.GetVal( perc ), fx->mGreenEnd.GetVal( perc ), fx->mBlueEnd.GetVal( perc ) );
@@ -957,7 +945,7 @@ void CFxScheduler::PlayEffect( int id, const idVec3 &origin, const idVec3 *axis,
 
 		if ( prim->mCullRange )
 		{
-			if ( DistanceSquared( origin, cg.refdef.vieworg ) > prim->mCullRange )  // cull range has already been squared
+			if ( ( origin - cg.refdef.vieworg ).LengthSqr() > prim->mCullRange )  // cull range has already been squared
 			{
 				// Copies culled before scheduling have no references to release later.
 				if ( prim->mCopy ) { delete prim; }
@@ -1019,9 +1007,11 @@ void CFxScheduler::PlayEffect( int id, const idVec3 &origin, const idVec3 *axis,
 
                 sfx->mEntNum = entNum;
                 sfx->mOrigin = origin;
-                AxisCopy( axis, sfx->mAxis );
+                sfx->mAxis[0] = axis[0];
+                sfx->mAxis[1] = axis[1];
+                sfx->mAxis[2] = axis[2];
 
-				mFxSchedule.push_front( sfx );
+				mFxSchedule.Insert( sfx, 0 );
 			}
 		}
 	}
@@ -1055,10 +1045,12 @@ void CFxScheduler::PlayEffect( const char *file, const idVec3 &origin )
 	sfileStr.StripFileExtension();
 	idStr::Copynz( sfile, sfileStr.c_str(), sizeof( sfile ) );
 
-	PlayEffect( mEffectIDs[sfile], origin );
+	const int *effectID = nullptr;
+	const int id = mEffectIDs.Get( sfile, &effectID ) ? *effectID : 0;
+	PlayEffect( id, origin );
 
 #ifndef FINAL_BUILD
-	if ( mEffectIDs[sfile] == 0 )
+	if ( id == 0 )
 	{
 		theFxHelper.Print( "CFxScheduler::PlayEffect unregistered/non-existent effect: %s\n", file );		
 	}
@@ -1086,10 +1078,12 @@ void CFxScheduler::PlayEffect( const char *file, const idVec3 &origin, const idV
 	sfileStr.StripFileExtension();
 	idStr::Copynz( sfile, sfileStr.c_str(), sizeof( sfile ) );
 
-	PlayEffect( mEffectIDs[sfile], origin, forward );
+	const int *effectID = nullptr;
+	const int id = mEffectIDs.Get( sfile, &effectID ) ? *effectID : 0;
+	PlayEffect( id, origin, forward );
 
 #ifndef FINAL_BUILD
-	if ( mEffectIDs[sfile] == 0 )
+	if ( id == 0 )
 	{
 		theFxHelper.Print( "CFxScheduler::PlayEffect unregistered/non-existent effect: %s\n", file );		
 	}
@@ -1110,43 +1104,37 @@ void CFxScheduler::PlayEffect( const char *file, const idVec3 &origin, const idV
 //------------------------------------------------------
 void CFxScheduler::AddScheduledEffects( void )
 {
-	TScheduledEffect::iterator	itr, next;
-	itr = mFxSchedule.begin();
-
-	while ( itr != mFxSchedule.end() )
-	{
-		next = itr;
-		next++;
-
-		if ( *(*itr) <= theFxHelper.mTime )
+	for ( int index = 0; index < mFxSchedule.Num(); ) {
+		SScheduledEffect *scheduled = mFxSchedule[index];
+		if ( *scheduled <= theFxHelper.mTime )
 		{
-			if ( (*itr)->mClientID >= 0 )
+			if ( scheduled->mClientID >= 0 )
 			{
-				CreateEffect( (*itr)->mpTemplate, (*itr)->mClientID, 
-								theFxHelper.mTime - (*itr)->mStartTime );
+				CreateEffect( scheduled->mpTemplate, scheduled->mClientID,
+								theFxHelper.mTime - scheduled->mStartTime );
 			}
 			else
 			{// ok, are we spawning a bolt on effect or a normal one?
-				if ( (*itr)->mEntNum != -1 )
+				if ( scheduled->mEntNum != -1 )
 				{
 					// Find out where the entity currently is
-					CreateEffect( (*itr)->mpTemplate, 
-								cg_entities[(*itr)->mEntNum].lerpOrigin, (*itr)->mAxis, 
-								theFxHelper.mTime - (*itr)->mStartTime );
+					CreateEffect( scheduled->mpTemplate,
+								cg_entities[scheduled->mEntNum].lerpOrigin, scheduled->mAxis,
+								theFxHelper.mTime - scheduled->mStartTime );
 				}
 				else
 				{
-					CreateEffect( (*itr)->mpTemplate, 
-								(*itr)->mOrigin, (*itr)->mAxis, 
-								theFxHelper.mTime - (*itr)->mStartTime );
+					CreateEffect( scheduled->mpTemplate,
+								scheduled->mOrigin, scheduled->mAxis,
+								theFxHelper.mTime - scheduled->mStartTime );
 				}
 			}
 			// Get 'em out of there.
-			delete *itr;
-			mFxSchedule.erase(itr);
+			delete scheduled;
+			mFxSchedule.RemoveIndex( index );
+		} else {
+			++index;
 		}
-
-		itr = next;
 	}
 
 	// The caller submits active primitives after scheduling.
@@ -1172,15 +1160,18 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const idVec3 &origin, c
 				sRGB, eRGB,
 				ang, angDelta,
 				ax[3];
+	idAngles tempAngles;
 	trace_t	tr;
 	int		emitterModel;
 
 	// We may modify the axis, so make a work copy
-	AxisCopy( axis, ax );
+	ax[0] = axis[0];
+	ax[1] = axis[1];
+	ax[2] = axis[2];
 
 	if( fx->mSpawnFlags & FX_RAND_ROT_AROUND_FWD )
 	{
-		ax[1].RotatePointAroundVector( ax[0], axis[1], Q_flrand( 0.0f, 1.0f )*360.0f );
+		ax[1].RotatePointAroundVector( ax[0], axis[1], cgRandom.RandomFloat() * 360.0f );
 		( ax[2] = ax[0].Cross( ax[1] ) );
 	}
 
@@ -1207,8 +1198,8 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const idVec3 &origin, c
 		float x, y;
 		float width, height;
 		
-		x = DEG2RAD( Q_flrand( 0.0f, 1.0f ) * 360.0f );
-		y = DEG2RAD( Q_flrand( 0.0f, 1.0f ) * 180.0f );
+		x = DEG2RAD( cgRandom.RandomFloat() * 360.0f );
+		y = DEG2RAD( cgRandom.RandomFloat() * 180.0f );
 
 		width = fx->mRadius.GetVal();
 		height = fx->mHeight.GetVal();
@@ -1221,7 +1212,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const idVec3 &origin, c
 		{ 
 			// well, we will now override the axis at the users request
 			( ax[0] = temp ).Normalize();
-			MakeNormalVectors( ax[0], ax[1], ax[2] );
+			ax[0].MakeNormalVectors( ax[1], ax[2] );
 		}
 	}
 	else if ( fx->mSpawnFlags & FX_ORG_ON_CYLINDER )
@@ -1230,8 +1221,8 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const idVec3 &origin, c
 
 		// set up our point, then rotate around the current direction to.  Make unrotated cylinder centered around 0,0,0
 		( pt = ax[1] * fx->mRadius.GetVal() );
-		( pt = pt + ax[0] * Q_flrand( -1.0f, 1.0f ) * 0.5f * fx->mHeight.GetVal() );
-		temp.RotatePointAroundVector( ax[0], pt, Q_flrand( 0.0f, 1.0f ) * 360.0f );
+		( pt = pt + ax[0] * cgRandom.CRandomFloat() * 0.5f * fx->mHeight.GetVal() );
+		temp.RotatePointAroundVector( ax[0], pt, cgRandom.RandomFloat() * 360.0f );
 
 		( org = org + temp );
 
@@ -1369,7 +1360,7 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const idVec3 &origin, c
 	{
 		if ( fx->mSpawnFlags & FX_RGB_COMPONENT_INTERP )
 		{
-			float perc = Q_flrand( 0.0f, 1.0f );
+			float perc = cgRandom.RandomFloat();
 
 			sRGB.Set( fx->mRedStart.GetVal( perc ), fx->mGreenStart.GetVal( perc ), fx->mBlueStart.GetVal( perc ) );
 			eRGB.Set( fx->mRedEnd.GetVal( perc ), fx->mGreenEnd.GetVal( perc ), fx->mBlueEnd.GetVal( perc ) );
@@ -1457,7 +1448,8 @@ void CFxScheduler::CreateEffect( CPrimitiveTemplate *fx, const idVec3 &origin, c
 		// for chunk angles, you don't really need much control over the end result...you just want variation..
 		ang.Set( fx->mAngle1.GetVal(), fx->mAngle2.GetVal(), fx->mAngle3.GetVal() );
 
-		vectoangles( ax[0], temp );
+		tempAngles = ax[0].ToAngles();
+		temp.Set( tempAngles.pitch, tempAngles.yaw, tempAngles.roll );
 		( ang = ang + temp );
 
 		angDelta.Set( fx->mAngle1Delta.GetVal(), fx->mAngle2Delta.GetVal(), fx->mAngle3Delta.GetVal() );

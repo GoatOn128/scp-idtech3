@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 // cg_effects.c -- these functions generate localentities, usually as a result
 // of event processing
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 
@@ -88,7 +90,9 @@ fxEntity_t *CG_MakeExplosion( idVec3 origin, idVec3 dir,
 
 		// set axis with random rotate
 		if ( dir.LengthSqr() == 0.0f ) {
-			AxisClear( ex->refEntity.axis );
+			ex->refEntity.axis[0] = idVec3( 1.0f, 0.0f, 0.0f );
+			ex->refEntity.axis[1] = idVec3( 0.0f, 1.0f, 0.0f );
+			ex->refEntity.axis[2] = idVec3( 0.0f, 0.0f, 1.0f );
 		} else {
 			ang = cgRandom.RandomInt() % CG_FxInt( "wolf/controller_makeexplosion", "ang" );
 			ex->refEntity.axis[0] = dir;
@@ -169,10 +173,10 @@ void CG_Bleed( const idVec3 &origin, int entityNum ) {
 		CG_GetBleedOrigin( vhead, vtorso, vlegs, entityNum );
 
 		// project the impact point onto the vector defined by torso -> head
-		ProjectPointOntoVector( origin, vtorso, vhead, bOrigin );
+		vec = vhead - vtorso;
+		bOrigin = vtorso + vec * ( ( origin - vtorso ) * vec / ( vec * vec ) );
 
 		// if it's below the waste, or above the head, clamp
-		vec = vhead - vtorso;
 		pvec = bOrigin - vtorso;
 		if ( ((pvec) * (vec)) < 0 ) {
 			bOrigin = vtorso;
@@ -432,7 +436,11 @@ int CG_GetOriginForTag( centity_t *cent, refEntity_t *parent, char *tagName, int
 
 	if ( axis ) {
 		// had to cast away the const to avoid compiler problems...
-		MatrixMultiply( lerped.axis, ( (refEntity_t *)parent )->axis, axis );
+		const idMat3 combinedAxis = idMat3( lerped.axis[0], lerped.axis[1], lerped.axis[2] ) *
+			idMat3( parent->axis[0], parent->axis[1], parent->axis[2] );
+		axis[0] = combinedAxis[0];
+		axis[1] = combinedAxis[1];
+		axis[2] = combinedAxis[2];
 	}
 
 	return retval;
@@ -560,7 +568,8 @@ void CG_GibPlayer( centity_t *cent, const idVec3 &playerOrigin, const idVec3 &gd
 
 			velocity = velocity + gdir * (CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ));
 
-			AxisToAngles( axis, angles );
+			const idAngles axisAngles = idMat3( axis[0], axis[1], axis[2] ).ToAngles();
+			angles.Set( axisAngles.pitch, axisAngles.yaw, axisAngles.roll );
 
 			// RF, Zombies dying by particle effect dont spawn gibs
 			if ( ( cent->currentState.aiChar == AICHAR_ZOMBIE ) ||
@@ -638,7 +647,8 @@ void CG_GibPlayer( centity_t *cent, const idVec3 &playerOrigin, const idVec3 &gd
 								velocity = velocity + gdir * (CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ));
 							}
 
-							vectoangles( dir, angles );
+							const idAngles directionAngles = dir.ToAngles();
+							angles.Set( directionAngles.pitch, directionAngles.yaw, directionAngles.roll );
 
 							velocity = velocity * (3);
 							size = CG_FxValue( "wolf/controller_gibplayer", "size_4" ) + CG_FxValue( "wolf/controller_gibplayer", "size_5" ) * cgRandom.RandomFloat();
@@ -840,7 +850,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, const idVec3 &start, const idVec
 	// HACK, updated sprite, so downscale all widths
 	maxWidth *= CG_FxValue( "wolf/controller_dynamiclightningbolt", "maxWidth" );
 
-	length = Distance( start, end );
+	length = ( end - start ).Length();
 	//if (length > 128) {
 	segMin = length / CG_FxValue( "wolf/controller_dynamiclightningbolt", "segMin" );
 	if ( segMin < CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning" ) ) {
@@ -944,7 +954,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, const idVec3 &start, const idVec
 				}
 			}
 
-			distLeft = Distance( pos, end );
+			distLeft = ( end - pos ).Length();
 			if ( fade ) {
 				if ( startAlpha == 1.0 ) {
 					alpha = startAlpha * ( distLeft / length );
@@ -1183,7 +1193,8 @@ void CG_Spotlight( centity_t *cent, const idVec4 &color, const idVec3 &realstart
 		ent.hModel = CG_FxModel( "wolf/controller_spotlight", "spotLightLightModel" );
 	}
 
-	vectoangles( lightDir, angles );
+	const idAngles directionAngles = lightDir.ToAngles();
+	angles.Set( directionAngles.pitch, directionAngles.yaw, directionAngles.roll );
 	angles[ROLL] = CG_FxValue( "wolf/controller_spotlight", "angles_ROLL_" );        // clear out roll so it doesn't interfere
 	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 	trap_R_AddRefEntityToScene( &ent );
@@ -1382,7 +1393,7 @@ void CG_Spotlight( centity_t *cent, const idVec4 &color, const idVec3 &realstart
 
 		// it's facing the camera, find out how closely and trace to see if the source can be seen
 
-		deg = RAD2DEG( idMath::PI - idMath::ACos( dot ) );
+		deg = ( idMath::PI - idMath::ACos( dot ) ) * idMath::M_RAD2DEG;
 		if ( deg <= CG_FxValue( "wolf/controller_spotlight", "flareAngle" ) ) { // start flare a bit before the camera gets inside the cylinder
 			lightInEyes = qtrue;
 			flarescale = 1 - ( deg / CG_FxValue( "wolf/controller_spotlight", "flareAngle" ) );

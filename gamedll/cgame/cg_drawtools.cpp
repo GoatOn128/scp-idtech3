@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // cg_drawtools.c -- helper functions called by cg_draw, cg_scoreboard, cg_info, etc
+#include "../precompiled.h"
+
 #include "cg_local.h"
 
 idVec4 colorWhite( 1, 1, 1, 1 );
@@ -391,7 +393,7 @@ void CG_DrawStringExt( int x, int y, const char *string, const idVec4 &setColor,
 		xx = x;
 		cnt = 0;
 		while ( *s && cnt < maxChars ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			}
@@ -408,7 +410,7 @@ void CG_DrawStringExt( int x, int y, const char *string, const idVec4 &setColor,
 	cnt = 0;
 	trap_R_SetColor( setColor.ToFloatPtr() );
 	while ( *s && cnt < maxChars ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			if ( !forceColor ) {
 				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
 						   g_color_table[ColorIndex( *( s + 1 ) )][1],
@@ -457,7 +459,7 @@ void CG_DrawStringExt2( int x, int y, const char *string, const idVec4 &setColor
 		xx = x;
 		cnt = 0;
 		while ( *s && cnt < maxChars ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			}
@@ -474,7 +476,7 @@ void CG_DrawStringExt2( int x, int y, const char *string, const idVec4 &setColor
 	cnt = 0;
 	trap_R_SetColor( setColor.ToFloatPtr() );
 	while ( *s && cnt < maxChars ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			if ( !forceColor ) {
 				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
 						   g_color_table[ColorIndex( *( s + 1 ) )][1],
@@ -536,7 +538,7 @@ void CG_DrawStringExt3( int x, int y, const char *string, const idVec4 &setColor
 		xx = x;
 		cnt = 0;
 		while ( *s && cnt < maxChars ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			}
@@ -553,7 +555,7 @@ void CG_DrawStringExt3( int x, int y, const char *string, const idVec4 &setColor
 	cnt = 0;
 	trap_R_SetColor( setColor.ToFloatPtr() );
 	while ( *s && cnt < maxChars ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			if ( !forceColor ) {
 				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
 						   g_color_table[ColorIndex( *( s + 1 ) )][1],
@@ -602,7 +604,7 @@ Coordinates are at 640 by 480 virtual resolution
 		xx = x;
 		cnt = 0;
 		while ( *s && cnt < maxChars) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			}
@@ -619,7 +621,7 @@ Coordinates are at 640 by 480 virtual resolution
 	cnt = 0;
 	trap_R_SetColor( setColor.ToFloatPtr() );
 	while ( *s && cnt < maxChars) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			if ( !forceColor ) {
 				memcpy( color, g_color_table[ColorIndex(*(s+1))], sizeof( color ) );
 				color[3] = setColor[3];
@@ -689,7 +691,7 @@ int CG_DrawStrlen( const char *str ) {
 	int count = 0;
 
 	while ( *s ) {
-		if ( Q_IsColorString( s ) ) {
+		if ( idStr::IsColor( s ) ) {
 			s += 2;
 		} else {
 			count++;
@@ -1085,7 +1087,7 @@ static void UI_DrawBannerString2( int x, int y, const char* str, idVec4 &color )
 		ch = *s & 127;
 		if ( ch == ' ' ) {
 			ax += ( (float)PROPB_SPACE_WIDTH + (float)PROPB_GAP_WIDTH ) * cgs.screenXScale;
-		} else if ( Q_isupper( ch ) )     {
+		} else if ( idStr::CharIsUpper( ch ) )     {
 			ch -= 'A';
 			fcol = (float)propMapB[ch][0] / 256.0f;
 			frow = (float)propMapB[ch][1] / 256.0f;
@@ -1282,7 +1284,7 @@ void UI_DrawProportionalString( int x, int y, const char* str, int style, idVec4
 		drawcolor[0] = color[0];
 		drawcolor[1] = color[1];
 		drawcolor[2] = color[2];
-		drawcolor[3] = 0.5 + 0.5 * sin( cg.time / PULSE_DIVISOR );
+		drawcolor[3] = 0.5 + 0.5 * idMath::Sin( cg.time / PULSE_DIVISOR );
 		UI_DrawProportionalString2( x, y, str, drawcolor, sizeScale, cgs.media.charsetPropGlow );
 		return;
 	}

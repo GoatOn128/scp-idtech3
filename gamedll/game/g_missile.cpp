@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 #define MISSILE_PRESTEP_TIME    50
@@ -432,7 +434,7 @@ void G_ExplodeMissile( gentity_t *ent ) {
 	int etype;
 
 	BG_EvaluateTrajectory( &ent->s.pos, level.time, origin );
-	SnapVector( origin );
+	origin.Snap();
 	G_SetOrigin( ent, origin );
 
 	// we don't have a valid direction, so just point straight up
@@ -527,7 +529,7 @@ void G_ExplodeMissilePoisonGas( gentity_t *ent ) {
 	idVec3 origin;
 
 	BG_EvaluateTrajectory( &ent->s.pos, level.time, origin );
-	SnapVector( origin );
+	origin.Snap();
 	G_SetOrigin( ent, origin );
 
 	// we don't have a valid direction, so just point straight up
@@ -753,8 +755,8 @@ void G_RunSpit( gentity_t *ent ) {
 	// effect when it drips to floor
 	if ( rand() % 100 > 60 ) {
 		end = ent->r.currentOrigin;
-		end[0] += crandom() * 8;
-		end[1] += crandom() * 8;
+		end[0] += gameRandom.CRandomFloat() * 8;
+		end[1] += gameRandom.CRandomFloat() * 8;
 		end[2] -= 8192;
 
 		trap_Trace( &tr, ent->r.currentOrigin, vec3_origin, vec3_origin, end,
@@ -767,7 +769,7 @@ void G_RunSpit( gentity_t *ent ) {
 		smoke->spawnflags |= 4;
 		smoke->speed = 500; // 5 seconds
 		smoke->duration = 100;
-		smoke->health = 10 + ( crandom() * 5 );
+		smoke->health = 10 + ( gameRandom.CRandomFloat() * 5 );
 		SP_target_smoke( smoke );
 		smoke->s.density = 5;
 	}
@@ -978,7 +980,7 @@ gentity_t *fire_grenade( gentity_t *self, idVec3 &start, idVec3 &dir, int grenad
 	case WP_DYNAMITE:
 		// oh, this is /so/ cheap...
 		// you need to pick up new code ;)
-		trap_SendServerCommand( self - g_entities, va( "dp %d", ( bolt->nextthink - level.time ) / 1000 ) );
+		trap_SendServerCommand( self - g_entities, idStr::FormatString( "dp %d", ( bolt->nextthink - level.time ) / 1000 ) );
 // JPW NERVE
 		if ( g_gametype.integer != GT_SINGLE_PLAYER ) {
 // check if player is in trigger objective field -- swiped from G_TouchTriggers()
@@ -999,9 +1001,9 @@ gentity_t *fire_grenade( gentity_t *self, idVec3 &start, idVec3 &dir, int grenad
 				}
 				if ( !strcmp( hit->classname,"trigger_objective_info" ) ) {
 					if ( hit->track ) {
-						trap_SendServerCommand( -1, va( "cp \"%s\"", va( "Det charge planted near %s!", hit->track ) ) );
+						trap_SendServerCommand( -1, idStr::FormatString( "cp \"%s\"", idStr::FormatString( "Det charge planted near %s!", hit->track ) ) );
 					} else {
-						trap_SendServerCommand( -1, va( "cp \"%s\"", va( "Det charge planted near objective %d!", hit->count ) ) );
+						trap_SendServerCommand( -1, idStr::FormatString( "cp \"%s\"", idStr::FormatString( "Det charge planted near objective %d!", hit->count ) ) );
 					}
 					i = num;
 				}
@@ -1054,7 +1056,7 @@ gentity_t *fire_grenade( gentity_t *self, idVec3 &start, idVec3 &dir, int grenad
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
 	bolt->s.pos.trBase = start;
 	bolt->s.pos.trDelta = dir;
-	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
+	bolt->s.pos.trDelta.Snap();          // save net bandwidth
 
 	bolt->r.currentOrigin = start;
 
@@ -1137,7 +1139,7 @@ gentity_t *fire_rocket( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	}
 // jpw
 
-	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
+	bolt->s.pos.trDelta.Snap();          // save net bandwidth
 	bolt->r.currentOrigin = start;
 
 	return bolt;
@@ -1184,7 +1186,7 @@ gentity_t *fire_zombiespit( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
 	bolt->s.pos.trBase = start;
 	bolt->s.pos.trDelta = dir * 600;
-	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
+	bolt->s.pos.trDelta.Snap();          // save net bandwidth
 	bolt->r.currentOrigin = start;
 
 	return bolt;
@@ -1226,7 +1228,7 @@ gentity_t *fire_zombiespirit( gentity_t *self, gentity_t *bolt, idVec3 &start, i
 	bolt->s.pos.trTime = level.time;            // move a bit on the very first frame
 	bolt->s.pos.trBase = start;
 	bolt->s.pos.trDelta = dir * 800;
-	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
+	bolt->s.pos.trDelta.Snap();          // save net bandwidth
 	bolt->r.currentOrigin = start;
 
 	return bolt;
@@ -1263,7 +1265,7 @@ gentity_t *fire_crowbar( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
 	bolt->s.pos.trBase = start;
 	bolt->s.pos.trDelta = dir * 800;
-	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
+	bolt->s.pos.trDelta.Snap();          // save net bandwidth
 	bolt->r.currentOrigin = start;
 
 	return bolt;
@@ -1303,8 +1305,8 @@ gentity_t *fire_flamebarrel( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	bolt->s.pos.trType = TR_GRAVITY;
 	bolt->s.pos.trTime = level.time - MISSILE_PRESTEP_TIME;     // move a bit on the very first frame
 	bolt->s.pos.trBase = start;
-	bolt->s.pos.trDelta = dir * 900 + ( crandom() * 100 );
-	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
+	bolt->s.pos.trDelta = dir * 900 + ( gameRandom.CRandomFloat() * 100 );
+	bolt->s.pos.trDelta.Snap();          // save net bandwidth
 	bolt->r.currentOrigin = start;
 
 	return bolt;
@@ -1325,15 +1327,15 @@ void fire_lead( gentity_t *self, idVec3 &start, idVec3 &dir, int damage ) {
 	gentity_t       *tent;
 	gentity_t       *traceEnt;
 	idVec3 forward, right, up;
-	idVec3 angles;
+	idAngles angles;
 	float r, u;
 	qboolean anti_tank_enable = qfalse;
 
-	r = crandom() * self->random;
-	u = crandom() * self->random;
+	r = gameRandom.CRandomFloat() * self->random;
+	u = gameRandom.CRandomFloat() * self->random;
 
-	vectoangles( dir, angles );
-	idAngles( angles ).ToVectors( &forward, &right, &up );
+	angles = dir.ToAngles();
+	angles.ToVectors( &forward, &right, &up );
 
 	end = start + forward * 8192;
 	end = end + right * r;
@@ -1464,10 +1466,8 @@ gentity_t *fire_mortar( gentity_t *self, idVec3 &start, idVec3 &dir ) {
 	bolt->s.pos.trBase = start;
 //	VectorScale( dir, 900, bolt->s.pos.trDelta );
 	bolt->s.pos.trDelta = dir;
-	SnapVector( bolt->s.pos.trDelta );          // save net bandwidth
+	bolt->s.pos.trDelta.Snap();          // save net bandwidth
 	bolt->r.currentOrigin = start;
 
 	return bolt;
 }
-
-

@@ -35,6 +35,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "snd_local.h"
 
 #define C0 0.4829629131445341

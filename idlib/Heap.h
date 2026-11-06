@@ -55,21 +55,36 @@ void		Mem_Free16( void *ptr );
 ID_INLINE void *	Mem_Alloc( const int size, const memTag_t tag ) { return Mem_Alloc16( size, tag ); }
 ID_INLINE void		Mem_Free( void *ptr ) { Mem_Free16( ptr ); }
 
+class idHeapArena {
+public:
+						idHeapArena();
+						~idHeapArena();
+
+	bool				Init( const int capacity );
+	void *				Alloc( const int size );
+	void				Reset();
+	void				Shutdown();
+
+	int					GetCapacity() const { return capacity; }
+	int					GetUsed() const { return used; }
+
+private:
+						idHeapArena( const idHeapArena & );
+	idHeapArena &		operator=( const idHeapArena & );
+
+	void *				allocation;
+	byte *				memory;
+	int					capacity;
+	int					used;
+};
+
 void *		Mem_ClearedAlloc( const int size, const memTag_t tag );
 char *		Mem_CopyString( const char *in );
 
-ID_INLINE void *operator new( size_t s ) {
-	return Mem_Alloc( s, TAG_NEW );
-}
-ID_INLINE void operator delete( void *p ) {
-	Mem_Free( p );
-}
-ID_INLINE void *operator new[]( size_t s ) {
-	return Mem_Alloc( s, TAG_NEW );
-}
-ID_INLINE void operator delete[]( void *p ) {
-	Mem_Free( p );
-}
+void *operator new( size_t s );
+void operator delete( void *p );
+void *operator new[]( size_t s );
+void operator delete[]( void *p );
 ID_INLINE void *operator new( size_t s, memTag_t tag ) {
 	return Mem_Alloc( s, tag );
 }
@@ -270,6 +285,9 @@ ID_INLINE _type_ * idBlockAlloc<_type_,_blockSize_,memTag>::Alloc() {
 			return NULL;
 		}
 		AllocNewBlock();
+		if ( free == NULL ) {
+			return NULL;
+		}
 	}
 
 	active++;
@@ -352,6 +370,9 @@ idBlockAlloc<_type_,_blockSize_,align_t>::AllocNewBlock
 template<class _type_, int _blockSize_, memTag_t memTag>
 ID_INLINE void idBlockAlloc<_type_,_blockSize_,memTag>::AllocNewBlock() {
 	idBlock * block = (idBlock *)Mem_Alloc( sizeof( idBlock ), memTag );
+	if ( block == NULL ) {
+		return;
+	}
 	block->next = blocks;
 	blocks = block;
 	for ( int i = 0; i < _blockSize_; i++ ) {

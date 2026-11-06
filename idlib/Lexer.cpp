@@ -1723,7 +1723,7 @@ int idLexer::LoadFile( const char *filename, bool OSPath ) {
 	}
 	
 	if ( !OSPath && ( baseFolder[0] != '\0' ) ) {
-		pathname = va( "%s/%s", baseFolder, filename );
+		pathname = idStr::FormatString( "%s/%s", baseFolder, filename );
 	} else {
 		pathname = filename;
 	}

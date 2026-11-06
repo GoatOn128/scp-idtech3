@@ -44,6 +44,8 @@ If you have questions concerning this license or the applicable additional terms
 // The UI scripting scale of 1.0 equals a 48 point font, glyphScale keeps
 // that convention for any point size requested.
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "../qcommon/qcommon.h"
 

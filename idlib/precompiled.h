@@ -47,7 +47,17 @@ If you have questions concerning this license or the applicable additional terms
 // id lib
 #include "../idlib/Lib.h"
 
+// commonly used engine headers
+#include "../engine/qcommon/q_shared.h"
+
 //-----------------------------------------------------
+
+#if defined( CGAMEDLL ) || defined( GAMEDLL ) || defined( UI_EXPORTS )
+
+#else
+    // common sources
+    #include "../engine/qcommon/qcommon.h"
+#endif
 
 #undef min
 #undef max

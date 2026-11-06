@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -86,7 +88,10 @@ char *AIFunc_BattleRollStart( cast_state_t *cs, const idVec3 &vec ) {
 	cs->previousState = cs->currentState;
 	//
 	// face the direction of movement
-	vectoangles( vec, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 	// do the roll
 	duration = BG_AnimScriptEvent( &g_entities[cs->entityNum].client->ps, ANIM_ET_ROLL, qfalse, qtrue );
 	//
@@ -126,7 +131,10 @@ char *AIFunc_BattleDiveStart( cast_state_t *cs, const idVec3 &vec ) {
 	cs->previousState = cs->currentState;
 	//
 	// face the direction of movement
-	vectoangles( vec, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 	// force crouching anim
 	BG_UpdateConditionValue( cs->entityNum, ANIM_COND_CROUCHING, qtrue, qfalse );
 	// do the roll
@@ -194,7 +202,10 @@ char *AIFunc_FlipMoveStart( cast_state_t *cs, const idVec3 &vec ) {
 	// record the time
 	cs->lastRollMove = level.time;
 	// face the direction of movement
-	vectoangles( vec, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 	cs->combat.noAttackTime = level.time + 1200;
 	// do the roll
 	duration = BG_AnimScriptEvent( &g_entities[cs->entityNum].client->ps, ANIM_ET_ROLL, qfalse, qfalse );

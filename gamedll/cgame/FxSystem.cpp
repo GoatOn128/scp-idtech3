@@ -1,4 +1,6 @@
 // this include must remain at the top of every FXxxxx.CPP file
+#include "../precompiled.h"
+
 #include "FxWolf.h"
 
 #if !defined(FX_SCHEDULER_H_INC)
@@ -186,13 +188,14 @@ static void FX_RenderPrimitive( FxRefEntity *ent ) {
 		up = direction.Cross( side );
 		previous = ent->origin;
 		int seed = ent->frame + theFxHelper.mTime / 50;
+		idRandom chaosRandom( seed );
 		for ( int i = 1; i <= 16; i++ ) {
 			float fraction = i / 16.0f;
 			point = ent->origin + direction * ( length * fraction );
 			if ( i < 16 ) {
 				float chaos = ent->angles[0] * length * 0.05f;
-				point = point + side * ( Q_crandom( &seed ) * chaos );
-				point = point + up * ( Q_crandom( &seed ) * chaos );
+				point = point + side * ( chaosRandom.CRandomFloat() * chaos );
+				point = point + up * ( chaosRandom.CRandomFloat() * chaos );
 			}
 			float width = ent->radius * ( ( ent->renderfx & RF_TAPERED ) ? 1.0f - fraction : 1.0f );
 			FX_Line( ent, previous, point, width, width );

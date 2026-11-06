@@ -35,9 +35,10 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
 #include "l_libvar.h"
-#include "l_utils.h"
 #include "l_struct.h"
 #include "aasfile.h"
 #include "../game/botlib.h"
@@ -430,8 +431,8 @@ int BotReachabilityArea(idVec3 origin, int testground)
 					{
 						if (AAS_AreaReachability(areas[j]))
 						{
-							VectorSubtract(points[j], org, v);
-							dist = VectorLength(v);
+							v = points[j] - org;
+							dist = v.Length();
 							if (dist < bestdist)
 							{
 								bestareanum = areas[j];
@@ -1230,6 +1231,7 @@ void BotClearMoveResult( bot_moveresult_t *moveresult ) {
 	moveresult->traveltype = 0;
 	moveresult->flags = 0;
 } //end of the function BotClearMoveResult
+
 //===========================================================================
 //
 // Parameter:			-
@@ -1466,7 +1468,8 @@ bot_moveresult_t BotTravel_Swim( bot_movestate_t *ms, aas_reachability_t *reach 
 	EA_Move( ms->client, dir, 400 );
 	//
 	result.movedir = dir;
-	Vector2Angles( dir, result.ideal_viewangles );
+	const idAngles viewangles = dir.ToAngles();
+	result.ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 	result.flags |= MOVERESULT_SWIMVIEW;
 	//
 	return result;
@@ -1499,7 +1502,8 @@ bot_moveresult_t BotTravel_WaterJump( bot_movestate_t *ms, aas_reachability_t *r
 		EA_MoveUp( ms->client );
 	}
 	//set the ideal view angles
-	Vector2Angles( dir, result.ideal_viewangles );
+	const idAngles viewangles = dir.ToAngles();
+	result.ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 	result.flags |= MOVERESULT_MOVEMENTVIEW;
 	//
 	result.movedir = dir;
@@ -1539,7 +1543,8 @@ bot_moveresult_t BotFinishTravel_WaterJump( bot_movestate_t *ms, aas_reachabilit
 	//elemantary actions
 	EA_Move( ms->client, dir, 400 );
 	//set the ideal view angles
-	Vector2Angles( dir, result.ideal_viewangles );
+	const idAngles viewangles = dir.ToAngles();
+	result.ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 	result.flags |= MOVERESULT_MOVEMENTVIEW;
 	//
 	result.movedir = dir;
@@ -1975,7 +1980,8 @@ bot_moveresult_t BotTravel_Ladder( bot_movestate_t *ms, aas_reachability_t *reac
 		}
 		viewdir[2] = 0; // straight forward goes up
 		( viewdir ).Normalize();
-		Vector2Angles( viewdir, result.ideal_viewangles );
+		const idAngles viewangles = viewdir.ToAngles();
+		result.ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 		//elemantary action
 		EA_Move( ms->client, origin, 0 );
 		if ( dir[2] < 0 ) {   // going down, so face the other way
@@ -1993,7 +1999,8 @@ bot_moveresult_t BotTravel_Ladder( bot_movestate_t *ms, aas_reachability_t *reac
 		( vec ).Normalize();
 		v1 = v1 + vec * -32;
 		v2 = v2 + vec * 32;
-		ProjectPointOntoVector( p, v1, v2, pos );
+		vec = v2 - v1;
+		pos = v1 + vec * ( ( p - v1 ) * vec / ( vec * vec ) );
 		vec = pos - p;
 		if ( ( vec ).Length() > 2 ) {
 			result.ideal_viewangles.ToAngles().ToVectors( nullptr, &right, nullptr );
@@ -2015,7 +2022,8 @@ bot_moveresult_t BotTravel_Ladder( bot_movestate_t *ms, aas_reachability_t *reac
 		( hordir ).Normalize();
 		pos = reach->start + hordir * -24;
 		// project our position onto the vector
-		ProjectPointOntoVector( ms->origin, pos, reach->start, p );
+		vec = reach->start - pos;
+		p = pos + vec * ( ( ms->origin - pos ) * vec / ( vec * vec ) );
 		dir = p - ms->origin;
 		//make sure the horizontal movement is large anough
 		hordir = dir;
@@ -2037,7 +2045,8 @@ bot_moveresult_t BotTravel_Ladder( bot_movestate_t *ms, aas_reachability_t *reac
 			}
 			viewdir[2] = 0;
 			( viewdir ).Normalize();
-			Vector2Angles( viewdir, result.ideal_viewangles );
+			const idAngles viewangles = viewdir.ToAngles();
+			result.ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 			result.flags |= MOVERESULT_MOVEMENTVIEW;
 		}
 		//
@@ -2776,7 +2785,8 @@ bot_moveresult_t BotTravel_Grapple( bot_movestate_t *ms, aas_reachability_t *rea
 		viewdir = reach->end - org;
 		//
 		dist = ( dir ).Normalize();
-		Vector2Angles( viewdir, result.ideal_viewangles );
+		const idAngles viewangles = viewdir.ToAngles();
+		result.ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 		result.flags |= MOVERESULT_MOVEMENTVIEW;
 		//
 		if ( dist < 5 &&
@@ -2911,7 +2921,8 @@ bot_moveresult_t BotTravel_RocketJump( bot_movestate_t *ms, aas_reachability_t *
 		EA_Move(ms->client, hordir, speed);
 	} //end else*/
 	//look in the movement direction
-	Vector2Angles( hordir, result.ideal_viewangles );
+	const idAngles viewangles = hordir.ToAngles();
+	result.ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 	//look straight down
 	result.ideal_viewangles[PITCH] = 90;
 	//set the view angles directly
@@ -3096,7 +3107,8 @@ bot_moveresult_t BotMoveInGoalArea( bot_movestate_t *ms, bot_goal_t *goal ) {
 	result.movedir = dir;
 	//
 	if ( ms->moveflags & MFL_SWIMMING ) {
-		Vector2Angles( dir, result.ideal_viewangles );
+		const idAngles viewangles = dir.ToAngles();
+		result.ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 		result.flags |= MOVERESULT_SWIMVIEW;
 	} //end if
 	  //if (!debugline) debugline = botimport.DebugLineCreate();
@@ -3536,14 +3548,16 @@ void BotMoveToGoal( bot_moveresult_t *result, int movestate, bot_goal_t *goal, i
 					if ( reach.areanum == goal->areanum ) {
 						dir = goal->origin - ms->origin;
 						( dir ).Normalize();
-						vectoangles( dir, result->ideal_viewangles );
+						const idAngles viewangles = dir.ToAngles();
+						result->ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 						result->flags |= MOVERESULT_FUTUREVIEW;
 						break;
 					}
 					if ( straveltime - ftraveltime > 120 ) {
 						dir = reach.end - ms->origin;
 						( dir ).Normalize();
-						vectoangles( dir, result->ideal_viewangles );
+						const idAngles viewangles = dir.ToAngles();
+						result->ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 						result->flags |= MOVERESULT_FUTUREVIEW;
 						break;
 					}
@@ -3552,7 +3566,8 @@ void BotMoveToGoal( bot_moveresult_t *result, int movestate, bot_goal_t *goal, i
 		} else {
 			dir = goal->origin - ms->origin;
 			( dir ).Normalize();
-			vectoangles( dir, result->ideal_viewangles );
+			const idAngles viewangles = dir.ToAngles();
+			result->ideal_viewangles.Set( viewangles.pitch, viewangles.yaw, viewangles.roll );
 			result->flags |= MOVERESULT_FUTUREVIEW;
 		}
 	}

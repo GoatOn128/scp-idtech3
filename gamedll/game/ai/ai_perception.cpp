@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -60,7 +62,7 @@ qboolean AICast_EntityVisible( cast_state_t *cs, int enemynum, qboolean directvi
 		dist = cs->combat.enemyDist;
 	} else {
 		dist =
-			VectorDistance( g_entities[cs->entityNum].client->ps.origin, cs->perception.vislist[enemynum].visible_pos );
+			( g_entities[cs->entityNum].client->ps.origin - cs->perception.vislist[enemynum].visible_pos ).Length();
 	}
 	if ( dist < 384 ) {
 		reactionTime *= 0.5 + 0.5 * ( dist / 384 );
@@ -186,7 +188,7 @@ void AICast_ProcessBullet( gentity_t *attacker, const idVec3 &start, const idVec
 		if ( cs->perception.bulletImpactIgnoreTime > level.time ) {
 			continue;
 		}
-		dist = Distance( tent->client->ps.origin, end );
+		dist = ( tent->client->ps.origin - end ).Length();
 		if ( dist <= cs->attributes[INNER_DETECTION_RADIUS] ) {
 			// close enough to hear/see the impact?
 			// first check pvs
@@ -197,12 +199,14 @@ void AICast_ProcessBullet( gentity_t *attacker, const idVec3 &start, const idVec
 			goto heard;
 		}
 		// are they within radius of the bullet path to hear it travel through the air?
-		ProjectPointOntoVector( tent->client->ps.origin, start, end, vProj );
+		idVec3 lineDirection = end - start;
+		vProj = start + lineDirection * ( ( tent->client->ps.origin - start ) * lineDirection /
+			( lineDirection * lineDirection ) );
 		vDir = vProj - start;
 		if ( ( vDir * dir ) < 0 ) { // they are behind the path of the bullet
 			continue;
 		}
-		if ( Distance( vProj, tent->client->ps.origin ) > 0.5 * cs->attributes[INNER_DETECTION_RADIUS] ) {
+		if ( ( vProj - tent->client->ps.origin ).Length() > 0.5 * cs->attributes[INNER_DETECTION_RADIUS] ) {
 			continue;
 		}
 	heard:
@@ -272,7 +276,7 @@ void AICast_AudibleEvent( int srcnum, const idVec3 &pos, float range ) {
 		}
 		// calculate the adjusted range according to this AI's hearing abilities
 		adjustedRange = range * cs->attributes[HEARING_SCALE];
-		localDist = DistanceSquared( pos, ent->s.pos.trBase );
+		localDist = ( pos - ent->s.pos.trBase ).LengthSqr();
 		if ( localDist > adjustedRange * adjustedRange ) { // fast out if already outside range
 			continue;
 		}
@@ -320,8 +324,8 @@ qboolean AICast_InFieldOfVision( const idVec3 &viewangles, float fov, const idVe
 	float diff, angle, normAngle;
 
 	for ( i = 0; i < 2; i++ ) {
-		angle = AngleMod( viewangles[i] );
-		normAngle = AngleMod( angles[i] );
+		angle = idMath::AngleNormalize360( viewangles[i] );
+		normAngle = idMath::AngleNormalize360( angles[i] );
 		diff = normAngle - angle;
 		if ( normAngle > angle ) {
 			if ( diff > 180.0 ) {
@@ -528,12 +532,14 @@ qboolean AICast_CheckVisibility( gentity_t *srcent, gentity_t *destent ) {
 	if ( ( level.lastLoadTime < level.time - 4000 ) && ( srcent->r.svFlags & SVF_CASTAI ) ) {
 		if ( clientHeadTagTimes[srcent->s.number] == level.time ) {
 			// use the actual direction the head is facing
-			vectoangles( clientHeadTags[srcent->s.number].axis[0], viewangles );
+			idAngles headAngles = clientHeadTags[srcent->s.number].axis[0].ToAngles();
+			viewangles.Set( headAngles.pitch, headAngles.yaw, headAngles.roll );
 			// and the actual position of the head
 			eye = clientHeadTags[srcent->s.number].origin;
 		} else if ( trap_GetTag( srcent->s.number, "tag_head", &orent ) ) {
 			// use the actual direction the head is facing
-			vectoangles( orent.axis[0], viewangles );
+			idAngles headAngles = orent.axis[0].ToAngles();
+			viewangles.Set( headAngles.pitch, headAngles.yaw, headAngles.roll );
 			// and the actual position of the head
 			eye = orent.origin;
 			eye = eye + orent.axis[2] * 12;
@@ -546,7 +552,8 @@ qboolean AICast_CheckVisibility( gentity_t *srcent, gentity_t *destent ) {
 			viewangles = srcent->client->ps.viewangles;
 			// save orientation data (so we dont keep checking for a tag when it doesn't exist)
 			clientHeadTags[srcent->s.number].origin = eye;
-			AnglesToAxis( viewangles, clientHeadTags[srcent->s.number].axis );
+			idAngles( viewangles ).ToVectors( &clientHeadTags[srcent->s.number].axis[0],
+				&clientHeadTags[srcent->s.number].axis[1], &clientHeadTags[srcent->s.number].axis[2] );
 			clientHeadTagTimes[srcent->s.number] = level.time;
 		}
 	} else {
@@ -556,7 +563,8 @@ qboolean AICast_CheckVisibility( gentity_t *srcent, gentity_t *destent ) {
 	}
 	//check if entity is within field of vision
 	dir = middle - eye;
-	vectoangles( dir, entangles );
+	idAngles entityAngles = dir.ToAngles();
+	entangles.Set( entityAngles.pitch, entityAngles.yaw, entityAngles.roll );
 	//
 	dist = dir.Length();
 	//
@@ -598,7 +606,7 @@ void AICast_UpdateVisibility( gentity_t *srcent, gentity_t *destent, qboolean sh
 	if ( cs->script.castScriptStatus.scriptNoSightTime >= level.time ) {
 		return; // absolutely no sight (or hear) information allowed
 	}
-	shareRange = ( VectorDistance( srcent->client->ps.origin, destent->client->ps.origin ) < AIVIS_SHARE_RANGE );
+	shareRange = ( srcent->client->ps.origin - destent->client->ps.origin ).Length() < AIVIS_SHARE_RANGE;
 
 	vis = &cs->perception.vislist[destent->s.number];
 
@@ -655,7 +663,7 @@ void AICast_UpdateVisibility( gentity_t *srcent, gentity_t *destent, qboolean sh
 			idr *= 10;
 		}
 		if ( !( vis->flags & AIVIS_ENEMY ) &&
-			 VectorDistance( vis->visible_pos, g_entities[cs->entityNum].r.currentOrigin ) < idr ) {
+			 ( vis->visible_pos - g_entities[cs->entityNum].r.currentOrigin ).Length() < idr ) {
 			// RF, moved them over to AICast_ScanForEnemies()
 			//AICast_ScriptEvent( cs, "enemysight", destent->aiName );
 			vis->flags |= AIVIS_ENEMY;

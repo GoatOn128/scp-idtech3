@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 typedef struct {
@@ -148,7 +150,7 @@ void G_TeamCommand( team_t team, char *cmd ) {
 	for ( i = 0 ; i < level.maxclients ; i++ ) {
 		if ( level.clients[i].pers.connected == CON_CONNECTED ) {
 			if ( level.clients[i].sess.sessionTeam == team ) {
-				trap_SendServerCommand( i, va( "%s", cmd ) );
+				trap_SendServerCommand( i, idStr::FormatString( "%s", cmd ) );
 			}
 		}
 	}
@@ -527,7 +529,7 @@ gentity_t *G_TempEntity( idVec3 &origin, int event ) {
 	e->freeAfterEvent = qtrue;
 
 	snapped = origin;
-	SnapVector( snapped );      // save network bandwidth
+	snapped.Snap();      // save network bandwidth
 	G_SetOrigin( e, snapped );
 
 	// find cluster for PVS
@@ -774,7 +776,7 @@ void G_ProcessTagConnect( gentity_t *ent, qboolean clearAngles ) {
 	if ( !ent->tagParent ) {
 		G_Error( "G_ProcessTagConnect: NULL ent->tagParent\n" );
 	}
-	G_FindConfigstringIndex( va( "%i %i %s", ent->s.number, ent->tagParent->s.number, ent->tagName ), CS_TAGCONNECTS, MAX_TAGCONNECTS, qtrue );
+	G_FindConfigstringIndex( idStr::FormatString( "%i %i %s", ent->s.number, ent->tagParent->s.number, ent->tagName ), CS_TAGCONNECTS, MAX_TAGCONNECTS, qtrue );
 	ent->s.eFlags |= EF_TAGCONNECT;
 
 	if ( clearAngles ) {

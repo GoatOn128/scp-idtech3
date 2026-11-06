@@ -22,7 +22,11 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
+
+static idRandom aiRandom;
 
 /*QUAKED ai_marker (1 0.5 0) (-18 -18 -24) (18 18 48) NODROP
 AI marker
@@ -139,7 +143,7 @@ void AICast_trigger_trigger( gentity_t *ent, gentity_t *activator ) {
 
 	if ( ent->wait > 0 ) {
 		ent->think = AICast_trigger_wait;
-		ent->nextthink = level.time + ( ent->wait + ent->random * crandom() ) * 1000;
+		ent->nextthink = level.time + ( ent->wait + ent->random * aiRandom.CRandomFloat() ) * 1000;
 	} else {
 		// we can't just remove (self) here, because this is a touch function
 		// called while looping through area links...

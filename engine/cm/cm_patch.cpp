@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "cm_local.h"
 #include "cm_patch.h"
@@ -104,23 +106,6 @@ CM_ClearLevelPatches
 void CM_ClearLevelPatches( void ) {
 	debugPatchCollide = NULL;
 	debugFacet = NULL;
-}
-
-/*
-=================
-CM_SignbitsForNormal
-=================
-*/
-static int CM_SignbitsForNormal( idVec3 normal ) {
-	int bits, j;
-
-	bits = 0;
-	for ( j = 0 ; j < 3 ; j++ ) {
-		if ( normal[j] < 0 ) {
-			bits |= 1 << j;
-		}
-	}
-	return bits;
 }
 
 /*
@@ -503,7 +488,7 @@ int CM_FindPlane2( const idPlane &plane, int *flipped ) {
 	}
 
 	planes[numPlanes].plane = plane;
-	planes[numPlanes].signbits = CM_SignbitsForNormal( plane.Normal() );
+	planes[numPlanes].signbits = plane.Signbits();
 
 	numPlanes++;
 
@@ -557,7 +542,7 @@ static int CM_FindPlane( const idVec3 &p1, const idVec3 &p2, const idVec3 &p3 ) 
 	}
 
 	planes[numPlanes].plane = plane;
-	planes[numPlanes].signbits = CM_SignbitsForNormal( plane.Normal() );
+	planes[numPlanes].signbits = plane.Signbits();
 
 	numPlanes++;
 
@@ -1782,4 +1767,3 @@ void CM_DrawDebugSurface( void ( *drawPoly )( int color, int numPoints, float *p
 	drawPoly( 4, v[0] );
 #endif
 }
-

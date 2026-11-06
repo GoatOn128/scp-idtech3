@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 
 // Wolf-specific debris, shell, spirit and emitter behavior hosted by the FX runtime.
+#include "../precompiled.h"
+
 #include "FxScheduler.h"
 #include "cg_fx.h"
 
@@ -122,7 +124,7 @@ void CG_FragmentBounceMark( fxEntity_t *le, trace_t *trace ) {
 		// don't drop too many blood marks
 		if ( !( lastBloodMark > cg.time || lastBloodMark > cg.time - CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning" ) ) ) {
 			radius = CG_FxInt( "wolf/controller_fragmentbouncemark", "radius" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_fragmentbouncemark", "radius_2" ) );
-			CG_ImpactMark( cgs.media.bloodDotShaders[cgRandom.RandomInt() % 5], trace->endpos, trace->plane.normal, Q_flrand( 0.0f, 1.0f ) * CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning_2" ),
+			CG_ImpactMark( cgs.media.bloodDotShaders[cgRandom.RandomInt() % 5], trace->endpos, trace->plane.normal, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning_2" ),
 						   CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_4" ), qtrue, radius, qfalse, cg_bloodTime.integer * CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_5" ) );
 
 			lastBloodMark = cg.time;
@@ -494,7 +496,7 @@ void CG_AddFragment( fxEntity_t *le ) {
 			idVec3 angles;
 
 			BG_EvaluateTrajectory( &le->angles, cg.time, angles );
-			AnglesToAxis( angles, le->refEntity.axis );
+			idAngles( angles[0], angles[1], angles[2] ).ToVectors( &le->refEntity.axis[0], &le->refEntity.axis[1], &le->refEntity.axis[2] );
 			if ( le->sizeScale && le->sizeScale != 1.0 ) {
 				for ( i = 0; i < 3; i++ ) ( le->refEntity.axis[i] = le->refEntity.axis[i] * le->sizeScale );
 			}
@@ -942,8 +944,8 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 		if ( le->leType == LE_ZOMBIE_SPIRIT /*|| le->leType == LE_HELGA_SPIRIT*/ ) {
 			( v = -v );
 		}
-		vectoangles( v, ang );
-		AnglesToAxis( ang, le->refEntity.axis );
+		idAngles angles = v.ToAngles();
+		angles.ToVectors( &le->refEntity.axis[0], &le->refEntity.axis[1], &le->refEntity.axis[2] );
 		// lean when turning
 		if ( le->leType == LE_ZOMBIE_BAT || le->leType == LE_HELGA_SPIRIT ) {
 			( v2 = le->pos.trDelta - oDelta );
@@ -962,7 +964,7 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 					ang[ROLL] = CG_FxInt( "wolf/controller_addclientcritter", "ang_ROLL__5" );
 				} else { ang[ROLL] = -CG_FxInt( "wolf/controller_addclientcritter", "ang_ROLL__6" );}
 			}
-			AnglesToAxis( ang, le->refEntity.axis );
+			idAngles( ang[0], ang[1], ang[2] ).ToVectors( &le->refEntity.axis[0], &le->refEntity.axis[1], &le->refEntity.axis[2] );
 		}
 
 		// HACK: the skull is slightly higher than the origin
@@ -1148,7 +1150,7 @@ void CG_AddShrapnel( fxEntity_t *le ) {
 			idVec3 angles;
 
 			BG_EvaluateTrajectory( &le->angles, cg.time, angles );
-			AnglesToAxis( angles, le->refEntity.axis );
+			idAngles( angles[0], angles[1], angles[2] ).ToVectors( &le->refEntity.axis[0], &le->refEntity.axis[1], &le->refEntity.axis[2] );
 		}
 
 		trap_R_AddRefEntityToScene( &le->refEntity );

@@ -33,6 +33,9 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "server.h"
 
 /*
@@ -218,9 +221,9 @@ void SV_BoundMaxClients( int minimum ) {
 	sv_maxclients->modified = qfalse;
 
 	if ( sv_maxclients->integer < minimum ) {
-		Cvar_Set( "sv_maxclients", va( "%i", minimum ) );
+		Cvar_Set( "sv_maxclients", idStr::FormatString( "%i", minimum ) );
 	} else if ( sv_maxclients->integer > MAX_CLIENTS ) {
-		Cvar_Set( "sv_maxclients", va( "%i", MAX_CLIENTS ) );
+		Cvar_Set( "sv_maxclients", idStr::FormatString( "%i", MAX_CLIENTS ) );
 	}
 }
 
@@ -723,7 +726,7 @@ void SV_SpawnServer( char *server, qboolean killBots ) {
 
 	// Ridah
 	if ( sv_gametype->integer == GT_SINGLE_PLAYER ) {
-		SV_SetExpectedHunkUsage( va( "maps/%s.bsp", server ) );
+		SV_SetExpectedHunkUsage( idStr::FormatString( "maps/%s.bsp", server ) );
 	} else {
 		// just set it to a negative number,so the cgame knows not to draw the percent bar
 		Cvar_Set( "com_expectedhunkusage", "-1" );
@@ -737,17 +740,17 @@ void SV_SpawnServer( char *server, qboolean killBots ) {
 	sv.checksumFeed = ( ( (int) rand() << 16 ) ^ rand() ) ^ Sys_Milliseconds();
 	FS_Restart( sv.checksumFeed );
 
-	CM_LoadMap( va( "maps/%s.bsp", server ), qfalse, &checksum );
+	CM_LoadMap( idStr::FormatString( "maps/%s.bsp", server ), qfalse, &checksum );
 
 	// set serverinfo visible name
 	Cvar_Set( "mapname", server );
 
-	Cvar_Set( "sv_mapChecksum", va( "%i",checksum ) );
+	Cvar_Set( "sv_mapChecksum", idStr::FormatString( "%i",checksum ) );
 
 	// serverid should be different each time
 	sv.serverId = com_frameTime;
 	sv.restartedServerId = sv.serverId;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar_Set( "sv_serverid", idStr::FormatString( "%i", sv.serverId ) );
 
 	// clear physics interaction links
 	SV_ClearWorld();
@@ -902,7 +905,7 @@ void SV_Init( void ) {
 	// done
 
 	Cvar_Get( "sv_keywords", "", CVAR_SERVERINFO );
-	Cvar_Get( "protocol", va( "%i", PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_ROM );
+	Cvar_Get( "protocol", idStr::FormatString( "%i", PROTOCOL_VERSION ), CVAR_SERVERINFO | CVAR_ROM );
 	sv_mapname = Cvar_Get( "mapname", "nomap", CVAR_SERVERINFO | CVAR_ROM );
 	sv_privateClients = Cvar_Get( "sv_privateClients", "0", CVAR_SERVERINFO );
 	sv_hostname = Cvar_Get( "sv_hostname", "noname", CVAR_SERVERINFO | CVAR_ARCHIVE );

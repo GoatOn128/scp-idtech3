@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
 // ahead the client's movement.
 // It also handles local physics interaction, like fragments bouncing off walls
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 
 static pmove_t cg_pmove;
@@ -300,7 +302,7 @@ static void CG_InterpolatePlayerState( qboolean grabAngles ) {
 		out->origin[i] = prev->ps.origin[i] + f * ( next->ps.origin[i] - prev->ps.origin[i] );
 		if ( !grabAngles ) {
 			out->viewangles[i] = prev->ps.viewangles[i] +
-						   f * AngleNormalize180( next->ps.viewangles[i] - prev->ps.viewangles[i] );
+						   f * idMath::AngleNormalize180( next->ps.viewangles[i] - prev->ps.viewangles[i] );
 		}
 		out->velocity[i] = prev->ps.velocity[i] +
 						   f * ( next->ps.velocity[i] - prev->ps.velocity[i] );
@@ -385,24 +387,24 @@ static void CG_TouchItem( centity_t *cent ) {
 		weapon = item->giTag;
 
 		if ( weapon == WP_COLT ) {
-			if ( COM_BitCheck( cg.predictedPlayerState.weapons, WP_COLT ) ) {
+			if ( idBitField::Test( cg.predictedPlayerState.weapons, WP_COLT ) ) {
 				// you got the colt, you gettin' another
 				weapon = WP_AKIMBO;
 			}
 		}
 //----(SA)	end
 
-		COM_BitSet( cg.predictedPlayerState.weapons, weapon );
+		idBitField::Set( cg.predictedPlayerState.weapons, weapon );
 
 //----(SA)	added
 		if ( weapon == WP_SNOOPERSCOPE ) {
-			COM_BitSet( cg.predictedPlayerState.weapons, WP_GARAND );
+			idBitField::Set( cg.predictedPlayerState.weapons, WP_GARAND );
 		} else if ( weapon == WP_GARAND ) {
-			COM_BitSet( cg.predictedPlayerState.weapons, WP_SNOOPERSCOPE );
+			idBitField::Set( cg.predictedPlayerState.weapons, WP_SNOOPERSCOPE );
 		} else if ( weapon == WP_FG42 ) {
-			COM_BitSet( cg.predictedPlayerState.weapons, WP_FG42SCOPE );
+			idBitField::Set( cg.predictedPlayerState.weapons, WP_FG42SCOPE );
 		} else if ( weapon == WP_SNIPERRIFLE ) {
-			COM_BitSet( cg.predictedPlayerState.weapons, WP_MAUSER );
+			idBitField::Set( cg.predictedPlayerState.weapons, WP_MAUSER );
 		}
 //----(SA)	end
 

@@ -31,6 +31,8 @@ If you have questions concerning this license or the applicable additional terms
 
 
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 
 
@@ -157,11 +159,11 @@ void CG_SetInitialSnapshot( snapshot_t *snap ) {
 		if ( !idStr::Icmp( buf, "none" ) ) {
 			trap_SendClientCommand( "fogswitch 0" );   // 'off'
 		} else {
-			trap_SendClientCommand( va( "fogswitch %s", buf ) );
+			trap_SendClientCommand( idStr::FormatString( "fogswitch %s", buf ) );
 		}
 	} else {
 		trap_Cvar_VariableStringBuffer( "r_mapFogColor", buf, sizeof( buf ) );
-		trap_SendClientCommand( va( "fogswitch %s", buf ) );
+		trap_SendClientCommand( idStr::FormatString( "fogswitch %s", buf ) );
 	}
 
 	// set our local weapon selection pointer to

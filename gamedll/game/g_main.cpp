@@ -29,7 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 
 
 
+#include "../precompiled.h"
+
 #include "g_local.h"
+
+idRandom gameRandom;
 
 level_locals_t level;
 
@@ -968,7 +972,7 @@ void G_RegisterCvars( void ) {
 	// Rafael gameskill
 	if ( g_gameskill.integer < GSKILL_EASY || g_gameskill.integer > GSKILL_MAX ) {
 		G_Printf( "g_gameskill %i is out of range, default to medium\n", g_gameskill.integer );
-		trap_Cvar_Set( "g_gameskill", va( "%d", GSKILL_MEDIUM ) ); // default to medium
+		trap_Cvar_Set( "g_gameskill", idStr::FormatString( "%d", GSKILL_MEDIUM ) ); // default to medium
 	}
 
 	bg_pmove_gameskill_integer = g_gameskill.integer;
@@ -997,7 +1001,7 @@ void G_UpdateCvars( void ) {
 				cv->modificationCount = cv->vmCvar->modificationCount;
 
 				if ( cv->trackChange ) {
-					trap_SendServerCommand( -1, va( "print \"Server: %s changed to %s\n\"",
+					trap_SendServerCommand( -1, idStr::FormatString( "print \"Server: %s changed to %s\n\"",
 													cv->cvarName, cv->vmCvar->string ) );
 				}
 
@@ -1123,22 +1127,22 @@ int G_SendMissionStats() {
 		minutes = ( ( playtime % 3600000 ) / 1000 ) / 60; // handle hours in a map
 
 	}
-	idStr::Append( cmd, sizeof( cmd ), va( ",%i,%i,%i", ( ( playtime / 1000 ) / 60 ) / 60, minutes, ( playtime / 1000 ) % 60 ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i,%i,%i", ( ( playtime / 1000 ) / 60 ) / 60, minutes, ( playtime / 1000 ) % 60 ) );
 
 	// objectives
-	idStr::Append( cmd, sizeof( cmd ), va( ",%i,%i", objs, level.numObjectives ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i,%i", objs, level.numObjectives ) );
 	if ( objs >= level.numObjectives ) { // you're ready to go!
 		canExit = 1;
 	}
 
 	// secrets
-	idStr::Append( cmd, sizeof( cmd ), va( ",%i,%i", sec, level.numSecrets ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i,%i", sec, level.numSecrets ) );
 
 	// treasure
-	idStr::Append( cmd, sizeof( cmd ), va( ",%i,%i", treas, level.numTreasure ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i,%i", treas, level.numTreasure ) );
 
 	// attempts
-	idStr::Append( cmd, sizeof( cmd ), va( ",%i", attempts ) );
+	idStr::Append( cmd, sizeof( cmd ), idStr::FormatString( ",%i", attempts ) );
 
 //	trap_Cvar_Set( "g_missionStats", cmd );
 	// changing to a configstring (should help w/ savegame, no?)
@@ -1259,7 +1263,7 @@ void G_InitGame( int levelTime, int randomSeed, int restart ) {
 		}
 
 		for ( i = 0; i < 8; i++ )     {  // max objective cvars: 8 (FIXME: use #define somewhere)
-			trap_Cvar_Set( va( "g_objective%i", i + 1 ), "0" );   // clear the objective ROM cvars
+			trap_Cvar_Set( idStr::FormatString( "g_objective%i", i + 1 ), "0" );   // clear the objective ROM cvars
 		}
 		trap_Cvar_Set( "cg_yougotMail", "0" );
 	}
@@ -1644,18 +1648,18 @@ void CalculateRanks( void ) {
 
 	// set the CS_SCORES1/2 configstrings, which will be visible to everyone
 	if ( g_gametype.integer >= GT_TEAM ) {
-		trap_SetConfigstring( CS_SCORES1, va( "%i", level.teamScores[TEAM_RED] ) );
-		trap_SetConfigstring( CS_SCORES2, va( "%i", level.teamScores[TEAM_BLUE] ) );
+		trap_SetConfigstring( CS_SCORES1, idStr::FormatString( "%i", level.teamScores[TEAM_RED] ) );
+		trap_SetConfigstring( CS_SCORES2, idStr::FormatString( "%i", level.teamScores[TEAM_BLUE] ) );
 	} else {
 		if ( level.numConnectedClients == 0 ) {
-			trap_SetConfigstring( CS_SCORES1, va( "%i", SCORE_NOT_PRESENT ) );
-			trap_SetConfigstring( CS_SCORES2, va( "%i", SCORE_NOT_PRESENT ) );
+			trap_SetConfigstring( CS_SCORES1, idStr::FormatString( "%i", SCORE_NOT_PRESENT ) );
+			trap_SetConfigstring( CS_SCORES2, idStr::FormatString( "%i", SCORE_NOT_PRESENT ) );
 		} else if ( level.numConnectedClients == 1 ) {
-			trap_SetConfigstring( CS_SCORES1, va( "%i", level.clients[ level.sortedClients[0] ].ps.persistant[PERS_SCORE] ) );
-			trap_SetConfigstring( CS_SCORES2, va( "%i", SCORE_NOT_PRESENT ) );
+			trap_SetConfigstring( CS_SCORES1, idStr::FormatString( "%i", level.clients[ level.sortedClients[0] ].ps.persistant[PERS_SCORE] ) );
+			trap_SetConfigstring( CS_SCORES2, idStr::FormatString( "%i", SCORE_NOT_PRESENT ) );
 		} else {
-			trap_SetConfigstring( CS_SCORES1, va( "%i", level.clients[ level.sortedClients[0] ].ps.persistant[PERS_SCORE] ) );
-			trap_SetConfigstring( CS_SCORES2, va( "%i", level.clients[ level.sortedClients[1] ].ps.persistant[PERS_SCORE] ) );
+			trap_SetConfigstring( CS_SCORES1, idStr::FormatString( "%i", level.clients[ level.sortedClients[0] ].ps.persistant[PERS_SCORE] ) );
+			trap_SetConfigstring( CS_SCORES2, idStr::FormatString( "%i", level.clients[ level.sortedClients[1] ].ps.persistant[PERS_SCORE] ) );
 		}
 	}
 
@@ -1751,7 +1755,8 @@ void FindIntermissionPoint( void ) {
 			target = G_PickTarget( ent->target );
 			if ( target ) {
 				dir = target->s.origin - level.intermission_origin;
-				vectoangles( dir, level.intermission_angle );
+				idAngles intermissionAngles = dir.ToAngles();
+				level.intermission_angle.Set( intermissionAngles.pitch, intermissionAngles.yaw, intermissionAngles.roll );
 			}
 		}
 	}
@@ -2140,7 +2145,7 @@ void CheckExitRules( void ) {
 
 			if ( cl->ps.persistant[PERS_SCORE] >= g_fraglimit.integer ) {
 				LogExit( "Fraglimit hit." );
-				trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " hit the fraglimit.\n\"",
+				trap_SendServerCommand( -1, idStr::FormatString( "print \"%s" S_COLOR_WHITE " hit the fraglimit.\n\"",
 												cl->pers.netname ) );
 				return;
 			}
@@ -2200,7 +2205,7 @@ void CheckTournement( void ) {
 	if ( level.numPlayingClients != 2 ) {
 		if ( level.warmupTime != -1 ) {
 			level.warmupTime = -1;
-			trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
+			trap_SetConfigstring( CS_WARMUP, idStr::FormatString( "%i", level.warmupTime ) );
 			G_LogPrintf( "Warmup:\n" );
 		}
 		return;
@@ -2221,7 +2226,7 @@ void CheckTournement( void ) {
 		if ( level.numPlayingClients == 2 ) {
 			// fudge by -1 to account for extra delays
 			level.warmupTime = level.time + ( g_warmup.integer - 1 ) * 1000;
-			trap_SetConfigstring( CS_WARMUP, va( "%i", level.warmupTime ) );
+			trap_SetConfigstring( CS_WARMUP, idStr::FormatString( "%i", level.warmupTime ) );
 		}
 		return;
 	}
@@ -2245,7 +2250,7 @@ CheckVote
 void CheckVote( void ) {
 	if ( level.voteExecuteTime && level.voteExecuteTime < level.time ) {
 		level.voteExecuteTime = 0;
-		trap_SendConsoleCommand( EXEC_APPEND, va( "%s\n", level.voteString ) );
+		trap_SendConsoleCommand( EXEC_APPEND, idStr::FormatString( "%s\n", level.voteString ) );
 	}
 	if ( !level.voteTime ) {
 		return;
@@ -2282,11 +2287,11 @@ void CheckReloadStatus( void ) {
 			if ( level.reloadDelayTime < level.time ) {
 
 				if ( g_reloading.integer == RELOAD_NEXTMAP_WAITING ) {
-					trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_NEXTMAP ) ); // set so sv_map_f will know it's okay to start a map
+					trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_NEXTMAP ) ); // set so sv_map_f will know it's okay to start a map
 					if ( g_cheats.integer ) {
-						trap_SendConsoleCommand( EXEC_APPEND, va( "spdevmap %s\n", level.nextMap ) );
+						trap_SendConsoleCommand( EXEC_APPEND, idStr::FormatString( "spdevmap %s\n", level.nextMap ) );
 					} else {
-						trap_SendConsoleCommand( EXEC_APPEND, va( "spmap %s\n", level.nextMap ) );
+						trap_SendConsoleCommand( EXEC_APPEND, idStr::FormatString( "spmap %s\n", level.nextMap ) );
 					}
 
 				} else if ( g_reloading.integer == RELOAD_ENDGAME ) {

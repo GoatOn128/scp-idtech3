@@ -43,7 +43,7 @@ Mem_Alloc16
 ==================
 */
 void * Mem_Alloc16( const int size, const memTag_t tag ) {
-	if ( !size ) {
+	if ( size <= 0 || size > INT_MAX - 15 ) {
 		return NULL;
 	}
 	const int paddedSize = ( size + 15 ) & ~15;
@@ -60,6 +60,109 @@ void Mem_Free16( void *ptr ) {
 		return;
 	}
 	_aligned_free( ptr );
+}
+
+void *operator new( size_t s ) {
+	return Mem_Alloc( s, TAG_NEW );
+}
+
+void operator delete( void *p ) {
+	Mem_Free( p );
+}
+
+void *operator new[]( size_t s ) {
+	return Mem_Alloc( s, TAG_NEW );
+}
+
+void operator delete[]( void *p ) {
+	Mem_Free( p );
+}
+
+/*
+==================
+idHeapArena::idHeapArena
+==================
+*/
+idHeapArena::idHeapArena() :
+	allocation( NULL ),
+	memory( NULL ),
+	capacity( 0 ),
+	used( 0 ) {
+}
+
+/*
+==================
+idHeapArena::~idHeapArena
+==================
+*/
+idHeapArena::~idHeapArena() {
+	Shutdown();
+}
+
+/*
+==================
+idHeapArena::Init
+==================
+*/
+bool idHeapArena::Init( const int arenaCapacity ) {
+	Shutdown();
+
+	if ( arenaCapacity <= 0 || arenaCapacity > INT_MAX - 46 ) {
+		return false;
+	}
+
+	allocation = Mem_Alloc( arenaCapacity + 31, TAG_IDLIB );
+	if ( allocation == NULL ) {
+		return false;
+	}
+
+	const size_t address = (size_t)allocation;
+	const size_t alignmentOffset = ( 32 - ( address & 31 ) ) & 31;
+	memory = (byte *)allocation + alignmentOffset;
+	capacity = arenaCapacity;
+	return true;
+}
+
+/*
+==================
+idHeapArena::Alloc
+==================
+*/
+void *idHeapArena::Alloc( const int size ) {
+	if ( memory == NULL || size <= 0 || size > INT_MAX - 31 ) {
+		return NULL;
+	}
+
+	const int alignedSize = ( size + 31 ) & ~31;
+	if ( alignedSize > capacity - used ) {
+		return NULL;
+	}
+
+	byte *ptr = memory + used;
+	used += alignedSize;
+	return ptr;
+}
+
+/*
+==================
+idHeapArena::Reset
+==================
+*/
+void idHeapArena::Reset() {
+	used = 0;
+}
+
+/*
+==================
+idHeapArena::Shutdown
+==================
+*/
+void idHeapArena::Shutdown() {
+	Mem_Free( allocation );
+	allocation = NULL;
+	memory = NULL;
+	capacity = 0;
+	used = 0;
 }
 
 /*
@@ -83,4 +186,3 @@ char *Mem_CopyString( const char *in ) {
 	strcpy( out, in );
 	return out;
 }
-

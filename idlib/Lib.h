@@ -287,6 +287,7 @@ public:
 #include "LangDict.h"
 #include "DataQueue.h"
 #include "BitMsg.h"
+#include "BitField.h"
 #include "MapFile.h"
 #include "Timer.h"
 #include "Thread.h"

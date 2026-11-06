@@ -36,6 +36,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "snd_local.h"
 #include "../client/client.h"
 
@@ -372,7 +375,7 @@ static sfx_t *S_FindName( const char *name ) {
 
 	// Ridah, caching
 	if ( cl_cacheGathering->integer ) {
-		Cbuf_ExecuteText( EXEC_NOW, va( "cache_usedfile sound %s\n", name ) );
+		Cbuf_ExecuteText( EXEC_NOW, idStr::FormatString( "cache_usedfile sound %s\n", name ) );
 	}
 
 	hash = S_HashSFXName( name );
@@ -1355,22 +1358,22 @@ S_CheckForQueuedMusic
 */
 int S_CheckForQueuedMusic( void ) {
 	streamingSound_t *ss;
-	char *nextMusicVA;
+	idStr nextMusic;
 
 	if ( !snd.nextMusicTrack[0] ) {                                    // we didn't actually care about the length
 		return 0;
 	}
 
-	nextMusicVA = va( "%s", snd.nextMusicTrack );
+	nextMusic = idStr::FormatString( "%s", snd.nextMusicTrack );
 
 	ss = &streamingSounds[0];
 
 	if ( snd.nextMusicTrackType == QUEUED_PLAY_ONCE_SILENT ) {
 		// do nothing.  current music is dead, don't start another
 	} else if ( snd.nextMusicTrackType == QUEUED_PLAY_ONCE ) {
-		S_StartBackgroundTrack( nextMusicVA, ss->name, 0 );      // play once, then go back to looping what's currently playing
+		S_StartBackgroundTrack( nextMusic, ss->name, 0 );      // play once, then go back to looping what's currently playing
 	} else {        // QUEUED_PLAY_LOOPED
-		S_StartBackgroundTrack( nextMusicVA, nextMusicVA, 0 );   // take over
+		S_StartBackgroundTrack( nextMusic, nextMusic, 0 );   // take over
 	}
 
 	snd.nextMusicTrackType = 0;     // clear out music queue
@@ -2473,7 +2476,7 @@ void S_UpdateStreamingSounds( void ) {
 						s_rawend[i] = 0;    // reset rawend
 					}
 /*
-					nextMusicVA = va("%s", snd.nextMusicTrack);
+					nextMusicVA = idStr::FormatString("%s", snd.nextMusicTrack);
 					if(snd.nextMusicTrackType == QUEUED_PLAY_ONCE) {
 						S_StartBackgroundTrack( nextMusicVA, ss->name, 0);		// play once, then go back to looping what's currently playing
 					} else {	// QUEUED_PLAY_LOOPED
@@ -2571,4 +2574,3 @@ void S_FreeOldestSound( void ) {
 	sfx->inMemory = qfalse;
 	sfx->soundData = NULL;
 }
-

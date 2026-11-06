@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 //==========================================================
@@ -107,7 +109,7 @@ void Think_Target_Delay( gentity_t *ent ) {
 }
 
 void Use_Target_Delay( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
-	ent->nextthink = level.time + ( ent->wait + ent->random * crandom() ) * 1000;
+	ent->nextthink = level.time + ( ent->wait + ent->random * gameRandom.CRandomFloat() ) * 1000;
 	ent->think = Think_Target_Delay;
 	ent->activator = activator;
 }
@@ -153,21 +155,21 @@ If "private", only the activator gets the message.  If no checks, all clients ge
 */
 void Use_Target_Print( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 	if ( activator->client && ( ent->spawnflags & 4 ) ) {
-		trap_SendServerCommand( activator - g_entities, va( "cp \"%s\"", ent->message ) );
+		trap_SendServerCommand( activator - g_entities, idStr::FormatString( "cp \"%s\"", ent->message ) );
 		return;
 	}
 
 	if ( ent->spawnflags & 3 ) {
 		if ( ent->spawnflags & 1 ) {
-			G_TeamCommand( TEAM_RED, va( "cp \"%s\"", ent->message ) );
+			G_TeamCommand( TEAM_RED, idStr::FormatString( "cp \"%s\"", ent->message ) );
 		}
 		if ( ent->spawnflags & 2 ) {
-			G_TeamCommand( TEAM_BLUE, va( "cp \"%s\"", ent->message ) );
+			G_TeamCommand( TEAM_BLUE, idStr::FormatString( "cp \"%s\"", ent->message ) );
 		}
 		return;
 	}
 
-	trap_SendServerCommand( -1, va( "cp \"%s\"", ent->message ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "cp \"%s\"", ent->message ) );
 }
 
 void SP_target_print( gentity_t *ent ) {
@@ -694,7 +696,7 @@ void Use_target_fog( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 //		density
 //		r,g,b
 //		time to complete
-	trap_SetConfigstring( CS_FOGVARS, va( "%f %f %f %f %f %f %i", ent->accuracy, ent->random, 1.0f, (float)ent->dl_color[0], (float)ent->dl_color[1], (float)ent->dl_color[2], ent->s.time ) );
+	trap_SetConfigstring( CS_FOGVARS, idStr::FormatString( "%f %f %f %f %f %f %i", ent->accuracy, ent->random, 1.0f, (float)ent->dl_color[0], (float)ent->dl_color[1], (float)ent->dl_color[2], ent->s.time ) );
 }
 
 /*QUAKED target_fog (1 1 0) (-8 -8 -8) (8 8 8)

@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -437,7 +439,7 @@ void AICast_ScriptParse( cast_state_t *cs ) {
 								!idStr::Icmp( action->actionString, "startcam" ) ||
 								!idStr::Icmp( action->actionString, "startcamblack" ) ) ) {
 							if ( token.Length() ) { // we know there is a [0], but do not know if it is '0'
-								trap_SendServerCommand( cs->entityNum, va( "addToBuild %s\n", token.c_str() ) );
+								trap_SendServerCommand( cs->entityNum, idStr::FormatString( "addToBuild %s\n", token.c_str() ) );
 							}
 						}
 

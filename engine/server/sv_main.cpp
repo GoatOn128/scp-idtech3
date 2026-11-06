@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "server.h"
 
@@ -411,29 +413,29 @@ void SVC_Info( netadr_t from ) {
 	// to prevent timed spoofed reply packets that add ghost servers
 	Info_SetValueForKey( infostring, "challenge", Cmd_Argv( 1 ) );
 
-	Info_SetValueForKey( infostring, "protocol", va( "%i", PROTOCOL_VERSION ) );
+	Info_SetValueForKey( infostring, "protocol", idStr::FormatString( "%i", PROTOCOL_VERSION ) );
 	Info_SetValueForKey( infostring, "hostname", sv_hostname->string );
 	Info_SetValueForKey( infostring, "mapname", sv_mapname->string );
-	Info_SetValueForKey( infostring, "clients", va( "%i", count ) );
+	Info_SetValueForKey( infostring, "clients", idStr::FormatString( "%i", count ) );
 	Info_SetValueForKey( infostring, "sv_maxclients",
-						 va( "%i", sv_maxclients->integer - sv_privateClients->integer ) );
-	Info_SetValueForKey( infostring, "gametype", va( "%i", sv_gametype->integer ) );
-	Info_SetValueForKey( infostring, "pure", va( "%i", sv_pure->integer ) );
+						 idStr::FormatString( "%i", sv_maxclients->integer - sv_privateClients->integer ) );
+	Info_SetValueForKey( infostring, "gametype", idStr::FormatString( "%i", sv_gametype->integer ) );
+	Info_SetValueForKey( infostring, "pure", idStr::FormatString( "%i", sv_pure->integer ) );
 
 	if ( sv_minPing->integer ) {
-		Info_SetValueForKey( infostring, "minPing", va( "%i", sv_minPing->integer ) );
+		Info_SetValueForKey( infostring, "minPing", idStr::FormatString( "%i", sv_minPing->integer ) );
 	}
 	if ( sv_maxPing->integer ) {
-		Info_SetValueForKey( infostring, "maxPing", va( "%i", sv_maxPing->integer ) );
+		Info_SetValueForKey( infostring, "maxPing", idStr::FormatString( "%i", sv_maxPing->integer ) );
 	}
 	gamedir = Cvar_VariableString( "fs_game" );
 	if ( *gamedir ) {
 		Info_SetValueForKey( infostring, "game", gamedir );
 	}
-	Info_SetValueForKey( infostring, "sv_allowAnonymous", va( "%i", sv_allowAnonymous->integer ) );
+	Info_SetValueForKey( infostring, "sv_allowAnonymous", idStr::FormatString( "%i", sv_allowAnonymous->integer ) );
 
 	// Rafael gameskill
-	Info_SetValueForKey( infostring, "gameskill", va( "%i", sv_gameskill->integer ) );
+	Info_SetValueForKey( infostring, "gameskill", idStr::FormatString( "%i", sv_gameskill->integer ) );
 	// done
 
 	NET_OutOfBandPrint( NS_SERVER, from, "infoResponse\n%s", infostring );
@@ -458,7 +460,7 @@ Shift down the remaining args
 Redirect all printfs
 ===============
 */
-void SVC_RemoteCommand( netadr_t from, msg_t *msg ) {
+void SVC_RemoteCommand( netadr_t from, idBitMsg *msg ) {
 	qboolean valid;
 	int i;
 	char remaining[1024];
@@ -506,14 +508,14 @@ Clients that are in the game can still send
 connectionless packets.
 =================
 */
-void SV_ConnectionlessPacket( netadr_t from, msg_t *msg ) {
+void SV_ConnectionlessPacket( netadr_t from, idBitMsg *msg ) {
 	char    *s;
 	char    *c;
 
-	MSG_BeginReadingOOB( msg );
-	MSG_ReadLong( msg );        // skip the -1 marker
+	msg->BeginReadingOOB();
+	msg->ReadLong( );        // skip the -1 marker
 
-	s = MSG_ReadStringLine( msg );
+	s = msg->ReadString( );
 
 	Cmd_TokenizeString( s );
 
@@ -550,22 +552,22 @@ void SV_ConnectionlessPacket( netadr_t from, msg_t *msg ) {
 SV_ReadPackets
 =================
 */
-void SV_PacketEvent( netadr_t from, msg_t *msg ) {
+void SV_PacketEvent( netadr_t from, idBitMsg *msg ) {
 	int i;
 	client_t    *cl;
 	int qport;
 
 	// check for connectionless packet (0xffffffff) first
-	if ( msg->cursize >= 4 && *(int *)msg->data == -1 ) {
+	if ( msg->GetSize() >= 4 && *(int *)msg->GetData() == -1 ) {
 		SV_ConnectionlessPacket( from, msg );
 		return;
 	}
 
 	// read the qport out of the message so we can fix up
 	// stupid address translating routers
-	MSG_BeginReadingOOB( msg );
-	MSG_ReadLong( msg );                // sequence number
-	qport = MSG_ReadShort( msg ) & 0xffff;
+	msg->BeginReadingOOB();
+	msg->ReadLong( );                // sequence number
+	qport = msg->ReadShort( ) & 0xffff;
 
 	// find which client the message is from
 	for ( i = 0, cl = svs.clients ; i < sv_maxclients->integer ; i++,cl++ ) {

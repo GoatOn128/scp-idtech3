@@ -1,8 +1,9 @@
 // Connected Wolf trails, owned and updated by the FX primitive runtime.
+#include "../precompiled.h"
+
 #include "FxScheduler.h"
 #include "cg_fx.h"
-#include <deque>
-#include <algorithm>
+#include "containers/HashTable.h"
 
 struct FxTrailPoint {
 	idVec3 origin, rgbStart, rgbEnd;
@@ -11,11 +12,11 @@ struct FxTrailPoint {
 };
 
 class CWolfTrail;
-static std::map<int, CWolfTrail *> fxTrails;
+static idHashTableT<int, CWolfTrail *> fxTrails;
 static int fxNextTrail = 1;
 
 class CWolfTrail : public CEffect {
-	std::deque<FxTrailPoint> points;
+	idList<FxTrailPoint> points;
 	qhandle_t shader;
 	int flags, textureMode, handle;
 public:
@@ -23,22 +24,23 @@ public:
 		shader( material ), flags( spawnFlags ), textureMode( mapping ), handle( 0 ) {
 		SetFlags( 0 );
 	}
-	~CWolfTrail() { fxTrails.erase( handle ); }
+	~CWolfTrail() { fxTrails.Remove( handle ); }
 	int Append( FxTrailPoint point, float ratio, float speed ) {
-		if ( points.empty() ) {
+		if ( points.Num() == 0 ) {
 			point.s = ratio > 0 ? speed * ( 1 - ( cg.time % 1000 ) / 1000.0f ) / ratio : 0;
 		} else {
 			float scale = ratio * point.widthEnd;
-			point.s = points.back().s + ( scale > 0 ? Distance( point.origin, points.back().origin ) / scale : 0 );
+			const FxTrailPoint &last = points[points.Num() - 1];
+			point.s = last.s + ( scale > 0 ? ( point.origin - last.origin ).Length() / scale : 0 );
 		}
-		points.push_back( point );
-		if ( points.size() > 4096 ) { points.pop_front(); }
-		fxTrails.erase( handle );
+		points.Append( point );
+		if ( points.Num() > 4096 ) { points.RemoveIndex( 0 ); }
+		fxTrails.Remove( handle );
 		// IDs are never reused while the module is loaded, including map_restart.
 		if ( fxNextTrail == 0x7fffffff ) { fxNextTrail = 1; }
-		while ( fxTrails.count( fxNextTrail ) ) { fxNextTrail++; }
+		while ( fxTrails.Get( fxNextTrail ) ) { fxNextTrail++; }
 		handle = fxNextTrail++;
-		fxTrails[handle] = this;
+		fxTrails.Set( handle, this );
 		return handle;
 	}
 	void VertexPair( const FxTrailPoint &point, const idVec3 &side, float s, polyVert_t *verts ) {
@@ -48,7 +50,7 @@ public:
 		float alpha = point.alphaStart + fraction * ( point.alphaEnd - point.alphaStart );
 		if ( flags & TJFL_FADEIN ) { alpha *= fraction < 0.1f ? fraction * 10 : 1; }
 		if ( !( flags & TJFL_NOCULL ) && width > 0 ) {
-			float distance = Distance( point.origin, cg.refdef.vieworg );
+			float distance = ( point.origin - cg.refdef.vieworg ).Length();
 			alpha *= distance < width * 2 ? distance / ( width * 2 ) : 1;
 		}
 		alpha = alpha < 0 ? 0 : ( alpha > 1 ? 1 : alpha );
@@ -64,11 +66,11 @@ public:
 		}
 	}
 	bool Update() override {
-		while ( !points.empty() && theFxHelper.mTime >= points.front().start + points.front().life ) {
-			points.pop_front();
+		while ( points.Num() > 0 && theFxHelper.mTime >= points[0].start + points[0].life ) {
+			points.RemoveIndex( 0 );
 		}
-		if ( points.empty() ) { return false; }
-		for ( size_t i = 1; i < points.size(); i++ ) {
+		if ( points.Num() == 0 ) { return false; }
+		for ( int i = 1; i < points.Num(); i++ ) {
 			idVec3 direction, view, side;
 			direction = points[i].origin - ( points[i - 1].origin );
 			if ( direction.Normalize() == 0 ) { continue; }
@@ -78,8 +80,8 @@ public:
 			int planes = ( flags & TJFL_CROSSOVER ) ? 2 : 1;
 			for ( int plane = 0; plane < planes; plane++ ) {
 				polyVert_t ends[4], polygon[4];
-				float startS = textureMode == STYPE_REPEAT ? points[i - 1].s : ( i - 1.0f ) / ( points.size() - 1 );
-				float endS = textureMode == STYPE_REPEAT ? points[i].s : static_cast<float>( i ) / ( points.size() - 1 );
+				float startS = textureMode == STYPE_REPEAT ? points[i - 1].s : ( i - 1.0f ) / ( points.Num() - 1 );
+				float endS = textureMode == STYPE_REPEAT ? points[i].s : static_cast<float>( i ) / ( points.Num() - 1 );
 				VertexPair( points[i - 1], side, startS, ends );
 				VertexPair( points[i], side, endS, ends + 2 );
 				polygon[0] = ends[0]; polygon[1] = ends[1]; polygon[2] = ends[3]; polygon[3] = ends[2];
@@ -110,7 +112,13 @@ public:
 
 
 static bool TrailBinds( const CPrimitiveTemplate &definition, const char *field ) {
-	return (" " + definition.mBindings + " ").find(" " + std::string(field) + " ") != std::string::npos;
+	idStr padded( " " );
+	padded += definition.mBindings;
+	padded += " ";
+	idStr needle( " " );
+	needle += field;
+	needle += " ";
+	return padded.Find( needle.c_str() ) != -1;
 }
 
 int CG_FxTrail( const char *name, int head, const idVec3 &position, const FxTrailInputs &input ) {
@@ -147,13 +155,13 @@ int CG_FxTrail( const char *name, int head, const idVec3 &position, const FxTrai
 	point.alphaStart *= alphaScale;
 	point.alphaEnd *= alphaScale;
 	CWolfTrail *trail;
-	auto existing = fxTrails.find( head );
-	if ( existing == fxTrails.end() ) {
+	CWolfTrail **trailValue;
+	if ( !fxTrails.Get( head, &trailValue ) ) {
 		trail = new CWolfTrail( shader, flags, mapping );
 		CEffect *effect = trail;
 		FX_AddPrimitive( &effect, 24 * 60 * 60 * 1000 );
 	} else {
-		trail = existing->second;
+		trail = *trailValue;
 	}
 	return trail->Append( point, ratio, speed );
 }

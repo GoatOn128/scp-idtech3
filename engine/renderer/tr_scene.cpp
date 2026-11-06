@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 int r_firstSceneDrawSurf;
@@ -137,7 +139,7 @@ void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts
 	int i;
 	int fogIndex;
 	fog_t       *fog;
-	idVec3 bounds[2];
+	idBounds bounds;
 
 	if ( !tr.registered ) {
 		return;
@@ -175,10 +177,9 @@ void RE_AddPolyToScene( qhandle_t hShader, int numVerts, const polyVert_t *verts
 		fogIndex = 0;
 	} else {
 		// find which fog volume the poly is in
-		bounds[0] = poly->verts[0].xyz;
-		bounds[1] = poly->verts[0].xyz;
+		bounds = idBounds( poly->verts[0].xyz );
 		for ( i = 1 ; i < poly->numVerts ; i++ ) {
-			AddPointToBounds( poly->verts[i].xyz, bounds[0], bounds[1] );
+			bounds.AddPoint( poly->verts[i].xyz );
 		}
 		for ( fogIndex = 1 ; fogIndex < tr.world->numfogs ; fogIndex++ ) {
 			fog = &tr.world->fogs[fogIndex];
@@ -210,7 +211,7 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 	int i;
 	int fogIndex;
 	fog_t       *fog;
-	idVec3 bounds[2];
+	idBounds bounds;
 	int j;
 
 	if ( !tr.registered ) {
@@ -255,10 +256,9 @@ void RE_AddPolysToScene( qhandle_t hShader, int numVerts, const polyVert_t *vert
 			fogIndex = 0;
 		} else {
 			// find which fog volume the poly is in
-			bounds[0] = poly->verts[0].xyz;
-			bounds[1] = poly->verts[0].xyz;
+			bounds = idBounds( poly->verts[0].xyz );
 			for ( i = 1 ; i < poly->numVerts ; i++ ) {
-				AddPointToBounds( poly->verts[i].xyz, bounds[0], bounds[1] );
+				bounds.AddPoint( poly->verts[i].xyz );
 			}
 			for ( fogIndex = 1 ; fogIndex < tr.world->numfogs ; fogIndex++ ) {
 				fog = &tr.world->fogs[fogIndex];

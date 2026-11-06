@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -80,7 +82,7 @@ void AIChar_spawn( gentity_t *ent ) {
 		//weaponInfo.startingWeapons[(aiCharDefaults->weapons[i] / 32)] |= ( 1 << aiCharDefaults->weapons[i] );
 		//weaponInfo.startingWeapons[0] |= ( 1 << aiCharDefaults->weapons[i] );
 
-		COM_BitSet( weaponInfo.startingWeapons, aiCharDefaults->weapons[i] );
+		idBitField::Set( weaponInfo.startingWeapons, aiCharDefaults->weapons[i] );
 		if ( aiCharDefaults->weapons[i] ==
 			 WP_GRENADE_LAUNCHER ) { // give them a bunch of grenades, but not an unlimited supply
 			weaponInfo.startingAmmo[BG_FindAmmoForWeapon( aiCharDefaults->weapons[i] )] = 6;

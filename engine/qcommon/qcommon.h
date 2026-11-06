@@ -32,79 +32,23 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../cm/cm_public.h"
 #include "hashing/MD4.h"
+#include "../../idlib/Huffman.h"
+#include "../../idlib/BitMsg.h"
 
 //============================================================================
-
-//
-// msg.c
-//
-typedef struct {
-	qboolean allowoverflow;     // if false, do a Com_Error
-	qboolean overflowed;        // set to true if the buffer size failed (with allowoverflow set)
-	qboolean oob;               // set to true if the buffer size failed (with allowoverflow set)
-	byte    *data;
-	int maxsize;
-	int cursize;
-	int readcount;
-	int bit;                    // for bitwise reads and writes
-} msg_t;
-
-void MSG_Init( msg_t *buf, byte *data, int length );
-void MSG_InitOOB( msg_t *buf, byte *data, int length );
-void MSG_Clear( msg_t *buf );
-void *MSG_GetSpace( msg_t *buf, int length );
-void MSG_WriteData( msg_t *buf, const void *data, int length );
-void MSG_Bitstream( msg_t *buf );
-
 
 struct usercmd_s;
 struct entityState_s;
 struct playerState_s;
 
-void MSG_WriteBits( msg_t *msg, int value, int bits );
-
-void MSG_WriteChar( msg_t *sb, int c );
-void MSG_WriteByte( msg_t *sb, int c );
-void MSG_WriteShort( msg_t *sb, int c );
-void MSG_WriteLong( msg_t *sb, int c );
-void MSG_WriteFloat( msg_t *sb, float f );
-void MSG_WriteString( msg_t *sb, const char *s );
-void MSG_WriteBigString( msg_t *sb, const char *s );
-void MSG_WriteAngle16( msg_t *sb, float f );
-
-void    MSG_BeginReading( msg_t *sb );
-void    MSG_BeginReadingOOB( msg_t *sb );
-
-int     MSG_ReadBits( msg_t *msg, int bits );
-
-int     MSG_ReadChar( msg_t *sb );
-int     MSG_ReadByte( msg_t *sb );
-int     MSG_ReadShort( msg_t *sb );
-int     MSG_ReadLong( msg_t *sb );
-float   MSG_ReadFloat( msg_t *sb );
-char    *MSG_ReadString( msg_t *sb );
-char    *MSG_ReadBigString( msg_t *sb );
-char    *MSG_ReadStringLine( msg_t *sb );
-float   MSG_ReadAngle16( msg_t *sb );
-void    MSG_ReadData( msg_t *sb, void *buffer, int size );
-
-
-void MSG_WriteDeltaUsercmd( msg_t *msg, struct usercmd_s *from, struct usercmd_s *to );
-void MSG_ReadDeltaUsercmd( msg_t *msg, struct usercmd_s *from, struct usercmd_s *to );
-
-void MSG_WriteDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to );
-void MSG_ReadDeltaUsercmdKey( msg_t *msg, int key, usercmd_t *from, usercmd_t *to );
-
-void MSG_WriteDeltaEntity( msg_t *msg, struct entityState_s *from, struct entityState_s *to
-						   , qboolean force );
-void MSG_ReadDeltaEntity( msg_t *msg, entityState_t *from, entityState_t *to,
-						  int number );
-
-void MSG_WriteDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct playerState_s *to );
-void MSG_ReadDeltaPlayerstate( msg_t *msg, struct playerState_s *from, struct playerState_s *to );
-
-
-void MSG_ReportChangeVectors_f( void );
+void NetMsg_WriteDeltaUsercmd( idBitMsg *msg, struct usercmd_s *from, struct usercmd_s *to );
+void NetMsg_ReadDeltaUsercmd( idBitMsg *msg, struct usercmd_s *from, struct usercmd_s *to );
+void NetMsg_WriteDeltaUsercmdKey( idBitMsg *msg, int key, usercmd_t *from, usercmd_t *to );
+void NetMsg_ReadDeltaUsercmdKey( idBitMsg *msg, int key, usercmd_t *from, usercmd_t *to );
+void NetMsg_WriteDeltaEntity( idBitMsg *msg, struct entityState_s *from, struct entityState_s *to, qboolean force );
+void NetMsg_ReadDeltaEntity( idBitMsg *msg, entityState_t *from, entityState_t *to, int number );
+void NetMsg_WriteDeltaPlayerstate( idBitMsg *msg, struct playerState_s *from, struct playerState_s *to );
+void NetMsg_ReadDeltaPlayerstate( idBitMsg *msg, struct playerState_s *from, playerState_t *to );
 
 //============================================================================
 
@@ -181,7 +125,7 @@ qboolean    NET_CompareBaseAdr( netadr_t a, netadr_t b );
 qboolean    NET_IsLocalAddress( netadr_t adr );
 const char  *NET_AdrToString( netadr_t a );
 qboolean    NET_StringToAdr( const char *s, netadr_t *a );
-qboolean    NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message );
+qboolean    NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, idBitMsg *net_message );
 void        NET_Sleep( int msec );
 
 
@@ -228,7 +172,7 @@ void Netchan_Setup( netsrc_t sock, netchan_t *chan, netadr_t adr, int qport );
 void Netchan_Transmit( netchan_t *chan, int length, const byte *data );
 void Netchan_TransmitNextFragment( netchan_t *chan );
 
-qboolean Netchan_Process( netchan_t *chan, msg_t *msg );
+qboolean Netchan_Process( netchan_t *chan, idBitMsg *msg );
 
 
 
@@ -738,7 +682,7 @@ void CL_MouseEvent( int dx, int dy, int time );
 
 void CL_JoystickEvent( int axis, int value, int time );
 
-void CL_PacketEvent( netadr_t from, msg_t *msg );
+void CL_PacketEvent( netadr_t from, idBitMsg *msg );
 
 void CL_ConsolePrint( char *text );
 
@@ -786,7 +730,7 @@ void SCR_DebugGraph( float value, int color );   // FIXME: move logging to commo
 void SV_Init( void );
 void SV_Shutdown( char *finalmsg );
 void SV_Frame( int msec );
-void SV_PacketEvent( netadr_t from, msg_t *msg );
+void SV_PacketEvent( netadr_t from, idBitMsg *msg );
 qboolean SV_GameCommand( void );
 
 
@@ -918,55 +862,6 @@ void Sys_StartProcess( char *exeName, qboolean doexit );            // NERVE - S
 //int Sys_ShellExecute(char *op, char *file, qboolean doexit, char *params, char *dir);	//----(SA) added
 void Sys_OpenURL( char *url, qboolean doexit );                     // NERVE - SMF
 int Sys_GetHighQualityCPU();
-
-/* This is based on the Adaptive Huffman algorithm described in Sayood's Data
- * Compression book.  The ranks are not actually stored, but implicitly defined
- * by the location of a node within a doubly-linked list */
-
-#define NYT HMAX                    /* NYT = Not Yet Transmitted */
-#define INTERNAL_NODE ( HMAX + 1 )
-
-typedef struct nodetype {
-	struct  nodetype *left, *right, *parent; /* tree structure */
-	struct  nodetype *next, *prev; /* doubly-linked list */
-	struct  nodetype **head; /* highest ranked node in block */
-	int weight;
-	int symbol;
-} node_t;
-
-#define HMAX 256 /* Maximum symbol */
-
-typedef struct {
-	int blocNode;
-	int blocPtrs;
-
-	node_t*     tree;
-	node_t*     lhead;
-	node_t*     ltail;
-	node_t*     loc[HMAX + 1];
-	node_t**    freelist;
-
-	node_t nodeList[768];
-	node_t*     nodePtrs[768];
-} huff_t;
-
-typedef struct {
-	huff_t compressor;
-	huff_t decompressor;
-} huffman_t;
-
-void    Huff_Compress( msg_t *buf, int offset );
-void    Huff_Decompress( msg_t *buf, int offset );
-void    Huff_Init( huffman_t *huff );
-void    Huff_addRef( huff_t* huff, byte ch );
-int     Huff_Receive( node_t *node, int *ch, byte *fin );
-void    Huff_transmit( huff_t *huff, int ch, byte *fout );
-void    Huff_offsetReceive( node_t *node, int *ch, byte *fin, int *offset );
-void    Huff_offsetTransmit( huff_t *huff, int ch, byte *fout, int *offset );
-void    Huff_putBit( int bit, byte *fout, int *offset );
-int     Huff_getBit( byte *fout, int *offset );
-
-extern huffman_t clientHuffTables;
 
 #define SV_ENCODE_START     4
 #define SV_DECODE_START     12

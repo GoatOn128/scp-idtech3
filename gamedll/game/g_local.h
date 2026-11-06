@@ -1048,6 +1048,7 @@ void Props_Chair_Skyboxtouch( gentity_t *ent );
 
 
 extern level_locals_t level;
+extern idRandom gameRandom;
 extern gentity_t g_entities[MAX_GENTITIES];
 extern gentity_t       *g_camEnt;
 
@@ -1214,8 +1215,8 @@ float       trap_AAS_Time( void );
 void        trap_AAS_SetCurrentWorld( int index );
 // done.
 
-int         trap_AAS_PointAreaNum( idVec3 &point );
-int         trap_AAS_TraceAreas( idVec3 &start, idVec3 &end, int *areas, idVec3 *points, int maxareas );
+int         trap_AAS_PointAreaNum( const idVec3 &point );
+int         trap_AAS_TraceAreas( const idVec3 &start, idVec3 &end, int *areas, idVec3 *points, int maxareas );
 
 int         trap_AAS_PointContents( idVec3 &point );
 int         trap_AAS_NextBSPEntity( int ent );
@@ -1232,8 +1233,8 @@ int         trap_AAS_Swimming( idVec3 &origin );
 int         trap_AAS_PredictClientMovement( struct aas_clientmove_s *move, int entnum, idVec3 &origin, int presencetype, int onground, idVec3 &velocity, idVec3 &cmdmove, int cmdframes, int maxframes, float frametime, int stopevent, int stopareanum, int visualize );
 
 // Ridah, route-tables
-void        trap_AAS_RT_ShowRoute( idVec3 &srcpos, int srcnum, int destnum );
-qboolean    trap_AAS_RT_GetHidePos( idVec3 &srcpos, int srcnum, int srcarea, idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos );
+void        trap_AAS_RT_ShowRoute( const const idVec3 &srcpos, int srcnum, int destnum );
+qboolean    trap_AAS_RT_GetHidePos( const const idVec3 &srcpos, int srcnum, int srcarea, const idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos );
 int         trap_AAS_FindAttackSpotWithinRange( int srcnum, int rangenum, int enemynum, float rangedist, int travelflags, float *outpos );
 qboolean    trap_AAS_GetRouteFirstVisPos( idVec3 &srcpos, idVec3 &destpos, int travelflags, idVec3 &retpos );
 void        trap_AAS_SetAASBlockingEntity( idVec3 &absmin, idVec3 &absmax, qboolean blocking );

@@ -26,14 +26,17 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#pragma once
+
 //===========================================================================
 //
-// Name:			botlib.h
-// Function:		bot AI Library
-// Programmer:		Mr Elusive (MrElusive@idsoftware.com)
-// Last update:		1999-08-18
-// Tab Size:		3
-//===========================================================================
+/*****************************************************************************
+ * name:		botlib.h
+ *
+ * desc:		bot AI library
+ *
+ *
+ *****************************************************************************/
 
 #define BOTLIB_API_VERSION      2
 
@@ -117,6 +120,7 @@ struct weaponinfo_s;
 #define ACTION_TALK             1024
 #define ACTION_GESTURE          2048
 #define ACTION_WALK             4096
+#define ACTION_RELOAD           8192
 
 //the bot input, will be converted to an usercmd_t
 typedef struct bot_input_s
@@ -213,7 +217,7 @@ typedef struct botlib_import_s
 	void ( *DebugLineDelete )( int line );
 	void ( *DebugLineShow )( int line, const idVec3 &start, const idVec3 &end, int color );
 	//
-	int ( *DebugPolygonCreate )( int color, int numPoints, const idVec3 *points );
+	int ( *DebugPolygonCreate )( int color, int numPoints, idVec3 *points );
 	void ( *DebugPolygonDelete )( int id );
 	//
 	// Ridah, Cast AI stuff
@@ -276,6 +280,7 @@ typedef struct aas_export_s
 	void ( *AAS_RT_ShowRoute )( const idVec3 &srcpos, int srcnum, int destnum );
 	qboolean ( *AAS_RT_GetHidePos )( const idVec3 &srcpos, int srcnum, int srcarea, const idVec3 &destpos, int destnum, int destarea, idVec3 &returnPos );
 	int ( *AAS_FindAttackSpotWithinRange )( int srcnum, int rangenum, int enemynum, float rangedist, int travelflags, float *outpos );
+	qboolean ( *AAS_GetRouteFirstVisPos )( const idVec3 &srcpos, const idVec3 &destpos, int travelflags, idVec3 &retpos );
 	void ( *AAS_SetAASBlockingEntity )( const idVec3 &absmin, const idVec3 &absmax, qboolean blocking );
 	// done.
 
@@ -300,6 +305,7 @@ typedef struct ea_export_s
 	void ( *EA_SelectWeapon )( int client, int weapon );
 	void ( *EA_Talk )( int client );
 	void ( *EA_Attack )( int client );
+	void ( *EA_Reload )( int client );
 	void ( *EA_Use )( int client );
 	void ( *EA_Respawn )( int client );
 	void ( *EA_Jump )( int client );
@@ -311,8 +317,8 @@ typedef struct ea_export_s
 	void ( *EA_MoveBack )( int client );
 	void ( *EA_MoveLeft )( int client );
 	void ( *EA_MoveRight )( int client );
-	void ( *EA_Move )( int client, idVec3 dir, float speed );
-	void ( *EA_View )( int client, idVec3 viewangles );
+	void ( *EA_Move )( int client, const idVec3 &dir, float speed );
+	void ( *EA_View )( int client, const idVec3 &viewangles );
 	//send regular input to the server
 	void ( *EA_EndRegular )( int client, float thinktime );
 	void ( *EA_GetInput )( int client, float thinktime, bot_input_t *input );
@@ -435,8 +441,8 @@ typedef struct botlib_export_s
 	int ( *BotLibVarSet )( char *var_name, char *value );
 	//gets a library variable returns BLERR_
 	int ( *BotLibVarGet )( char *var_name, char *value, int size );
-	//sets a C-like define returns BLERR_
 	int ( *BotLibDefine )( const char *string );
+
 	//start a frame in the bot library
 	int ( *BotLibStartFrame )( float time );
 	//load a new map in the bot library
@@ -448,15 +454,16 @@ typedef struct botlib_export_s
 } botlib_export_t;
 
 //linking of bot library
+// extern "C" so the botlib DLL can export it through its def file
+#ifdef __cplusplus
+extern "C"
+#endif
 botlib_export_t *GetBotLibAPI( int apiVersion, botlib_import_t *import );
 
 /* Library variables:
 
 name:						default:			module(s):			description:
 
-"basedir"					""					l_utils.c			Quake2 base directory
-"gamedir"					""					l_utils.c			Quake2 game directory
-"cddir"						""					l_utils.c			Quake2 CD directory
 
 "autolaunchbspc"			"0"					be_aas_load.c		automatically launch (Win)BSPC
 "log"						"0"					l_log.c				enable/disable creating a log file

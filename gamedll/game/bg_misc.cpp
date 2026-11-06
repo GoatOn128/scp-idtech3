@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "q_shared.h"
 #include "bg_public.h"
 
@@ -3872,12 +3874,12 @@ qboolean    BG_CanItemBeGrabbed( const entityState_t *ent, const playerState_t *
 		// JPW NERVE -- medics & engineers can only pick up same weapon type
 		if ( multiplayer ) {
 			if ( ( ps->stats[STAT_PLAYER_CLASS] == PC_MEDIC ) || ( ps->stats[STAT_PLAYER_CLASS] == PC_ENGINEER ) ) {
-				if ( !COM_BitCheck( ps->weapons, item->giTag ) ) {
+				if ( !idBitField::Test( ps->weapons, item->giTag ) ) {
 					return qfalse;
 				}
 			}
 		} else {
-			if ( COM_BitCheck( ps->weapons, item->giTag ) ) {               // you have the weap
+			if ( idBitField::Test( ps->weapons, item->giTag ) ) {               // you have the weap
 				if ( isClipOnly( item->giTag ) ) {
 					if ( ps->ammoclip[item->giAmmoIndex] >= ammoTable[item->giAmmoIndex].maxclip ) {
 						return qfalse;
@@ -4384,13 +4386,13 @@ void BG_PlayerStateToEntityState( playerState_t *ps, entityState_t *s, qboolean 
 	s->pos.trType = TR_INTERPOLATE;
 	s->pos.trBase = ps->origin;
 	if ( snap ) {
-		SnapVector( s->pos.trBase );
+		s->pos.trBase.Snap();
 	}
 
 	s->apos.trType = TR_INTERPOLATE;
 	s->apos.trBase = ps->viewangles;
 	if ( snap ) {
-		SnapVector( s->apos.trBase );
+		s->apos.trBase.Snap();
 	}
 
 	if ( ps->movementDir > 128 ) {
@@ -4491,7 +4493,7 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 	s->pos.trType = TR_LINEAR_STOP;
 	s->pos.trBase = ps->origin;
 	if ( snap ) {
-		SnapVector( s->pos.trBase );
+		s->pos.trBase.Snap();
 	}
 	// set the trDelta for flag direction and linear prediction
 	s->pos.trDelta = ps->velocity;
@@ -4503,7 +4505,7 @@ void BG_PlayerStateToEntityStateExtraPolate( playerState_t *ps, entityState_t *s
 	s->apos.trType = TR_INTERPOLATE;
 	s->apos.trBase = ps->viewangles;
 	if ( snap ) {
-		SnapVector( s->apos.trBase );
+		s->apos.trBase.Snap();
 	}
 
 	s->angles2[YAW] = ps->movementDir;

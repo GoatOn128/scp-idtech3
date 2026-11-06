@@ -35,6 +35,8 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
 #include "l_struct.h"
 #include "../game/botlib.h"
@@ -53,7 +55,8 @@ bot_input_t *botinputs;
 // Changes Globals:		-
 //===========================================================================
 void EA_Say( int client, char *str ) {
-	botimport.BotClientCommand( client, va( "say %s", str ) );
+	idStr command = idStr::FormatString( "say %s", str );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_Say
 //===========================================================================
 //
@@ -62,7 +65,8 @@ void EA_Say( int client, char *str ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_SayTeam( int client, char *str ) {
-	botimport.BotClientCommand( client, va( "say_team %s", str ) );
+	idStr command = idStr::FormatString( "say_team %s", str );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_SayTeam
 //===========================================================================
 //
@@ -71,7 +75,8 @@ void EA_SayTeam( int client, char *str ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_UseItem( int client, char *it ) {
-	botimport.BotClientCommand( client, va( "use %s", it ) );
+	idStr command = idStr::FormatString( "use %s", it );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_UseItem
 //===========================================================================
 //
@@ -80,7 +85,8 @@ void EA_UseItem( int client, char *it ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_DropItem( int client, char *it ) {
-	botimport.BotClientCommand( client, va( "drop %s", it ) );
+	idStr command = idStr::FormatString( "drop %s", it );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_DropItem
 //===========================================================================
 //
@@ -89,7 +95,8 @@ void EA_DropItem( int client, char *it ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_UseInv( int client, char *inv ) {
-	botimport.BotClientCommand( client, va( "invuse %s", inv ) );
+	idStr command = idStr::FormatString( "invuse %s", inv );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_UseInv
 //===========================================================================
 //
@@ -98,7 +105,8 @@ void EA_UseInv( int client, char *inv ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_DropInv( int client, char *inv ) {
-	botimport.BotClientCommand( client, va( "invdrop %s", inv ) );
+	idStr command = idStr::FormatString( "invdrop %s", inv );
+	botimport.BotClientCommand( client, const_cast<char *>( command.c_str() ) );
 } //end of the function EA_DropInv
 //===========================================================================
 //

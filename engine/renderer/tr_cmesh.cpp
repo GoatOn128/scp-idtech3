@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 //
 // This is ripped from tr_mesh.c, and converted to use the compressed mesh format
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 static float ProjectRadius( float r, idVec3 location ) {
@@ -209,7 +211,7 @@ static int R_ComputeLOD( trRefEntity_t *ent ) {
 
 		frame += ent->e.frame;
 
-		radius = RadiusFromBounds( frame->bounds[0], frame->bounds[1] );
+		radius = idBounds( frame->bounds[0], frame->bounds[1] ).GetRadius();
 
 		//----(SA)	testing
 		if ( ent->e.reFlags & REFLAG_ORIENT_LOD ) {

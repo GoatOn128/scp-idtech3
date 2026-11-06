@@ -35,6 +35,8 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
 #include "l_log.h"
 #include "l_libvar.h"
@@ -631,7 +633,7 @@ int BotExportTest( int parm0, char *parm1, idVec3 parm2, idVec3 parm3 ) {
 		AAS_Reachability_WeaponJump(703, 716);
 	} //end if*/
 
-	AngleVectors( parm3, forward, right, NULL );
+	idAngles( parm3 ).ToVectors( &forward, &right, NULL );
 	//get the eye 16 units to the right of the origin
 	eye = parm2 + right * 8;
 	//get the eye 24 units up

@@ -26,6 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "cm_local.h"
 
 // always use bbox vs. bbox collision and never capsule vs. bbox or vice versa
@@ -50,44 +53,6 @@ RotatePoint
 */
 // TTimo: const float ** would require explicit casts for ANSI C conformance
 // see unix/const-arg.c in Wolf MP source
-void RotatePoint( idVec3 point, /*const*/ idVec3 matrix[3] ) {
-	idVec3 tvec;
-
-	( tvec = point );
-	point[0] = ( matrix[0] * tvec );
-	point[1] = ( matrix[1] * tvec );
-	point[2] = ( matrix[2] * tvec );
-}
-
-/*
-================
-TransposeMatrix
-================
-*/
-// TTimo: const float ** would require explicit casts for ANSI C conformance
-// see unix/const-arg.c in Wolf MP source
-void TransposeMatrix( /*const*/ idVec3 matrix[3], idVec3 transpose[3] ) {
-	int i, j;
-	for ( i = 0; i < 3; i++ ) {
-		for ( j = 0; j < 3; j++ ) {
-			transpose[i][j] = matrix[j][i];
-		}
-	}
-}
-
-/*
-================
-CreateRotationMatrix
-================
-*/
-void CreateRotationMatrix( const idVec3 angles, idVec3 matrix[3] ) {
-	idAngles( angles[PITCH], angles[YAW], angles[ROLL] ).ToVectors( &matrix[0], &matrix[1], &matrix[2] );
-	// component-wise reciprocal of the right vector, as the original code did
-	matrix[1][0] = 1.0f / matrix[1][0];
-	matrix[1][1] = 1.0f / matrix[1][1];
-	matrix[1][2] = 1.0f / matrix[1][2];
-}
-
 /*
 ================
 CM_ProjectPointOntoVector
@@ -1382,7 +1347,7 @@ void CM_TransformedBoxTrace( trace_t *results, const idVec3 start, const idVec3 
 	qboolean rotated;
 	idVec3 offset;
 	idVec3 symetricSize[2];
-	idVec3 matrix[3], transpose[3];
+	idMat3 matrix;
 	int i;
 	float halfwidth;
 	float halfheight;
@@ -1434,13 +1399,23 @@ void CM_TransformedBoxTrace( trace_t *results, const idVec3 start, const idVec3 
 		//		 the bounding box or the bmodel because that would make all the brush
 		//		 bevels invalid.
 		//		 However this is correct for capsules since a capsule itself is rotated too.
-		CreateRotationMatrix( angles, matrix );
-		RotatePoint( start_l, matrix );
-		RotatePoint( end_l, matrix );
+		idVec3 axis[3];
+		idAngles( angles ).ToVectors( &axis[0], &axis[1], &axis[2] );
+		// Preserve the legacy reciprocal right-axis transform before converting its rows.
+		axis[1][0] = 1.0f / axis[1][0];
+		axis[1][1] = 1.0f / axis[1][1];
+		axis[1][2] = 1.0f / axis[1][2];
+		// Pack those rows as columns for idMat3's vector multiplication convention.
+		matrix = idMat3(
+			axis[0][0], axis[1][0], axis[2][0],
+			axis[0][1], axis[1][1], axis[2][1],
+			axis[0][2], axis[1][2], axis[2][2] );
+		start_l = matrix * start_l;
+		end_l = matrix * end_l;
 		// rotated sphere offset for capsule
-		sphere.offset[0] = matrix[0][ 2 ] * t;
-		sphere.offset[1] = -matrix[1][ 2 ] * t;
-		sphere.offset[2] = matrix[2][ 2 ] * t;
+		sphere.offset[0] = matrix[2][0] * t;
+		sphere.offset[1] = -matrix[2][1] * t;
+		sphere.offset[2] = matrix[2][2] * t;
 	} else {
 		sphere.offset.Set( 0, 0, t );
 	}
@@ -1451,8 +1426,7 @@ void CM_TransformedBoxTrace( trace_t *results, const idVec3 start, const idVec3 
 	// if the bmodel was rotated and there was a collision
 	if ( rotated && trace.fraction != 1.0 ) {
 		// rotation of bmodel collision plane
-		TransposeMatrix( matrix, transpose );
-		RotatePoint( trace.plane.normal, transpose );
+		trace.plane.normal = matrix.Transpose() * trace.plane.normal;
 	}
 
 	// re-calculate the end position of the trace because the trace.endpos

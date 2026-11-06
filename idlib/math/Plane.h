@@ -112,6 +112,8 @@ public:
 
 	float			Distance( const idVec3 &v ) const;
 	int				Side( const idVec3 &v, const float epsilon = 0.0f ) const;
+	int				Signbits() const;
+	int				BoxOnSide( const idVec3 &mins, const idVec3 &maxs ) const;
 
 	bool			LineIntersection( const idVec3 &start, const idVec3 &end ) const;
 					// intersection point is start + dir * scale

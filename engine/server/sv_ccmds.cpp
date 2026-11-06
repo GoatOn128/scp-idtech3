@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "server.h"
 
@@ -74,7 +76,7 @@ static client_t *SV_GetPlayerByName( void ) {
 		}
 
 		idStr::Copynz( cleanName, cl->name, sizeof( cleanName ) );
-		Q_CleanStr( cleanName );
+		idStr::Clean( cleanName );
 		if ( !idStr::Icmp( cleanName, s ) ) {
 			return cl;
 		}
@@ -334,7 +336,7 @@ static void SV_MapRestart_f( void ) {
 	}
 	if ( delay && !Cvar_VariableValue( "g_doWarmup" ) ) {
 		sv.restartTime = svs.time + delay * 1000;
-		SV_SetConfigstring( CS_WARMUP, va( "%i", sv.restartTime ) );
+		SV_SetConfigstring( CS_WARMUP, idStr::FormatString( "%i", sv.restartTime ) );
 		return;
 	}
 
@@ -385,7 +387,7 @@ static void SV_MapRestart_f( void ) {
 	// generate a new serverid
 	sv.restartedServerId = sv.serverId;
 	sv.serverId = com_frameTime;
-	Cvar_Set( "sv_serverid", va( "%i", sv.serverId ) );
+	Cvar_Set( "sv_serverid", idStr::FormatString( "%i", sv.serverId ) );
 
 	// reset all the vm data in place without changing memory allocation
 	// note that we do NOT set sv.state = SS_LOADING, so configstrings that
@@ -468,7 +470,7 @@ void    SV_LoadGame_f( void ) {
 		return;
 	}
 	if ( idStr::Cmpn( filename, "save/", 5 ) && idStr::Cmpn( filename, "save\\", 5 ) ) {
-		idStr::Copynz( filename, va( "save/%s", filename ), sizeof( filename ) );
+		idStr::Copynz( filename, idStr::FormatString( "save/%s", filename ), sizeof( filename ) );
 	}
 	// enforce .svg extension
 	if ( !strstr( filename, "." ) || idStr::Cmpn( strstr( filename, "." ) + 1, "svg", 3 ) ) {
@@ -516,9 +518,9 @@ void    SV_LoadGame_f( void ) {
 
 	// otherwise, do a slow load
 	if ( Cvar_VariableIntegerValue( "sv_cheats" ) ) {
-		Cbuf_ExecuteText( EXEC_APPEND, va( "spdevmap %s", filename ) );
+		Cbuf_ExecuteText( EXEC_APPEND, idStr::FormatString( "spdevmap %s", filename ) );
 	} else {    // no cheats
-		Cbuf_ExecuteText( EXEC_APPEND, va( "spmap %s", filename ) );
+		Cbuf_ExecuteText( EXEC_APPEND, idStr::FormatString( "spmap %s", filename ) );
 	}
 }
 

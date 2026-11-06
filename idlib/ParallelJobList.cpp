@@ -960,7 +960,7 @@ idJobThread::Start
 */
 void idJobThread::Start( core_t core, unsigned int threadNum ) {
 	this->threadNum = threadNum;
-	StartWorkerThread( va( "JobListProcessor_%d", threadNum ), core, THREAD_NORMAL, JOB_THREAD_STACK_SIZE );
+	StartWorkerThread( idStr::FormatString( "JobListProcessor_%d", threadNum ), core, THREAD_NORMAL, JOB_THREAD_STACK_SIZE );
 }
 
 /*

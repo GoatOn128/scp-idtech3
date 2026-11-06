@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 
@@ -73,7 +75,11 @@ void CG_PositionEntityOnTag( refEntity_t *entity, const refEntity_t *parent,
 	}
 
 	// had to cast away the const to avoid compiler problems...
-	MatrixMultiply( lerped.axis, ( (refEntity_t *)parent )->axis, entity->axis );
+	const idMat3 entityAxis = idMat3( lerped.axis[0], lerped.axis[1], lerped.axis[2] ) *
+		idMat3( parent->axis[0], parent->axis[1], parent->axis[2] );
+	entity->axis[0] = entityAxis[0];
+	entity->axis[1] = entityAxis[1];
+	entity->axis[2] = entityAxis[2];
 	// Ridah, not sure why this was here.. causes jittery torso animation, since the torso might have
 	// different frame/oldFrame
 	//entity->backlerp = parent->backlerp;
@@ -89,10 +95,9 @@ tag location
 ======================
 */
 void CG_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_t *parent,
-									char *tagName ) {
+									const char *tagName ) {
 	int i;
 	orientation_t lerped;
-	idVec3 tempAxis[3];
 
 //AxisClear( entity->axis );
 	// lerp the tag
@@ -105,8 +110,13 @@ void CG_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_t *pare
 	}
 
 	// had to cast away the const to avoid compiler problems...
-	MatrixMultiply( entity->axis, lerped.axis, tempAxis );
-	MatrixMultiply( tempAxis, ( (refEntity_t *)parent )->axis, entity->axis );
+	const idMat3 entityAxis =
+		( idMat3( entity->axis[0], entity->axis[1], entity->axis[2] ) *
+		  idMat3( lerped.axis[0], lerped.axis[1], lerped.axis[2] ) ) *
+		idMat3( parent->axis[0], parent->axis[1], parent->axis[2] );
+	entity->axis[0] = entityAxis[0];
+	entity->axis[1] = entityAxis[1];
+	entity->axis[2] = entityAxis[2];
 }
 
 
@@ -729,7 +739,7 @@ void CG_DrawHoldableSelect( void ) {
 
 		// draw remaining uses if there's more than one
 		if ( amount > 1 ) {
-			CG_DrawBigStringColor( x + 6, y + 40, va( "%d", amount ), *color );
+			CG_DrawBigStringColor( x + 6, y + 40, idStr::FormatString( "%d", amount ), *color );
 		}
 
 		// draw selection marker
@@ -1019,7 +1029,7 @@ static void CG_Item( centity_t *cent ) {
 
 //----(SA)	modified
 			if ( cent->currentState.frame ) {
-				CG_PositionEntityOnTag( &ent, &stand, va( "tag_stand%d", cent->currentState.frame ), 0, NULL );
+				CG_PositionEntityOnTag( &ent, &stand, idStr::FormatString( "tag_stand%d", cent->currentState.frame ), 0, NULL );
 			} else {
 				CG_PositionEntityOnTag( &ent, &stand, "tag_stand", 0, NULL );
 			}
@@ -1061,7 +1071,9 @@ static void CG_Item( centity_t *cent ) {
 
 		if ( es->eFlags & EF_SPINNING ) {  // spinning will override the angles set by a stand
 			cent->lerpAngles = cg.autoAnglesSlow;
-			AxisCopy( cg.autoAxisSlow, ent.axis );
+			ent.axis[0] = cg.autoAxisSlow[0];
+			ent.axis[1] = cg.autoAxisSlow[1];
+			ent.axis[2] = cg.autoAxisSlow[2];
 		}
 	}
 
@@ -1740,7 +1752,7 @@ static void CG_Efx( centity_t *cent ) {
 
 		if ( !splinetarget ) {
 			cs = (char *)CG_ConfigString( CS_SPLINES + cent->currentState.density );
-			cent->overheatTime = splinetarget = CG_LoadCamera( va( "cameras/%s.camera", cs ) );
+			cent->overheatTime = splinetarget = CG_LoadCamera( idStr::FormatString( "cameras/%s.camera", cs ) );
 			if ( splinetarget != -1 ) {
 				trap_startCamera( splinetarget, cg.time );
 			}
@@ -2045,7 +2057,9 @@ void CG_Beam( centity_t *cent ) {
 	ent.origin = s1->pos.trBase;
 	ent.oldorigin = s1->origin2;
 
-	AxisClear( ent.axis );
+	ent.axis[0] = idVec3( 1.0f, 0.0f, 0.0f );
+	ent.axis[1] = idVec3( 0.0f, 1.0f, 0.0f );
+	ent.axis[2] = idVec3( 0.0f, 0.0f, 1.0f );
 	ent.reType = RT_BEAM;
 
 	ent.renderfx = RF_NOSHADOW;
@@ -2563,7 +2577,8 @@ static void CG_AddEntityToTag( centity_t *cent ) {
 	cent->lerpOrigin = ent.origin;
 	// we need to add the child's angles to the tag angles
 	//if (!cent->currentState.density) {	// this entity should rotate with it's parent, but can turn around using it's own angles
-	AxisToAngles( ent.axis, ang );
+	const idAngles axisAngles = idMat3( ent.axis[0], ent.axis[1], ent.axis[2] ).ToAngles();
+	ang.Set( axisAngles.pitch, axisAngles.yaw, axisAngles.roll );
 	cent->lerpAngles = cent->lerpAngles + ang;
 	//} else {	// face our angles exactly
 	//	BG_EvaluateTrajectory( &cent->currentState.apos, cg.time, cent->lerpAngles );

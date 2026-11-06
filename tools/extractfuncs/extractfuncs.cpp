@@ -26,515 +26,406 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#pragma hdrstop
+
+#include "precompiled.h"
+
 #include <stdio.h>
-#include <stdlib.h>
 #include <limits.h>
-#include <string.h>
-#include <string>
-#include <fstream>
-#include <iterator>
-#include <algorithm>
-#include <stdarg.h>
-#include "../../idlib/precompiled.h"
-#ifdef _WIN32
-#include <windows.h>
-#include <io.h>
-#endif
-#include "../../idlib/Heap.h"
-#include "../../idlib/Lexer.h"
-#include "l_log.h"
+#include <filesystem>
 
-void Error( const char *error, ... ) {
-	va_list argptr;
+const int MAX_DECLARATION_LENGTH = 1024;
 
-	va_start( argptr, error );
-	vprintf( error, argptr );
-	va_end( argptr );
+struct FunctionRecord {
+	idStr name;
+	idStr replacement;
+	idStr filename;
+	idStr declaration;
+};
 
-	exit( 1 );
-}
-
-static const int MAX_DECLARATION_LENGTH = 1024;
-typedef struct replacefunc_s
-{
-	char *name;
-	char *newname;
-	char *filename;
-	char dec[MAX_DECLARATION_LENGTH];
-	struct replacefunc_s *next;
-} replacefunc_t;
-
-replacefunc_t *replacefuncs;
-int numfuncs;
-
-// the function names
-//#define DEFAULT_FUNCBASE "g_func"
-static char *func_filename = "g_funcs.h";
-static char *func_filedesc = "g_func_decs.h";
-
-void DumpReplaceFunctions( void ) {
-	replacefunc_t *rf;
-	char path[_MAX_PATH];
-	FILE    *f;
-	int len, newlen;
-	unsigned char *buf, *newbuf = NULL;
-	int updated;
-
-	updated = 0;
-
-	// dump the function header
-	strcpy( path, "." );
-#ifdef _WIN32
-	strcat( path, "\\" );
-#else
-	strcat( path, "/" );
-#endif
-	strcat( path, "g_funcs.tmp" );
-	Log_Open( path );
-	for ( rf = replacefuncs; rf; rf = rf->next )
-	{
-		Log_Print( "{\"%s\", (byte *)%s},\n", rf->name, rf->name );
-	} //end for
-	Log_Print( "{0, 0}\n" );
-	Log_Close();
-
-	// if it's different, rename the file over the real header
-	strcpy( path, "g_funcs.tmp" );
-	f = fopen( path, "rb" );
-	fseek( f, 0, SEEK_END );
-	len = ftell( f );
-	buf = (unsigned char *) Mem_Alloc( len + 1, TAG_EXTRACTFUNCS );
-	fseek( f, 0, SEEK_SET );
-	fread( buf, len, 1, f );
-	buf[len] = 0;
-	fclose( f );
-
-	strcpy( path, func_filename );
-	f = fopen( path, "rb" );
-	if ( f ) {
-		fseek( f, 0, SEEK_END );
-		newlen = ftell( f );
-		newbuf = (unsigned char *) Mem_Alloc( newlen + 1, TAG_EXTRACTFUNCS );
-		fseek( f, 0, SEEK_SET );
-		fread( newbuf, newlen, 1, f );
-		newbuf[newlen] = 0;
-		fclose( f );
-
-		if ( len != newlen || idStr::Icmp( (const char *) buf, (const char *) newbuf ) ) {
-			char newpath[_MAX_PATH];
-
-			// delete the old file, rename the new one
-			strcpy( path, func_filename );
-			remove( path );
-
-			strcpy( newpath, "g_funcs.tmp" );
-			rename( newpath, path );
-
-			// make g_save recompile itself
-			remove( "debug\\g_save.obj" );
-			remove( "debug\\g_save.sbr" );
-			remove( "release\\g_save.obj" );
-			remove( "release\\g_save.sbr" );
-
-			updated = 1;
-		} else {
-			// delete the old file
-			strcpy( path, "g_funcs.tmp" );
-			remove( path );
-		}
-	} else {
-		rename( "g_funcs.tmp", func_filename );
-	}
-
-	Mem_Free( buf );
-	Mem_Free( newbuf );
-
-	// dump the function declarations
-	strcpy( path, "g_func_decs.tmp" );
-	Log_Open( path );
-	for ( rf = replacefuncs; rf; rf = rf->next )
-	{
-		Log_Print( "extern %s;\n", rf->dec );
-	} //end for
-	Log_Close();
-
-	// if it's different, rename the file over the real header
-	strcpy( path, "g_func_decs.tmp" );
-	f = fopen( path, "rb" );
-	fseek( f, 0, SEEK_END );
-	len = ftell( f );
-	buf = (unsigned char *) Mem_Alloc( len + 1, TAG_EXTRACTFUNCS );
-	fseek( f, 0, SEEK_SET );
-	fread( buf, len, 1, f );
-	buf[len] = 0;
-	fclose( f );
-
-	strcpy( path, func_filedesc );
-	f = fopen( path, "rb" );
-	if ( f ) {
-		fseek( f, 0, SEEK_END );
-		newlen = ftell( f );
-		newbuf = (unsigned char *) Mem_Alloc( newlen + 1, TAG_EXTRACTFUNCS );
-		fseek( f, 0, SEEK_SET );
-		fread( newbuf, newlen, 1, f );
-		newbuf[newlen] = 0;
-		fclose( f );
-
-		if ( len != newlen || idStr::Icmp( (const char *) buf, (const char *) newbuf ) ) {
-			char newpath[_MAX_PATH];
-
-			// delete the old file, rename the new one
-			strcpy( path, func_filedesc );
-			remove( path );
-
-			strcpy( newpath, "g_func_decs.tmp" );
-			rename( newpath, path );
-
-			// make g_save recompile itself
-			// NOTE TTimo win32 only? (harmless on *nix anyway)
-			remove( "debug\\g_save.obj" );
-			remove( "debug\\g_save.sbr" );
-			remove( "release\\g_save.obj" );
-			remove( "release\\g_save.sbr" );
-
-			updated = 1;
-		} else {
-			// delete the old file
-			strcpy( path, "g_func_decs.tmp" );
-			remove( path );
-		}
-	} else {
-		rename( "g_func_decs.tmp", func_filedesc );
-	}
-
-	Mem_Free( buf );
-	Mem_Free( newbuf );
-
-	if ( updated ) {
-		printf( "Updated the function table, recompile required.\n" );
-	}
-
-} //end of the function DumpReplaceFunctions
-
-replacefunc_t *FindFunctionName( const char *funcname ) {
-	replacefunc_t *f;
-
-	for ( f = replacefuncs; f; f = f->next )
-	{
-		if ( !strcmp( f->name, funcname ) ) {
-			return f;
-		}
-	} //end for
-	return NULL;
-} //end of the function FindFunctionName
-
-int MayScrewUp( const char *funcname ) {
-	if ( !strcmp( funcname, "GetBotAPI" ) ) {
-		return false;
-	}
-	if ( !strcmp( funcname, "GetGameAPI" ) ) {
-		return false;
-	}
-	if ( !strcmp( funcname, "main" ) ) {
-		return false;
-	}
-	if ( !strcmp( funcname, "WinMain" ) ) {
-		return false;
-	}
-	return true;
-} //end of the function MayScrewUp
-
-typedef struct tokenList_s {
-	idToken token;
-	struct tokenList_s *next;
-} tokenList_t;
-
-#define MAX_TOKEN_LIST  64
-tokenList_t tokenList[MAX_TOKEN_LIST];
-int tokenListHead = 0;
-
-void ConcatDec( tokenList_t *list, char *str, int inc ) {
-/*
-	if (!((list->token.type == TT_NAME) || (list->token.string[0] == '*'))) {
-		if (list->token.string[0] == ')' || list->token.string[0] == '(') {
-			if (inc++ >= 2)
-				return;
-		} else {
+class FunctionRegistry {
+public:
+	void Add( const char *name, const char *filename, const idList<idToken, TAG_EXTRACTFUNCS> &declaration ) {
+		if ( Find( name ) != NULL || IsExcluded( name ) ) {
 			return;
 		}
-	}
-*/
-	if ( list->next ) {
-		ConcatDec( list->next, str, inc );
-	}
-	strcat( str, list->token.c_str() );
-	strcat( str, " " );
-}
 
-void AddFunctionName( const char *funcname, const char *filename, tokenList_t *head ) {
-	replacefunc_t *f;
-	tokenList_t     *list;
-
-	if ( FindFunctionName( funcname ) ) {
-		return;
-	}
-
-#if defined( __linux__ )
-	// the bad thing is, this doesn't preprocess .. on __linux__ this
-	// function is not implemented (q_math.c)
-	if ( !idStr::Icmp( funcname, "BoxOnPlaneSide" ) ) {
-		return;
-	}
-#endif
-
-	// NERVE - SMF - workaround for Graeme's predifined MACOSX functions
-	// TTimo - looks like linux version needs to escape those too
-#if defined( _WIN32 ) || defined( __linux__ )
-	if ( !idStr::Icmp( funcname, "qmax" ) ) {
-		return;
-	} else if ( !idStr::Icmp( funcname, "qmin" ) ) {
-		return;
-	}
-#endif
-	// -NERVE - SMF
-
-	f = (replacefunc_t *) Mem_Alloc( sizeof( replacefunc_t ) + strlen( funcname ) + 1 + 6 + strlen( filename ) + 1, TAG_EXTRACTFUNCS );
-	f->name = (char *) f + sizeof( replacefunc_t );
-	strcpy( f->name, funcname );
-	f->newname = (char *) f + sizeof( replacefunc_t ) + strlen( funcname ) + 1;
-	sprintf( f->newname, "F%d", numfuncs++ );
-	f->filename = (char *) f + sizeof( replacefunc_t ) + strlen( funcname ) + 1 + strlen( f->newname ) + 1;
-	strcpy( f->filename, filename );
-	f->next = replacefuncs;
-	replacefuncs = f;
-
-	// construct the declaration
-	list = head;
-	f->dec[0] = '\0';
-	ConcatDec( list, f->dec, 0 );
-
-} //end of the function AddFunctionName
-
-void AddTokenToList( tokenList_t **head, idToken *token ) {
-	tokenList_t *newhead;
-
-	newhead = &tokenList[tokenListHead++];
-	if ( tokenListHead == MAX_TOKEN_LIST ) {
-		tokenListHead = 0;
-	}
-
-	newhead->next = *head;
-	newhead->token = *token;
-
-	*head = newhead;
-}
-void StripTokenList( tokenList_t *head ) {
-	tokenList_t *trav, *lastTrav;
-
-	trav = head;
-
-	// now go back to the start of the declaration
-	lastTrav = trav;
-	trav = trav->next;  // should be on the function name now
-	while ( ( trav->token.type == TT_NAME ) || ( trav->token[0] == '*' ) ) {
-		lastTrav = trav;
-		trav = trav->next;
-		if ( !trav ) {
-			return;
+		FunctionRecord record;
+		record.name = name;
+		char replacement[16];
+		idStr::snPrintf( replacement, sizeof( replacement ), "F%d", functions.Num() );
+		record.replacement = replacement;
+		record.filename = filename;
+		for ( int i = 0; i < declaration.Num(); ++i ) {
+			if ( i != 0 ) {
+				record.declaration.Append( ' ' );
+			}
+			record.declaration.Append( declaration[i].c_str() );
 		}
-	}
-	// now kill everything after lastTrav
-//	KillTokenList( lastTrav );
-	lastTrav->next = NULL;
-}
-
-std::string ReadSourceText( const char *filename ) {
-	std::ifstream input( filename, std::ios::binary );
-	if ( !input ) {
-		Error( "error opening %s", filename );
-	}
-	const std::istreambuf_iterator<char> end;
-	std::string text( std::istreambuf_iterator<char>( input ), end );
-	if ( text.size() > INT_MAX ) {
-		Error( "source file is too large: %s", filename );
-	}
-	return text;
-}
-
-void GetFunctionNamesFromFile( char *filename ) {
-	idLexer source;
-	idToken token, lasttoken;
-	int indent = 0, brace;
-	int isStatic = 0;
-	tokenList_t *listHead = NULL;
-	std::string sourceText;
-
-	if ( !idStr::Icmp( filename, "bg_lib.c" ) ) {
-		return;
+		if ( record.declaration.Length() >= 6 &&
+			 !record.declaration.Icmpn( "endif ", 6 ) ) {
+			record.declaration = record.declaration.Mid( 6, record.declaration.Length() - 6 );
+		}
+		functions.Append( record );
 	}
 
-	sourceText = ReadSourceText( filename );
-	if ( !source.LoadMemory( sourceText.c_str(), static_cast<int>( sourceText.size() ), filename ) ) {
-		Error( "error opening %s", filename );
+	const FunctionRecord *Find( const char *name ) const {
+		for ( int i = 0; i < functions.Num(); ++i ) {
+			if ( !strcmp( functions[i].name.c_str(), name ) ) {
+				return &functions[i];
+			}
+		}
+		return NULL;
 	}
-	while ( source.ReadToken( &token ) ) {
-		AddTokenToList( &listHead, &token );
-		if ( token.type == TT_PUNCTUATION ) {
-			switch ( token.c_str()[0] )
-			{
-			case ';':
-				isStatic = 0;
-				break;
-			case '{':
-				indent++;
-				break;
-			case '}':
-				indent = std::max( 0, indent - 1 );
-				break;
-			case '(':
-				if ( indent <= 0 && lasttoken.type == TT_NAME ) {
-					StripTokenList( listHead );
-					brace = 1;
-					while ( source.ReadToken( &token ) ) {
-						AddTokenToList( &listHead, &token );
-						if ( token.c_str()[0] == '(' ) {
-							brace++;
-						} else if ( token.c_str()[0] == ')' && --brace <= 0 ) {
-							if ( !source.ReadToken( &token ) ) {
-								break;
-							}
-							if ( token.c_str()[0] == '{' ) {
-								indent++;
-								if ( !isStatic && MayScrewUp( lasttoken.c_str() ) ) {
-									AddFunctionName( lasttoken.c_str(), filename, listHead );
-								}
-							}
-							break;
-						}
+
+	int Num() const {
+		return functions.Num();
+	}
+
+	const FunctionRecord &operator[]( int index ) const {
+		return functions[index];
+	}
+
+private:
+	static bool IsExcluded( const char *name ) {
+		if ( !strcmp( name, "GetBotAPI" ) || !strcmp( name, "GetGameAPI" ) ||
+			 !strcmp( name, "main" ) || !strcmp( name, "WinMain" ) ) {
+			return true;
+		}
+
+		if ( !idStr::Icmp( name, "BoxOnSide" ) ) {
+			return true;
+		}
+
+		if ( !idStr::Icmp( name, "qmax" ) || !idStr::Icmp( name, "qmin" ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	idList<FunctionRecord, TAG_EXTRACTFUNCS> functions;
+};
+
+class SourceReader {
+public:
+	static bool Read( const char *filename, idStr &text ) {
+		FILE *file = fopen( filename, "rb" );
+		if ( file == NULL ) {
+			fprintf( stderr, "error opening %s\n", filename );
+			return false;
+		}
+
+		char buffer[4096];
+		size_t bytesRead;
+		while ( ( bytesRead = fread( buffer, 1, sizeof( buffer ), file ) ) != 0 ) {
+			if ( text.Length() > INT_MAX - static_cast<int>( bytesRead ) ) {
+				fclose( file );
+				fprintf( stderr, "source file is too large: %s\n", filename );
+				return false;
+			}
+			text.Append( buffer, static_cast<int>( bytesRead ) );
+		}
+		fclose( file );
+		return true;
+	}
+};
+
+class FunctionScanner {
+public:
+	explicit FunctionScanner( FunctionRegistry &registry ) : registry( registry ) {}
+
+	bool Scan( const char *filename ) {
+		if ( !idStr::Icmp( filename, "bg_lib.c" ) ) {
+			return true;
+		}
+
+		idStr sourceText;
+		if ( !SourceReader::Read( filename, sourceText ) ) {
+			return false;
+		}
+		idLexer lexer;
+		if ( !lexer.LoadMemory( sourceText.c_str(), sourceText.Length(), filename ) ) {
+			fprintf( stderr, "error parsing %s\n", filename );
+			return false;
+		}
+
+		idList<idToken, TAG_EXTRACTFUNCS> tokens;
+		idToken token;
+		idToken previous;
+		int braceDepth = 0;
+		bool isStatic = false;
+		while ( lexer.ReadToken( &token ) ) {
+			tokens.Append( token );
+			if ( token.type == TT_PUNCTUATION ) {
+				const char punctuation = token.c_str()[0];
+				if ( punctuation == ';' ) {
+					isStatic = false;
+				} else if ( punctuation == '{' ) {
+					++braceDepth;
+				} else if ( punctuation == '}' ) {
+					braceDepth = Max( 0, braceDepth - 1 );
+				} else if ( punctuation == '(' && braceDepth == 0 &&
+							previous.type == TT_NAME ) {
+					if ( !ScanDeclaration( lexer, tokens, filename, previous,
+										 isStatic, braceDepth ) ) {
+						return false;
 					}
 				}
+			}
+			if ( token.type == TT_NAME && !strcmp( token.c_str(), "static" ) ) {
+				isStatic = true;
+			}
+			previous = token;
+		}
+		return true;
+	}
+
+private:
+	bool ScanDeclaration( idLexer &lexer, idList<idToken, TAG_EXTRACTFUNCS> &tokens,
+						  const char *filename, const idToken &functionName,
+						  bool isStatic, int &braceDepth ) {
+		const int nameIndex = tokens.Num() - 1;
+		int declarationStart = nameIndex;
+		while ( declarationStart > 0 ) {
+			const idToken &token = tokens[declarationStart - 1];
+			if ( token.type != TT_NAME && token[0] != '*' ) {
 				break;
 			}
+			--declarationStart;
 		}
-		if ( token.type == TT_NAME && token.c_str()[0] == 's' && !strcmp( token.c_str(), "static" ) ) {
-			isStatic = 1;
+
+		idList<idToken, TAG_EXTRACTFUNCS> declaration;
+		for ( int i = declarationStart; i < tokens.Num(); ++i ) {
+			declaration.Append( tokens[i] );
 		}
-		lasttoken = token;
-	}
-}
 
-void WriteWhitespace( FILE *fp, const std::string &text, int start, int end ) {
-	for ( int i = start; i < end; ++i ) {
-		if ( text[i] != '\r' ) {
-			fputc( text[i], fp );
-		}
-	}
-}
-
-void ScrewUpFile( char *oldfile, char *newfile ) {
-	FILE *fp;
-	idLexer source;
-	idToken token;
-	replacefunc_t *f;
-	std::string sourceText;
-	int sourceOffset = 0;
-
-	printf( "screwing up file %s\n", oldfile );
-	sourceText = ReadSourceText( oldfile );
-	if ( !source.LoadMemory( sourceText.c_str(), static_cast<int>( sourceText.size() ), oldfile ) ) {
-		Error( "error opening %s\n", oldfile );
-	}
-	fp = fopen( newfile, "wb" );
-	if ( !fp ) {
-		Error( "error opening %s\n", newfile );
-	}
-	//
-	while ( source.ReadToken( &token ) ) {
-		const int tokenStart = source.GetLastWhiteSpaceEnd();
-		const int tokenEnd = source.GetFileOffset();
-		WriteWhitespace( fp, sourceText, sourceOffset, tokenStart );
-		if ( token.type == TT_NAME ) {
-			f = FindFunctionName( token.c_str() );
-			if ( f ) {
-				fputs( f->newname, fp );
-			} else {
-				fwrite( sourceText.data() + tokenStart, 1, tokenEnd - tokenStart, fp );
+		idToken token;
+		int parenthesisDepth = 1;
+		while ( lexer.ReadToken( &token ) ) {
+			declaration.Append( token );
+			tokens.Append( token );
+			if ( token[0] == '(' ) {
+				++parenthesisDepth;
+			} else if ( token[0] == ')' && --parenthesisDepth == 0 ) {
+				if ( !lexer.ReadToken( &token ) ) {
+					return true;
+				}
+				if ( token[0] == '{' ) {
+					if ( !isStatic && MayScrewUp( functionName.c_str() ) ) {
+						registry.Add( functionName.c_str(), filename, declaration );
+					}
+					++braceDepth;
+				}
+				return true;
 			}
-		} else {
-			fwrite( sourceText.data() + tokenStart, 1, tokenEnd - tokenStart, fp );
 		}
-		sourceOffset = tokenEnd;
+		return true;
 	}
-	WriteWhitespace( fp, sourceText, sourceOffset, static_cast<int>( sourceText.size() ) );
-	fclose( fp );
-} //end of the function ScrewUpFile
 
-int verbose = 0;
+	static bool MayScrewUp( const char *name ) {
+		return strcmp( name, "GetBotAPI" ) && strcmp( name, "GetGameAPI" ) &&
+			strcmp( name, "main" ) && strcmp( name, "WinMain" );
+	}
 
-#ifdef _WIN32
+	FunctionRegistry &registry;
+};
 
-int main( int argc, char *argv[] ) {
-    if ( argc < 2 ) {
-        Error( "USAGE: extractfuncs <file filter> [<file filter> ...]\n" );
-    }
+class FunctionTableWriter {
+public:
+	explicit FunctionTableWriter( const FunctionRegistry &registry ) : registry( registry ) {}
 
-    for ( int argument = 1; argument < argc; argument++ ) {
-        const std::string filter = argv[argument];
-        const size_t separator = filter.find_last_of( "/\\" );
-        const std::string directory = separator == std::string::npos ? "" : filter.substr( 0, separator + 1 );
-        WIN32_FIND_DATA filedata;
-        HANDLE handle = FindFirstFile( filter.c_str(), &filedata );
-        if ( handle == INVALID_HANDLE_VALUE ) {
-            Error( "No source files match %s\n", argv[argument] );
-        }
-        do {
-            if ( ( filedata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ) ||
-                 strcmp( filedata.cFileName, "bg_lib.cpp" ) == 0 ) {
-                continue;
-            }
-            const std::string sourcePath = directory + filedata.cFileName;
-            GetFunctionNamesFromFile( const_cast<char *>( sourcePath.c_str() ) );
-        } while ( FindNextFile( handle, &filedata ) );
-        FindClose( handle );
-    }
-    DumpReplaceFunctions();
-    return 0;
+	bool Write( const char *filename, const char *declarationFilename ) const {
+		bool updated = WriteFile( filename, "g_funcs.tmp", false );
+		updated = WriteFile( declarationFilename, "g_func_decs.tmp", true ) || updated;
+		if ( updated ) {
+			printf( "Updated the function table, recompile required.\n" );
+		}
+		return updated;
+	}
+
+private:
+	bool WriteFile( const char *filename, const char *temporary, bool declarations ) const {
+		FILE *file = fopen( temporary, "wb" );
+		if ( file == NULL ) {
+			fprintf( stderr, "error opening %s\n", temporary );
+			return false;
+		}
+		for ( int i = registry.Num() - 1; i >= 0; --i ) {
+			const FunctionRecord &record = registry[i];
+			if ( declarations ) {
+				fprintf( file, "extern %s;\n", record.declaration.c_str() );
+			} else {
+				fprintf( file, "{\"%s\", (byte *)%s},\n",
+					record.name.c_str(), record.name.c_str() );
+			}
+		}
+		if ( !declarations ) {
+			fputs( "{0, 0}\n", file );
+		}
+		fclose( file );
+		return ReplaceIfChanged( filename, temporary );
+	}
+
+	static bool ReplaceIfChanged( const char *filename, const char *temporary ) {
+		idStr generated;
+		idStr existing;
+		if ( !SourceReader::Read( temporary, generated ) ) {
+			return false;
+		}
+		if ( SourceReader::Read( filename, existing ) &&
+			 generated.Length() == existing.Length() &&
+			 !idStr::Icmp( generated.c_str(), existing.c_str() ) ) {
+			remove( temporary );
+			return false;
+		}
+		remove( filename );
+		if ( rename( temporary, filename ) != 0 ) {
+			fprintf( stderr, "error replacing %s\n", filename );
+			return false;
+		}
+		return true;
+	}
+
+	const FunctionRegistry &registry;
+};
+
+class SourceRewriter {
+public:
+	explicit SourceRewriter( const FunctionRegistry &registry ) : registry( registry ) {}
+
+	bool Rewrite( const char *oldFilename, const char *newFilename ) const {
+		idStr sourceText;
+		if ( !SourceReader::Read( oldFilename, sourceText ) ) {
+			return false;
+		}
+		idLexer lexer;
+		if ( !lexer.LoadMemory( sourceText.c_str(), sourceText.Length(), oldFilename ) ) {
+			return false;
+		}
+		FILE *file = fopen( newFilename, "wb" );
+		if ( file == NULL ) {
+			fprintf( stderr, "error opening %s\n", newFilename );
+			return false;
+		}
+		int sourceOffset = 0;
+		idToken token;
+		while ( lexer.ReadToken( &token ) ) {
+			const int tokenStart = lexer.GetLastWhiteSpaceEnd();
+			const int tokenEnd = lexer.GetFileOffset();
+			WriteWhitespace( file, sourceText, sourceOffset, tokenStart );
+			const FunctionRecord *record =
+				token.type == TT_NAME ? registry.Find( token.c_str() ) : NULL;
+			if ( record != NULL ) {
+				fputs( record->replacement.c_str(), file );
+			} else {
+				fwrite( sourceText.c_str() + tokenStart, 1, tokenEnd - tokenStart, file );
+			}
+			sourceOffset = tokenEnd;
+		}
+		WriteWhitespace( file, sourceText, sourceOffset, sourceText.Length() );
+		fclose( file );
+		return true;
+	}
+
+private:
+	static void WriteWhitespace( FILE *file, const idStr &text, int start, int end ) {
+		for ( int i = start; i < end; ++i ) {
+			if ( text[i] != '\r' ) {
+				fputc( text[i], file );
+			}
+		}
+	}
+
+	const FunctionRegistry &registry;
+};
+
+class Extractor {
+public:
+	bool Scan( const char *filename ) {
+		return scanner.Scan( filename );
+	}
+
+	bool WriteTables( const char *functions, const char *declarations ) const {
+		return writer.Write( functions, declarations );
+	}
+
+private:
+	FunctionRegistry registry;
+	FunctionScanner scanner = FunctionScanner( registry );
+	FunctionTableWriter writer = FunctionTableWriter( registry );
+};
+
+static bool Matches( const char *pattern, const char *value ) {
+	if ( *pattern == '\0' ) {
+		return *value == '\0';
+	}
+	if ( *pattern == '*' ) {
+		return Matches( pattern + 1, value ) ||
+			( *value != '\0' && Matches( pattern, value + 1 ) );
+	}
+	return *value != '\0' &&
+		( *pattern == '?' || *pattern == *value ) &&
+		Matches( pattern + 1, value + 1 );
 }
 
-#else
+static bool ScanFilter( Extractor &extractor, const char *filter ) {
+	const std::filesystem::path filterPath( filter );
+	const std::filesystem::path directory =
+		filterPath.has_parent_path() ? filterPath.parent_path() : ".";
+	const std::string filenamePattern = filterPath.filename().string();
+	std::error_code error;
+	if ( !std::filesystem::is_directory( directory, error ) ) {
+		fprintf( stderr, "No source files match %s\n", filter );
+		return false;
+	}
 
-void Usage() {
-	Error( "USAGE: screwup  [-o <funcs> <func_desc>] <file1> [<file2> ..]\n"
-		   "no -o defaults to g_funcs.h g_func_decs.h\n" );
+	bool found = false;
+	bool success = true;
+	for ( const std::filesystem::directory_entry &entry :
+		  std::filesystem::directory_iterator( directory, error ) ) {
+		if ( error ) {
+			break;
+		}
+		if ( !entry.is_regular_file( error ) ||
+			 !Matches( filenamePattern.c_str(), entry.path().filename().string().c_str() ) ||
+			 entry.path().filename() == "bg_lib.cpp" ) {
+			continue;
+		}
+		found = true;
+		const std::string sourcePath = entry.path().string();
+		success = extractor.Scan( sourcePath.c_str() ) && success;
+	}
+	if ( !found || error ) {
+		fprintf( stderr, "No source files match %s\n", filter );
+		return false;
+	}
+	return success;
 }
 
-/*
-*nix version, let the shell do the pattern matching
-(that's what shells are for :-))
-*/
-int main( int argc, char *argv[] ) {
-	int i;
-	int argbase = 1;
-
+int main( int argc, char **argv ) {
 	if ( argc < 2 ) {
-		Usage();
-	} //end if
+		fprintf( stderr, "USAGE: extractfuncs <file filter> [<file filter> ...]\n" );
+		return 1;
+	}
 
-	if ( !idStr::Icmp( argv[1],"-o" ) ) {
+	const char *functionsFilename = "g_funcs.h";
+	const char *declarationsFilename = "g_func_decs.h";
+	int firstInput = 1;
+	if ( !idStr::Icmp( argv[1], "-o" ) ) {
 		if ( argc < 5 ) {
-			Usage();
+			fprintf( stderr, "USAGE: extractfuncs [-o <funcs> <func_desc>] <file> [...]\n" );
+			return 1;
 		}
-		func_filename = argv[2];
-		func_filedesc = argv[3];
-		argbase = 4;
+		functionsFilename = argv[2];
+		declarationsFilename = argv[3];
+		firstInput = 4;
 	}
 
-	for ( i = argbase; i < argc; i++ )
-	{
-		printf( "%d: %s\n", i, argv[i] );
-		GetFunctionNamesFromFile( argv[i] );
+	Extractor extractor;
+	for ( int i = firstInput; i < argc; ++i ) {
+		if ( !ScanFilter( extractor, argv[i] ) ) {
+			return 1;
+		}
 	}
-	DumpReplaceFunctions();
+	return extractor.WriteTables( functionsFilename, declarationsFilename ) ? 0 : 1;
 }
-
-#endif

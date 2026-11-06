@@ -1,13 +1,13 @@
 #pragma once
 
-#include <cstdint>
+#include "../../idlib/sys/sys_types.h"
 
 namespace wolf::nav {
 
-constexpr std::uint32_t kMagic = 0x56414E57u; // "WNAV"
-constexpr std::uint32_t kVersion = 1;
+constexpr uint32 kMagic = 0x56414E57u; // "WNAV"
+constexpr uint32 kVersion = 1;
 
-enum PolyFlags : std::uint16_t {
+enum PolyFlags : uint16 {
 	PolyWalk = 1u << 0,
 	PolySwim = 1u << 1,
 	PolyDoor = 1u << 2,
@@ -17,12 +17,12 @@ enum PolyFlags : std::uint16_t {
 
 #pragma pack(push, 1)
 struct FileHeader {
-	std::uint32_t magic;
-	std::uint32_t version;
-	std::uint32_t headerSize;
-	std::uint32_t navDataSize;
-	std::uint32_t sourceChecksum;
-	std::uint32_t agentIndex;
+	uint32 magic;
+	uint32 version;
+	uint32 headerSize;
+	uint32 navDataSize;
+	uint32 sourceChecksum;
+	uint32 agentIndex;
 	float agentRadius;
 	float agentHeight;
 	float crouchHeight;
@@ -33,8 +33,8 @@ struct FileHeader {
 	float maxWalkVelocity;
 	float maxCrouchVelocity;
 	float maxBarrier;
-	std::uint32_t allowLadders;
-	std::uint32_t reserved[7];
+	uint32 allowLadders;
+	uint32 reserved[7];
 };
 #pragma pack(pop)
 

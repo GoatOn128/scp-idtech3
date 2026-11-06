@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "../ui/ui_shared.h"
 
@@ -106,16 +108,16 @@ void CG_CheckOrderPending() {
 
 		if ( cg_currentSelectedPlayer.integer == numSortedTeamPlayers ) {
 			// to everyone
-			trap_SendConsoleCommand( va( "cmd vsay_team %s\n", p2 ) );
+			trap_SendConsoleCommand( idStr::FormatString( "cmd vsay_team %s\n", p2 ) );
 		} else {
 			// for the player self
 			if ( sortedTeamPlayers[cg_currentSelectedPlayer.integer] == cg.snap->ps.clientNum && p1 ) {
-				trap_SendConsoleCommand( va( "teamtask %i\n", cgs.currentOrder ) );
+				trap_SendConsoleCommand( idStr::FormatString( "teamtask %i\n", cgs.currentOrder ) );
 				//trap_SendConsoleCommand(va("cmd say_team %s\n", p2));
-				trap_SendConsoleCommand( va( "cmd vsay_team %s\n", p1 ) );
+				trap_SendConsoleCommand( idStr::FormatString( "cmd vsay_team %s\n", p1 ) );
 			} else if ( p2 ) {
 				//trap_SendConsoleCommand(va("cmd say_team %s, %s\n", ci->name,p));
-				trap_SendConsoleCommand( va( "cmd vtell %d %s\n", sortedTeamPlayers[cg_currentSelectedPlayer.integer], p2 ) );
+				trap_SendConsoleCommand( idStr::FormatString( "cmd vtell %d %s\n", sortedTeamPlayers[cg_currentSelectedPlayer.integer], p2 ) );
 			}
 		}
 		if ( b ) {
@@ -131,7 +133,7 @@ static void CG_SetSelectedPlayerName() {
 		clientInfo_t *ci = cgs.clientinfo + sortedTeamPlayers[cg_currentSelectedPlayer.integer];
 		if ( ci ) {
 			trap_Cvar_Set( "cg_selectedPlayerName", ci->name );
-			trap_Cvar_Set( "cg_selectedPlayer", va( "%d", sortedTeamPlayers[cg_currentSelectedPlayer.integer] ) );
+			trap_Cvar_Set( "cg_selectedPlayer", idStr::FormatString( "%d", sortedTeamPlayers[cg_currentSelectedPlayer.integer] ) );
 //			cgs.currentOrder = ci->teamTask;
 		}
 	} else {
@@ -1715,10 +1717,10 @@ static void CG_DrawAreaChat( rectDef_t *rect, int font, float scale, idVec4 colo
 	CG_Text_Paint( rect->x, rect->y + rect->h, font, scale, color, teamChat2, 0, 0, 0 );
 }
 
-const char *CG_GetKillerText() {
-	const char *s = "";
+idStr CG_GetKillerText() {
+	idStr s;
 	if ( cg.killerName[0] ) {
-		s = va( "Fragged by %s", cg.killerName );
+		s = idStr::FormatString( "Fragged by %s", cg.killerName );
 	}
 	return s;
 }
@@ -1736,34 +1738,34 @@ static void CG_DrawKiller( rectDef_t *rect, int font, float scale, idVec4 color,
 
 static void CG_DrawCapFragLimit( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	int limit = ( cgs.gametype >= GT_CTF ) ? cgs.capturelimit : cgs.fraglimit;
-	CG_Text_Paint( rect->x, rect->y, font, scale, color, va( "%2i", limit ),0, 0, textStyle );
+	CG_Text_Paint( rect->x, rect->y, font, scale, color, idStr::FormatString( "%2i", limit ),0, 0, textStyle );
 }
 
 static void CG_Draw1stPlace( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	if ( cgs.scores1 != SCORE_NOT_PRESENT ) {
-		CG_Text_Paint( rect->x, rect->y, font, scale, color, va( "%2i", cgs.scores1 ),0, 0, textStyle );
+		CG_Text_Paint( rect->x, rect->y, font, scale, color, idStr::FormatString( "%2i", cgs.scores1 ),0, 0, textStyle );
 	}
 }
 
 static void CG_Draw2ndPlace( rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader, int textStyle ) {
 	if ( cgs.scores2 != SCORE_NOT_PRESENT ) {
-		CG_Text_Paint( rect->x, rect->y, font, scale, color, va( "%2i", cgs.scores2 ),0, 0, textStyle );
+		CG_Text_Paint( rect->x, rect->y, font, scale, color, idStr::FormatString( "%2i", cgs.scores2 ),0, 0, textStyle );
 	}
 }
 
-const char *CG_GetGameStatusText() {
-	const char *s = "";
+idStr CG_GetGameStatusText() {
+	idStr s;
 	if ( cgs.gametype < GT_TEAM ) {
 		if ( cg.snap->ps.persistant[PERS_TEAM] != TEAM_SPECTATOR ) {
-			s = va( "%s place with %i",CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),cg.snap->ps.persistant[PERS_SCORE] );
+			s = idStr::FormatString( "%s place with %i",CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),cg.snap->ps.persistant[PERS_SCORE] );
 		}
 	} else {
 		if ( cg.teamScores[0] == cg.teamScores[1] ) {
-			s = va( "Teams are tied at %i", cg.teamScores[0] );
+			s = idStr::FormatString( "Teams are tied at %i", cg.teamScores[0] );
 		} else if ( cg.teamScores[0] >= cg.teamScores[1] ) {
-			s = va( "Red leads Blue, %i to %i", cg.teamScores[0], cg.teamScores[1] );
+			s = idStr::FormatString( "Red leads Blue, %i to %i", cg.teamScores[0], cg.teamScores[1] );
 		} else {
-			s = va( "Blue leads Red, %i to %i", cg.teamScores[1], cg.teamScores[0] );
+			s = idStr::FormatString( "Blue leads Red, %i to %i", cg.teamScores[1], cg.teamScores[0] );
 		}
 	}
 	return s;
@@ -2053,7 +2055,7 @@ void CG_DrawTeamSpectators( rectDef_t *rect, int font, float scale, idVec4 color
 void CG_DrawMedal( int ownerDraw, rectDef_t *rect, int font, float scale, idVec4 color, qhandle_t shader ) {
 	score_t *score = &cg.scores[cg.selectedScore];
 	float value = 0;
-	char *text = NULL;
+	idStr text;
 	color[3] = 0.25;
 
 	switch ( ownerDraw ) {
@@ -2086,12 +2088,12 @@ void CG_DrawMedal( int ownerDraw, rectDef_t *rect, int font, float scale, idVec4
 	if ( value > 0 ) {
 		if ( ownerDraw != CG_PERFECT ) {
 			if ( ownerDraw == CG_ACCURACY ) {
-				text = va( "%i%%", (int)value );
+				text = idStr::FormatString( "%i%%", (int)value );
 				if ( value > 50 ) {
 					color[3] = 1.0;
 				}
 			} else {
-				text = va( "%i", (int)value );
+				text = idStr::FormatString( "%i", (int)value );
 				color[3] = 1.0;
 			}
 		} else {
@@ -2105,7 +2107,7 @@ void CG_DrawMedal( int ownerDraw, rectDef_t *rect, int font, float scale, idVec4
 	trap_R_SetColor( color.ToFloatPtr() );
 	CG_DrawPic( rect->x, rect->y, rect->w, rect->h, shader );
 
-	if ( text ) {
+	if ( text.Length() > 0 ) {
 		color[3] = 1.0;
 		value = CG_Text_Width( text, font, scale, 0 );
 		CG_Text_Paint( rect->x + ( rect->w - value ) / 2, rect->y + rect->h + 10, font, scale, color, text, 0, 0, 0 );

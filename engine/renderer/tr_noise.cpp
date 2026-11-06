@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // tr_noise.c
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 #define NOISE_SIZE 256

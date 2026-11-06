@@ -100,8 +100,7 @@ struct id2DArray {
 idTupleSize
 Generic way to get the size of a tuple-like type.
 Add specializations as needed.
-This is modeled after std::tuple_size from C++11,
-which works for std::arrays also.
+This provides a compile-time element count for idArray.
 ================================================
 */
 template< class _type_ >

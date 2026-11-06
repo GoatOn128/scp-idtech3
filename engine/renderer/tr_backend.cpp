@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "tr_renderprog.h"
 
@@ -594,6 +596,8 @@ typedef struct {
 //
 trZombieFleshHitverts_t zombieFleshHitVerts[MAX_SP_CLIENTS][2]; // one for upper, one for lower
 
+#pragma warning(push)
+#pragma warning(disable:4702)
 void RB_ZombieFXInit( void ) {
 	memset( zombieFleshHitVerts, 0, sizeof( zombieFleshHitVerts ) );
 }
@@ -870,6 +874,7 @@ void RB_ZombieFX( int part, drawSurf_t *drawSurf, int oldNumVerts, int oldNumInd
 	}
 
 }
+#pragma warning(pop)
 
 
 #define MAC_EVENT_PUMP_MSEC     5

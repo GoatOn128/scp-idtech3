@@ -3,18 +3,12 @@
 	#include "FxUtil.h"
 #endif
 
-
-#include <string>
-typedef std::string fxString_t;
-
-
+#include "../../idlib/ParseTree.h"
+#include "../../idlib/containers/HashTable.h"
+#include "../../idlib/containers/List.h"
 
 #ifndef FX_SCHEDULER_H_INC
 #define FX_SCHEDULER_H_INC
-
-using std::vector;
-using std::map;
-using std::list;
 
 
 #define FX_FILE_PATH	"effects"
@@ -65,14 +59,14 @@ class CMediaHandles
 {
 private:
 
-	vector<int>	mMediaList;
+	idList<int>	mMediaList;
 
 public:
 
-	void SetHandle( int item ) { mMediaList.clear(); mMediaList.push_back(item); }
-	void	AddHandle( int item )	{ mMediaList.push_back( item );	}
-	int		GetHandle() const				{ if (mMediaList.size()==0) {return 0;}
-										else {return mMediaList[irand(0,mMediaList.size()-1)];} }
+	void SetHandle( int item ) { mMediaList.Clear(); mMediaList.Append(item); }
+	void	AddHandle( int item )	{ mMediaList.Append( item );	}
+	int		GetHandle() const				{ if (mMediaList.Num()==0) {return 0;}
+										else {return mMediaList[cgRandom.RandomInt( mMediaList.Num() )];} }
 
 	void operator=(const CMediaHandles &that );
 };
@@ -107,9 +101,9 @@ public:
 
 	inline float	GetVal(float percent) const		{return (mMin + (mMax - mMin) * percent);}
 	inline float	GetVal() const					{if(mMin == mMax){return mMin;}
-														return flrand(mMin, mMax);}
+														return mMin + ( mMax - mMin ) * cgRandom.RandomFloat();}
 	inline int		GetRoundedVal() const			{if(mMin == mMax){return mMin;}
-														return (int)(flrand(mMin, mMax) + 0.5f);}
+														return (int)( mMin + ( mMax - mMin ) * cgRandom.RandomFloat() + 0.5f);}
 
 	inline void		ForceRange(float min,float max)	{if(mMin < min){mMin=min;} if(mMin > max){mMin=max;}
 														if(mMax < min){mMax=min;} if(mMax > max){mMax=max;}}
@@ -123,7 +117,7 @@ public:
 
 // Controller properties are parsed once; runtime sampling does not reparse text.
 struct FxControllerProperty {
-	std::string text;
+	idStr text;
 	CFxRange range;
 	bool numeric = false;
 	mutable qhandle_t shader = 0, model = 0;
@@ -132,7 +126,7 @@ struct FxControllerProperty {
 		float first = 0, last = 0;
 		char extra;
 		int count = sscanf(text.c_str(), "%f %f %c", &first, &last, &extra);
-		numeric = (count == 1 || count == 2) && std::isfinite(first) && (count == 1 || std::isfinite(last));
+		numeric = (count == 1 || count == 2) && idMath::IsFinite(first) && (count == 1 || idMath::IsFinite(last));
 		if ( numeric ) { range.SetRange(first, count == 1 ? first : last); }
 	}
 };
@@ -193,8 +187,8 @@ public:
 	CFxRange		mSpawnDelay;
 	CFxRange		mSpawnCount;
     CFxRange        mLife;
-    std::string mBindings;
-    std::vector<qhandle_t> mAnimation;
+    idStr mBindings;
+    idList<qhandle_t> mAnimation;
     float mAspect = 1;
 	float mFadeIn = 0;
 	int mRenderType = -1;
@@ -204,7 +198,7 @@ public:
 	idVec3 mVelocityScale = idVec3( 1, 1, 1 );
 	idVec3 mSizeVelocity = idVec3( 0, 0, 0 );
 	float mCountSpacing = 0;
-	std::map<std::string, FxControllerProperty> mProperties;
+	idHashTableT<idStr, FxControllerProperty> mProperties;
     int mRepeat = 0;
     int mGroup = -1;
     float mHeightMin = 0, mHeightMax = 0;
@@ -321,20 +315,20 @@ public:
 	bool ParseVariance( const char *val );
 
 	// Group type processing
-	bool ParseRGB( CGPGroup *grp );
-	bool ParseAlpha( CGPGroup *grp );
-	bool ParseSize( CGPGroup *grp );
-	bool ParseSize2( CGPGroup *grp );
-	bool ParseLength( CGPGroup *grp );
+	bool ParseRGB( const idParseGroup *grp );
+	bool ParseAlpha( const idParseGroup *grp );
+	bool ParseSize( const idParseGroup *grp );
+	bool ParseSize2( const idParseGroup *grp );
+	bool ParseLength( const idParseGroup *grp );
 
-	bool ParseModels( CGPValue *grp );
-	bool ParseShaders( CGPValue *grp );
-	bool ParseSounds( CGPValue *grp );
+	bool ParseModels( const idParseValue *grp );
+	bool ParseShaders( const idParseValue *grp );
+	bool ParseSounds( const idParseValue *grp );
 
-	bool ParseImpactFxStrings( CGPValue *grp );
-	bool ParseDeathFxStrings( CGPValue *grp );
-	bool ParseEmitterFxStrings( CGPValue *grp );
-	bool ParsePlayFxStrings( CGPValue *grp );
+	bool ParseImpactFxStrings( const idParseValue *grp );
+	bool ParseDeathFxStrings( const idParseValue *grp );
+	bool ParseEmitterFxStrings( const idParseValue *grp );
+	bool ParsePlayFxStrings( const idParseValue *grp );
 
 	// Group keys
 	bool ParseRGBStart( const char *val );
@@ -368,7 +362,7 @@ public:
 	CPrimitiveTemplate();
 	~CPrimitiveTemplate()	{};
 
-	bool ParsePrimitive( CGPGroup *grp );
+	bool ParsePrimitive( const idParseGroup *grp );
 
 	void operator=(const CPrimitiveTemplate &that);
 };
@@ -387,7 +381,7 @@ struct SEffectTemplate
 
 	bool operator == (const char * name) const 
 	{
-		return !stricmp( mEffectName, name );
+		return !idStr::Icmp( mEffectName, name );
 	}
 	void operator=(const SEffectTemplate &that);
 };
@@ -424,9 +418,9 @@ private:
 	};
 
 	// this makes looking up the index based on the string name much easier
-	typedef map<fxString_t, int>				TEffectID;
+	typedef idHashTableT<idStr, int>			TEffectID;
 
-	typedef list<SScheduledEffect*>			TScheduledEffect;
+	typedef idList<SScheduledEffect *>			TScheduledEffect;
 
 	// Effects
 	SEffectTemplate		mEffectTemplates[FX_MAX_EFFECTS];
@@ -440,7 +434,7 @@ private:
 	SEffectTemplate *GetNewEffectTemplate( int *id, const char *file );
 
 	void	AddPrimitiveToEffect( SEffectTemplate *fx, CPrimitiveTemplate *prim );
-	int		ParseEffect( const char *file, CGPGroup *base );
+	int		ParseEffect( const char *file, const idParseGroup *base );
 
 	void	CreateEffect( CPrimitiveTemplate *fx, const idVec3 &origin, const idVec3 *axis, int lateTime );
 	void	CreateEffect( CPrimitiveTemplate *fx, int clientID, int lateTime );
@@ -466,7 +460,7 @@ public:
 
 	void	AddScheduledEffects( void );								// call once per CGame frame
 
-	int		NumScheduledFx()	{ return mFxSchedule.size();	}
+	int		NumScheduledFx()	{ return mFxSchedule.Num();	}
 	void	Clean(bool bRemoveTemplates = true, int idToPreserve = 0);	// clean out the system
 
 	// FX Override functions

@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // Event/map adapters only. Appearance and animation live in effects/wolf/*.efx.
+#include "../precompiled.h"
+
 #include "FxScheduler.h"
 #include "cg_fx.h"
 

@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // bg_slidemove.c -- part of bg_pmove functionality
 
+#include "../precompiled.h"
+
 #include "q_shared.h"
 #include "bg_public.h"
 #include "bg_local.h"
@@ -327,4 +329,3 @@ void PM_StepSlideMove( qboolean gravity ) {
 		}
 	}
 }
-

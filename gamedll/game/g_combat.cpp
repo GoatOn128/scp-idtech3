@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 /*
@@ -112,7 +114,7 @@ void TossClientItems( gentity_t *self ) {
 		if ( self->client->ps.weaponstate == WEAPON_DROPPING || self->client->ps.weaponstate == WEAPON_DROPPING_TORELOAD ) {
 			weapon = self->client->pers.cmd.weapon;
 		}
-		if ( !( COM_BitCheck( self->client->ps.weapons, weapon ) ) ) {
+		if ( !( idBitField::Test( self->client->ps.weapons, weapon ) ) ) {
 			weapon = WP_NONE;
 		}
 	}
@@ -187,9 +189,9 @@ void LookAtKiller( gentity_t *self, gentity_t *inflictor, gentity_t *attacker ) 
 		return;
 	}
 
-	self->client->ps.stats[STAT_DEAD_YAW] = vectoyaw( dir );
+	self->client->ps.stats[STAT_DEAD_YAW] = dir.ToYaw();
 
-	angles[YAW] = vectoyaw( dir );
+	angles[YAW] = dir.ToYaw();
 	angles[PITCH] = 0;
 	angles[ROLL] = 0;
 }
@@ -465,9 +467,9 @@ void player_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 		if ( self->client->ps.powerups[PW_BLUEFLAG] ) {
 			item = BG_FindItem( "Blue Flag" );
 		}
-		launchvel[0] = crandom() * 20;
-		launchvel[1] = crandom() * 20;
-		launchvel[2] = 10 + random() * 10;
+		launchvel[0] = gameRandom.CRandomFloat() * 20;
+		launchvel[1] = gameRandom.CRandomFloat() * 20;
+		launchvel[2] = 10 + gameRandom.RandomFloat() * 10;
 		if ( item ) {
 			flag = LaunchItem( item,self->r.currentOrigin,launchvel );
 			flag->s.modelindex2 = self->s.otherEntityNum2; // JPW NERVE FIXME set player->otherentitynum2 with old modelindex2 from flag and restore here
@@ -638,7 +640,7 @@ IsHeadShotWeapon
 */
 qboolean IsHeadShotWeapon( int mod, gentity_t *targ, gentity_t *attacker ) {
 	// distance rejection
-	if ( DistanceSquared( targ->r.currentOrigin, attacker->r.currentOrigin )  >  ( g_headshotMaxDist.integer * g_headshotMaxDist.integer ) ) {
+	if ( ( targ->r.currentOrigin - attacker->r.currentOrigin ).LengthSqr() > ( g_headshotMaxDist.integer * g_headshotMaxDist.integer ) ) {
 		return qfalse;
 	}
 
@@ -861,7 +863,7 @@ void G_ArmorDamage( gentity_t *targ ) {
 				}
 
 				targ->s.dmgFlags |= ( 1 << remove );    // turn off 'undamaged' part
-				if ( (int)( random() + 0.5 ) ) {                       // choose one of two possible replacements
+				if ( (int)( gameRandom.RandomFloat() + 0.5 ) ) {                       // choose one of two possible replacements
 					targ->s.dmgFlags |= ( 1 << ( numParts + remove ) );
 				}
 			}

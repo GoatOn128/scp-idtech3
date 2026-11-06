@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cl_main.c  -- client main loop
 
+#include "../precompiled.h"
+
 #include "client.h"
 #include <limits.h>
 
@@ -118,7 +120,7 @@ extern void SV_BotFrame( int time );
 void CL_CheckForResend( void );
 void CL_ShowIP_f( void );
 void CL_ServerStatus_f( void );
-void CL_ServerStatusResponse( netadr_t from, msg_t *msg );
+void CL_ServerStatusResponse( netadr_t from, idBitMsg *msg );
 
 
 /*
@@ -210,7 +212,7 @@ CL_WriteDemoMessage
 Dumps the current net message, prefixed by the length
 ====================
 */
-void CL_WriteDemoMessage( msg_t *msg, int headerBytes ) {
+void CL_WriteDemoMessage( idBitMsg *msg, int headerBytes ) {
 	int len, swlen;
 
 	// write the packet sequence
@@ -219,7 +221,7 @@ void CL_WriteDemoMessage( msg_t *msg, int headerBytes ) {
 	FS_Write( &swlen, 4, clc.demofile );
 
 	// skip the packet sequencing information
-	len = msg->cursize - headerBytes;
+	len = msg->GetSize() - headerBytes;
 	swlen = LittleLong( len );
 	FS_Write( &swlen, 4, clc.demofile );
 	FS_Write( msg->data + headerBytes, len, clc.demofile );
@@ -289,7 +291,7 @@ static char demoName[MAX_QPATH];        // compiler bug workaround
 void CL_Record_f( void ) {
 	char name[MAX_OSPATH];
 	byte bufData[MAX_MSGLEN];
-	msg_t buf;
+	idBitMsg buf;
 	int i;
 	int len;
 	entityState_t   *ent;
@@ -357,14 +359,14 @@ void CL_Record_f( void ) {
 	clc.demowaiting = qtrue;
 
 	// write out the gamestate message
-	MSG_Init( &buf, bufData, sizeof( bufData ) );
-	MSG_Bitstream( &buf );
+	buf.InitWrite( bufData, sizeof( bufData  ) );
+	buf.SetOOB( false );
 
 	// NOTE, MRE: all server->client messages now acknowledge
-	MSG_WriteLong( &buf, clc.reliableSequence );
+	buf.WriteLong( clc.reliableSequence );
 
-	MSG_WriteByte( &buf, svc_gamestate );
-	MSG_WriteLong( &buf, clc.serverCommandSequence );
+	buf.WriteByte( svc_gamestate );
+	buf.WriteLong( clc.serverCommandSequence );
 
 	// configstrings
 	for ( i = 0 ; i < MAX_CONFIGSTRINGS ; i++ ) {
@@ -372,9 +374,9 @@ void CL_Record_f( void ) {
 			continue;
 		}
 		s = cl.gameState.stringData + cl.gameState.stringOffsets[i];
-		MSG_WriteByte( &buf, svc_configstring );
-		MSG_WriteShort( &buf, i );
-		MSG_WriteBigString( &buf, s );
+		buf.WriteByte( svc_configstring );
+		buf.WriteShort( i );
+		buf.WriteString( s );
 	}
 
 	// baselines
@@ -384,29 +386,29 @@ void CL_Record_f( void ) {
 		if ( !ent->number ) {
 			continue;
 		}
-		MSG_WriteByte( &buf, svc_baseline );
-		MSG_WriteDeltaEntity( &buf, &nullstate, ent, qtrue );
+		buf.WriteByte( svc_baseline );
+		NetMsg_WriteDeltaEntity( &buf, &nullstate, ent, qtrue );
 	}
 
-	MSG_WriteByte( &buf, svc_EOF );
+	buf.WriteByte( svc_EOF );
 
 	// finished writing the gamestate stuff
 
 	// write the client num
-	MSG_WriteLong( &buf, clc.clientNum );
+	buf.WriteLong( clc.clientNum );
 	// write the checksum feed
-	MSG_WriteLong( &buf, clc.checksumFeed );
+	buf.WriteLong( clc.checksumFeed );
 
 	// finished writing the client packet
-	MSG_WriteByte( &buf, svc_EOF );
+	buf.WriteByte( svc_EOF );
 
 	// write it to the demo file
 	len = LittleLong( clc.serverMessageSequence - 1 );
 	FS_Write( &len, 4, clc.demofile );
 
-	len = LittleLong( buf.cursize );
+	len = LittleLong( buf.GetSize() );
 	FS_Write( &len, 4, clc.demofile );
-	FS_Write( buf.data, buf.cursize, clc.demofile );
+	FS_Write( buf.data, buf.GetSize(), clc.demofile );
 
 	// the rest of the demo file will be copied from net messages
 }
@@ -446,7 +448,7 @@ CL_ReadDemoMessage
 */
 void CL_ReadDemoMessage( void ) {
 	int r;
-	msg_t buf;
+	idBitMsg buf;
 	byte bufData[ MAX_MSGLEN ];
 	int s;
 
@@ -464,31 +466,31 @@ void CL_ReadDemoMessage( void ) {
 	clc.serverMessageSequence = LittleLong( s );
 
 	// init the message
-	MSG_Init( &buf, bufData, sizeof( bufData ) );
+	buf.InitWrite( bufData, sizeof( bufData  ) );
 
 	// get the length
-	r = FS_Read( &buf.cursize, 4, clc.demofile );
+	r = FS_Read( &buf.GetSize(), 4, clc.demofile );
 	if ( r != 4 ) {
 		CL_DemoCompleted();
 		return;
 	}
-	buf.cursize = LittleLong( buf.cursize );
-	if ( buf.cursize == -1 ) {
+	buf.GetSize() = LittleLong( buf.GetSize() );
+	if ( buf.GetSize() == -1 ) {
 		CL_DemoCompleted();
 		return;
 	}
-	if ( buf.cursize > buf.maxsize ) {
+	if ( buf.GetSize() > buf.GetMaxSize() ) {
 		Com_Error( ERR_DROP, "CL_ReadDemoMessage: demoMsglen > MAX_MSGLEN" );
 	}
-	r = FS_Read( buf.data, buf.cursize, clc.demofile );
-	if ( r != buf.cursize ) {
+	r = FS_Read( buf.data, buf.GetSize(), clc.demofile );
+	if ( r != buf.GetSize() ) {
 		Com_Printf( "Demo file was truncated.\n" );
 		CL_DemoCompleted();
 		return;
 	}
 
 	clc.lastPacketTime = cls.realtime;
-	buf.readcount = 0;
+	buf.GetReadCount() = 0;
 	CL_ParseServerMessage( &buf );
 }
 
@@ -909,7 +911,7 @@ void CL_RequestAuthorization( void ) {
 	}
 
 	fs = Cvar_Get( "cl_anonymous", "0", CVAR_INIT | CVAR_SYSTEMINFO );
-	NET_OutOfBandPrint( NS_CLIENT, cls.authorizeServer, va( "getKeyAuthorize %i %s", fs->integer, nums ) );
+	NET_OutOfBandPrint( NS_CLIENT, cls.authorizeServer, idStr::FormatString( "getKeyAuthorize %i %s", fs->integer, nums ) );
 }
 
 /*
@@ -959,7 +961,15 @@ void CL_Setenv_f( void ) {
 			strcat( buffer, " " );
 		}
 
-		Q_putenv( buffer );
+		#ifdef _WIN32
+		_putenv( buffer );
+#else
+		char *value = strchr( buffer, '=' );
+		if ( value ) {
+			*value++ = ' ';
+			setenv( buffer, value, 1 );
+		}
+#endif
 	} else if ( argc == 2 ) {
 		char *env = getenv( Cmd_Argv( 1 ) );
 
@@ -999,7 +1009,7 @@ void CL_Reconnect_f( void ) {
 		Com_Printf( "Can't reconnect to localhost.\n" );
 		return;
 	}
-	Cbuf_AddText( va( "connect %s\n", cls.servername ) );
+	Cbuf_AddText( idStr::FormatString( "connect %s\n", cls.servername ) );
 }
 
 /*
@@ -1158,7 +1168,7 @@ CL_ResetPureClientAtServer
 =================
 */
 void CL_ResetPureClientAtServer( void ) {
-	CL_AddReliableCommand( va( "vdr" ) );
+	CL_AddReliableCommand( idStr::FormatString( "vdr" ) );
 }
 
 /*
@@ -1386,7 +1396,7 @@ void CL_BeginDownload( const char *localName, const char *remoteName ) {
 	clc.downloadBlock = 0; // Starting new file
 	clc.downloadCount = 0;
 
-	CL_AddReliableCommand( va( "download %s", remoteName ) );
+	CL_AddReliableCommand( idStr::FormatString( "download %s", remoteName ) );
 }
 
 /*
@@ -1506,9 +1516,9 @@ void CL_CheckForResend( void ) {
 		port = Cvar_VariableValue( "net_qport" );
 
 		idStr::Copynz( info, Cvar_InfoString( CVAR_USERINFO ), sizeof( info ) );
-		Info_SetValueForKey( info, "protocol", va( "%i", PROTOCOL_VERSION ) );
-		Info_SetValueForKey( info, "qport", va( "%i", port ) );
-		Info_SetValueForKey( info, "challenge", va( "%i", clc.challenge ) );
+		Info_SetValueForKey( info, "protocol", idStr::FormatString( "%i", PROTOCOL_VERSION ) );
+		Info_SetValueForKey( info, "qport", idStr::FormatString( "%i", port ) );
+		Info_SetValueForKey( info, "challenge", idStr::FormatString( "%i", clc.challenge ) );
 		NET_OutOfBandPrint( NS_CLIENT, clc.serverAddress, "connect \"%s\"", info );
 		// the most current userinfo has been sent, so watch for any
 		// newer changes to userinfo variables
@@ -1614,7 +1624,7 @@ void CL_InitServerInfo( serverInfo_t *server, serverAddress_t *address ) {
 CL_ServersResponsePacket
 ===================
 */
-void CL_ServersResponsePacket( netadr_t from, msg_t *msg ) {
+void CL_ServersResponsePacket( netadr_t from, idBitMsg *msg ) {
 	int i, count, max, total;
 	serverAddress_t addresses[MAX_SERVERSPERPACKET];
 	int numservers;
@@ -1636,7 +1646,7 @@ void CL_ServersResponsePacket( netadr_t from, msg_t *msg ) {
 	// parse through server response string
 	numservers = 0;
 	buffptr    = msg->data;
-	buffend    = buffptr + msg->cursize;
+	buffend    = buffptr + msg->GetSize();
 	while ( buffptr + 1 < buffend ) {
 		// advance to initial token
 		do {
@@ -1732,14 +1742,14 @@ CL_ConnectionlessPacket
 Responses to broadcasts, etc
 =================
 */
-void CL_ConnectionlessPacket( netadr_t from, msg_t *msg ) {
+void CL_ConnectionlessPacket( netadr_t from, idBitMsg *msg ) {
 	char    *s;
 	char    *c;
 
-	MSG_BeginReadingOOB( msg );
-	MSG_ReadLong( msg );    // skip the -1
+	msg->BeginReadingOOB();
+	msg->ReadLong( );    // skip the -1
 
-	s = MSG_ReadStringLine( msg );
+	s = msg->ReadString( );
 
 	Cmd_TokenizeString( s );
 
@@ -1826,7 +1836,7 @@ void CL_ConnectionlessPacket( netadr_t from, msg_t *msg ) {
 
 	// echo request from server
 	if ( !idStr::Icmp( c, "print" ) ) {
-		s = MSG_ReadString( msg );
+		s = msg->ReadString( );
 		idStr::Copynz( clc.serverMessage, s, sizeof( clc.serverMessage ) );
 		Com_Printf( "%s", s );
 		return;
@@ -1849,12 +1859,12 @@ CL_PacketEvent
 A packet has arrived from the main event loop
 =================
 */
-void CL_PacketEvent( netadr_t from, msg_t *msg ) {
+void CL_PacketEvent( netadr_t from, idBitMsg *msg ) {
 	int headerBytes;
 
 	clc.lastPacketTime = cls.realtime;
 
-	if ( msg->cursize >= 4 && *(int *)msg->data == -1 ) {
+	if ( msg->GetSize() >= 4 && *(int *)msg->data == -1 ) {
 		CL_ConnectionlessPacket( from, msg );
 		return;
 	}
@@ -1863,7 +1873,7 @@ void CL_PacketEvent( netadr_t from, msg_t *msg ) {
 		return;     // can't be a valid sequenced packet
 	}
 
-	if ( msg->cursize < 4 ) {
+	if ( msg->GetSize() < 4 ) {
 		Com_Printf( "%s: Runt packet\n",NET_AdrToString( from ) );
 		return;
 	}
@@ -1883,7 +1893,7 @@ void CL_PacketEvent( netadr_t from, msg_t *msg ) {
 	}
 
 	// the header is different lengths for reliable and unreliable messages
-	headerBytes = msg->readcount;
+	headerBytes = msg->GetReadCount();
 
 	// track the last message received so it can be returned in
 	// client messages, allowing the server to detect a dropped
@@ -1946,7 +1956,7 @@ void CL_CheckUserinfo( void ) {
 	// send a reliable userinfo update if needed
 	if ( cvar_modifiedFlags & CVAR_USERINFO ) {
 		cvar_modifiedFlags &= ~CVAR_USERINFO;
-		CL_AddReliableCommand( va( "userinfo \"%s\"", Cvar_InfoString( CVAR_USERINFO ) ) );
+		CL_AddReliableCommand( idStr::FormatString( "userinfo \"%s\"", Cvar_InfoString( CVAR_USERINFO ) ) );
 	}
 
 }
@@ -2712,14 +2722,14 @@ static void CL_SetServerInfoByAddress( netadr_t from, const char *info, int ping
 CL_ServerInfoPacket
 ===================
 */
-void CL_ServerInfoPacket( netadr_t from, msg_t *msg ) {
+void CL_ServerInfoPacket( netadr_t from, idBitMsg *msg ) {
 	int i, type;
 	char info[MAX_INFO_STRING];
 	char*   str;
 	char    *infoString;
 	int prot;
 
-	infoString = MSG_ReadString( msg );
+	infoString = msg->ReadString( );
 
 	// if this isn't the correct protocol version, ignore it
 	prot = atoi( Info_ValueForKey( infoString, "protocol" ) );
@@ -2760,7 +2770,7 @@ void CL_ServerInfoPacket( netadr_t from, msg_t *msg ) {
 				type = 0;
 				break;
 			}
-			Info_SetValueForKey( cl_pinglist[i].info, "nettype", va( "%d", type ) );
+			Info_SetValueForKey( cl_pinglist[i].info, "nettype", idStr::FormatString( "%d", type ) );
 			CL_SetServerInfoByAddress( from, infoString, cl_pinglist[i].time );
 
 			return;
@@ -2804,7 +2814,7 @@ void CL_ServerInfoPacket( netadr_t from, msg_t *msg ) {
 	cls.localServers[i].netType = from.type;
 	cls.localServers[i].allowAnonymous = 0;
 
-	idStr::Copynz( info, MSG_ReadString( msg ), MAX_INFO_STRING );
+	idStr::Copynz( info, msg->ReadString( ), MAX_INFO_STRING );
 	if ( strlen( info ) ) {
 		if ( info[strlen( info ) - 1] != '\n' ) {
 			strncat( info, "\n", sizeof( info ) );
@@ -2916,7 +2926,7 @@ int CL_ServerStatus( char *serverAddress, char *serverStatusString, int maxLen )
 CL_ServerStatusResponse
 ===================
 */
-void CL_ServerStatusResponse( netadr_t from, msg_t *msg ) {
+void CL_ServerStatusResponse( netadr_t from, idBitMsg *msg ) {
 	char    *s;
 	char info[MAX_INFO_STRING];
 	int i, l, score, ping;
@@ -2935,7 +2945,7 @@ void CL_ServerStatusResponse( netadr_t from, msg_t *msg ) {
 		return;
 	}
 
-	s = MSG_ReadStringLine( msg );
+	s = msg->ReadString( );
 
 	len = 0;
 	Com_sprintf( &serverStatus->string[len], sizeof( serverStatus->string ) - len, "%s", s );
@@ -2976,7 +2986,7 @@ void CL_ServerStatusResponse( netadr_t from, msg_t *msg ) {
 		Com_Printf( "\nPlayers:\n" );
 		Com_Printf( "num: score: ping: name:\n" );
 	}
-	for ( i = 0, s = MSG_ReadStringLine( msg ); *s; s = MSG_ReadStringLine( msg ), i++ ) {
+	for ( i = 0, s = msg->ReadString( ); *s; s = msg->ReadString( ), i++ ) {
 
 		len = strlen( serverStatus->string );
 		Com_sprintf( &serverStatus->string[len], sizeof( serverStatus->string ) - len, "\\%s", s );

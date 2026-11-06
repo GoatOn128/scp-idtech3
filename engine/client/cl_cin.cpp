@@ -44,6 +44,8 @@ If you have questions concerning this license or the applicable additional terms
 // if some more coding needs to be done.
 
 
+#include "../precompiled.h"
+
 #include "client.h"
 //#include "snd_local.h"
 
@@ -1087,7 +1089,7 @@ static void readQuadInfo( byte *qData ) {
 
 	cinTable[currentHandle].xsize    = qData[0] + qData[1] * 256;
 	cinTable[currentHandle].ysize    = qData[2] + qData[3] * 256;
-	cinTable[currentHandle].maxsize  = qData[4] + qData[5] * 256;
+	cinTable[currentHandle].GetMaxSize()  = qData[4] + qData[5] * 256;
 	cinTable[currentHandle].minsize  = qData[6] + qData[7] * 256;
 
 	cinTable[currentHandle].CIN_HEIGHT = cinTable[currentHandle].ysize;
@@ -1433,7 +1435,7 @@ static void RoQShutdown( void ) {
 		// the time it was referenced
 		s = Cvar_VariableString( "nextmap" );
 		if ( s[0] ) {
-			Cbuf_ExecuteText( EXEC_APPEND, va( "%s\n", s ) );
+			Cbuf_ExecuteText( EXEC_APPEND, idStr::FormatString( "%s\n", s ) );
 			Cvar_Set( "nextmap", "" );
 		}
 		CL_handle = -1;

@@ -36,10 +36,11 @@ If you have questions concerning this license or the applicable additional terms
  *****************************************************************************/
 
 #ifdef BOTLIB
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
 #include "../game/botlib.h"              //for the include of be_interface.h
 #include "l_struct.h"
-#include "l_utils.h"
 #include "be_interface.h"
 #endif //BOTLIB
 
@@ -53,8 +54,6 @@ If you have questions concerning this license or the applicable additional terms
 #define qtrue   true
 #define qfalse  false
 #endif //BSPC
-
-#include <algorithm>
 
 //===========================================================================
 //
@@ -148,8 +147,8 @@ qboolean ReadNumber( idParser *source, fielddef_t *fd, void *p ) {
 	} //end else if
 	if ( ( fd->type & FT_TYPE ) == FT_CHAR || ( fd->type & FT_TYPE ) == FT_INT ) {
 		if ( fd->type & FT_BOUNDED ) {
-			intmin = std::max( intmin, static_cast<long int>( fd->floatmin ) );
-			intmax = std::min( intmax, static_cast<long int>( fd->floatmax ) );
+			intmin = Max( intmin, static_cast<long int>( fd->floatmin ) );
+			intmax = Min( intmax, static_cast<long int>( fd->floatmax ) );
 		} //end if
 		if ( intval < intmin || intval > intmax ) {
 			source->Error( "value %d out of range [%d, %d]", intval, intmin, intmax );

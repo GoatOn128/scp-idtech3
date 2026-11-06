@@ -22,7 +22,10 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
+static idRandom aiRandom;
 
 /*
 ==================
@@ -35,7 +38,7 @@ float AICast_WeaponRange( cast_state_t *cs, int weaponnum ) {
 		switch ( cs->aiCharacter ) {
 		case AICHAR_SUPERSOLDIER: // BOSS2
 			// if they have a panzer, give this weapon a shorter range
-			if ( !COM_BitCheck( cs->clientState->cur_ps.weapons, WP_PANZERFAUST ) ) {
+			if ( !idBitField::Test( cs->clientState->cur_ps.weapons, WP_PANZERFAUST ) ) {
 				return TESLA_SUPERSOLDIER_RANGE;
 			}
 		}
@@ -73,7 +76,8 @@ AICast_CheckAttack_real
 */
 qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHitWorld ) {
 	//float points;
-	idVec3 forward, right, start, end, dir, up, angles;
+	idVec3 forward, right, start, end, dir, up;
+	idAngles angles;
 	weaponinfo_t wi;
 	trace_t trace;
 	float traceDist;
@@ -144,8 +148,8 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 		end = ent->r.currentOrigin;
 		end[2] += ent->client->ps.viewheight;
 		dir = start - end;
-		vectoangles( dir, angles );
-		idAngles( angles ).ToVectors( &forward, &right, &up );
+		angles = dir.ToAngles();
+		angles.ToVectors( &forward, &right, &up );
 		CalcMuzzlePoint( &g_entities[cs->entityNum], weapnum, forward, right, up, start );
 
 		traceDist = AICast_WeaponRange( cs, weapnum );
@@ -174,7 +178,7 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 		passEnt = cs->entityNum;
 
 		// don't try too far
-		dist = Distance( start, enemyEnt->r.currentOrigin );
+		dist = ( start - enemyEnt->r.currentOrigin ).Length();
 		fuzzyCount = 6;
 		if ( traceDist > dist ) {
 			traceDist = dist;
@@ -192,14 +196,14 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 		start[2] += enemyEnt->client->ps.viewheight;
 		end = mg42->r.currentOrigin;
 		dir = start - end;
-		vectoangles( dir, angles );
-		idAngles( angles ).ToVectors( &forward, &right, &up );
+		angles = dir.ToAngles();
+		angles.ToVectors( &forward, &right, &up );
 
 		start = mg42->r.currentOrigin;
 		start = start + forward * 16;
 		start = start + up * 16;
 		// snap to integer coordinates for more efficient network bandwidth usage
-		SnapVector( start );
+		start.Snap();
 
 		traceDist = 8192;
 		mins = &vec3_origin;
@@ -211,7 +215,7 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 		}
 
 		// don't try too far
-		dist = Distance( start, enemyEnt->r.currentOrigin );
+		dist = ( start - enemyEnt->r.currentOrigin ).Length();
 		if ( traceDist > dist ) {
 			traceDist = dist;
 			fuzzyCount = 6;
@@ -274,7 +278,7 @@ qboolean AICast_CheckAttack_real( cast_state_t *cs, int enemy, qboolean allowHit
 			}
 			//if the projectile does a radial damage
 			if ( cs->weaponNum == WP_PANZERFAUST ) {
-				if ( Distance( trace.endpos, g_entities[enemy].s.pos.trBase ) > 120 ) {
+				if ( ( trace.endpos - g_entities[enemy].s.pos.trBase ).Length() > 120 ) {
 					continue;
 				}
 				//FIXME: check if a teammate gets radial damage
@@ -406,7 +410,7 @@ qboolean AICast_WeaponUsable( cast_state_t *cs, int weaponNum ) {
 	gentity_t *ent, *grenade;
 
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length();
 	}
 
 	oldweap = cs->weaponNum;
@@ -478,7 +482,7 @@ void AICast_ChooseWeapon( cast_state_t *cs, qboolean battleFunc ) {
 	bestWantScale = 0.0;
 
 	if ( cs->enemyNum >= 0 ) {
-		enemyDist = VectorDistance( g_entities[cs->enemyNum].s.pos.trBase, cs->clientState->origin );
+		enemyDist = ( g_entities[cs->enemyNum].s.pos.trBase - cs->clientState->origin ).Length();
 		// subtract distance to edge of bounding box
 		enemyDist -= g_entities[cs->enemyNum].r.maxs[0];
 	}
@@ -518,7 +522,7 @@ void AICast_ChooseWeapon( cast_state_t *cs, qboolean battleFunc ) {
 			continue; // Special abilities start through the combat state.
 		}
 
-		if ( COM_BitCheck( cs->clientState->cur_ps.weapons, i ) ) {
+		if ( idBitField::Test( cs->clientState->cur_ps.weapons, i ) ) {
 			gotOne = qtrue;
 			// check that our ammo is enough
 			if ( !AICast_GotEnoughAmmoForWeapon( cs, i ) || !AICast_WeaponUsable( cs, i ) ) {
@@ -659,13 +663,13 @@ qboolean AICast_AimAtEnemy( cast_state_t *cs ) {
 	//
 	// grenade hack: aim grenades at their feet if they are close
 	if ( cs->weaponNum == WP_GRENADE_LAUNCHER || cs->weaponNum == WP_GRENADE_PINEAPPLE ) {
-		if ( Distance( start, bestorigin ) < 180 ) {
-			bestorigin[2] = enemyOrg[2] + g_entities[cs->enemyNum].r.mins[2] + crandom() * 20;
-		} else if ( Distance( start, bestorigin ) > 400 ) { // aim up a bit for distance
-			bestorigin[2] += 12 + Distance( start, bestorigin ) / 50 + crandom() * 20;
+		if ( ( start - bestorigin ).Length() < 180 ) {
+			bestorigin[2] = enemyOrg[2] + g_entities[cs->enemyNum].r.mins[2] + aiRandom.CRandomFloat() * 20;
+		} else if ( ( start - bestorigin ).Length() > 400 ) { // aim up a bit for distance
+			bestorigin[2] += 12 + ( start - bestorigin ).Length() / 50 + aiRandom.CRandomFloat() * 20;
 		}
 	}
-	dist = Distance( bs->eye, bestorigin );
+	dist = ( bs->eye - bestorigin ).Length();
 	// rocket launcher should aim ahead
 	if ( cs->weaponNum == WP_PANZERFAUST ) {
 		bestorigin = bestorigin + g_entities[cs->enemyNum].client->ps.velocity * aim_skill * aim_skill * ( dist / 900 );
@@ -690,7 +694,10 @@ qboolean AICast_AimAtEnemy( cast_state_t *cs ) {
 	//get aim direction
 	dir = bestorigin - bs->eye;
 	//set the ideal view angles
-	vectoangles( dir, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = dir.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 
 	return qtrue; // do real aim checking after we've moved the angles
 }
@@ -879,7 +886,7 @@ qboolean AICast_StopAndAttack( cast_state_t *cs ) {
 	cast_state_t *ecs;
 
 	if ( cs->enemyNum >= 0 ) {
-		dist = Distance( cs->clientState->origin, g_entities[cs->enemyNum].r.currentOrigin );
+		dist = ( cs->clientState->origin - g_entities[cs->enemyNum].r.currentOrigin ).Length();
 	}
 
 	switch ( cs->weaponNum ) {

@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 #define     GENERIC_DAMAGE  6
@@ -133,7 +135,7 @@ void touch_props_box_32( gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 	ratio = 2.5;
 	v = self->r.currentOrigin - other->r.currentOrigin;
-	moveit( self, vectoyaw( v ), ( 20 * ratio * FRAMETIME ) * .001 );
+	moveit( self, v.ToYaw(), ( 20 * ratio * FRAMETIME ) * .001 );
 }
 
 /*QUAKED props_box_32 (1 0 0) (-16 -16 -16) (16 16 16)
@@ -166,7 +168,7 @@ void touch_props_box_48( gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 	ratio = 2.0;
 	v = self->r.currentOrigin - other->r.currentOrigin;
-	moveit( self, vectoyaw( v ), ( 20 * ratio * FRAMETIME ) * .001 );
+	moveit( self, v.ToYaw(), ( 20 * ratio * FRAMETIME ) * .001 );
 }
 
 /*QUAKED props_box_48 (1 0 0) (-24 -24 -24) (24 24 24)
@@ -199,7 +201,7 @@ void touch_props_box_64( gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 	ratio = 1.5;
 	v = self->r.currentOrigin - other->r.currentOrigin;
-	moveit( self, vectoyaw( v ), ( 20 * ratio * FRAMETIME ) * .001 );
+	moveit( self, v.ToYaw(), ( 20 * ratio * FRAMETIME ) * .001 );
 }
 
 /*QUAKED props_box_64 (1 0 0) (-32 -32 -32) (32 32 32)
@@ -1038,7 +1040,7 @@ void Props_Activated( gentity_t *self ) {
 
 		idAngles( owner->client->ps.viewangles ).ToVectors( &velocity, NULL, NULL );
 		velocity = velocity * 250;
-		velocity[2] += 100 + crandom() * 25;
+		velocity[2] += 100 + gameRandom.CRandomFloat() * 25;
 		self->s.pos.trDelta = velocity;
 
 		self->think = NULL;
@@ -1211,7 +1213,7 @@ qboolean Prop_Touch( gentity_t *self, gentity_t *other, idVec3 &v ) {
 
 	idVec3 forward;
 	idVec3 dest;
-	idVec3 angle;
+	idAngles angle;
 	idVec3 start, end;
 	idVec3 mins, maxs;
 	trace_t tr;
@@ -1220,9 +1222,9 @@ qboolean Prop_Touch( gentity_t *self, gentity_t *other, idVec3 &v ) {
 		return qfalse;
 	}
 
-	vectoangles( v, angle );
+	angle = v.ToAngles();
 	angle[0] = 0;
-	idAngles( angle ).ToVectors( &forward, NULL, NULL );
+	angle.ToVectors( &forward, NULL, NULL );
 	dest.Zero();
 	dest = dest + forward * 128;
 	end = self->r.currentOrigin + forward * 32;
@@ -1389,7 +1391,7 @@ void Props_Chair_Animate( gentity_t *ent ) {
 
 		ratio = 2.5;
 		v = ent->r.currentOrigin - ent->enemy->r.currentOrigin;
-		moveit( ent, vectoyaw( v ), ( ent->delay * ratio * FRAMETIME ) * .001 );
+		moveit( ent, v.ToYaw(), ( ent->delay * ratio * FRAMETIME ) * .001 );
 	}
 
 }
@@ -1401,8 +1403,8 @@ void Spawn_Shard( gentity_t *ent, gentity_t *inflictor, int quantity, int type )
 	start = ent->r.currentOrigin;
 
 	if ( !idStr::Icmp( ent->classname, "props_radioSEVEN" ) ) {
-		start[0] += crandom() * 32;
-		start[1] += crandom() * 32;
+		start[0] += gameRandom.CRandomFloat() * 32;
+		start[1] += gameRandom.CRandomFloat() * 32;
 		dir = inflictor->r.currentOrigin - ent->r.currentOrigin;
 		dir.Normalize();
 	} else if ( inflictor )     {
@@ -1896,7 +1898,7 @@ void Props_Barrel_Animate( gentity_t *ent ) {
 	if ( !( ent->spawnflags & 1 ) ) {
 		ratio = 2.5;
 		v = ent->r.currentOrigin - ent->enemy->r.currentOrigin;
-		moveit( ent, vectoyaw( v ), ( ent->delay * ratio * FRAMETIME ) * .001 );
+		moveit( ent, v.ToYaw(), ( ent->delay * ratio * FRAMETIME ) * .001 );
 	}
 
 }
@@ -2031,8 +2033,8 @@ void SP_OilParticles( gentity_t *ent ) {
 	point[2] = ent->pos3[2];
 
 	vec = ent->pos3 - point;
-	vectoangles( vec, vec );
-	idAngles( vec ).ToVectors( &forward, NULL, NULL );
+	idAngles oilAngles = vec.ToAngles();
+	oilAngles.ToVectors( &forward, NULL, NULL );
 	point = point + forward * 12;
 
 	G_SetOrigin( OilLeak, point );
@@ -2165,7 +2167,7 @@ void Props_OilSlickSlippery( gentity_t *ent ) {
 			len = player->client->ps.velocity.Length();
 
 			if ( len && !( player->client->ps.pm_time ) ) {
-				dir.Set( fabs( crandom() ), fabs( crandom() ), 0 );
+				dir.Set( fabs( gameRandom.CRandomFloat() ), fabs( gameRandom.CRandomFloat() ), 0 );
 				kvel = dir * 32;
 				player->client->ps.velocity = player->client->ps.velocity + kvel;
 
@@ -2309,7 +2311,7 @@ void touch_crate_64( gentity_t *self, gentity_t *other, trace_t *trace ) {
 
 	ratio = 1.5;
 	v = self->r.currentOrigin - other->r.currentOrigin;
-	moveit( self, vectoyaw( v ), ( 20 * ratio * FRAMETIME ) * .001 );
+	moveit( self, v.ToYaw(), ( 20 * ratio * FRAMETIME ) * .001 );
 }
 
 void crate_animate( gentity_t *ent ) {
@@ -2578,7 +2580,7 @@ void props_flippy_blocked( gentity_t *ent, gentity_t *other ) {
 
 		idAngles( angles ).ToVectors( &velocity, NULL, NULL );
 		velocity = velocity * 24;
-		velocity[2] += 100 + crandom() * 50;
+		velocity[2] += 100 + gameRandom.CRandomFloat() * 50;
 
 		kvel = velocity * 32;
 		other->client->ps.velocity = other->client->ps.velocity + kvel;
@@ -2589,7 +2591,7 @@ void props_flippy_blocked( gentity_t *ent, gentity_t *other ) {
 
 		idAngles( angles ).ToVectors( &velocity, NULL, NULL );
 		velocity = velocity * 150;
-		velocity[2] += 300 + crandom() * 50;
+		velocity[2] += 300 + gameRandom.CRandomFloat() * 50;
 
 		kvel = velocity * 8;
 		other->s.pos.trType = TR_GRAVITY;
@@ -2834,9 +2836,9 @@ void props_snowGenerator_think( gentity_t *ent ) {
 		point = ent->pos1;
 
 		// we need to randomize to the extent of the brush
-		point[0] += crandom() * ( deep * 0.5 );
-		point[1] += crandom() * ( wide * 0.5 );
-		point[2] += crandom() * ( high * 0.5 );
+		point[0] += gameRandom.CRandomFloat() * ( deep * 0.5 );
+		point[1] += gameRandom.CRandomFloat() * ( wide * 0.5 );
+		point[2] += gameRandom.CRandomFloat() * ( high * 0.5 );
 
 		tent = G_TempEntity( point, EV_SNOWFLURRY );
 		tent->s.origin = point;
@@ -2990,8 +2992,8 @@ void propsFireColumnUse( gentity_t *ent, gentity_t *other, gentity_t *activator 
 	// speed
 	if ( ent->speed ) {
 		tent->s.pos.trDelta.Zero();
-		tent->s.pos.trDelta = dir * ent->speed + ( crandom() * 100 );
-		SnapVector( tent->s.pos.trDelta );
+		tent->s.pos.trDelta = dir * ent->speed + ( gameRandom.CRandomFloat() * 100 );
+		tent->s.pos.trDelta.Snap();
 		tent->r.currentOrigin = start;
 	}
 
@@ -3018,13 +3020,15 @@ void propsFireColumnInit( gentity_t *ent ) {
 	if ( ent->target ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->target );
 		vec = target->s.origin - ent->s.origin;
-		vectoangles( vec, angles );
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 		G_SetAngle( ent, angles );
 	} else
 	{
 		// ok then just up
 		vec.Set( 0, 0, 1 );
-		vectoangles( vec, angles );
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 		G_SetAngle( ent, angles );
 	}
 
@@ -3083,8 +3087,8 @@ void props_ExploPartUse( gentity_t *ent, gentity_t *other, gentity_t *activator 
 
 		if ( ent->speed ) {
 			part->s.pos.trDelta.Zero();
-			part->s.pos.trDelta = dir * ent->speed + ( crandom() * 100 );
-			SnapVector( part->s.pos.trDelta );
+			part->s.pos.trDelta = dir * ent->speed + ( gameRandom.CRandomFloat() * 100 );
+			part->s.pos.trDelta.Snap();
 			part->r.currentOrigin = start;
 		}
 	}
@@ -3099,13 +3103,15 @@ void props_ExploPartInit( gentity_t *ent ) {
 	if ( ent->target ) {
 		target = G_Find( NULL, FOFS( targetname ), ent->target );
 		vec = target->s.origin - ent->s.origin;
-		vectoangles( vec, angles );
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 		G_SetAngle( ent, angles );
 	} else
 	{
 		// ok then just up
 		vec.Set( 0, 0, 1 );
-		vectoangles( vec, angles );
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 		G_SetAngle( ent, angles );
 	}
 }
@@ -3477,7 +3483,7 @@ void SP_skyportal( gentity_t *ent ) {
 	isfog += G_SpawnInt( "fognear", "0", &fogn );
 	isfog += G_SpawnInt( "fogfar", "300", &fogf );
 
-	trap_SetConfigstring( CS_SKYBOXORG, va( "%.2f %.2f %.2f %.1f %i %.2f %.2f %.2f %i %i", ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], fov_x, (int)isfog, fogv[0], fogv[1], fogv[2], fogn, fogf ) );
+	trap_SetConfigstring( CS_SKYBOXORG, idStr::FormatString( "%.2f %.2f %.2f %.1f %i %.2f %.2f %.2f %i %i", ent->s.origin[0], ent->s.origin[1], ent->s.origin[2], fov_x, (int)isfog, fogv[0], fogv[1], fogv[2], fogn, fogf ) );
 //----(SA)	end
 }
 
@@ -3790,8 +3796,8 @@ void Spawn_Junk( gentity_t *ent ) {
 
 	start = ent->r.currentOrigin;
 
-	start[0] += crandom() * 32;
-	start[1] += crandom() * 32;
+	start[0] += gameRandom.CRandomFloat() * 32;
+	start[1] += gameRandom.CRandomFloat() * 32;
 	start[2] += 16;
 
 	dir = start - ent->r.currentOrigin;
@@ -3901,8 +3907,8 @@ void props_locker_mass( gentity_t *ent ) {
 
 	start = ent->r.currentOrigin;
 
-	start[0] += crandom() * 32;
-	start[1] += crandom() * 32;
+	start[0] += gameRandom.CRandomFloat() * 32;
+	start[1] += gameRandom.CRandomFloat() * 32;
 	start[2] += 16;
 
 	dir = start - ent->r.currentOrigin;
@@ -4061,7 +4067,8 @@ void props_flamethrower_think( gentity_t *ent ) {
 		{
 			vec = target->s.origin - ent->s.origin;
 			vec.Normalize();
-			vectoangles( vec, angles );
+			idAngles targetAngles = vec.ToAngles();
+			angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 //			VectorCopy (angles, ent->r.currentAngles);	// (SA) wasn't working
 			ent->s.apos.trBase = angles;
 		}
@@ -4138,7 +4145,8 @@ void props_flamethrower_init( gentity_t *ent ) {
 	{
 		vec = target->s.origin - ent->s.origin;
 		vec.Normalize();
-		vectoangles( vec, angles );
+		idAngles targetAngles = vec.ToAngles();
+		angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 //		VectorCopy (angles, ent->r.currentAngles);	//----(SA)
 		ent->s.apos.trBase = angles;
 		ent->s.angles = angles; // RF, added to fix wierd release build issues

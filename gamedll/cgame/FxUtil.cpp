@@ -1,5 +1,7 @@
 
 // this include must remain at the top of every CPP file
+#include "../precompiled.h"
+
 #include "FxWolf.h"
 
 #if !defined(FX_SCHEDULER_H_INC)
@@ -22,7 +24,7 @@ SEffectList		effectList[MAX_EFFECTS];
 SEffectList		*nextValidEffect;
 static CEffect *updatingEffect = NULL;
 struct FxPendingUpdate { SEffectList *slot; unsigned int generation; };
-static std::vector<FxPendingUpdate> pendingUpdates;
+static idList<FxPendingUpdate> pendingUpdates;
 static bool collectingUpdates = false;
 SFxHelper		theFxHelper;
 
@@ -203,12 +205,12 @@ void FX_Add( void )
 	// Capture generations so eviction cannot turn an old queue entry into a second
 	// update of its replacement. Children are appended even when they reuse an
 	// earlier slot, which keeps one-frame ribbons visible in the spawning frame.
-	pendingUpdates.clear();
+	pendingUpdates.Clear();
 	for ( i = 0; i < MAX_EFFECTS; i++ ) {
-		if ( effectList[i].mEffect ) { pendingUpdates.push_back({ &effectList[i], effectList[i].generation }); }
+		if ( effectList[i].mEffect ) { pendingUpdates.Append({ &effectList[i], effectList[i].generation }); }
 	}
 	collectingUpdates = true;
-	for ( size_t index = 0; index < pendingUpdates.size(); index++ ) {
+	for ( size_t index = 0; index < pendingUpdates.Num(); index++ ) {
 		FxPendingUpdate entry = pendingUpdates[index];
 		ef = entry.slot;
 		if ( ef->mEffect != 0 && ef->generation == entry.generation )
@@ -237,7 +239,7 @@ void FX_Add( void )
 	}
 
 	collectingUpdates = false;
-	pendingUpdates.clear();
+	pendingUpdates.Clear();
 
 	if ( fx_debug.integer )
 	{
@@ -382,8 +384,8 @@ void FX_AddPrimitive( CEffect **pEffect, int killTime )
 	item->mEffect = *pEffect;
 	item->generation++;
 	// Bound recursive emitters without depending on which pool slot is reused.
-	if ( collectingUpdates && pendingUpdates.size() < MAX_EFFECTS * 2 ) {
-		pendingUpdates.push_back({ item, item->generation });
+	if ( collectingUpdates && pendingUpdates.Num() < MAX_EFFECTS * 2 ) {
+		pendingUpdates.Append({ item, item->generation });
 	}
 	killTime = killTime < 1 ? 1 : killTime;
 	item->mKillTime = theFxHelper.mTime + killTime;

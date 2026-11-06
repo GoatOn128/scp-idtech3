@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 volatile renderCommandList_t    *renderCommandList;
@@ -407,7 +409,7 @@ void RE_BeginFrame( stereoFrame_t stereoFrame ) {
 			r_ati_truform_tess->modified = qfalse;
 			// cap if necessary
 			if ( r_ati_truform_tess->value > glConfig.ATIMaxTruformTess ) {
-				ri.Cvar_Set( "r_ati_truform_tess", va( "%d",glConfig.ATIMaxTruformTess ) );
+				ri.Cvar_Set( "r_ati_truform_tess", idStr::FormatString( "%d",glConfig.ATIMaxTruformTess ) );
 			}
 
 			qglPNTrianglesiATI( GL_PN_TRIANGLES_TESSELATION_LEVEL_ATI, r_ati_truform_tess->value );

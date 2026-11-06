@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -43,8 +45,8 @@ void AICast_SpecialFunc( cast_state_t *cs ) {
 		ent->flags &= ~FL_DEFENSE_CROUCH;
 		// if we are pursuing the player from a distance, use our "crouch moving defense"
 		if ( ( enemy ) && ( cs->perception.vislist[cs->enemyNum].real_visible_timestamp > level.time - 5000 ) &&
-			 ( Distance( cs->clientState->origin, enemy->s.pos.trBase ) > 200 ) &&
-			 ( Distance( cs->clientState->origin, enemy->s.pos.trBase ) < 600 ) &&
+			 ( ( cs->clientState->origin - enemy->s.pos.trBase ).Length() > 200 ) &&
+			 ( ( cs->clientState->origin - enemy->s.pos.trBase ).Length() < 600 ) &&
 			 ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE )
 			 //&&	(infront( ent, enemy ))
 			 && ( infront( enemy, ent ) ) ) {
@@ -124,7 +126,7 @@ void AICast_SpecialFunc( cast_state_t *cs ) {
 		}
 		break;
 	case AICHAR_ZOMBIE:
-		if ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_MONSTER_ATTACK1 ) ) { // flaming zombie, run
+		if ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_MONSTER_ATTACK1 ) ) { // flaming zombie, run
 			BG_UpdateConditionValue( cs->entityNum, ANIM_COND_CHARGING, 1, qfalse );
 		}
 		break;
@@ -209,9 +211,10 @@ void AICast_PredictMovement( cast_state_t *cs, int numframes, float frametime, a
 				thisHitVec = g_entities[checkHitEnt].r.currentOrigin - pm.ps->origin;
 				if ( ( startHitVec * thisHitVec ) < 0 ) {
 					// project the marker onto the movement vec, and check distance
-					ProjectPointOntoVector( g_entities[checkHitEnt].r.currentOrigin, lastOrg, pm.ps->origin,
-											projPoint );
-					if ( VectorDistance( g_entities[checkHitEnt].r.currentOrigin, projPoint ) < 8 ) {
+					idVec3 moveDirection = pm.ps->origin - lastOrg;
+					projPoint = lastOrg + moveDirection * ( ( g_entities[checkHitEnt].r.currentOrigin - lastOrg ) * moveDirection /
+						( moveDirection * moveDirection ) );
+					if ( ( g_entities[checkHitEnt].r.currentOrigin - projPoint ).Length() < 8 ) {
 						move->stopevent = PREDICTSTOP_HITENT;
 						goto done;
 					}
@@ -365,17 +368,17 @@ qboolean AICast_GetAvoid( cast_state_t *cs, bot_goal_t *goal, idVec3 &outpos, qb
 		oldyaw = cs->clientState->cur_ps.viewangles[YAW];
 		cs->clientState->cur_ps.viewangles[YAW] += yaw + reverse * 180;
 		//
-		ucmd.angles[YAW] = ANGLE2SHORT( AngleMod( cs->clientState->cur_ps.viewangles[YAW] ) );
+		ucmd.angles[YAW] = ANGLE2SHORT( idMath::AngleNormalize360( cs->clientState->cur_ps.viewangles[YAW] ) );
 		//
 		AICast_PredictMovement( cs, 5, 0.4, &castmove, &ucmd, -1 );
 		// if we have a danger entity, try and get away from it at all costs
 		if ( cs->dangerEntity >= 0 && cs->dangerEntityValidTime >= level.time ) {
-			distmoved = Distance( castmove.endpos, cs->dangerEntityPos );
+			distmoved = ( castmove.endpos - cs->dangerEntityPos ).Length();
 		} else if ( goal ) {
 			//distmoved = 99999 - trap_AAS_AreaTravelTimeToGoalArea( AI_PointAreaNum(castmove.endpos), castmove.endpos, goal->areanum, cs->travelflags );
-			distmoved = 99999 - Distance( castmove.endpos, goal->origin );
+			distmoved = 99999 - ( castmove.endpos - goal->origin ).Length();
 		} else {
-			distmoved = Distance( castmove.endpos, cs->clientState->cur_ps.origin );
+			distmoved = ( castmove.endpos - cs->clientState->cur_ps.origin ).Length();
 		}
 		if ( ( distmoved > bestmoved )
 			 //&&	((cs->clientState->origin[2] - castmove.endpos[2]) < 64)	// allow up, but not down (falling)
@@ -444,8 +447,8 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 
 			// if we stopped passed our goal, ignore it
 			if ( goal ) {
-				if ( VectorDistance( cs->clientState->origin, goal->origin ) <
-					 VectorDistance( cs->clientState->origin, move.endpos ) ) {
+				if ( ( cs->clientState->origin - goal->origin ).Length() <
+					 ( cs->clientState->origin - move.endpos ).Length() ) {
 					idVec3 v1, v2;
 					v1 = goal->origin - cs->clientState->origin;
 					v2 = goal->origin - move.endpos;
@@ -468,7 +471,7 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 						blockEnt = move.touchents[i];
 					}
 					// if we are close to the impact point, then avoid this entity
-					else if ( VectorDistance( cs->clientState->origin, move.endpos ) < 10 ) {
+					else if ( ( cs->clientState->origin - move.endpos ).Length() < 10 ) {
 						//G_Printf("AI (%s) avoiding %s\n", g_entities[cs->entityNum].aiName, g_entities[move.touchents[i]].classname );
 						blockEnt = move.touchents[i];
 					}
@@ -541,7 +544,7 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 
 		// something is blocking our path
 		if ( g_entities[blockEnt].aiName && g_entities[blockEnt].client && cs->clientState &&
-			 VectorDistance( cs->clientState->origin, g_entities[blockEnt].r.currentOrigin ) < 128 ) {
+			 ( cs->clientState->origin - g_entities[blockEnt].r.currentOrigin ).Length() < 128 ) {
 			int oldId = cs->script.castScriptStatus.scriptId;
 			AICast_ScriptEvent( cs, "blocked", g_entities[blockEnt].aiName );
 			if ( ( oldId != cs->script.castScriptStatus.scriptId ) || ( cs->aiFlags & AIFL_DENYACTION ) ) {
@@ -554,7 +557,7 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 		if ( /*blockEnt > MAX_CLIENTS &&*/ AICast_GetAvoid( cs, goal, pos, qfalse, blockEnt ) ) {
 			dir = pos - cs->clientState->cur_ps.origin;
 			dir.Normalize();
-			cs->navigation.blockedAvoidYaw = vectoyaw( dir );
+			cs->navigation.blockedAvoidYaw = dir.ToYaw();
 			if ( blockEnt >= MAX_CLIENTS ) {
 				cs->navigation.blockedAvoidTime = level.time + 100 + rand() % 200;
 			} else {
@@ -576,7 +579,10 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 
 	trap_EA_Move( cs->clientState->entitynum, dir, 200 ); //400);
 
-	vectoangles( dir, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = dir.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 	cs->ideal_viewangles[2] *= 0.5;
 }
 

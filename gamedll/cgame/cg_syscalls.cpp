@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // Native module bindings supplied through the typed cgame import table.
+#include "../precompiled.h"
+
 #include "cg_local.h"
 
 static const cgameImport_t *cgImports;

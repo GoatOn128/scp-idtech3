@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../../precompiled.h"
+
 #include "../ai_local.h"
 
 /*
@@ -70,7 +72,7 @@ char *AIFunc_ChaseGoalIdle( cast_state_t *cs ) {
 	}
 
 	// they are ready, are they outside range?
-	if ( Distance( followent->r.currentOrigin, cs->clientState->origin ) > cs->navigation.followDist ) {
+	if ( ( followent->r.currentOrigin - cs->clientState->origin ).Length() > cs->navigation.followDist ) {
 		return AIFunc_ChaseGoalStart( cs, cs->navigation.followEntity, cs->navigation.followDist, qtrue );
 	}
 
@@ -93,7 +95,10 @@ char *AIFunc_ChaseGoalIdle( cast_state_t *cs ) {
 			cs->ideal_viewangles[PITCH] = 0;
 		} else {
 			faceDir.Normalize();
-			vectoangles( faceDir, cs->ideal_viewangles );
+			{
+				const idAngles convertedAngles = faceDir.ToAngles();
+				cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+			}
 		}
 		// reload?
 		AICast_IdleReload( cs );
@@ -102,7 +107,10 @@ char *AIFunc_ChaseGoalIdle( cast_state_t *cs ) {
 		dir = followent->r.currentOrigin - cs->clientState->origin;
 		dir[2] += followent->client->ps.viewheight - g_entities[cs->clientState->entitynum].client->ps.viewheight;
 		dir.Normalize();
-		vectoangles( dir, cs->ideal_viewangles );
+		{
+			const idAngles convertedAngles = dir.ToAngles();
+			cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+		}
 	}
 
 	// look for things we should attack
@@ -233,7 +241,7 @@ char *AIFunc_ChaseGoal( cast_state_t *cs ) {
 	}
 
 	// they are ready, are they inside range? FIXME: make configurable
-	dist = Distance( destorg, cs->clientState->origin );
+	dist = ( destorg - cs->clientState->origin ).Length();
 	if ( cs->navigation.followSlowApproach && dist < cs->navigation.followDist &&
 		 ( ent->waterlevel || ( cs->clientState->cur_ps.groundEntityNum != ENTITYNUM_NONE ) ) ) {
 		// if this is a scripted GOTO, stop following now
@@ -323,7 +331,10 @@ char *AIFunc_ChaseGoal( cast_state_t *cs ) {
 				if ( ( move.frames * frameTime ) <
 					 ( 1.0 + ( goaldist / ( bs->cur_ps.speed * bs->cur_ps.runSpeedScale ) ) ) ) {
 					trap_EA_Move( cs->entityNum, dir, 400 );
-					vectoangles( dir, cs->ideal_viewangles );
+					{
+						const idAngles convertedAngles = dir.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 					cs->ideal_viewangles[2] *= 0.5;
 					moved = qtrue;
 				}
@@ -576,14 +587,14 @@ char *AIFunc_BattleHunt( cast_state_t *cs ) {
 				cs->combat.battleHuntViewTime = level.time + 700 + rand() % 1000;
 				// set a random viewangle
 				cs->ideal_viewangles[YAW] =
-					AngleMod( cs->ideal_viewangles[YAW] + ( 45.0 + random() * 45.0 ) * ( 2 * ( rand() % 2 ) - 1 ) );
+					idMath::AngleNormalize360( cs->ideal_viewangles[YAW] + ( 45.0 + gameRandom.RandomFloat() * 45.0 ) * ( 2 * ( rand() % 2 ) - 1 ) );
 				cs->ideal_viewangles[PITCH] = 0;
 			}
 		}
 	} else {
 		// cycle through markers
 		destorg = cs->perception.vislist[cs->enemyNum].chase_marker[cs->combat.battleChaseMarker];
-		if ( ( dist = Distance( destorg, cs->clientState->origin ) ) < chaseDist ) {
+		if ( ( dist = ( destorg - cs->clientState->origin ).Length() ) < chaseDist ) {
 			if ( cs->combat.battleChaseMarker == ( cs->perception.vislist[cs->enemyNum].chase_marker_count - 1 ) ) {
 				cs->combat.battleHuntPauseTime = level.time + 4000;
 				cs->combat.battleHuntViewTime = level.time + 1000;
@@ -745,7 +756,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 		// go to the last visible position
 		destorg = cs->perception.vislist[cs->enemyNum].visible_pos;
 		// if we have reached it, go into hunt mode
-		if ( ( dist = Distance( destorg, cs->clientState->origin ) ) < chaseDist ) {
+		if ( ( dist = ( destorg - cs->clientState->origin ).Length() ) < chaseDist ) {
 			// if we haven't been hunted for a while, do so
 			if ( ocs->combat.lastBattleHunted < level.time - 5000 ) {
 				ocs->combat.lastBattleHunted = level.time;
@@ -765,11 +776,11 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 	} else // assume we know where other entities are
 	{
 		destorg = followent->s.pos.trBase;
-		dist = Distance( cs->clientState->origin, destorg );
+		dist = ( cs->clientState->origin - destorg ).Length();
 	}
 	//
 	// if the enemy is inside a CONTENTS_DONOTENTER brush, and we are close enough, stop chasing them
-	if ( AICast_EntityVisible( cs, cs->enemyNum, qtrue ) && VectorDistance( cs->clientState->origin, destorg ) < 384 ) {
+	if ( AICast_EntityVisible( cs, cs->enemyNum, qtrue ) && ( cs->clientState->origin - destorg ).Length() < 384 ) {
 		if ( trap_PointContents( destorg, cs->enemyNum ) & ( CONTENTS_DONOTENTER | CONTENTS_DONOTENTER_LARGE ) ) {
 			// just stay here, and hope they move out of the brush without finding a spot where they can hit us but we can't hit them
 			return NULL;
@@ -817,13 +828,13 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 	if ( ( ai_encounter.lastGrenadeFlushTime > level.time || ai_encounter.lastGrenadeFlushTime < level.time - 5000 ) &&
 		 ( cs->aiState >= AISTATE_COMBAT ) && ( cs->script.castScriptStatus.castScriptEventIndex < 0 ) &&
 		 ( cs->grenade.startGrenadeFlushTime < level.time - 3000 ) &&
-		 ( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_GRENADE_LAUNCHER ) ) &&
+		 ( idBitField::Test( cs->clientState->cur_ps.weapons, WP_GRENADE_LAUNCHER ) ) &&
 		 ( AICast_GotEnoughAmmoForWeapon( cs, WP_GRENADE_LAUNCHER ) ) &&
 		 ( cs->combat.weaponFireTimes[WP_GRENADE_LAUNCHER] < level.time - (int)( 1000 + aicast_skillscale * 1000 ) ) &&
 		 ( ( cs->weaponNum == WP_GRENADE_LAUNCHER ) ||
 		   !( cs->script.castScriptStatus.scriptFlags & SFL_NOCHANGEWEAPON ) ) &&
-		 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].visible_pos ) > 100 ) &&
-		 ( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].visible_pos ) < 1400 ) ) {
+		 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].visible_pos ).Length() > 100 ) &&
+		 ( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].visible_pos ).Length() < 1400 ) ) {
 		// try and flush them out with a grenade
 		//G_Printf("pineapple?\n");
 		return AIFunc_GrenadeFlushStart( cs );
@@ -831,14 +842,14 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 				  ai_encounter.lastGrenadeFlushTime < level.time - 5000 ) &&
 				( cs->aiState >= AISTATE_COMBAT ) && ( cs->script.castScriptStatus.castScriptEventIndex < 0 ) &&
 				( cs->grenade.startGrenadeFlushTime < level.time - 3000 ) &&
-				( COM_BitCheck( cs->clientState->cur_ps.weapons, WP_GRENADE_PINEAPPLE ) ) &&
+				( idBitField::Test( cs->clientState->cur_ps.weapons, WP_GRENADE_PINEAPPLE ) ) &&
 				( AICast_GotEnoughAmmoForWeapon( cs, WP_GRENADE_PINEAPPLE ) ) &&
 				( cs->combat.weaponFireTimes[WP_GRENADE_PINEAPPLE] <
 				  level.time - (int)( 1000 + aicast_skillscale * 1000 ) ) &&
 				( ( cs->weaponNum == WP_GRENADE_PINEAPPLE ) ||
 				  !( cs->script.castScriptStatus.scriptFlags & SFL_NOCHANGEWEAPON ) ) &&
-				( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].visible_pos ) > 100 ) &&
-				( Distance( cs->clientState->origin, cs->perception.vislist[cs->enemyNum].visible_pos ) < 1400 ) ) {
+				( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].visible_pos ).Length() > 100 ) &&
+				( ( cs->clientState->origin - cs->perception.vislist[cs->enemyNum].visible_pos ).Length() < 1400 ) ) {
 		// try and flush them out with a grenade
 		//G_Printf("pineapple?\n");
 		return AIFunc_GrenadeFlushStart( cs );
@@ -912,7 +923,10 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 						}
 					}
 				}
-				vectoangles( dir, cs->ideal_viewangles );
+				{
+					const idAngles convertedAngles = dir.ToAngles();
+					cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+				}
 				cs->ideal_viewangles[2] *= 0.5;
 				moved = qtrue;
 			} else { // clear movement
@@ -943,7 +957,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 				}
 			}
 			if ( cs->navigation.combatGoalTime > level.time ) {
-				if ( Distance( cs->navigation.combatGoalOrigin, g_entities[cs->leaderNum].r.currentOrigin ) >
+				if ( ( cs->navigation.combatGoalOrigin - g_entities[cs->leaderNum].r.currentOrigin ).Length() >
 					 MAX_LEADER_DIST ) {
 					// go find a new combatSpot
 					cs->navigation.combatGoalTime = 0;
@@ -954,7 +968,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 						cs->navigation.combatGoalTime = 0;
 					} else {
 						moved = qtrue;
-						if ( Distance( cs->clientState->origin, cs->navigation.combatGoalOrigin ) < 32 ) {
+						if ( ( cs->clientState->origin - cs->navigation.combatGoalOrigin ).Length() < 32 ) {
 							cs->navigation.combatGoalTime = 0;
 						}
 					}
@@ -962,7 +976,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 			} else {
 				// we can't find a way to get to our enemy, so go back to our leader if outside range
 				// do we need to go to our leader?
-				if ( Distance( cs->clientState->origin, g_entities[cs->leaderNum].r.currentOrigin ) >
+				if ( ( cs->clientState->origin - g_entities[cs->leaderNum].r.currentOrigin ).Length() >
 					 MAX_LEADER_DIST ) {
 					return AIFunc_ChaseGoalStart( cs, cs->leaderNum, AICAST_LEADERDIST_MAX, qtrue );
 				}
@@ -984,7 +998,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 					cs->navigation.combatGoalTime = 0;
 				} else {
 					moved = qtrue;
-					if ( Distance( cs->clientState->origin, cs->navigation.combatGoalOrigin ) < 32 ) {
+					if ( ( cs->clientState->origin - cs->navigation.combatGoalOrigin ).Length() < 32 ) {
 						cs->navigation.combatGoalTime = 0;
 						cs->combat.attackSpotTime =
 							level.time +
@@ -1089,7 +1103,7 @@ char *AIFunc_BattleChase( cast_state_t *cs ) {
 		}
 		// slow down? so we don't go too far from behind the obstruction which is protecting us
 		else if ( !( cs->aiFlags & AIFL_WALKFORWARD ) &&
-				  ( VectorDistance( cs->clientState->origin, g_entities[cs->enemyNum].s.pos.trBase ) <
+				  ( ( cs->clientState->origin - g_entities[cs->enemyNum].s.pos.trBase ).Length() <
 					AICast_WeaponRange( cs, cs->weaponNum ) ) &&
 				  ( cs->navigation.obstructingTime < level.time ) && ( cs->attributes[TACTICAL] > 0.1 ) &&
 				  ( AICast_VisibleFromPos( cs->perception.vislist[cs->enemyNum].visible_pos, cs->enemyNum, move.endpos,

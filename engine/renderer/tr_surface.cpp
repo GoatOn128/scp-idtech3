@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // tr_surf.c
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 /*
@@ -592,7 +594,8 @@ void RB_SurfaceRailRings( void ) {
 	// compute variables
 	vec = end - start;
 	len = vec.Normalize();
-	MakeNormalVectors( vec, right, up );
+	vec.MakeNormalVectors( right, up );
+	up = -up;
 	numSegs = ( len ) / r_railSegmentLength->value;
 	if ( numSegs <= 0 ) {
 		numSegs = 1;

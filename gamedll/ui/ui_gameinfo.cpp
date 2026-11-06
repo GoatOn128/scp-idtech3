@@ -32,6 +32,8 @@ If you have questions concerning this license or the applicable additional terms
 // gameinfo.c
 //
 
+#include "../precompiled.h"
+
 #include "ui_local.h"
 
 
@@ -97,7 +99,7 @@ int UI_ParseInfos( char *buf, int max, char *infos[] ) {
 			Info_SetValueForKey( info, key, token.c_str() );
 		}
 		//NOTE: extra space for arena number
-		infos[count] = (char *) UI_Alloc( strlen( info ) + strlen( "\\num\\" ) + strlen( va( "%d", MAX_ARENAS ) ) + 1 );
+		infos[count] = (char *) UI_Alloc( strlen( info ) + strlen( "\\num\\" ) + strlen( idStr::FormatString( "%d", MAX_ARENAS ) ) + 1 );
 		if ( infos[count] ) {
 			strcpy( infos[count], info );
 			count++;
@@ -118,11 +120,11 @@ static void UI_LoadArenasFromFile( char *filename ) {
 
 	len = trap_FS_FOpenFile( filename, &f, FS_READ );
 	if ( !f ) {
-		trap_Print( va( S_COLOR_RED "file not found: %s\n", filename ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "file not found: %s\n", filename ) );
 		return;
 	}
 	if ( len >= MAX_ARENAS_TEXT ) {
-		trap_Print( va( S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_ARENAS_TEXT ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_ARENAS_TEXT ) );
 		trap_FS_FCloseFile( f );
 		return;
 	}
@@ -168,7 +170,7 @@ void UI_LoadArenas( void ) {
 		strcat( filename, dirptr );
 		UI_LoadArenasFromFile( filename );
 	}
-	trap_Print( va( "%i arenas parsed\n", ui_numArenas ) );
+	trap_Print( idStr::FormatString( "%i arenas parsed\n", ui_numArenas ) );
 	if ( UI_OutOfMemory() ) {
 		trap_Print( S_COLOR_YELLOW "WARNING: not anough memory in pool to load all arenas\n" );
 	}
@@ -180,7 +182,7 @@ void UI_LoadArenas( void ) {
 		uiInfo.mapList[uiInfo.mapCount].mapLoadName = String_Alloc( Info_ValueForKey( ui_arenaInfos[n], "map" ) );
 		uiInfo.mapList[uiInfo.mapCount].mapName = String_Alloc( Info_ValueForKey( ui_arenaInfos[n], "longname" ) );
 		uiInfo.mapList[uiInfo.mapCount].levelShot = -1;
-		uiInfo.mapList[uiInfo.mapCount].imageName = String_Alloc( va( "levelshots/%s", uiInfo.mapList[uiInfo.mapCount].mapLoadName ) );
+		uiInfo.mapList[uiInfo.mapCount].imageName = String_Alloc( idStr::FormatString( "levelshots/%s", uiInfo.mapList[uiInfo.mapCount].mapLoadName ) );
 		uiInfo.mapList[uiInfo.mapCount].typeBits = 0;
 
 		type = Info_ValueForKey( ui_arenaInfos[n], "type" );
@@ -230,11 +232,11 @@ static void UI_LoadBotsFromFile( char *filename ) {
 
 	len = trap_FS_FOpenFile( filename, &f, FS_READ );
 	if ( !f ) {
-		trap_Print( va( S_COLOR_RED "file not found: %s\n", filename ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "file not found: %s\n", filename ) );
 		return;
 	}
 	if ( len >= MAX_BOTS_TEXT ) {
-		trap_Print( va( S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_BOTS_TEXT ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "file too large: %s is %i, max allowed is %i", filename, len, MAX_BOTS_TEXT ) );
 		trap_FS_FCloseFile( f );
 		return;
 	}
@@ -278,7 +280,7 @@ void UI_LoadBots( void ) {
 		strcat( filename, dirptr );
 		UI_LoadBotsFromFile( filename );
 	}
-	trap_Print( va( "%i bots parsed\n", ui_numBots ) );
+	trap_Print( idStr::FormatString( "%i bots parsed\n", ui_numBots ) );
 }
 
 
@@ -289,7 +291,7 @@ UI_GetBotInfoByNumber
 */
 char *UI_GetBotInfoByNumber( int num ) {
 	if ( num < 0 || num >= ui_numBots ) {
-		trap_Print( va( S_COLOR_RED "Invalid bot number: %i\n", num ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "Invalid bot number: %i\n", num ) );
 		return NULL;
 	}
 	return ui_botInfos[num];

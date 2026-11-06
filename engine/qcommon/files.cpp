@@ -36,8 +36,9 @@ If you have questions concerning this license or the applicable additional terms
  *****************************************************************************/
 
 
-#include "q_shared.h"
-#include "qcommon.h"
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "unzip.h"
 
 /*
@@ -988,10 +989,10 @@ qboolean FS_FilenameCompare( const char *s1, const char *s2 ) {
 		c1 = *s1++;
 		c2 = *s2++;
 
-		if ( Q_islower( c1 ) ) {
+		if ( ( c1 <= 0x7F && idStr::CharIsLower( c1 ) ) ) {
 			c1 -= ( 'a' - 'A' );
 		}
-		if ( Q_islower( c2 ) ) {
+		if ( ( c2 <= 0x7F && idStr::CharIsLower( c2 ) ) ) {
 			c2 -= ( 'a' - 'A' );
 		}
 
@@ -1118,7 +1119,6 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 	fileInPack_t    *pakFile;
 	directory_t     *dir;
 	long hash;
-	unz_s           *zfi;
 	FILE            *temp;
 	int l;
 	char demoExt[16];
@@ -1256,21 +1256,18 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 						if ( fsh[*file].handleFiles.file.z == NULL ) {
 							Com_Error( ERR_FATAL, "Couldn't reopen %s", pak->pakFilename );
 						}
+						// MiniZip reopens the cloned current entry eagerly; reset it
+						// before selecting the requested central-directory offset.
+						unzCloseCurrentFile( fsh[*file].handleFiles.file.z );
 					} else {
 						fsh[*file].handleFiles.file.z = pak->handle;
 					}
 					idStr::Copynz( fsh[*file].name, filename, sizeof( fsh[*file].name ) );
 					fsh[*file].zipFile = qtrue;
-					zfi = (unz_s *)fsh[*file].handleFiles.file.z;
-					// in case the file was new
-					temp = zfi->file;
-					// set the file position in the zip file (also sets the current file info)
-					unzSetCurrentFileInfoPosition( pak->handle, pakFile->pos );
-					// copy the file info into the unzip structure
-					memcpy( zfi, pak->handle, sizeof( unz_s ) );
-					// we copy this back into the structure
-					zfi->file = temp;
-					// open the file in the zip
+					// Select the entry through MiniZip's public offset API.
+					unzSetCurrentFileInfoPosition( fsh[*file].handleFiles.file.z, pakFile->pos );
+					unzGetCurrentFileInfo( fsh[*file].handleFiles.file.z, &file_info,
+						NULL, 0, NULL, 0, NULL, 0 );
 					unzOpenCurrentFile( fsh[*file].handleFiles.file.z );
 					fsh[*file].zipFilePos = pakFile->pos;
 
@@ -1278,7 +1275,7 @@ int FS_FOpenFileRead( const char *filename, fileHandle_t *file, qboolean uniqueF
 						Com_Printf( "FS_FOpenFileRead: %s (found in '%s')\n",
 									filename, pak->pakFilename );
 					}
-					return zfi->cur_file_info.uncompressed_size;
+					return file_info.uncompressed_size;
 				}
 				pakFile = pakFile->next;
 			} while ( pakFile != NULL );
@@ -2451,10 +2448,10 @@ int FS_PathCmp( const char *s1, const char *s2 ) {
 		c1 = *s1++;
 		c2 = *s2++;
 
-		if ( Q_islower( c1 ) ) {
+		if ( ( c1 <= 0x7F && idStr::CharIsLower( c1 ) ) ) {
 			c1 -= ( 'a' - 'A' );
 		}
-		if ( Q_islower( c2 ) ) {
+		if ( ( c2 <= 0x7F && idStr::CharIsLower( c2 ) ) ) {
 			c2 -= ( 'a' - 'A' );
 		}
 
@@ -2710,14 +2707,14 @@ qboolean FS_idPak( char *pak, char *base ) {
 	int i;
 
 	for ( i = 0; i < NUM_ID_PAKS; i++ ) {
-		if ( !FS_FilenameCompare( pak, va( "%s/pak%d", base, i ) ) ) {
+		if ( !FS_FilenameCompare( pak, idStr::FormatString( "%s/pak%d", base, i ) ) ) {
 			break;
 		}
 // JPW NERVE -- this fn prevents external sources from downloading/overwriting official files, so exclude both SP and MP files from this list as well
-		if ( !FS_FilenameCompare( pak, va( "%s/mp_pak%d",base,i ) ) ) {
+		if ( !FS_FilenameCompare( pak, idStr::FormatString( "%s/mp_pak%d",base,i ) ) ) {
 			break;
 		}
-		if ( !FS_FilenameCompare( pak, va( "%s/sp_pak%d",base,i ) ) ) {
+		if ( !FS_FilenameCompare( pak, idStr::FormatString( "%s/sp_pak%d",base,i ) ) ) {
 			break;
 		}
 // jpw
@@ -2794,7 +2791,7 @@ qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring ) {
 				// Local name
 				{ idStr s = neededpaks; s += "@"; idStr::Copynz( neededpaks, s.c_str(), len ); }
 				// Do we have one with the same name?
-				if ( FS_SV_FileExists( va( "%s.pk3", fs_serverReferencedPakNames[i] ) ) ) {
+				if ( FS_SV_FileExists( idStr::FormatString( "%s.pk3", fs_serverReferencedPakNames[i] ) ) ) {
 					char st[MAX_ZPATH];
 					// We already have one called this, we need to download it to another name
 					// Make something up with the checksum in it
@@ -2810,7 +2807,7 @@ qboolean FS_ComparePaks( char *neededpaks, int len, qboolean dlstring ) {
 				{ idStr s = neededpaks; s += fs_serverReferencedPakNames[i]; idStr::Copynz( neededpaks, s.c_str(), len ); }
 				{ idStr s = neededpaks; s += ".pk3"; idStr::Copynz( neededpaks, s.c_str(), len ); }
 				// Do we have one with the same name?
-				if ( FS_SV_FileExists( va( "%s.pk3", fs_serverReferencedPakNames[i] ) ) ) {
+				if ( FS_SV_FileExists( idStr::FormatString( "%s.pk3", fs_serverReferencedPakNames[i] ) ) ) {
 					{ idStr s = neededpaks; s += " (local file exists with wrong checksum)"; idStr::Copynz( neededpaks, s.c_str(), len ); }
 				}
 				{ idStr s = neededpaks; s += "\n"; idStr::Copynz( neededpaks, s.c_str(), len ); }
@@ -3045,7 +3042,7 @@ const char *FS_LoadedPakChecksums( void ) {
 			continue;
 		}
 
-		{ idStr s = info; s += va( "%i ", search->pack->checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
+		{ idStr s = info; s += idStr::FormatString( "%i ", search->pack->checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
 	}
 
 	return info;
@@ -3101,7 +3098,7 @@ const char *FS_LoadedPakPureChecksums( void ) {
 			continue;
 		}
 
-		{ idStr s = info; s += va( "%i ", search->pack->pure_checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
+		{ idStr s = info; s += idStr::FormatString( "%i ", search->pack->pure_checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
 	}
 
 	return info;
@@ -3125,7 +3122,7 @@ const char *FS_ReferencedPakChecksums( void ) {
 		// is the element a pak file?
 		if ( search->pack ) {
 			if ( search->pack->referenced || idStr::Icmpn( search->pack->pakGamename, BASEGAME, strlen( BASEGAME ) ) ) {
-				{ idStr s = info; s += va( "%i ", search->pack->checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
+				{ idStr s = info; s += idStr::FormatString( "%i ", search->pack->checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
 			}
 		}
 	}
@@ -3159,19 +3156,19 @@ const char *FS_ReferencedPakPureChecksums( void ) {
 		for ( search = fs_searchpaths ; search ; search = search->next ) {
 			// is the element a pak file and has it been referenced based on flag?
 			if ( search->pack && ( search->pack->referenced & nFlags ) ) {
-				{ idStr s = info; s += va( "%i ", search->pack->pure_checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
+				{ idStr s = info; s += idStr::FormatString( "%i ", search->pack->pure_checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
 				checksum ^= search->pack->pure_checksum;
 				numPaks++;
 			}
 		}
 		if ( fs_fakeChkSum != 0 ) {
 			// only added if a non-pure file is referenced
-			{ idStr s = info; s += va( "%i ", fs_fakeChkSum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
+			{ idStr s = info; s += idStr::FormatString( "%i ", fs_fakeChkSum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
 		}
 	}
 	// last checksum is the encoded number of referenced pk3s
 	checksum ^= numPaks;
-	{ idStr s = info; s += va( "%i ", checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
+	{ idStr s = info; s += idStr::FormatString( "%i ", checksum ); idStr::Copynz( info, s.c_str(), sizeof( info ) ); }
 
 	return info;
 }

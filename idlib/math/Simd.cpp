@@ -162,7 +162,7 @@ long saved_ebx = 0;
 PrintClocks
 ============
 */
-void PrintClocks( char *string, int dataCount, int clocks, int otherClocks = 0 ) {
+void PrintClocks( const char *string, int dataCount, int clocks, int otherClocks = 0 ) {
 	int i;
 
 	idLib::common->Printf( string );
@@ -249,7 +249,7 @@ void TestMinMax() {
 	}
 
 	result = ( min == min2 && max == max2 ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->MinMax( float[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->MinMax( float[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 
 	bestClocksGeneric = 0;
 	for ( i = 0; i < NUMTESTS; i++ ) {
@@ -269,7 +269,7 @@ void TestMinMax() {
 	}
 
 	result = ( v2min == v2min2 && v2max == v2max2 ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->MinMax( idVec2[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->MinMax( idVec2[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 
 	bestClocksGeneric = 0;
 	for ( i = 0; i < NUMTESTS; i++ ) {
@@ -289,7 +289,7 @@ void TestMinMax() {
 	}
 
 	result = ( vmin == vmin2 && vmax == vmax2 ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->MinMax( idVec3[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->MinMax( idVec3[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 
 	bestClocksGeneric = 0;
 	for ( i = 0; i < NUMTESTS; i++ ) {
@@ -309,7 +309,7 @@ void TestMinMax() {
 	}
 
 	result = ( vmin == vmin2 && vmax == vmax2 ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->MinMax( idDrawVert[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->MinMax( idDrawVert[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 
 	bestClocksGeneric = 0;
 	for ( i = 0; i < NUMTESTS; i++ ) {
@@ -329,7 +329,7 @@ void TestMinMax() {
 	}
 
 	result = ( vmin == vmin2 && vmax == vmax2 ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->MinMax( idDrawVert[], indexes[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->MinMax( idDrawVert[], indexes[] ) %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -377,7 +377,7 @@ void TestMemcpy() {
 		}
 	}
 	result = ( i >= BIG_COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->Memcpy() %s", result), BIG_COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->Memcpy() %s", result), BIG_COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -420,7 +420,7 @@ void TestMemset() {
 		}
 	}
 	result = ( i >= BIG_COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->Memset() %s", result), BIG_COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->Memset() %s", result), BIG_COUNT, bestClocksSIMD, bestClocksGeneric );
 
 	j = 0;
 
@@ -446,7 +446,7 @@ void TestMemset() {
 		}
 	}
 	result = ( i >= BIG_COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->Memset( 0 ) %s", result), BIG_COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->Memset( 0 ) %s", result), BIG_COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -520,7 +520,7 @@ void TestBlendJoints() {
 		}
 	}
 	result = ( i >= COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->BlendJoints() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->BlendJoints() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -594,7 +594,7 @@ void TestBlendJointsFast() {
 		}
 	}
 	result = ( i >= COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->BlendJointsFast() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->BlendJointsFast() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -646,7 +646,7 @@ void TestConvertJointQuatsToJointMats() {
 		}
 	}
 	result = ( i >= COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->ConvertJointQuatsToJointMats() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->ConvertJointQuatsToJointMats() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -703,7 +703,7 @@ void TestConvertJointMatsToJointQuats() {
 		}
 	}
 	result = ( i >= COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->ConvertJointMatsToJointQuats() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->ConvertJointMatsToJointQuats() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -765,7 +765,7 @@ void TestTransformJoints() {
 		}
 	}
 	result = ( i >= COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->TransformJoints() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->TransformJoints() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -827,7 +827,7 @@ void TestUntransformJoints() {
 		}
 	}
 	result = ( i >= COUNT ) ? "ok" : S_COLOR_RED"X";
-	PrintClocks( va( "   simd->UntransformJoints() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	PrintClocks( idStr::FormatString( "   simd->UntransformJoints() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*

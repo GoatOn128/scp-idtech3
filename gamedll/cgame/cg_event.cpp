@@ -30,6 +30,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cg_event.c -- handle entity events at snapshot or playerstate transitions
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 #include "../ui/ui_shared.h" // for Menus_CloseAll()
@@ -48,7 +50,8 @@ Also called by scoreboard drawing
 */
 const char  *CG_PlaceString( int rank ) {
 	static char str[64];
-	char    *s, *t;
+	idStr s;
+	const char *t;
 
 	if ( rank & RANK_TIED_FLAG ) {
 		rank &= ~RANK_TIED_FLAG;
@@ -70,13 +73,13 @@ const char  *CG_PlaceString( int rank ) {
 	} else if ( rank == 13 ) {
 		s = "13th";
 	} else if ( rank % 10 == 1 ) {
-		s = va( "%ist", rank );
+		s = idStr::FormatString( "%ist", rank );
 	} else if ( rank % 10 == 2 ) {
-		s = va( "%ind", rank );
+		s = idStr::FormatString( "%ind", rank );
 	} else if ( rank % 10 == 3 ) {
-		s = va( "%ird", rank );
+		s = idStr::FormatString( "%ird", rank );
 	} else {
-		s = va( "%ith", rank );
+		s = idStr::FormatString( "%ith", rank );
 	}
 
 	Com_sprintf( str, sizeof( str ), "%s%s", t, s );
@@ -208,14 +211,14 @@ static void CG_Obituary( entityState_t *ent ) {
 
 	// check for kill messages from the current clientNum
 	if ( attacker == cg.snap->ps.clientNum ) {
-		char    *s;
+		idStr s;
 
 		if ( cgs.gametype < GT_TEAM ) {
-			s = va( "You fragged %s\n%s place with %i", targetName,
+			s = idStr::FormatString( "You fragged %s\n%s place with %i", targetName,
 					CG_PlaceString( cg.snap->ps.persistant[PERS_RANK] + 1 ),
 					cg.snap->ps.persistant[PERS_SCORE] );
 		} else {
-			s = va( "You fragged %s", targetName );
+			s = idStr::FormatString( "You fragged %s", targetName );
 		}
 		CG_CenterPrint( s, SCREEN_HEIGHT * 0.25, BIGCHAR_WIDTH );
 
@@ -386,7 +389,7 @@ static void CG_UseItem( centity_t *cent ) {
 					CG_CenterPrint( "drankwine", SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
 					break;
 				default:
-					CG_CenterPrint( va( "Use %s", cgs.itemPrintNames[item - bg_itemlist] ), SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
+					CG_CenterPrint( idStr::FormatString( "Use %s", cgs.itemPrintNames[item - bg_itemlist] ), SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
 					break;
 				}
 			}
@@ -447,7 +450,7 @@ static void CG_ItemPickup( int itemNum ) {
 		weapon = itemid;
 
 		if ( weapon == WP_COLT ) {
-			if ( COM_BitCheck( cg.snap->ps.weapons, weapon ) ) {
+			if ( idBitField::Test( cg.snap->ps.weapons, weapon ) ) {
 				weapon = WP_AKIMBO; // you have colt, now get akimbo (second)
 			}
 		}
@@ -480,7 +483,7 @@ static void CG_ItemPickup( int itemNum ) {
 					// FIXME:	this works fine for predicted pickups (when you walk over the weapon), but not for
 					//			manual pickups (activate item)
 					if ( cg_autoswitch.integer == 2 || cg_autoswitch.integer == 4 || cg_autoswitch.integer == 5 ) {
-						if ( !COM_BitCheck( cg.snap->ps.weapons, weapon ) ) {
+						if ( !idBitField::Test( cg.snap->ps.weapons, weapon ) ) {
 							selectIt = qtrue;
 						}
 					}   // end 2/4/5
@@ -1173,7 +1176,7 @@ void CG_Effect( centity_t *cent, idVec3 origin, idVec3 dir ) {
 
 		s = CG_ConfigString( CS_TARGETEFFECT ); // see if ent has a shader specified
 		if ( s && strlen( s ) > 0 ) {
-			sh = trap_R_RegisterShader( va( "textures/%s", s ) );    // FIXME: don't do this here.  only for testing
+			sh = trap_R_RegisterShader( idStr::FormatString( "textures/%s", s ) );    // FIXME: don't do this here.  only for testing
 
 		}
 		cent->currentState.eFlags &= ~EF_INHERITSHADER; // don't try to inherit shader
@@ -1467,7 +1470,8 @@ void CG_SpawnSpirit( centity_t *cent ) {
 	// set angles
 	v = enemyPos - le->pos.trBase;
 	(v).Normalize();
-	vectoangles( v, ang );
+	const idAngles directionAngles = v.ToAngles();
+	ang.Set( directionAngles.pitch, directionAngles.yaw, directionAngles.roll );
 	idAngles( ang[0], ang[1], ang[2] ).ToVectors( &re->axis[0], &re->axis[1], &re->axis[2] );
 	le->pos.trDelta = v * (CG_FxInt( "wolf/controller_spawnspirit", "tuning" ));
 
@@ -1834,7 +1838,7 @@ void CG_EntityEvent( centity_t *cent, const idVec3 &position ) {
 //			trap_R_SetFog(FOG_CMD_SWITCHFOG, FOG_WATER, 200, 0, 0, 0, 0);
 			char buff[64];
 			trap_Cvar_VariableStringBuffer( "r_waterFogColor", buff, sizeof( buff ) );
-			trap_SendClientCommand( va( "fogswitch %s", buff ) );
+			trap_SendClientCommand( idStr::FormatString( "fogswitch %s", buff ) );
 		}
 		break;
 	case EV_WATER_CLEAR:
@@ -1846,7 +1850,7 @@ void CG_EntityEvent( centity_t *cent, const idVec3 &position ) {
 //			trap_R_SetFog(FOG_CMD_SWITCHFOG, FOG_MAP, 400,0,0,0,0);
 			char buff[64];
 			trap_Cvar_VariableStringBuffer( "r_mapFogColor", buff, sizeof( buff ) );
-			trap_SendClientCommand( va( "fogswitch %s", buff ) );
+			trap_SendClientCommand( idStr::FormatString( "fogswitch %s", buff ) );
 		}
 		break;
 
@@ -2262,7 +2266,7 @@ void CG_EntityEvent( centity_t *cent, const idVec3 &position ) {
 		break;
 
 	case EV_POPUPBOOK:
-		trap_UI_Popup( va( "hbook%d", es->eventParm ) );
+		trap_UI_Popup( idStr::FormatString( "hbook%d", es->eventParm ) );
 		break;
 
 	case EV_POPUP:
@@ -2280,7 +2284,7 @@ void CG_EntityEvent( centity_t *cent, const idVec3 &position ) {
 	{
 		int havepages = cg_notebookpages.integer;
 		havepages |= es->eventParm;
-		trap_Cvar_Set( "cg_notebookpages", va( "%d", havepages ) );  // store new current page name for the ui to pick up
+		trap_Cvar_Set( "cg_notebookpages", idStr::FormatString( "%d", havepages ) );  // store new current page name for the ui to pick up
 		trap_Cvar_Set( "cg_youGotMail", "1" );  //----(SA)	added
 	}
 	break;
@@ -2359,7 +2363,7 @@ void CG_EntityEvent( centity_t *cent, const idVec3 &position ) {
 //		trap_S_StopStreamingSound( es->number );												// kill speech
 
 		trap_S_StartSound( NULL, es->number, CHAN_VOICE,
-						   CG_CustomSound( es->number, va( "*death%i.wav", event - EV_DEATH1 + 1 ) ) );
+						   CG_CustomSound( es->number, idStr::FormatString( "*death%i.wav", event - EV_DEATH1 + 1 ) ) );
 		break;
 
 	case EV_ENTDEATH:

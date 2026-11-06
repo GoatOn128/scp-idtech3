@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.25)
 
 project(WolfSP LANGUAGES C CXX)
 
+# The Windows toolchain is intentionally 32-bit.  The original asset tools
+# use 32-bit file formats and are not supported as x64 executables.
+if ( WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 8 )
+	message(FATAL_ERROR "Windows builds must use the Win32/x86 toolchain; x64 is unsupported")
+endif()
+
 # the AI state machine uses scoped enums: build as C++14 everywhere
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -77,12 +83,7 @@ if ( WIN32 )
 		string(CONCAT Q_PATH_SEP "PATH_SEP='" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "${Q_BACKSLASH}" "'")
 	endif()
 	list(APPEND PLATFORM_DEFINES "${Q_PATH_SEP}")
-if ( CMAKE_SIZEOF_VOID_P EQUAL 8 )
-		set(Q_CPUSTRING "win-x64")
-	else()
-		set(Q_CPUSTRING "win-x86")
-	endif()
-	list(APPEND PLATFORM_DEFINES "CPUSTRING=\"${Q_CPUSTRING}$<$<CONFIG:Debug>:-debug>\"")
+list(APPEND PLATFORM_DEFINES "CPUSTRING=\"win-x86$<$<CONFIG:Debug>:-debug>\"")
 elseif ( APPLE )
 	list(APPEND PLATFORM_DEFINES "QDECL=" "PATH_SEP='/'")
 	list(APPEND PLATFORM_DEFINES "CPUSTRING=\"macos-${CMAKE_SYSTEM_PROCESSOR}\"")
@@ -120,10 +121,9 @@ if ( NOT MSVC )
 endif()
 
 # Tools
-if ( WIN32 )
-	add_subdirectory(tools/bspc)
-	add_subdirectory(tools/extractfuncs)
-endif()
+add_subdirectory(tools/bspc)
+add_subdirectory(tools/extractfuncs)
+add_subdirectory(tools/q3map)
 
 # GameDLLs
 add_subdirectory(gamedll/botlib)

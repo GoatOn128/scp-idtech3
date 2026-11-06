@@ -27,10 +27,12 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // sv_game.c -- interface to the game dll
+#include "precompiled.h"
+#pragma hdrstop
 
 #include "server.h"
 
-#include "../../gamedll/game/botlib.h"
+#include "../../gamedll/botlib/botlib.h"
 
 botlib_export_t *botlib_export;
 

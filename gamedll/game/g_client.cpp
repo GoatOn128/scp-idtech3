@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 // g_client.c -- client functions that don't happen every frame
@@ -61,7 +63,8 @@ void SP_info_player_deathmatch( gentity_t *ent ) {
 	ent->enemy = G_PickTarget( ent->target );
 	if ( ent->enemy ) {
 		dir = ent->enemy->s.origin - ent->s.origin;
-		vectoangles( dir, ent->s.angles );
+		idAngles targetAngles = dir.ToAngles();
+		ent->s.angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 	}
 
 }
@@ -655,14 +658,14 @@ void respawn( gentity_t *ent ) {
 		if ( !( ent->r.svFlags & SVF_CASTAI ) ) {
 			// Fast method, just do a map_restart, and then load in the savegame
 			// once everything is settled.
-			trap_SetConfigstring( CS_SCREENFADE, va( "1 %i 4000", level.time + 2000 ) );
+			trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i 4000", level.time + 2000 ) );
 //			reloading = qtrue;
 			trap_Cvar_Set( "g_reloading", "1" );
 
 //			level.reloadDelayTime = level.time + 1500;
 			level.reloadDelayTime = level.time + 6000;
 
-			trap_SendServerCommand( -1, va( "snd_fade 0 %d", 6000 ) );  // fade sound out
+			trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 0 %d", 6000 ) );  // fade sound out
 
 			return;
 		}
@@ -827,7 +830,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 	// All players start with a knife (not OR-ing so that it clears previous weapons)
 	client->ps.weapons[0] = 0;
 	client->ps.weapons[1] = 0;
-	COM_BitSet( client->ps.weapons, WP_KNIFE );
+	idBitField::Set( client->ps.weapons, WP_KNIFE );
 
 	client->ps.ammo[BG_FindAmmoForWeapon( WP_KNIFE )] = 1;
 	client->ps.weapon = WP_KNIFE;
@@ -835,7 +838,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 
 	// Engineer gets dynamite
 	if ( pc == PC_ENGINEER ) {
-		COM_BitSet( client->ps.weapons, WP_DYNAMITE );
+		idBitField::Set( client->ps.weapons, WP_DYNAMITE );
 		client->ps.ammo[BG_FindAmmoForWeapon( WP_DYNAMITE )] = 0;
 		client->ps.ammoclip[BG_FindClipForWeapon( WP_DYNAMITE )] = 1;
 	}
@@ -844,7 +847,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 	if ( pc == PC_LT ) {
 		client->ps.stats[STAT_KEYS] |= ( 1 << INV_BINOCS );
 /* no grenades for balance JPW NERVE
-		COM_BitSet( client->ps.weapons, WP_GRENADE_LAUNCHER );
+		idBitField::Set( client->ps.weapons, WP_GRENADE_LAUNCHER );
 		client->ps.ammo[BG_FindAmmoForWeapon(WP_GRENADE_LAUNCHER)] = 2;
 		client->ps.ammoclip[BG_FindClipForWeapon(WP_GRENADE_LAUNCHER)] = 1;
 */
@@ -852,7 +855,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 
 	// Everyone except the Soldier has a special weapon
 	if ( pc != PC_SOLDIER ) {
-		COM_BitSet( client->ps.weapons, WP_CLASS_SPECIAL );
+		idBitField::Set( client->ps.weapons, WP_CLASS_SPECIAL );
 		client->ps.ammo[WP_CLASS_SPECIAL] = 1;
 		// ammo for other special weapons so that icons draw ok
 		client->ps.ammo[WP_MEDIC_HEAL] = 1;
@@ -863,13 +866,13 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 	switch ( client->sess.sessionTeam ) { // JPW NERVE was playerPistol
 
 	case TEAM_RED: // JPW NERVE
-		COM_BitSet( client->ps.weapons, WP_LUGER );
+		idBitField::Set( client->ps.weapons, WP_LUGER );
 		client->ps.ammoclip[BG_FindClipForWeapon( WP_LUGER )] += 8;
 		client->ps.ammo[BG_FindAmmoForWeapon( WP_LUGER )] += 24;
 		client->ps.weapon = WP_LUGER;
 		break;
 	default: // '0' // TEAM_BLUE
-		COM_BitSet( client->ps.weapons, WP_COLT );
+		idBitField::Set( client->ps.weapons, WP_COLT );
 		client->ps.ammoclip[BG_FindClipForWeapon( WP_COLT )] += 8;
 		client->ps.ammo[BG_FindAmmoForWeapon( WP_COLT )] += 24;
 		client->ps.weapon = WP_COLT;
@@ -882,17 +885,17 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 		switch ( client->sess.sessionTeam ) { // was playerItem
 
 		case TEAM_BLUE:
-			COM_BitSet( client->ps.weapons, WP_GRENADE_PINEAPPLE );
+			idBitField::Set( client->ps.weapons, WP_GRENADE_PINEAPPLE );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_GRENADE_PINEAPPLE )] = 4;
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_GRENADE_PINEAPPLE )] = 1;
 			break;
 		case TEAM_RED:
-			COM_BitSet( client->ps.weapons, WP_GRENADE_LAUNCHER );
+			idBitField::Set( client->ps.weapons, WP_GRENADE_LAUNCHER );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_GRENADE_LAUNCHER )] = 4;
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_GRENADE_LAUNCHER )] = 1;
 			break;
 		default:
-			COM_BitSet( client->ps.weapons, WP_GRENADE_PINEAPPLE );
+			idBitField::Set( client->ps.weapons, WP_GRENADE_PINEAPPLE );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_GRENADE_PINEAPPLE )] = 4;
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_GRENADE_PINEAPPLE )] = 1;
 			break;
@@ -914,7 +917,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 		switch ( client->sess.playerWeapon ) {
 
 		case 3:     // WP_MP40
-			COM_BitSet( client->ps.weapons, WP_MP40 );
+			idBitField::Set( client->ps.weapons, WP_MP40 );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_MP40 )] += 32;
 			if ( pc == PC_SOLDIER ) {
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_MP40 )] += 64;
@@ -925,7 +928,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 			break;
 
 		case 4:     // WP_THOMPSON
-			COM_BitSet( client->ps.weapons, WP_THOMPSON );
+			idBitField::Set( client->ps.weapons, WP_THOMPSON );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_THOMPSON )] += 30;
 			if ( pc == PC_SOLDIER ) {
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_THOMPSON )] += 60;
@@ -936,7 +939,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 			break;
 
 		case 5:     // WP_STEN
-			COM_BitSet( client->ps.weapons, WP_STEN );
+			idBitField::Set( client->ps.weapons, WP_STEN );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_STEN )] += 32;
 			if ( pc == PC_SOLDIER ) {
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_STEN )] += 64;
@@ -951,12 +954,12 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 
-			COM_BitSet( client->ps.weapons, WP_SNIPERRIFLE );
+			idBitField::Set( client->ps.weapons, WP_SNIPERRIFLE );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_SNIPERRIFLE )] = 10;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_SNIPERRIFLE )] = 10;
 			client->ps.weapon = WP_SNIPERRIFLE;
 
-			COM_BitSet( client->ps.weapons, WP_MAUSER );
+			idBitField::Set( client->ps.weapons, WP_MAUSER );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_MAUSER )] = 10;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_MAUSER )] = 10;
 			client->ps.weapon = WP_MAUSER;
@@ -967,12 +970,12 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 
-			COM_BitSet( client->ps.weapons, WP_SNOOPERSCOPE );
+			idBitField::Set( client->ps.weapons, WP_SNOOPERSCOPE );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_SNOOPERSCOPE )] = 5;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_SNOOPERSCOPE )] = 15;
 			client->ps.weapon = WP_SNOOPERSCOPE;
 
-			COM_BitSet( client->ps.weapons, WP_GARAND );
+			idBitField::Set( client->ps.weapons, WP_GARAND );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_GARAND )] = 5;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_GARAND )] = 15;
 			client->ps.weapon = WP_GARAND;
@@ -984,7 +987,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 
-			COM_BitSet( client->ps.weapons, WP_PANZERFAUST );
+			idBitField::Set( client->ps.weapons, WP_PANZERFAUST );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_PANZERFAUST )] = 4;
 			client->ps.weapon = WP_PANZERFAUST;
 			break;
@@ -994,7 +997,7 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 // JPW NERVE may not keep this, but put it in to test
-			COM_BitSet( client->ps.weapons, WP_VENOM );
+			idBitField::Set( client->ps.weapons, WP_VENOM );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_VENOM )] = 200;
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_VENOM )] = 500;
 			client->ps.weapon = WP_VENOM;
@@ -1005,19 +1008,19 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 				return;
 			}
 
-			COM_BitSet( client->ps.weapons, WP_FLAMETHROWER );
+			idBitField::Set( client->ps.weapons, WP_FLAMETHROWER );
 			client->ps.ammo[BG_FindAmmoForWeapon( WP_FLAMETHROWER )] = 300;
 			client->ps.weapon = WP_FLAMETHROWER;
 			break;
 
 		default:    // give MP40 if given invalid weapon number
 			if ( client->sess.sessionTeam == TEAM_RED ) { // JPW NERVE
-				COM_BitSet( client->ps.weapons, WP_MP40 );
+				idBitField::Set( client->ps.weapons, WP_MP40 );
 				client->ps.ammoclip[BG_FindClipForWeapon( WP_MP40 )] += 32;
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_MP40 )] += 64;
 				client->ps.weapon = WP_MP40;
 			} else { // TEAM_BLUE
-				COM_BitSet( client->ps.weapons, WP_THOMPSON );
+				idBitField::Set( client->ps.weapons, WP_THOMPSON );
 				client->ps.ammoclip[BG_FindClipForWeapon( WP_THOMPSON )] += 30;
 				client->ps.ammo[BG_FindAmmoForWeapon( WP_THOMPSON )] += 60;
 				client->ps.weapon = WP_THOMPSON;
@@ -1026,11 +1029,11 @@ void SetWolfSpawnWeapons( gclient_t *client ) {
 		}
 	} else { // medic or engineer gets assigned MP40 or Thompson with one magazine ammo
 		if ( client->sess.sessionTeam == TEAM_RED ) { // axis
-			COM_BitSet( client->ps.weapons, WP_MP40 );
+			idBitField::Set( client->ps.weapons, WP_MP40 );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_MP40 )] += 32;
 			client->ps.weapon = WP_MP40;
 		} else { // allied
-			COM_BitSet( client->ps.weapons, WP_THOMPSON );
+			idBitField::Set( client->ps.weapons, WP_THOMPSON );
 			client->ps.ammoclip[BG_FindClipForWeapon( WP_THOMPSON )] += 30;
 			client->ps.weapon = WP_THOMPSON;
 		}
@@ -1263,7 +1266,7 @@ qboolean G_ParseAnimationFiles( char *modelname, gclient_t *cl ) {
 
 	// ask the client to send us the movespeeds if available
 	if ( g_gametype.integer == GT_SINGLE_PLAYER && g_entities[0].client && g_entities[0].client->pers.connected == CON_CONNECTED ) {
-		trap_SendServerCommand( 0, va( "mvspd %s", modelname ) );
+		trap_SendServerCommand( 0, idStr::FormatString( "mvspd %s", modelname ) );
 	}
 
 	return qtrue;
@@ -1284,6 +1287,7 @@ if desired.
 void ClientUserinfoChanged( int clientNum ) {
 	gentity_t *ent;
 	char    *s;
+	idStr userinfoString;
 	char model[MAX_QPATH], modelname[MAX_QPATH];
 
 //----(SA) added this for head separation
@@ -1349,7 +1353,7 @@ void ClientUserinfoChanged( int clientNum ) {
 
 	if ( client->pers.connected == CON_CONNECTED ) {
 		if ( strcmp( oldname, client->pers.netname ) ) {
-			trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " renamed to %s\n\"", oldname,
+			trap_SendServerCommand( -1, idStr::FormatString( "print \"%s" S_COLOR_WHITE " renamed to %s\n\"", oldname,
 											client->pers.netname ) );
 		}
 	}
@@ -1445,21 +1449,21 @@ void ClientUserinfoChanged( int clientNum ) {
 
 	if ( ent->r.svFlags & SVF_BOT ) {
 
-		s = va( "n\\%s\\t\\%i\\model\\%s\\head\\%s\\c1\\%s\\hc\\%i\\w\\%i\\l\\%i\\skill\\%s",
+		userinfoString.Format( "n\\%s\\t\\%i\\model\\%s\\head\\%s\\c1\\%s\\hc\\%i\\w\\%i\\l\\%i\\skill\\%s",
 				client->pers.netname, client->sess.sessionTeam, model, head, c1,
 				client->pers.maxHealth, client->sess.wins, client->sess.losses,
 				Info_ValueForKey( userinfo, "skill" ) );
 	} else {
-		s = va( "n\\%s\\t\\%i\\model\\%s\\head\\%s\\c1\\%s\\hc\\%i\\w\\%i\\l\\%i",
+		userinfoString.Format( "n\\%s\\t\\%i\\model\\%s\\head\\%s\\c1\\%s\\hc\\%i\\w\\%i\\l\\%i",
 				client->pers.netname, client->sess.sessionTeam, model, head, c1,
 				client->pers.maxHealth, client->sess.wins, client->sess.losses );
 	}
 
 //----(SA) end
 
-	trap_SetConfigstring( CS_PLAYERS + clientNum, s );
+	trap_SetConfigstring( CS_PLAYERS + clientNum, userinfoString );
 
-	G_LogPrintf( "ClientUserinfoChanged: %i %s\n", clientNum, s );
+	G_LogPrintf( "ClientUserinfoChanged: %i %s\n", clientNum, userinfoString.c_str() );
 }
 
 
@@ -1530,7 +1534,7 @@ char *ClientConnect( int clientNum, qboolean firstTime, qboolean isBot ) {
 		// Ridah
 		if ( !( ent->r.svFlags & SVF_CASTAI ) ) {
 			// done.
-			trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
+			trap_SendServerCommand( -1, idStr::FormatString( "print \"%s" S_COLOR_WHITE " connected\n\"", client->pers.netname ) );
 		}
 	}
 
@@ -1607,7 +1611,7 @@ void ClientBegin( int clientNum ) {
 			// Ridah
 			if ( !( ent->r.svFlags & SVF_CASTAI ) ) {
 				// done.
-				trap_SendServerCommand( -1, va( "print \"%s" S_COLOR_WHITE " entered the game\n\"", client->pers.netname ) );
+				trap_SendServerCommand( -1, idStr::FormatString( "print \"%s" S_COLOR_WHITE " entered the game\n\"", client->pers.netname ) );
 			}
 		}
 	}
@@ -1799,10 +1803,10 @@ void ClientSpawn( gentity_t *ent ) {
 /*
 	if (!(ent->r.svFlags & SVF_CASTAI) && level.scriptAI && strstr (level.scriptAI, "beach assault"))
 	{
-		COM_BitSet( client->ps.weapons, WP_THOMPSON );
+		idBitField::Set( client->ps.weapons, WP_THOMPSON );
 		client->ps.ammo[BG_FindAmmoForWeapon(WP_THOMPSON)] = 100;
 
-		COM_BitSet( client->ps.weapons, WP_GRENADE_PINEAPPLE );
+		idBitField::Set( client->ps.weapons, WP_GRENADE_PINEAPPLE );
 		client->ps.ammo[BG_FindAmmoForWeapon(WP_GRENADE_PINEAPPLE)] = 5;
 
 		client->ps.weapon = WP_THOMPSON;

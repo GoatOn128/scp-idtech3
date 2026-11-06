@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 /*
@@ -327,18 +329,17 @@ srfGridMesh_t *R_CreateSurfaceGridMesh( int width, int height,
 	grid->width = width;
 	grid->height = height;
 	grid->surfaceType = SF_GRID;
-	ClearBounds( grid->meshBounds[0], grid->meshBounds[1] );
+	grid->meshBounds.Clear();
 	for ( i = 0 ; i < width ; i++ ) {
 		for ( j = 0 ; j < height ; j++ ) {
 			vert = &grid->verts[j * width + i];
 			*vert = ctrl[j][i];
-			AddPointToBounds( vert->xyz, grid->meshBounds[0], grid->meshBounds[1] );
+			grid->meshBounds.AddPoint( vert->xyz );
 		}
 	}
 
 	// compute local origin and bounds
-	grid->localOrigin = grid->meshBounds[0] + grid->meshBounds[1];
-	grid->localOrigin = grid->localOrigin * 0.5f;
+	grid->localOrigin = grid->meshBounds.GetCenter();
 	tmpVec = grid->meshBounds[0] - grid->localOrigin;
 	grid->meshRadius = tmpVec.Length();
 
@@ -354,9 +355,15 @@ R_FreeSurfaceGridMesh
 =================
 */
 void R_FreeSurfaceGridMesh( srfGridMesh_t *grid ) {
+#ifdef PATCH_STITCHING
 	free( grid->widthLodError );
 	free( grid->heightLodError );
 	free( grid );
+#else
+	Mem_Free( grid->widthLodError );
+	Mem_Free( grid->heightLodError );
+	Mem_Free( grid );
+#endif
 }
 
 /*

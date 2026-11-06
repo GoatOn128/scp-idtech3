@@ -809,7 +809,7 @@ bool idMapFile::Parse( const char *filename, bool ignoreRegion, bool osPath ) {
 			for ( i = 1; i < entities.Num(); i++ ) {
 				mapEnt = entities[i];
 				if ( !mapEnt->epairs.FindKey( "name" ) ) {
-					mapEnt->epairs.Set( "name", va( "%s%d", mapEnt->epairs.GetString( "classname", "forcedName" ), i ) );
+					mapEnt->epairs.Set( "name", idStr::FormatString( "%s%d", mapEnt->epairs.GetString( "classname", "forcedName" ), i ) );
 				}
 			}
 		}

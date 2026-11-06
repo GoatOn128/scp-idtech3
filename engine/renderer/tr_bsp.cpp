@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_map.c
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 /*
@@ -208,7 +210,7 @@ static void R_LoadLightmaps( lump_t *l ) {
 				image[j * 4 + 3] = 255;
 			}
 		}
-		tr.lightmaps[i] = R_CreateImage( va( "*lightmap%d",i ), image,
+		tr.lightmaps[i] = R_CreateImage( idStr::FormatString( "*lightmap%d",i ), image,
 										 LIGHTMAP_SIZE, LIGHTMAP_SIZE, qfalse, qfalse, GL_CLAMP );
 	}
 
@@ -410,7 +412,7 @@ static void ParseFace( dsurface_t *ds, drawVert_t *verts, msurface_t *surf, int 
 		cv->plane.normal[i] = LittleFloat( ds->lightmapVecs[2][i] );
 	}
 	cv->plane.dist = cv->points[0][0] * cv->plane.normal[0] + cv->points[0][1] * cv->plane.normal[1] + cv->points[0][2] * cv->plane.normal[2];
-	SetPlaneSignbits( &cv->plane );
+	cv->plane.signbits = idPlane( cv->plane.normal, cv->plane.dist ).Signbits();
 	cv->plane.type = PlaneTypeForNormal( cv->plane.normal );
 
 	surf->data = (surfaceType_t *)cv;
@@ -520,14 +522,15 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, msurface_t *surf, i
 	surf->data = (surfaceType_t *)tri;
 
 	// copy vertexes
-	ClearBounds( tri->bounds[0], tri->bounds[1] );
+	idBounds bounds;
+	bounds.Clear();
 	verts += LittleLong( ds->firstVert );
 	for ( i = 0 ; i < numVerts ; i++ ) {
 		for ( j = 0 ; j < 3 ; j++ ) {
 			tri->verts[i].xyz[j] = LittleFloat( verts[i].xyz[j] );
 			tri->verts[i].normal[j] = LittleFloat( verts[i].normal[j] );
 		}
-		AddPointToBounds( idVec3( tri->verts[i].xyz[0], tri->verts[i].xyz[1], tri->verts[i].xyz[2] ), tri->bounds[0], tri->bounds[1] );
+		bounds.AddPoint( idVec3( tri->verts[i].xyz[0], tri->verts[i].xyz[1], tri->verts[i].xyz[2] ) );
 		for ( j = 0 ; j < 2 ; j++ ) {
 			tri->verts[i].st[j] = LittleFloat( verts[i].st[j] );
 			tri->verts[i].lightmap[j] = LittleFloat( verts[i].lightmap[j] );
@@ -535,6 +538,8 @@ static void ParseTriSurf( dsurface_t *ds, drawVert_t *verts, msurface_t *surf, i
 
 		R_ColorShiftLightingBytes( verts[i].color, tri->verts[i].color );
 	}
+	tri->bounds[0] = bounds[0];
+	tri->bounds[1] = bounds[1];
 
 	// copy indexes
 	indexes += LittleLong( ds->firstIndex );
@@ -1740,11 +1745,10 @@ R_LoadPlanes
 =================
 */
 static void R_LoadPlanes( lump_t *l ) {
-	int i, j;
+	int i;
 	cplane_t    *out;
 	dplane_t    *in;
 	int count;
-	int bits;
 
 	in = (dplane_t *) ( void * )( fileBase + l->fileofs );
 	if ( l->filelen % sizeof( *in ) ) {
@@ -1757,17 +1761,13 @@ static void R_LoadPlanes( lump_t *l ) {
 	s_worldData.numplanes = count;
 
 	for ( i = 0 ; i < count ; i++, in++, out++ ) {
-		bits = 0;
-		for ( j = 0 ; j < 3 ; j++ ) {
+		for ( int j = 0; j < 3; j++ ) {
 			out->normal[j] = LittleFloat( in->normal[j] );
-			if ( out->normal[j] < 0 ) {
-				bits |= 1 << j;
-			}
 		}
 
 		out->dist = LittleFloat( in->dist );
 		out->type = PlaneTypeForNormal( out->normal );
-		out->signbits = bits;
+		out->signbits = idPlane( out->normal, out->dist ).Signbits();
 	}
 }
 
@@ -1820,14 +1820,14 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump ) {
 	for ( i = 0 ; i < count ; i++, fogs++ ) {
 		out->originalBrushNumber = LittleLong( fogs->brushNum );
 
-		if ( (unsigned)out->originalBrushNumber >= brushesCount ) {
+		if ( out->originalBrushNumber < 0 || out->originalBrushNumber >= brushesCount ) {
 			ri.Error( ERR_DROP, "fog brushNumber out of range" );
 		}
 		brush = brushes + out->originalBrushNumber;
 
 		firstSide = LittleLong( brush->firstSide );
 
-		if ( (unsigned)firstSide > sidesCount - 6 ) {
+		if ( firstSide < 0 || firstSide > sidesCount - 6 ) {
 			ri.Error( ERR_DROP, "fog brush sideNumber out of range" );
 		}
 
@@ -1894,6 +1894,8 @@ static void R_LoadFogs( lump_t *l, lump_t *brushesLump, lump_t *sidesLump ) {
 R_FindLightGridBounds
 ==============
 */
+#pragma warning(push)
+#pragma warning(disable:4702)
 void R_FindLightGridBounds( idVec3 &mins, idVec3 &maxs ) {
 	world_t *w;
 	msurface_t  *surf;
@@ -1903,6 +1905,7 @@ void R_FindLightGridBounds( idVec3 &mins, idVec3 &maxs ) {
 
 	qboolean foundGridBrushes = qfalse;
 	int i,j;
+	idBounds bounds;
 
 	w = &s_worldData;
 
@@ -1915,7 +1918,7 @@ void R_FindLightGridBounds( idVec3 &mins, idVec3 &maxs ) {
 
 
 
-	ClearBounds( mins, maxs );
+	bounds.Clear();
 
 // wrong!
 	for ( i = 0; i < w->bmodels[0].numSurfaces; i++ ) {
@@ -1951,10 +1954,12 @@ void R_FindLightGridBounds( idVec3 &mins, idVec3 &maxs ) {
 		surfFace = ( srfSurfaceFace_t * )surf->data;
 
 		for ( j = 0; j < surfFace->numPoints; j++ ) {
-			AddPointToBounds( idVec3( surfFace->points[j][0], surfFace->points[j][1], surfFace->points[j][2] ), mins, maxs );
+			bounds.AddPoint( idVec3( surfFace->points[j][0], surfFace->points[j][1], surfFace->points[j][2] ) );
 		}
 
 	}
+	mins = bounds[0];
+	maxs = bounds[1];
 
 	// go through brushes looking for lightgrid
 //	for ( i = 0 ; i < numbrushes ; i++ ) {
@@ -1991,6 +1996,7 @@ void R_FindLightGridBounds( idVec3 &mins, idVec3 &maxs ) {
 		maxs = w->bmodels[0].bounds[1];
 	}
 }
+#pragma warning(pop)
 
 /*
 ================
@@ -2157,9 +2163,9 @@ void RE_LoadWorldMap( const char *name ) {
 
 	// set default sun direction to be used if it isn't
 	// overridden by a shader
-	tr.sunDirection[0] = 0.45;
-	tr.sunDirection[1] = 0.3;
-	tr.sunDirection[2] = 0.9;
+	tr.sunDirection[0] = 0.45f;
+	tr.sunDirection[1] = 0.3f;
+	tr.sunDirection[2] = 0.9f;
 
 	tr.sunShader = 0;   // clear sunshader so it's not there if the level doesn't specify it
 

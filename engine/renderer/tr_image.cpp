@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 // stb_image and stb_image_write replace the old jpeg-6 library and the hand written
@@ -57,6 +59,9 @@ static unsigned char s_gammatable[256];
 int gl_filter_min = GL_LINEAR_MIPMAP_NEAREST;
 int gl_filter_max = GL_LINEAR;
 
+#ifdef FILE_HASH_SIZE
+#undef FILE_HASH_SIZE
+#endif
 #define FILE_HASH_SIZE      4096
 static image_t*        hashTable[FILE_HASH_SIZE];
 
@@ -1280,7 +1285,7 @@ image_t *R_FindImageFileExt( const char *name, qboolean mipmap, qboolean allowPi
 
 	// Ridah, caching
 	if ( r_cacheGathering->integer ) {
-		ri.Cmd_ExecuteText( EXEC_NOW, va( "cache_usedfile image %s %i %i %i %i\n", name, mipmap, allowPicmip, characterMIP, glWrapClampMode ) );
+		ri.Cmd_ExecuteText( EXEC_NOW, idStr::FormatString( "cache_usedfile image %s %i %i %i %i\n", name, mipmap, allowPicmip, characterMIP, glWrapClampMode ) );
 	}
 
 	//
@@ -2214,9 +2219,14 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 #ifdef CROPIMAGES_ENABLED
 	int row, col;
 	int rows, cols;
-	byte    *inpixel, *temppic, *outpixel;
+	byte    *inpixel;
+#ifndef RESIZE
+	byte    *temppic, *outpixel;
+#endif
 	int mins[2], maxs[2];
+#ifndef RESIZE
 	int diff[2];
+#endif
 	//int	newWidth;
 	int /*a, max,*/ i;
 	int alpha;
@@ -2384,7 +2394,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 
 #ifdef RESIZE
 	return qtrue;
-#endif
+#else
 
 	// convert it so that the center is the center of the image
 	// this is used for some explosions
@@ -2515,6 +2525,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 	*height = diff[1];
 
 	return qtrue;
+#endif
 #else
 	return qtrue;   // shutup the compiler
 #endif

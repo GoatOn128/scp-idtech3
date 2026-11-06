@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 
@@ -40,8 +42,9 @@ Also sets the clipped hint bit in tess
 */
 static qboolean R_CullTriSurf( srfTriangles_t *cv ) {
 	int boxCull;
+	idVec3 bounds[2] = { cv->bounds[0], cv->bounds[1] };
 
-	boxCull = R_CullLocalBox( cv->bounds );
+	boxCull = R_CullLocalBox( bounds );
 
 	if ( boxCull == CULL_OUT ) {
 		return qtrue;
@@ -60,6 +63,7 @@ Also sets the clipped hint bit in tess
 static qboolean R_CullGrid( srfGridMesh_t *cv ) {
 	int boxCull;
 	int sphereCull;
+	idVec3 bounds[2] = { cv->meshBounds[0], cv->meshBounds[1] };
 
 	if ( r_nocurves->integer ) {
 		return qtrue;
@@ -81,7 +85,7 @@ static qboolean R_CullGrid( srfGridMesh_t *cv ) {
 	else if ( sphereCull == CULL_CLIP ) {
 		tr.pc.c_sphere_cull_patch_clip++;
 
-		boxCull = R_CullLocalBox( cv->meshBounds );
+		boxCull = R_CullLocalBox( bounds );
 
 		if ( boxCull == CULL_OUT ) {
 			tr.pc.c_box_cull_patch_out++;
@@ -424,7 +428,7 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits )
 			int r;
 
 			if ( planeBits & 1 ) {
-				r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[0] );
+				r = idPlane( tr.viewParms.frustum[0].normal, tr.viewParms.frustum[0].dist ).BoxOnSide( node->mins, node->maxs );
 				if ( r == 2 ) {
 					return;                     // culled
 				}
@@ -434,7 +438,7 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits )
 			}
 
 			if ( planeBits & 2 ) {
-				r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[1] );
+				r = idPlane( tr.viewParms.frustum[1].normal, tr.viewParms.frustum[1].dist ).BoxOnSide( node->mins, node->maxs );
 				if ( r == 2 ) {
 					return;                     // culled
 				}
@@ -444,7 +448,7 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits )
 			}
 
 			if ( planeBits & 4 ) {
-				r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[2] );
+				r = idPlane( tr.viewParms.frustum[2].normal, tr.viewParms.frustum[2].dist ).BoxOnSide( node->mins, node->maxs );
 				if ( r == 2 ) {
 					return;                     // culled
 				}
@@ -454,7 +458,7 @@ static void R_RecursiveWorldNode( mnode_t *node, int planeBits, int dlightBits )
 			}
 
 			if ( planeBits & 8 ) {
-				r = BoxOnPlaneSide( node->mins, node->maxs, &tr.viewParms.frustum[3] );
+				r = idPlane( tr.viewParms.frustum[3].normal, tr.viewParms.frustum[3].dist ).BoxOnSide( node->mins, node->maxs );
 				if ( r == 2 ) {
 					return;                     // culled
 				}
@@ -700,7 +704,10 @@ void R_AddWorldSurfaces( void ) {
 	R_MarkLeaves();
 
 	// clear out the visible min/max
-	ClearBounds( tr.viewParms.visBounds[0], tr.viewParms.visBounds[1] );
+	idBounds visBounds;
+	visBounds.Clear();
+	tr.viewParms.visBounds[0] = visBounds[0];
+	tr.viewParms.visBounds[1] = visBounds[1];
 
 	// perform frustum culling and add all the potentially visible surfaces
 	if ( tr.refdef.num_dlights > 32 ) {

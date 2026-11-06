@@ -33,6 +33,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 qboolean    G_SpawnString( const char *key, const char *defaultString, char **out ) {
@@ -980,7 +982,7 @@ void SP_worldspawn( void ) {
 	// make some data visible to connecting client
 	trap_SetConfigstring( CS_GAME_VERSION, GAME_VERSION );
 
-	trap_SetConfigstring( CS_LEVEL_START_TIME, va( "%i", level.startTime ) );
+	trap_SetConfigstring( CS_LEVEL_START_TIME, idStr::FormatString( "%i", level.startTime ) );
 
 	G_SpawnString( "music", "", &s );
 	trap_SetConfigstring( CS_MUSIC, s );

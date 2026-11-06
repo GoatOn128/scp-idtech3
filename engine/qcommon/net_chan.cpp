@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "q_shared.h"
 #include "qcommon.h"
 
@@ -80,7 +82,7 @@ void Netchan_Init( int port ) {
 	port &= 0xffff;
 	showpackets = Cvar_Get( "showpackets", "0", CVAR_TEMP );
 	showdrop = Cvar_Get( "showdrop", "0", CVAR_TEMP );
-	qport = Cvar_Get( "net_qport", va( "%i", port ), CVAR_INIT );
+	qport = Cvar_Get( "net_qport", idStr::FormatString( "%i", port ), CVAR_INIT );
 }
 
 /*
@@ -110,13 +112,13 @@ more difficult.
 ==============
 */
 #define SCRAMBLE_START  6
-static void Netchan_ScramblePacket( msg_t *buf ) {
+static void Netchan_ScramblePacket( idBitMsg *buf ) {
 	unsigned seed;
 	int i, j, c, mask, temp;
 	int seq[MAX_PACKETLEN];
 
-	seed = ( LittleLong( *(unsigned *)buf->data ) * 3 ) ^ ( buf->cursize * 123 );
-	c = buf->cursize;
+	seed = ( LittleLong( *(unsigned *)buf->data ) * 3 ) ^ ( buf->GetSize() * 123 );
+	c = buf->GetSize();
 	if ( c <= SCRAMBLE_START ) {
 		return;
 	}
@@ -147,13 +149,13 @@ static void Netchan_ScramblePacket( msg_t *buf ) {
 	}
 }
 
-static void Netchan_UnScramblePacket( msg_t *buf ) {
+static void Netchan_UnScramblePacket( idBitMsg *buf ) {
 	unsigned seed;
 	int i, j, c, mask, temp;
 	int seq[MAX_PACKETLEN];
 
-	seed = ( LittleLong( *(unsigned *)buf->data ) * 3 ) ^ ( buf->cursize * 123 );
-	c = buf->cursize;
+	seed = ( LittleLong( *(unsigned *)buf->data ) * 3 ) ^ ( buf->GetSize() * 123 );
+	c = buf->GetSize();
 	if ( c <= SCRAMBLE_START ) {
 		return;
 	}
@@ -193,18 +195,16 @@ Send one fragment of the current message
 =================
 */
 void Netchan_TransmitNextFragment( netchan_t *chan ) {
-	msg_t send;
 	byte send_buf[MAX_PACKETLEN];
+	idBitMsg send( send_buf, sizeof( send_buf ) );
 	int fragmentLength;
 
 	// write the packet header
-	MSG_InitOOB( &send, send_buf, sizeof( send_buf ) );                // <-- only do the oob here
-
-	MSG_WriteLong( &send, chan->outgoingSequence | FRAGMENT_BIT );
+	send.WriteLong( chan->outgoingSequence | FRAGMENT_BIT );
 
 	// send the qport if we are a client
 	if ( chan->sock == NS_CLIENT ) {
-		MSG_WriteShort( &send, qport->integer );
+		send.WriteShort( qport->integer );
 	}
 
 	// copy the reliable message to the packet first
@@ -213,20 +213,22 @@ void Netchan_TransmitNextFragment( netchan_t *chan ) {
 		fragmentLength = chan->unsentLength - chan->unsentFragmentStart;
 	}
 
-	MSG_WriteShort( &send, chan->unsentFragmentStart );
-	MSG_WriteShort( &send, fragmentLength );
-	MSG_WriteData( &send, chan->unsentBuffer + chan->unsentFragmentStart, fragmentLength );
+	send.WriteShort( chan->unsentFragmentStart );
+	send.WriteShort( fragmentLength );
+	if ( fragmentLength > 0 ) {
+		send.WriteData( chan->unsentBuffer + chan->unsentFragmentStart, fragmentLength );
+	}
 
 	// XOR scramble all data in the packet after the header
 //	Netchan_ScramblePacket( &send );
 
 	// send the datagram
-	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remoteAddress );
+	NET_SendPacket( chan->sock, send.GetSize(), send.data, chan->remoteAddress );
 
 	if ( showpackets->integer ) {
 		Com_Printf( "%s send %4i : s=%i fragment=%i,%i\n"
 					, netsrcString[ chan->sock ]
-					, send.cursize
+					, send.GetSize()
 					, chan->outgoingSequence - 1
 					, chan->unsentFragmentStart, fragmentLength );
 	}
@@ -253,8 +255,8 @@ A 0 length will still generate a packet.
 ================
 */
 void Netchan_Transmit( netchan_t *chan, int length, const byte *data ) {
-	msg_t send;
 	byte send_buf[MAX_PACKETLEN];
+	idBitMsg send( send_buf, sizeof( send_buf ) );
 
 	if ( length > MAX_MSGLEN ) {
 		Com_Error( ERR_DROP, "Netchan_Transmit: length = %i", length );
@@ -274,28 +276,28 @@ void Netchan_Transmit( netchan_t *chan, int length, const byte *data ) {
 	}
 
 	// write the packet header
-	MSG_InitOOB( &send, send_buf, sizeof( send_buf ) );
-
-	MSG_WriteLong( &send, chan->outgoingSequence );
+	send.WriteLong( chan->outgoingSequence );
 	chan->outgoingSequence++;
 
 	// send the qport if we are a client
 	if ( chan->sock == NS_CLIENT ) {
-		MSG_WriteShort( &send, qport->integer );
+		send.WriteShort( qport->integer );
 	}
 
-	MSG_WriteData( &send, data, length );
+	if ( length > 0 ) {
+		send.WriteData( data, length );
+	}
 
 	// XOR scramble all data in the packet after the header
 //	Netchan_ScramblePacket( &send );
 
 	// send the datagram
-	NET_SendPacket( chan->sock, send.cursize, send.data, chan->remoteAddress );
+	NET_SendPacket( chan->sock, send.GetSize(), send.data, chan->remoteAddress );
 
 	if ( showpackets->integer ) {
 		Com_Printf( "%s send %4i : s=%i ack=%i\n"
 					, netsrcString[ chan->sock ]
-					, send.cursize
+					, send.GetSize()
 					, chan->outgoingSequence - 1
 					, chan->incomingSequence );
 	}
@@ -313,7 +315,7 @@ final fragment of a multi-part message, the entire thing will be
 copied out.
 =================
 */
-qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
+qboolean Netchan_Process( netchan_t *chan, idBitMsg *msg ) {
 	int sequence;
 	int qportNum;
 	int fragmentStart, fragmentLength;
@@ -323,8 +325,8 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 //	Netchan_UnScramblePacket( msg );
 
 	// get sequence numbers
-	MSG_BeginReadingOOB( msg );
-	sequence = MSG_ReadLong( msg );
+	msg->BeginReadingOOB();
+	sequence = msg->ReadLong( );
 
 	// check for fragment information
 	if ( sequence & FRAGMENT_BIT ) {
@@ -336,13 +338,13 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 
 	// read the qportNum if we are a server
 	if ( chan->sock == NS_SERVER ) {
-		qportNum = MSG_ReadShort( msg );
+		qportNum = msg->ReadShort( );
 	}
 
 	// read the fragment information
 	if ( fragmented ) {
-		fragmentStart = MSG_ReadShort( msg );
-		fragmentLength = MSG_ReadShort( msg );
+		fragmentStart = msg->ReadShort( );
+		fragmentLength = msg->ReadShort( );
 	} else {
 		fragmentStart = 0;      // stop warning message
 		fragmentLength = 0;
@@ -352,13 +354,13 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		if ( fragmented ) {
 			Com_Printf( "%s recv %4i : s=%i fragment=%i,%i\n"
 						, netsrcString[ chan->sock ]
-						, msg->cursize
+						, msg->GetSize()
 						, sequence
 						, fragmentStart, fragmentLength );
 		} else {
 			Com_Printf( "%s recv %4i : s=%i\n"
 						, netsrcString[ chan->sock ]
-						, msg->cursize
+						, msg->GetSize()
 						, sequence );
 		}
 	}
@@ -414,7 +416,7 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		}
 
 		// copy the fragment to the fragment buffer
-		if ( fragmentLength < 0 || msg->readcount + fragmentLength > msg->cursize ||
+		if ( fragmentLength < 0 || msg->GetReadCount() + fragmentLength > msg->GetSize() ||
 			 chan->fragmentLength + fragmentLength > sizeof( chan->fragmentBuffer ) ) {
 			if ( showdrop->integer || showpackets->integer ) {
 				Com_Printf( "%s:illegal fragment length\n"
@@ -424,7 +426,7 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		}
 
 		memcpy( chan->fragmentBuffer + chan->fragmentLength,
-				msg->data + msg->readcount, fragmentLength );
+				msg->GetData() + msg->GetReadCount(), fragmentLength );
 
 		chan->fragmentLength += fragmentLength;
 
@@ -433,8 +435,8 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 			return qfalse;
 		}
 
-		if ( chan->fragmentLength > msg->maxsize ) {
-			Com_Printf( "%s:fragmentLength %i > msg->maxsize\n"
+		if ( chan->fragmentLength > msg->GetMaxSize() ) {
+			Com_Printf( "%s:fragmentLength %i > msg->GetMaxSize()\n"
 						, NET_AdrToString( chan->remoteAddress ),
 						chan->fragmentLength );
 			return qfalse;
@@ -443,12 +445,12 @@ qboolean Netchan_Process( netchan_t *chan, msg_t *msg ) {
 		// copy the full message over the partial fragment
 
 		// make sure the sequence number is still there
-		*(int *)msg->data = LittleLong( sequence );
+		*(int *)msg->GetData() = LittleLong( sequence );
 
-		memcpy( msg->data + 4, chan->fragmentBuffer, chan->fragmentLength );
-		msg->cursize = chan->fragmentLength + 4;
+		memcpy( msg->GetData() + 4, chan->fragmentBuffer, chan->fragmentLength );
+		msg->GetSize() = chan->fragmentLength + 4;
 		chan->fragmentLength = 0;
-		msg->readcount = 4; // past the sequence number
+		msg->GetReadCount() = 4; // past the sequence number
 		msg->bit = 32;  // past the sequence number
 
 		return qtrue;
@@ -569,17 +571,17 @@ LOOPBACK BUFFERS FOR LOCAL PLAYER
 typedef struct {
 	byte data[MAX_PACKETLEN];
 	int datalen;
-} loopmsg_t;
+} loopidBitMsg;
 
 typedef struct {
-	loopmsg_t msgs[MAX_LOOPBACK];
+	loopidBitMsg msgs[MAX_LOOPBACK];
 	int get, send;
 } loopback_t;
 
 loopback_t loopbacks[2];
 
 
-qboolean    NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_message ) {
+qboolean    NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, idBitMsg *net_message ) {
 	int i;
 	loopback_t  *loop;
 
@@ -597,7 +599,7 @@ qboolean    NET_GetLoopPacket( netsrc_t sock, netadr_t *net_from, msg_t *net_mes
 	loop->get++;
 
 	memcpy( net_message->data, loop->msgs[i].data, loop->msgs[i].datalen );
-	net_message->cursize = loop->msgs[i].datalen;
+	net_message->GetSize() = loop->msgs[i].datalen;
 	memset( net_from, 0, sizeof( *net_from ) );
 	net_from->type = NA_LOOPBACK;
 	return qtrue;
@@ -716,4 +718,3 @@ qboolean    NET_StringToAdr( const char *s, netadr_t *a ) {
 
 	return qtrue;
 }
-

@@ -56,27 +56,6 @@ enum utf8Encoding_t {
 #endif
 #define StrCmpN			idStr::Cmpn
 
-#if defined( strcmpi )
-#undef strcmpi
-#endif
-#define strcmpi			idStr::Icmp
-
-#if defined( StrCmpI )
-#undef StrCmpI
-#endif
-#define StrCmpI			idStr::Icmp
-
-#if defined( StrCmpNI )
-#undef StrCmpNI
-#endif
-#define StrCmpNI		idStr::Icmpn
-
-#define stricmp			idStr::Icmp		// use_idStr_Icmp
-#define _stricmp		idStr::Icmp
-#define strcasecmp		idStr::Icmp
-#define strnicmp		idStr::Icmpn
-#define _strnicmp		idStr::Icmpn
-
 #define snprintf		idStr::snPrintf
 #define _snprintf		idStr::snPrintf
 #define vsnprintf		idStr::vsnPrintf
@@ -320,10 +299,14 @@ public:
 	static bool			CharIsUpper( int c );
 	static bool			CharIsAlpha( int c );
 	static bool			CharIsNumeric( int c );
+	static bool			CharIsAlphaNumeric( int c );
+	static bool			CharIsForFilename( int c );
 	static bool			CharIsNewLine( char c );
 	static bool			CharIsTab( char c );
 	static int			ColorIndex( int c );
 	static idVec4 &		ColorForIndex( int i );
+	static char *		Clean( char *string );
+	static idStr		FormatString( VERIFY_FORMAT_STRING const char *fmt, ... );
 
 	friend int			sprintf( idStr &dest, const char *fmt, ... );
 	friend int			vsprintf( idStr &dest, const char *fmt, va_list ap );
@@ -374,8 +357,6 @@ private:
 public:
 	static const int	INVALID_POSITION = -1;
 };
-
-char *					va( VERIFY_FORMAT_STRING const char *fmt, ... );
 
 /*
 ================================================================================================
@@ -1174,6 +1155,14 @@ ID_INLINE bool idStr::CharIsAlpha( int c ) {
 
 ID_INLINE bool idStr::CharIsNumeric( int c ) {
 	return ( c <= '9' && c >= '0' );
+}
+
+ID_INLINE bool idStr::CharIsAlphaNumeric( int c ) {
+	return c <= 0x7F && ( CharIsAlpha( c ) || CharIsNumeric( c ) );
+}
+
+ID_INLINE bool idStr::CharIsForFilename( int c ) {
+	return CharIsAlphaNumeric( c ) || c == '_';
 }
 
 ID_INLINE bool idStr::CharIsNewLine( char c ) {

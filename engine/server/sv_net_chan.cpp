@@ -26,9 +26,9 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "precompiled.h"
+#pragma hdrstop
 
-#include "../qcommon/q_shared.h"
-#include "../qcommon/qcommon.h"
 #include "server.h"
 
 #if DO_NET_ENCODE
@@ -41,34 +41,34 @@ SV_Netchan_Encode
 
 ==============
 */
-static void SV_Netchan_Encode( client_t *client, msg_t *msg ) {
+static void SV_Netchan_Encode( client_t *client, idBitMsg *msg ) {
 	long reliableAcknowledge, i, index;
 	byte key, *string;
 	int srdc, sbit, soob;
 
-	if ( msg->cursize < SV_ENCODE_START ) {
+	if ( msg->GetSize() < SV_ENCODE_START ) {
 		return;
 	}
 
-	srdc = msg->readcount;
+	srdc = msg->GetReadCount();
 	sbit = msg->bit;
 	soob = msg->oob;
 
 	msg->bit = 0;
-	msg->readcount = 0;
+	msg->GetReadCount() = 0;
 	msg->oob = 0;
 
-	reliableAcknowledge = MSG_ReadLong( msg );
+	reliableAcknowledge = msg->ReadLong( );
 
 	msg->oob = soob;
 	msg->bit = sbit;
-	msg->readcount = srdc;
+	msg->GetReadCount() = srdc;
 
 	string = (byte *)client->lastClientCommandString;
 	index = 0;
 	// xor the client challenge with the netchan sequence number
 	key = client->challenge ^ client->netchan.outgoingSequence;
-	for ( i = SV_ENCODE_START; i < msg->cursize; i++ ) {
+	for ( i = SV_ENCODE_START; i < msg->GetSize(); i++ ) {
 		// modify the key with the last received and with this message acknowledged client command
 		if ( !string[index] ) {
 			index = 0;
@@ -80,7 +80,7 @@ static void SV_Netchan_Encode( client_t *client, msg_t *msg ) {
 		}
 		index++;
 		// encode the data with this key
-		*( msg->data + i ) = *( msg->data + i ) ^ key;
+		*( msg->GetData() + i ) = *( msg->GetData() + i ) ^ key;
 	}
 }
 
@@ -95,30 +95,30 @@ SV_Netchan_Decode
 
 ==============
 */
-static void SV_Netchan_Decode( client_t *client, msg_t *msg ) {
+static void SV_Netchan_Decode( client_t *client, idBitMsg *msg ) {
 	int serverId, messageAcknowledge, reliableAcknowledge;
 	int i, index, srdc, sbit, soob;
 	byte key, *string;
 
-	srdc = msg->readcount;
+	srdc = msg->GetReadCount();
 	sbit = msg->bit;
 	soob = msg->oob;
 
 	msg->oob = 0;
 
-	serverId = MSG_ReadLong( msg );
-	messageAcknowledge = MSG_ReadLong( msg );
-	reliableAcknowledge = MSG_ReadLong( msg );
+	serverId = msg->ReadLong( );
+	messageAcknowledge = msg->ReadLong( );
+	reliableAcknowledge = msg->ReadLong( );
 
 	msg->oob = soob;
 	msg->bit = sbit;
-	msg->readcount = srdc;
+	msg->GetReadCount() = srdc;
 
 	string = (byte *)SV_GetReliableCommand( client, reliableAcknowledge & ( MAX_RELIABLE_COMMANDS - 1 ) );
 	index = 0;
 	//
 	key = client->challenge ^ serverId ^ messageAcknowledge;
-	for ( i = msg->readcount + SV_DECODE_START; i < msg->cursize; i++ ) {
+	for ( i = msg->GetReadCount() + SV_DECODE_START; i < msg->GetSize(); i++ ) {
 		// modify the key with the last sent and acknowledged server command
 		if ( !string[index] ) {
 			index = 0;
@@ -130,7 +130,7 @@ static void SV_Netchan_Decode( client_t *client, msg_t *msg ) {
 		}
 		index++;
 		// decode the data with this key
-		*( msg->data + i ) = *( msg->data + i ) ^ key;
+		*( msg->GetData() + i ) = *( msg->GetData() + i ) ^ key;
 	}
 }
 #endif
@@ -152,17 +152,16 @@ SV_Netchan_Transmit
 */
 
 //extern byte chksum[65536];
-void SV_Netchan_Transmit( client_t *client, msg_t *msg ) {   //int length, const byte *data ) {
+void SV_Netchan_Transmit( client_t *client, idBitMsg *msg ) {   //int length, const byte *data ) {
 //	int i;
-	MSG_WriteByte( msg, svc_EOF );
-//	for(i=SV_ENCODE_START;i<msg->cursize;i++) {
-//		chksum[i-SV_ENCODE_START] = msg->data[i];
+	msg->WriteByte( svc_EOF );
+//	for(i=SV_ENCODE_START;i<msg->GetSize();i++) {
+//		chksum[i-SV_ENCODE_START] = msg->GetData()[i];
 //	}
-//	Huff_Compress( msg, SV_ENCODE_START );
 #if DO_NET_ENCODE
 	SV_Netchan_Encode( client, msg );
 #endif
-	Netchan_Transmit( &client->netchan, msg->cursize, msg->data );
+	Netchan_Transmit( &client->netchan, msg->GetSize(), msg->GetData() );
 }
 
 /*
@@ -170,7 +169,7 @@ void SV_Netchan_Transmit( client_t *client, msg_t *msg ) {   //int length, const
 Netchan_SV_Process
 =================
 */
-qboolean SV_Netchan_Process( client_t *client, msg_t *msg ) {
+qboolean SV_Netchan_Process( client_t *client, idBitMsg *msg ) {
 	int ret;
 //	int i;
 	ret = Netchan_Process( &client->netchan, msg );
@@ -180,12 +179,10 @@ qboolean SV_Netchan_Process( client_t *client, msg_t *msg ) {
 #if DO_NET_ENCODE
 	SV_Netchan_Decode( client, msg );
 #endif
-//	Huff_Decompress( msg, SV_DECODE_START );
-//	for(i=SV_DECODE_START+msg->readcount;i<msg->cursize;i++) {
-//		if (msg->data[i] != chksum[i-(SV_DECODE_START+msg->readcount)]) {
+//	for(i=SV_DECODE_START+msg->GetReadCount();i<msg->GetSize();i++) {
+//		if (msg->GetData()[i] != chksum[i-(SV_DECODE_START+msg->GetReadCount())]) {
 //			Com_Error(ERR_DROP,"bad\n");
 //		}
 //	}
 	return qtrue;
 }
-

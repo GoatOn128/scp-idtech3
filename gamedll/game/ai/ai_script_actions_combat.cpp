@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 /*
@@ -416,26 +418,26 @@ qboolean AICast_ScriptAction_GiveWeapon( cast_state_t *cs, char *params ) {
 
 	if ( weapon == WP_COLT ) {
 		// if you had the colt already, now you've got two!
-		if ( COM_BitCheck( g_entities[cs->entityNum].client->ps.weapons, WP_COLT ) ) {
+		if ( idBitField::Test( g_entities[cs->entityNum].client->ps.weapons, WP_COLT ) ) {
 			weapon = WP_AKIMBO;
 		}
 	}
 
 	if ( weapon != WP_NONE ) {
-		COM_BitSet( g_entities[cs->entityNum].client->ps.weapons, weapon );
+		idBitField::Set( g_entities[cs->entityNum].client->ps.weapons, weapon );
 
 		//----(SA)	some weapons always go together (and they share a clip, so this is okay)
 		if ( weapon == WP_GARAND ) {
-			COM_BitSet( g_entities[cs->entityNum].client->ps.weapons, WP_SNOOPERSCOPE );
+			idBitField::Set( g_entities[cs->entityNum].client->ps.weapons, WP_SNOOPERSCOPE );
 		}
 		if ( weapon == WP_SNOOPERSCOPE ) {
-			COM_BitSet( g_entities[cs->entityNum].client->ps.weapons, WP_GARAND );
+			idBitField::Set( g_entities[cs->entityNum].client->ps.weapons, WP_GARAND );
 		}
 		if ( weapon == WP_FG42 ) {
-			COM_BitSet( g_entities[cs->entityNum].client->ps.weapons, WP_FG42SCOPE );
+			idBitField::Set( g_entities[cs->entityNum].client->ps.weapons, WP_FG42SCOPE );
 		}
 		if ( weapon == WP_SNIPERRIFLE ) {
-			COM_BitSet( g_entities[cs->entityNum].client->ps.weapons, WP_MAUSER );
+			idBitField::Set( g_entities[cs->entityNum].client->ps.weapons, WP_MAUSER );
 		}
 		//----(SA)	end
 
@@ -447,7 +449,7 @@ qboolean AICast_ScriptAction_GiveWeapon( cast_state_t *cs, char *params ) {
 		}
 		// conditional flags
 		if ( ent->aiCharacter == AICHAR_ZOMBIE ) {
-			if ( COM_BitCheck( ent->client->ps.weapons, WP_MONSTER_ATTACK1 ) ) {
+			if ( idBitField::Test( ent->client->ps.weapons, WP_MONSTER_ATTACK1 ) ) {
 				cs->aiFlags |= AIFL_NO_FLAME_DAMAGE;
 				SET_FLAMING_ZOMBIE( ent->s, 1 );
 			}
@@ -502,16 +504,16 @@ qboolean AICast_ScriptAction_TakeWeapon( cast_state_t *cs, char *params ) {
 
 			if ( weapon == WP_AKIMBO ) {
 				// take both the colt /and/ the akimbo weapons when 'akimbo' is specified
-				COM_BitClear( g_entities[cs->entityNum].client->ps.weapons, WP_COLT );
+				idBitField::Clear( g_entities[cs->entityNum].client->ps.weapons, WP_COLT );
 			} else if ( weapon == WP_COLT ) {
 				// take 'akimbo' first if it's there, then take 'colt'
-				if ( COM_BitCheck( g_entities[cs->entityNum].client->ps.weapons, WP_AKIMBO ) ) {
+				if ( idBitField::Test( g_entities[cs->entityNum].client->ps.weapons, WP_AKIMBO ) ) {
 					weapon = WP_AKIMBO;
 				}
 			}
 
 			//
-			COM_BitClear( g_entities[cs->entityNum].client->ps.weapons, weapon );
+			idBitField::Clear( g_entities[cs->entityNum].client->ps.weapons, weapon );
 			// also remove the ammo for this weapon
 			// but first make sure we dont have any other weapons that use the same ammo
 			clear = qtrue;
@@ -519,7 +521,7 @@ qboolean AICast_ScriptAction_TakeWeapon( cast_state_t *cs, char *params ) {
 				if ( BG_FindAmmoForWeapon( weapon ) != BG_FindAmmoForWeapon( i ) ) {
 					continue;
 				}
-				if ( COM_BitCheck( g_entities[cs->entityNum].client->ps.weapons, i ) ) {
+				if ( idBitField::Test( g_entities[cs->entityNum].client->ps.weapons, i ) ) {
 					clear = qfalse;
 				}
 			}
@@ -635,7 +637,10 @@ qboolean AICast_ScriptAction_FireAtTarget( cast_state_t *cs, char *params ) {
 	src[2] += cs->clientState->cur_ps.viewheight;
 	vec = org - src;
 	vec.Normalize();
-	vectoangles( vec, cs->ideal_viewangles );
+	{
+		const idAngles convertedAngles = vec.ToAngles();
+		cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+	}
 	for ( i = 0; i < 2; i++ ) {
 		diff = fabs( AI_AngleDifference( cs->clientState->cur_ps.viewangles[i], cs->ideal_viewangles[i] ) );
 		if ( vec3_origin.Compare( ent->s.pos.trDelta ) ) {
@@ -719,7 +724,7 @@ AICast_ScriptAction_LightningDamage
 =================
 */
 qboolean AICast_ScriptAction_LightningDamage( cast_state_t *cs, char *params ) {
-	idStr::Copynz( params, idStr( params ).ToLower().c_str(), strlen( params ) + 1 );
+	idStr::ToLower( params );
 	if ( !idStr::Icmp( params, "on" ) ) {
 		cs->aiFlags |= AIFL_ROLL_ANIM; // hijacking this since the player doesn't use it
 	} else {

@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 #include "../ui/ui_shared.h"
@@ -50,7 +52,7 @@ void CG_TargetCommand_f( void ) {
 	}
 
 	trap_Argv( 1, test, 4 );
-	trap_SendConsoleCommand( va( "gc %i %i", targetNum, atoi( test ) ) );
+	trap_SendConsoleCommand( idStr::FormatString( "gc %i %i", targetNum, atoi( test ) ) );
 }
 
 
@@ -63,7 +65,7 @@ Keybinding command
 =================
 */
 static void CG_SizeUp_f( void ) {
-	trap_Cvar_Set( "cg_viewsize", va( "%i",(int)( cg_viewsize.integer + 10 ) ) );
+	trap_Cvar_Set( "cg_viewsize", idStr::FormatString( "%i",(int)( cg_viewsize.integer + 10 ) ) );
 }
 
 
@@ -75,7 +77,7 @@ Keybinding command
 =================
 */
 static void CG_SizeDown_f( void ) {
-	trap_Cvar_Set( "cg_viewsize", va( "%i",(int)( cg_viewsize.integer - 10 ) ) );
+	trap_Cvar_Set( "cg_viewsize", idStr::FormatString( "%i",(int)( cg_viewsize.integer - 10 ) ) );
 }
 
 
@@ -274,7 +276,7 @@ void CG_StartCamera( const char *name, qboolean startBlack ) {
 	{ idStr lnameStr( name ); lnameStr.StripFileExtension(); idStr::Copynz( lname, lnameStr.c_str(), sizeof( lname ) ); };    //----(SA)	added
 	strcat( lname, ".camera" );
 
-	if ( trap_loadCamera( CAM_PRIMARY, va( "cameras/%s", lname ) ) ) {
+	if ( trap_loadCamera( CAM_PRIMARY, idStr::FormatString( "cameras/%s", lname ) ) ) {
 		cg.cameraMode = qtrue;                  // camera on in cgame
 		if ( startBlack ) {
 			CG_Fade( 0, 0, 0, 255, cg.time, 0 );  // go black
@@ -409,7 +411,7 @@ static void CG_LimboMessage_f( void ) {
 	idStr::Copynz( classStr, CG_Argv( 2 ), 80 );
 	idStr::Copynz( weapStr, CG_Argv( 3 ), 80 );
 
-	CG_CenterPrint( va( "You will spawn as a %s \n%s with a %s.", teamStr, classStr, weapStr ),
+	CG_CenterPrint( idStr::FormatString( "You will spawn as a %s \n%s with a %s.", teamStr, classStr, weapStr ),
 					SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
 }
 // -NERVE - SMF

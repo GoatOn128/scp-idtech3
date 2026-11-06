@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include <limits.h>
 
 #include "g_local.h"
@@ -101,7 +103,7 @@ void QDECL PrintMsg( gentity_t *ent, const char *fmt, ... ) {
 	while ( ( p = strchr( msg, '"' ) ) != NULL )
 		*p = '\'';
 
-	trap_SendServerCommand( ( ( ent == NULL ) ? -1 : ent - g_entities ), va( "print \"%s\"", msg ) );
+	trap_SendServerCommand( ( ( ent == NULL ) ? -1 : ent - g_entities ), idStr::FormatString( "print \"%s\"", msg ) );
 }
 
 /*
@@ -810,7 +812,7 @@ void TeamplayInfoMessage( gentity_t *ent ) {
 		}
 	}
 
-	trap_SendServerCommand( ent - g_entities, va( "tinfo %i%s", cnt, string ) );
+	trap_SendServerCommand( ent - g_entities, idStr::FormatString( "tinfo %i%s", cnt, string ) );
 }
 
 void CheckTeamStatus( void ) {
@@ -883,7 +885,8 @@ void SP_team_CTF_redspawn( gentity_t *ent ) {
 	ent->enemy = G_PickTarget( ent->target );
 	if ( ent->enemy ) {
 		dir = ent->enemy->s.origin - ent->s.origin;
-		vectoangles( dir, ent->s.angles );
+		idAngles targetAngles = dir.ToAngles();
+		ent->s.angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 	}
 // jpw
 }
@@ -910,7 +913,8 @@ void SP_team_CTF_bluespawn( gentity_t *ent ) {
 	ent->enemy = G_PickTarget( ent->target );
 	if ( ent->enemy ) {
 		dir = ent->enemy->s.origin - ent->s.origin;
-		vectoangles( dir, ent->s.angles );
+		idAngles targetAngles = dir.ToAngles();
+		ent->s.angles.Set( targetAngles.pitch, targetAngles.yaw, targetAngles.roll );
 	}
 // jpw
 }

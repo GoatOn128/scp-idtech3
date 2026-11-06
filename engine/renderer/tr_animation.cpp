@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 /*
@@ -261,11 +263,11 @@ float R_CalcMDSLod( refEntity_t *refent, const idVec3 &origin, float radius, flo
 	}
 
 	if ( refent->reFlags & REFLAG_FORCE_LOD ) {
-		flod *= 0.5;
+		flod *= 0.5f;
 	}
 //----(SA)	like reflag_force_lod, but separate for the moment
 	if ( refent->reFlags & REFLAG_DEAD_LOD ) {
-		flod *= 0.8;
+		flod *= 0.8f;
 	}
 
 	flod -= 0.25 * ( r_lodbias->value ) + modelBias;
@@ -706,7 +708,7 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 			for ( j = 0; j < 3; j++ ) {
 				diff = tangles[j] - angles[j];
 				if ( fabs( diff ) > 180 ) {
-					diff = AngleNormalize180( diff );
+					diff = idMath::AngleNormalize180( diff );
 				}
 				angles[j] = angles[j] + thisBoneInfo->torsoWeight * diff;
 			}
@@ -730,14 +732,14 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 			for ( j = 0; j < 3; j++ ) {
 				diff = tangles[j] - angles[j];
 				if ( fabs( diff ) > 180 ) {
-					diff = AngleNormalize180( diff );
+					diff = idMath::AngleNormalize180( diff );
 				}
 				angles[j] = angles[j] + thisBoneInfo->torsoWeight * diff;
 			}
 		}
 	}
 #endif
-	AnglesToAxis( angles, bonePtr->matrix );
+	idAngles( angles ).ToVectors( &bonePtr->matrix[0], &bonePtr->matrix[1], &bonePtr->matrix[2] );
 
 	// translation
 	if ( parentBone ) {
@@ -857,11 +859,11 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 		sh2 = (short *)cOldTBonePtr->angles;
 		pf = angles.ToFloatPtr();
 
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - torsoBacklerp * diff;
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - torsoBacklerp * diff;
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - torsoBacklerp * diff;
 
 	} else {
@@ -870,11 +872,11 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 		sh2 = (short *)cOldBonePtr->angles;
 		pf = angles.ToFloatPtr();
 
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - backlerp * diff;
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - backlerp * diff;
-		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - backlerp * diff;
 
 		if ( isTorso ) {
@@ -883,18 +885,18 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 			sh2 = (short *)cOldTBonePtr->angles;
 			pf = tangles.ToFloatPtr();
 
-			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 			*( pf++ ) = a1 - torsoBacklerp * diff;
-			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 			*( pf++ ) = a1 - torsoBacklerp * diff;
-			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
+			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = idMath::AngleNormalize180( a1 - a2 );
 			*( pf++ ) = a1 - torsoBacklerp * diff;
 
 			// blend the angles together
 			for ( j = 0; j < 3; j++ ) {
 				diff = tangles[j] - angles[j];
 				if ( fabs( diff ) > 180 ) {
-					diff = AngleNormalize180( diff );
+					diff = idMath::AngleNormalize180( diff );
 				}
 				angles[j] = angles[j] + thisBoneInfo->torsoWeight * diff;
 			}
@@ -902,7 +904,7 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 		}
 
 	}
-	AnglesToAxis( angles, bonePtr->matrix );
+	idAngles( angles ).ToVectors( &bonePtr->matrix[0], &bonePtr->matrix[1], &bonePtr->matrix[2] );
 
 	if ( parentBone ) {
 
@@ -1201,8 +1203,8 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 
 //----(SA)	modification to allow dead skeletal bodies to go below minlod (experiment)
 	if ( refent->reFlags & REFLAG_DEAD_LOD ) {
-		if ( lodScale < 0.35 ) {   // allow dead to lod down to 35% (even if below surf->minLod) (%35 is arbitrary and probably not good generally.  worked for the blackguard/infantry as a test though)
-			lodScale = 0.35;
+		if ( lodScale < 0.35f ) {   // allow dead to lod down to 35% (even if below surf->minLod) (%35 is arbitrary and probably not good generally.  worked for the blackguard/infantry as a test though)
+			lodScale = 0.35f;
 		}
 		render_count = (int)( (float) surface->numVerts * lodScale );
 
@@ -1347,7 +1349,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 				if ( validBones[boneInfo[*boneRefs].parent] ) {
 					qglLineWidth( 2 );
 					qglBegin( GL_LINES );
-					qglColor3f( .6,.6,.6 );
+					qglColor3f( .6f, .6f, .6f );
 					qglVertex3fv( bonePtr->translation.ToFloatPtr() );
 					qglVertex3fv( bones[boneInfo[*boneRefs].parent].translation.ToFloatPtr() );
 					qglEnd();
@@ -1364,7 +1366,7 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 			GL_Bind( tr.whiteImage );
 			qglLineWidth( 1 );
 			qglBegin( GL_LINES );
-			qglColor3f( .0,.0,.8 );
+			qglColor3f( .0f, .0f, .8f );
 
 			pIndexes = &tess.indexes[oldIndexes];
 			for ( j = 0; j < render_indexes / 3; j++, pIndexes += 3 ) {

@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 #include "tr_renderprog.h"
 #include <cmath>
@@ -155,8 +157,8 @@ static qboolean R_LoadScreenPrograms( void ) {
 #undef RP_LOAD
 	const char *names[SCREEN_PROGRAM_COUNT] = { "particles", "decals" };
 	for ( int i = 0; i < SCREEN_PROGRAM_COUNT; i++ ) {
-		GLuint vertex = R_CompileScreenShader( RP_VERTEX_SHADER, va( "renderprogs/%s.vert", names[i] ) );
-		GLuint fragment = R_CompileScreenShader( RP_FRAGMENT_SHADER, va( "renderprogs/%s.frag", names[i] ) );
+		GLuint vertex = R_CompileScreenShader( RP_VERTEX_SHADER, idStr::FormatString( "renderprogs/%s.vert", names[i] ) );
+		GLuint fragment = R_CompileScreenShader( RP_FRAGMENT_SHADER, idStr::FormatString( "renderprogs/%s.frag", names[i] ) );
 		if ( !vertex || !fragment ) {
 			if ( vertex ) { rpDeleteShader( vertex ); }
 			if ( fragment ) { rpDeleteShader( fragment ); }
@@ -221,9 +223,9 @@ qboolean RB_ScreenEntityVisible( const refEntity_t *entity ) {
 	if ( !r_drawentities->integer || ( backEnd.refdef.rdflags & RDF_NOWORLDMODEL ) ) { return qfalse; }
 	if ( ( entity->renderfx & RF_FIRST_PERSON ) && backEnd.viewParms.isPortal ) { return qfalse; }
 	if ( ( entity->renderfx & RF_THIRD_PERSON ) && !backEnd.viewParms.isPortal ) { return qfalse; }
-	if ( !std::isfinite( entity->radius ) || entity->radius <= 0 || !entity->shaderRGBA[3] ) { return qfalse; }
+	if ( !idMath::IsFinite( entity->radius ) || entity->radius <= 0 || !entity->shaderRGBA[3] ) { return qfalse; }
 	for ( int i = 0; i < 3; i++ ) {
-		if ( !std::isfinite( entity->origin[i] ) ) { return qfalse; }
+		if ( !idMath::IsFinite( entity->origin[i] ) ) { return qfalse; }
 	}
 	return qtrue;
 }

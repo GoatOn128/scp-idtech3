@@ -31,6 +31,8 @@ If you have questions concerning this license or the applicable additional terms
  *
  */
 
+#include "../precompiled.h"
+
 #include "../game/g_local.h"
 #include "../../engine/qcommon/q_shared.h"
 #include "../game/botlib.h"      //bot lib interface
@@ -718,7 +720,7 @@ void ReadClient( fileHandle_t f, gclient_t *client, int size ) {
 		vmCvar_t cvar;
 		// tell it which weapon to use after spawning in
 		trap_Cvar_Register( &cvar, "cg_loadWeaponSelect", "0", CVAR_ROM );
-		trap_Cvar_Set( "cg_loadWeaponSelect", va( "%i", client->ps.weapon ) );
+		trap_Cvar_Set( "cg_loadWeaponSelect", idStr::FormatString( "%i", client->ps.weapon ) );
 		//
 		trap_SendServerCommand( client->ps.clientNum, "map_restart\n" );
 	}
@@ -885,16 +887,16 @@ void ReadEntity( fileHandle_t f, gentity_t *ent, int size ) {
 		// set up met objectives
 		for ( i = 0; i < sizeof( ent->missionObjectives ) * 8; i++ ) {
 			if ( ent->missionObjectives & ( 1 << i ) ) {
-				trap_Cvar_Register( &cvar, va( "g_objective%i", i + 1 ), "1", CVAR_ROM ); //set g_objective<n> cvar
-				trap_Cvar_Set( va( "g_objective%i", i + 1 ), "1" );                           // set it to make sure
+				trap_Cvar_Register( &cvar, idStr::FormatString( "g_objective%i", i + 1 ), "1", CVAR_ROM ); //set g_objective<n> cvar
+				trap_Cvar_Set( idStr::FormatString( "g_objective%i", i + 1 ), "1" );                           // set it to make sure
 			} else {
-				trap_Cvar_Set( va( "g_objective%i", i + 1 ), "0" );                           // make sure it's clear
+				trap_Cvar_Set( idStr::FormatString( "g_objective%i", i + 1 ), "0" );                           // make sure it's clear
 			}
 		}
 
 		// set up current episode (for notebook de-briefing tabs)
 		trap_Cvar_Register( &cvar, "g_episode", "0", CVAR_ROM );
-		trap_Cvar_Set( "g_episode", va( "%s", ent->missionLevel ) );
+		trap_Cvar_Set( "g_episode", idStr::FormatString( "%s", ent->missionLevel ) );
 
 	}
 
@@ -1040,18 +1042,20 @@ void ReadTime( fileHandle_t f, qtime_t *tm ) {
 G_Save_TimeStr
 ==============
 */
-char *G_Save_TimeStr( void ) {
+const char *G_Save_TimeStr( void ) {
 	qtime_t tm;
+	static idStr timeString;
 	//
 	trap_RealTime( &tm );
 	//
-	return va( "%2i:%s%i:%s%i %s",
+	timeString.Format( "%2i:%s%i:%s%i %s",
 			   ( 1 + ( tm.tm_hour + 11 ) % 12 ), // 12 hour format
 			   ( tm.tm_min > 9 ? "" : "0" ),    // minute padding
 			   tm.tm_min,
 			   ( tm.tm_sec > 9 ? "" : "0" ),    // second padding
 			   tm.tm_sec,
 			   ( tm.tm_hour < 12 ? "am" : "pm" ) );
+	return timeString.c_str();
 }
 
 static char *monthStr[12] =
@@ -1064,15 +1068,17 @@ static char *monthStr[12] =
 G_Save_DateStr
 ==============
 */
-char *G_Save_DateStr( void ) {
+const char *G_Save_DateStr( void ) {
 	qtime_t tm;
+	static idStr dateString;
 	//
 	trap_RealTime( &tm );
 	//
-	return va( "%s %i, %i",
+	dateString.Format( "%s %i, %i",
 			   monthStr[tm.tm_mon],
 			   tm.tm_mday,
 			   1900 + tm.tm_year );
+	return dateString.c_str();
 }
 
 //=========================================================
@@ -1131,7 +1137,7 @@ qboolean G_SaveGame( char *username ) {
 
 	// validate the filename
 	for ( i = 0; i < strlen( username ); i++ ) {
-		if ( !Q_isforfilename( username[i] ) && username[i] != '\\' ) { // (allow '\\' so games can be saved in subdirs)
+		if ( !idStr::CharIsForFilename( username[i] ) && username[i] != '\\' ) { // (allow '\\' so games can be saved in subdirs)
 			G_Printf( "G_SaveGame: '%s'.  Invalid character (%c) in filename. Must use alphanumeric characters only.\n", username, username[i] );
 			return qtrue;
 		}
@@ -1220,7 +1226,7 @@ qboolean G_SaveGame( char *username ) {
 				 leveltime,
 //		G_Save_DateStr(),
 //		G_Save_TimeStr(),
-				 va( "%2ih%s%im%s%is",
+				 idStr::FormatString( "%2ih%s%im%s%is",
 					 ( ( ( playtime / 1000 ) / 60 ) / 60 ), // hour
 					 ( minutes > 9 ? "" : "0" ), // minute padding
 					 minutes,
@@ -1440,7 +1446,7 @@ void G_LoadGame( char *filename ) {
 	// read the totalPlayTime
 	trap_FS_Read( &i, sizeof( i ), f );
 	if ( i > g_totalPlayTime.integer ) {
-		trap_Cvar_Set( "g_totalPlayTime", va( "%i", i ) );
+		trap_Cvar_Set( "g_totalPlayTime", idStr::FormatString( "%i", i ) );
 	}
 
 //----(SA)	had to add 'episode' tracking.
@@ -1448,7 +1454,7 @@ void G_LoadGame( char *filename ) {
 	// read the 'episode'
 	if ( ver >= 13 ) {
 		trap_FS_Read( &i, sizeof( i ), f );
-		trap_Cvar_Set( "g_episode", va( "%i", i ) );
+		trap_Cvar_Set( "g_episode", idStr::FormatString( "%i", i ) );
 	}
 //----(SA)	end
 
@@ -1473,7 +1479,7 @@ void G_LoadGame( char *filename ) {
 				if ( idStr::Icmp( musicString, musicCvar.string ) ) {      // it's different than what's playing, so fade out and queue up
 //					trap_SendServerCommand(-1, "mu_fade 0 1000\n");
 //					trap_SetConfigstring( CS_MUSIC_QUEUE, musicString);
-					trap_SendServerCommand( -1, va( "mu_start %s 1000\n", musicString ) );       // (SA) trying this instead
+					trap_SendServerCommand( -1, idStr::FormatString( "mu_start %s 1000\n", musicString ) );       // (SA) trying this instead
 				}
 			}
 
@@ -1518,7 +1524,7 @@ void G_LoadGame( char *filename ) {
 			// read the game skill
 			trap_FS_Read( &i, sizeof( i ), f );
 			// set the skill level
-			trap_Cvar_Set( "g_gameskill", va( "%i",i ) );
+			trap_Cvar_Set( "g_gameskill", idStr::FormatString( "%i",i ) );
 			// update this
 			aicast_skillscale = (float)i / (float)GSKILL_MAX;
 		}
@@ -1639,7 +1645,7 @@ void G_LoadGame( char *filename ) {
 			// read the game skill
 			trap_FS_Read( &i, sizeof( i ), f );
 			// set the skill level
-			trap_Cvar_Set( "g_gameskill", va( "%i",i ) );
+			trap_Cvar_Set( "g_gameskill", idStr::FormatString( "%i",i ) );
 			// update this
 			aicast_skillscale = (float)i / (float)GSKILL_MAX;
 		}
@@ -1653,7 +1659,7 @@ void G_LoadGame( char *filename ) {
 
 	// now increment the attempts field and update totalplaytime according to cvar
 	trap_Cvar_Update( &g_attempts );
-	trap_Cvar_Set( "g_attempts", va( "%i", g_attempts.integer + 1 ) );
+	trap_Cvar_Set( "g_attempts", idStr::FormatString( "%i", g_attempts.integer + 1 ) );
 	caststates[0].attempts = g_attempts.integer + 1;
 	caststates[0].lastLoadTime = level.time;
 	if ( caststates[0].totalPlayTime < g_totalPlayTime.integer ) {
@@ -1817,7 +1823,7 @@ qboolean G_SavePersistant( char *nextmap ) {
 	// save out the pers id
 	persid = trap_Milliseconds() + ( rand() & 0xffff );
 	G_SaveWrite( &persid, sizeof( persid ), f );
-	trap_Cvar_Set( "persid", va( "%i", persid ) );
+	trap_Cvar_Set( "persid", idStr::FormatString( "%i", persid ) );
 
 	// write out the entity structure
 	PersWriteEntity( f, &g_entities[0] );

@@ -22,6 +22,8 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
 
 // Reuse client-slot storage across actor despawns; G_Alloc cannot free individual blocks.
@@ -344,7 +346,7 @@ gentity_t *AICast_CreateCharacter( gentity_t *ent, float *attributes, cast_weapo
 	cs->ideal_viewangles = ent->s.angles;
 	// factor in the delta_angles
 	for ( j = 0; j < 3; j++ ) {
-		cs->viewangles[j] = AngleMod( newent->s.angles[j] - SHORT2ANGLE( newent->client->ps.delta_angles[j] ) );
+		cs->viewangles[j] = idMath::AngleNormalize360( newent->s.angles[j] - SHORT2ANGLE( newent->client->ps.delta_angles[j] ) );
 	}
 	newent->s.angles = ent->s.angles;
 	cs->startOrigin = ent->s.origin;
@@ -704,7 +706,7 @@ void AICast_CheckLoadGame( void ) {
 
 	if ( strlen( loading ) > 0 && atoi( loading ) != 0 ) {
 		// screen should be black if we are at this stage
-		trap_SetConfigstring( CS_SCREENFADE, va( "1 %i 1", level.time - 10 ) );
+		trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i 1", level.time - 10 ) );
 
 		//		if (!reloading && atoi(loading) == 2) {
 		if ( !( g_reloading.integer ) && atoi( loading ) == 2 ) {
@@ -735,11 +737,11 @@ void AICast_CheckLoadGame( void ) {
 
 			// wait for the clients to return from faded screen
 			//trap_SetConfigstring( CS_SCREENFADE, va("0 %i 1500", level.time + 500) );
-			trap_SetConfigstring( CS_SCREENFADE, va( "0 %i 750", level.time + 500 ) );
+			trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "0 %i 750", level.time + 500 ) );
 			level.reloadPauseTime = level.time + 1100;
 
 			// make sure sound fades up
-			trap_SendServerCommand( -1, va( "snd_fade 1 %d", 2000 ) ); //----(SA)	added
+			trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 1 %d", 2000 ) ); //----(SA)	added
 
 			AICast_CastScriptThink();
 		}
@@ -915,7 +917,7 @@ void AICast_AgePlayTime( int entnum ) {
 	if ( ( level.time - cs->lastLoadTime ) > 1000 ) {
 		if ( /*(level.time - cs->lastLoadTime) < 2000 &&*/ ( level.time - cs->lastLoadTime ) > 0 ) {
 			cs->totalPlayTime += level.time - cs->lastLoadTime;
-			trap_Cvar_Set( "g_totalPlayTime", va( "%i", cs->totalPlayTime ) );
+			trap_Cvar_Set( "g_totalPlayTime", idStr::FormatString( "%i", cs->totalPlayTime ) );
 		}
 		//
 		cs->lastLoadTime = level.time;

@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // cl_cgame.c  -- client system interaction with client game
 
+#include "../precompiled.h"
+
 #include "client.h"
 
 #include "../game/botlib.h"

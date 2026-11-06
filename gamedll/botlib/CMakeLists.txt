@@ -9,7 +9,6 @@ set(BOTLIB_SOURCES
 	be_ai_weight.cpp
 	be_ea.cpp
 	be_interface.cpp
-	l_crc.cpp
 	l_libvar.cpp
 	l_log.cpp
 	l_struct.cpp
@@ -38,3 +37,4 @@ endif()
 target_include_directories(botlib PRIVATE "${CMAKE_SOURCE_DIR}/engine/qcommon")
 
 configure_target(botlib)
+target_precompile_headers(botlib PRIVATE "${CMAKE_SOURCE_DIR}/gamedll/precompiled.h")

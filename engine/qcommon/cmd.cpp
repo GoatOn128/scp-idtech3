@@ -28,6 +28,9 @@ If you have questions concerning this license or the applicable additional terms
 
 // cmd.c -- Quake script command processing module
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "q_shared.h"
 #include "qcommon.h"
 
@@ -80,7 +83,7 @@ Cbuf_Init
 */
 void Cbuf_Init( void ) {
 	cmd_text.data = cmd_text_buf;
-	cmd_text.maxsize = MAX_CMD_BUFFER;
+	cmd_text.GetMaxSize() = MAX_CMD_BUFFER;
 	cmd_text.cmdsize = 0;
 }
 
@@ -96,7 +99,7 @@ void Cbuf_AddText( const char *text ) {
 
 	l = strlen( text );
 
-	if ( cmd_text.cmdsize + l >= cmd_text.maxsize ) {
+	if ( cmd_text.cmdsize + l >= cmd_text.GetMaxSize() ) {
 		Com_Printf( "Cbuf_AddText: overflow\n" );
 		return;
 	}
@@ -118,7 +121,7 @@ void Cbuf_InsertText( const char *text ) {
 	int i;
 
 	len = strlen( text ) + 1;
-	if ( len + cmd_text.cmdsize > cmd_text.maxsize ) {
+	if ( len + cmd_text.cmdsize > cmd_text.GetMaxSize() ) {
 		Com_Printf( "Cbuf_InsertText overflowed\n" );
 		return;
 	}
@@ -283,7 +286,7 @@ void Cmd_Vstr_f( void ) {
 	}
 
 	v = Cvar_VariableString( Cmd_Argv( 1 ) );
-	Cbuf_InsertText( va( "%s\n", v ) );
+	Cbuf_InsertText( idStr::FormatString( "%s\n", v ) );
 }
 
 

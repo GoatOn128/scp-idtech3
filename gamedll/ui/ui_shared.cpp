@@ -29,6 +29,8 @@ If you have questions concerning this license or the applicable additional terms
 //
 // string allocation/managment
 
+#include "../precompiled.h"
+
 #include "ui_shared.h"
 
 #define SCROLL_TIME_START                   500
@@ -493,7 +495,7 @@ qboolean Script_Parse( idLexer *p, const char **out ) {
 		}
 
 		if ( token.Length() > 1 ) {
-			idStr::Append( script, sizeof( script ), va( "\"%s\"", token.c_str() ) );
+			idStr::Append( script, sizeof( script ), idStr::FormatString( "\"%s\"", token.c_str() ) );
 		} else {
 			idStr::Append( script, sizeof( script ), token.c_str() );
 		}
@@ -1191,18 +1193,18 @@ void Script_NotebookShowpage( itemDef_t *item, idLexer *args ) {
 //		Menu_ShowItemByName(item->parent, "page_*", qfalse);
 		Menu_ShowItemByName( item->parent, "cover", qfalse );
 		for ( i = 1; i <= NOTEBOOK_MAX_PAGES; i++ ) {
-			Menu_ShowItemByName( item->parent, va( "page%d", i ), qfalse );
+			Menu_ShowItemByName( item->parent, idStr::FormatString( "page%d", i ), qfalse );
 		}
 
 		// show the visible one
 
 		if ( curpage ) {
-			Menu_ShowItemByName( item->parent, va( "page%d", curpage ), qtrue );
+			Menu_ShowItemByName( item->parent, idStr::FormatString( "page%d", curpage ), qtrue );
 		} else {
 			Menu_ShowItemByName( item->parent, "cover", qtrue );
 		}
 
-		DC->setCVar( "ui_notebookCurrentPage", va( "%d", curpage ) ); // store new current page
+		DC->setCVar( "ui_notebookCurrentPage", idStr::FormatString( "%d", curpage ) ); // store new current page
 
 	}
 }
@@ -1321,7 +1323,7 @@ void Script_SetCvar( itemDef_t *item, idLexer *args ) {
 void Script_Exec( itemDef_t *item, idLexer *args ) {
 	const char *val;
 	if ( String_Parse( args, &val ) ) {
-		DC->executeText( EXEC_APPEND, va( "%s ; ", val ) );
+		DC->executeText( EXEC_APPEND, idStr::FormatString( "%s ; ", val ) );
 	}
 }
 
@@ -2038,7 +2040,7 @@ qboolean Item_YesNo_HandleKey( itemDef_t *item, int key ) {
 
 	if ( Rect_ContainsPoint( &item->window.rect, DC->cursorx, DC->cursory ) && item->window.flags & WINDOW_HASFOCUS && item->cvar ) {
 		if ( key == K_MOUSE1 || key == K_ENTER || key == K_MOUSE2 || key == K_MOUSE3 ) {
-			DC->setCVar( item->cvar, va( "%i", !DC->getCVarValue( item->cvar ) ) );
+			DC->setCVar( item->cvar, idStr::FormatString( "%i", !DC->getCVarValue( item->cvar ) ) );
 			return qtrue;
 		}
 	}
@@ -2122,9 +2124,9 @@ qboolean Item_Multi_HandleKey( itemDef_t *item, int key ) {
 				} else {
 					float value = multiPtr->cvarValue[current];
 					if ( ( (float)( (int) value ) ) == value ) {
-						DC->setCVar( item->cvar, va( "%i", (int) value ) );
+						DC->setCVar( item->cvar, idStr::FormatString( "%i", (int) value ) );
 					} else {
-						DC->setCVar( item->cvar, va( "%f", value ) );
+						DC->setCVar( item->cvar, idStr::FormatString( "%f", value ) );
 					}
 				}
 				return qtrue;
@@ -2167,7 +2169,7 @@ qboolean Item_TextField_HandleKey( itemDef_t *item, int key ) {
 
 			// 'valid filename' text entry.  so users can't try to save games like '!**$er' and stuff (from the menu)
 			if ( item->type == ITEM_TYPE_VALIDFILEFIELD ) {
-				if ( !Q_isforfilename( key ) ) {
+				if ( !idStr::CharIsForFilename( key ) ) {
 					return qtrue;
 				}
 			}
@@ -2180,7 +2182,7 @@ qboolean Item_TextField_HandleKey( itemDef_t *item, int key ) {
 			}
 
 			if ( item->type == ITEM_TYPE_NUMERICFIELD ) {
-				if ( !Q_isnumeric( key ) ) {
+				if ( !idStr::CharIsNumeric( key ) ) {
 					return qfalse;
 				}
 			}
@@ -2389,7 +2391,7 @@ static void Scroll_Slider_ThumbFunc( void *p ) {
 	value /= SLIDER_WIDTH;
 	value *= ( editDef->maxVal - editDef->minVal );
 	value += editDef->minVal;
-	DC->setCVar( si->item->cvar, va( "%f", value ) );
+	DC->setCVar( si->item->cvar, idStr::FormatString( "%f", value ) );
 }
 
 void Item_StartCapture( itemDef_t *item, int key ) {
@@ -2474,7 +2476,7 @@ qboolean Item_Slider_HandleKey( itemDef_t *item, int key, qboolean down ) {
 					// vm fuckage
 					// value = (((float)(DC->cursorx - x)/ SLIDER_WIDTH) * (editDef->maxVal - editDef->minVal));
 					value += editDef->minVal;
-					DC->setCVar( item->cvar, va( "%f", value ) );
+					DC->setCVar( item->cvar, idStr::FormatString( "%f", value ) );
 					return qtrue;
 				}
 			}
@@ -3556,7 +3558,7 @@ void BindingFromName( const char *cvar ) {
 			if ( b2 != -1 ) {
 				DC->keynumToStringBuf( b2, g_nameBind2, 32 );
 				idStr::ToUpper( g_nameBind2 );
-				strcat( g_nameBind1, va( " %s ", DC->getTranslatedString( "or" ) ) );
+				strcat( g_nameBind1, idStr::FormatString( " %s ", DC->getTranslatedString( "or" ) ) );
 				strcat( g_nameBind1, g_nameBind2 );
 			}
 			return;
@@ -3768,7 +3770,9 @@ void Item_Model_Paint( itemDef_t *item ) {
 	// setup the refdef
 	memset( &refdef, 0, sizeof( refdef ) );
 	refdef.rdflags = RDF_NOWORLDMODEL;
-	AxisClear( refdef.viewaxis );
+	refdef.viewaxis[0] = mat3_identity[0];
+	refdef.viewaxis[1] = mat3_identity[1];
+	refdef.viewaxis[2] = mat3_identity[2];
 	x = item->window.rect.x + 1;
 	y = item->window.rect.y + 1;
 	w = item->window.rect.w - 2;
@@ -3825,7 +3829,7 @@ void Item_Model_Paint( itemDef_t *item ) {
 		}
 	}
 	angles.Set( 0, modelPtr->angle, 0 );
-	AnglesToAxis( angles, ent.axis );
+	idAngles( angles ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 
 	ent.hModel = hModel;
 
@@ -4561,7 +4565,7 @@ int KeywordHash_Key( const char *keyword ) {
 
 	hash = 0;
 	for ( i = 0; keyword[i] != '\0'; i++ ) {
-		if ( Q_isupper( keyword[i] ) ) {
+		if ( ( keyword[i] <= 0x7F && idStr::CharIsUpper( keyword[i] ) ) ) {
 			hash += ( keyword[i] + ( 'a' - 'A' ) ) * ( 119 + i );
 		} else {
 			hash += keyword[i] * ( 119 + i );
@@ -6022,7 +6026,7 @@ void Menu_PaintAll() {
 
 	if ( debugMode ) {
 		idVec4 v( 1, 1, 1, 1 );
-		DC->drawText( 5, 25, 0, .5, v, va( "fps: %f", DC->FPS ), 0, 0, 0 );
+		DC->drawText( 5, 25, 0, .5, v, idStr::FormatString( "fps: %f", DC->FPS ), 0, 0, 0 );
 	}
 }
 

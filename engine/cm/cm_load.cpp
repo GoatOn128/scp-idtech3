@@ -28,24 +28,15 @@ If you have questions concerning this license or the applicable additional terms
 
 // cmodel.c -- model loading
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "cm_local.h"
 
 #ifdef BSPC
 
 #include "../bspc/l_qfiles.h"
 
-void SetPlaneSignbits( cplane_t *out ) {
-	int bits, j;
-
-	// for fast box on planeside test
-	bits = 0;
-	for ( j = 0 ; j < 3 ; j++ ) {
-		if ( out->normal[j] < 0 ) {
-			bits |= 1 << j;
-		}
-	}
-	out->signbits = bits;
-}
 #endif //BSPC
 
 // to allow boxes to be treated as brush models, we allocate
@@ -326,11 +317,10 @@ CMod_LoadPlanes
 =================
 */
 void CMod_LoadPlanes( lump_t *l ) {
-	int i, j;
+	int i;
 	cplane_t    *out;
 	dplane_t    *in;
 	int count;
-	int bits;
 
 	in = (dplane_t *) ( void * )( cmod_base + l->fileofs );
 	if ( l->filelen % sizeof( *in ) ) {
@@ -348,18 +338,12 @@ void CMod_LoadPlanes( lump_t *l ) {
 
 	for ( i = 0 ; i < count ; i++, in++, out++ )
 	{
-		bits = 0;
-		for ( j = 0 ; j < 3 ; j++ )
-		{
+		for ( int j = 0; j < 3; j++ ) {
 			out->normal[j] = LittleFloat( in->normal[j] );
-			if ( out->normal[j] < 0 ) {
-				bits |= 1 << j;
-			}
 		}
-
 		out->dist = LittleFloat( in->dist );
 		out->type = PlaneTypeForNormal( out->normal );
-		out->signbits = bits;
+		out->signbits = idPlane( out->normal, out->dist ).Signbits();
 	}
 }
 
@@ -808,7 +792,7 @@ void CM_InitBoxHull( void ) {
 		( p->normal.Zero() );
 		p->normal[i >> 1] = -1;
 
-		SetPlaneSignbits( p );
+		p->signbits = idPlane( p->normal, p->dist ).Signbits();
 	}
 }
 
@@ -861,4 +845,3 @@ void CM_ModelBounds( clipHandle_t model, idVec3 &mins, idVec3 &maxs ) {
 	( mins = cmod->mins );
 	( maxs = cmod->maxs );
 }
-

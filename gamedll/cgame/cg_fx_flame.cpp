@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 //
 // NOTE: some AI's are treated different, mostly for aesthetical reasons.
 
+#include "../precompiled.h"
+
 #include "FxScheduler.h"
 #include "cg_fx.h"
 
@@ -77,17 +79,15 @@ typedef struct flameChunk_s
 } flameChunk_t;
 
 // Stream ownership is handled by FX. This index is only for sound updates.
-static std::list<CWolfFlameStream *> fxFlameStreams;
+static idList<CWolfFlameStream *> fxFlameStreams;
 
 class CWolfFlameStream : public CEffect {
-    std::list<flameChunk_t *> chunks;
-    std::list<CWolfFlameStream *>::iterator entry;
+    idList<flameChunk_t *> chunks;
 public:
     flameChunk_t *head;
     CWolfFlameStream() : head( NULL ) {
         SetFlags( 0 );
-        fxFlameStreams.push_front( this );
-        entry = fxFlameStreams.begin();
+        fxFlameStreams.Insert( this, 0 );
     }
     ~CWolfFlameStream();
     flameChunk_t *Append() {
@@ -96,7 +96,7 @@ public:
         chunk->inuse = qtrue;
         chunk->nextFlameChunk = head;
         head = chunk;
-        chunks.push_front( chunk );
+        chunks.Insert( chunk, 0 );
         return chunk;
     }
     bool Update() override;
@@ -437,7 +437,7 @@ void CG_FireFlameChunks( centity_t *cent, idVec3 origin, idVec3 angles, float sp
 			f->velDir.Normalize();
 			f->velSpeed = flameSettings.startSpeed * ( flameSettings.speedBase + flameSettings.speedWeight * speedScale );
 			f->ownerCent = cent->currentState.number;
-			f->rollAngle = Q_flrand( -1.0f, 1.0f ) * flameSettings.rollRange;
+			f->rollAngle = cgRandom.CRandomFloat() * flameSettings.rollRange;
 			f->ignitionOnly = !firing;
 			if ( !firing ) {
 				f->gravity = flameSettings.ignitionGravity;
@@ -515,7 +515,7 @@ void CG_FireFlameChunks( centity_t *cent, idVec3 origin, idVec3 angles, float sp
 		( f->startVelDir = fwd );
 		f->velSpeed = flameSettings.startSpeed * ( flameSettings.speedBase + flameSettings.speedWeight * speedScale );
 		f->ownerCent = cent->currentState.number;
-		f->rollAngle = Q_flrand( -1.0f, 1.0f ) * flameSettings.rollRange;
+		f->rollAngle = cgRandom.CRandomFloat() * flameSettings.rollRange;
 		f->ignitionOnly = !firing;
 		f->speedScale = speedScale;
 		if ( !firing ) {
@@ -764,8 +764,8 @@ CG_AddFlameSpriteToScene
 static idVec3 vright, vup;
 static idVec3 rright, rup;
 
-static std::vector<qhandle_t> flameShaders;
-static std::vector<qhandle_t> nozzleShaders;
+static idList<qhandle_t> flameShaders;
+static idList<qhandle_t> nozzleShaders;
 
 #define MAX_CLIPPED_FLAMES  2       // dont draw more than this many per frame
 static int numClippedFlames;
@@ -792,7 +792,7 @@ void CG_FlameDamage( int owner, idVec3 org, float radius ) {
 
 	// check the local playing client
 	if ( ( centFlameInfo[cg.snap->ps.clientNum].lastDmgCheck < cg.time - 100 ) &&
-		 ( Distance( org, cg.snap->ps.origin ) < radius * ( cg.snap->ps.clientNum == owner ? 0.1 : 1.0 ) ) ) {
+		 ( ( org - cg.snap->ps.origin ).Length() < radius * ( cg.snap->ps.clientNum == owner ? 0.1 : 1.0 ) ) ) {
 		// trace to make sure it's not going through geometry
 		CG_Trace( &tr, org, NULL, NULL, cg.snap->ps.origin, -1, MASK_SHOT );
 		//
@@ -814,7 +814,7 @@ void CG_FlameDamage( int owner, idVec3 org, float radius ) {
 				 cent->currentState.aiChar != AICHAR_VENOM &&   // Venom has no flame damage
 				 centFlameInfo[i].lastDmgCheck < ( cg.time - 100 ) &&
 				 cent->currentValid &&  // is in the visible frame
-				 ( Distance( org, cent->lerpOrigin ) < radius ) ) {
+				 ( ( org - cent->lerpOrigin ).Length() < radius ) ) {
 				// trace to make sure it's not going through geometry
 				CG_Trace( &tr, org, NULL, NULL, cent->lerpOrigin, -1, MASK_SHOT );
 				//
@@ -832,7 +832,8 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 	polyVert_t verts[4];
 	float radius, sdist, x;
 	int frameNum;
-	idVec3 vec, rotate_ang;
+	idVec3 vec;
+	idAngles rotate_ang;
 	unsigned char alphaChar;
 	idVec2 fovRadius;
 	idVec2 rdist, rST;
@@ -864,7 +865,8 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 	// find the projected distance from the eye to the projection of the flame origin
 	// onto the view direction vector
 	( p2 = cg.refdef.vieworg + cg.refdef.viewaxis[0] * 1024 );
-	ProjectPointOntoVector( f->org, cg.refdef.vieworg, p2, sProj );
+	idVec3 line = p2 - cg.refdef.vieworg;
+	sProj = cg.refdef.vieworg + line * ( ( f->org - cg.refdef.vieworg ) * line / ( line * line ) );
 
 	// make sure its infront of us
 	( vec = sProj - cg.refdef.vieworg );
@@ -889,9 +891,9 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		// OPTIMIZATION: clamp to 90 degree rotations
 		rollAngleClamped = 0;
 		if ( flameSettings.rotate ) {
-			vectoangles( cg.refdef.viewaxis[0], rotate_ang );
+			rotate_ang = cg.refdef.viewaxis[0].ToAngles();
 			rotate_ang[ROLL] += ( rollAngleClamped = ( (int)( f->rollAngle ) / 90 ) * 90 );
-			idAngles( rotate_ang ).ToVectors( NULL, &( rright ), &( rup ) );
+			rotate_ang.ToVectors( NULL, &( rright ), &( rup ) );
 		} else {
 			( rright = vright );
 			( rup = vup );
@@ -990,9 +992,9 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 	} else {    // set default values for no clipping
 
 		if ( flameSettings.rotate ) {
-			vectoangles( cg.refdef.viewaxis[0], rotate_ang );
+			rotate_ang = cg.refdef.viewaxis[0].ToAngles();
 			rotate_ang[ROLL] += f->rollAngle;
-			idAngles( rotate_ang ).ToVectors( NULL, &( rright ), &( rup ) );
+			rotate_ang.ToVectors( NULL, &( rright ), &( rup ) );
 		} else {
 			( rright = vright );
 			( rup = vup );
@@ -1020,11 +1022,11 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		verts[3].st[1] = 0;
 	}
 
-	frameNum = (int)idMath::Floor( lifeFrac * static_cast<int>(flameShaders.size()) );
+	frameNum = (int)idMath::Floor( lifeFrac * static_cast<int>(flameShaders.Num()) );
 	if ( frameNum < 0 ) {
 		frameNum = 0;
-	} else if ( frameNum > static_cast<int>(flameShaders.size()) - 1 )  {
-		frameNum = static_cast<int>(flameShaders.size()) - 1;
+	} else if ( frameNum > static_cast<int>(flameShaders.Num()) - 1 )  {
+		frameNum = static_cast<int>(flameShaders.Num()) - 1;
 	}
 
 	trap_R_AddPolyToScene( flameShaders[frameNum], 4, verts );
@@ -1106,7 +1108,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 		lived = (float)( headTimeStart - f->timeStart );
 
 		// update the "blow" sound volume (louder as we sway it)
-		vdist = Distance( cg.refdef.vieworg, f->org );  // NOTE: this needs to be here or the flameSound code further below won't work
+		vdist = ( cg.refdef.vieworg - f->org ).Length();  // NOTE: this needs to be here or the flameSound code further below won't work
 		if (    lastBlowChunk && ( centFlameStatus[f->ownerCent].blowVolume < 1.0 ) &&
 				( ( bdot = ( lastBlowChunk->startVelDir * f->startVelDir ) ) < 1.0 ) ) {
 			if ( vdist < flameSettings.soundRange ) {
@@ -1170,7 +1172,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 					//if (cg_entities[f->ownerCent].currentState.aiChar == AICHAR_ZOMBIE)
 					//	shader = cgs.media.funnelFireShader[(cg.time/50 + (cg.time/50 >> 1))%NUM_FUNNEL_SPRITES];
 					//else
-					shader = nozzleShaders[( cg.time / static_cast<int>(flameSettings.nozzleFrameTime) + ( cg.time / static_cast<int>(flameSettings.nozzleFrameTime) >> 1 ) ) % static_cast<int>(nozzleShaders.size())];
+					shader = nozzleShaders[( cg.time / static_cast<int>(flameSettings.nozzleFrameTime) + ( cg.time / static_cast<int>(flameSettings.nozzleFrameTime) >> 1 ) ) % static_cast<int>(nozzleShaders.Num())];
 
 					blueTrailHead = CG_FxTrail( "wolf/trail_flame_nozzle", blueTrailHead, f->org,
 			FxTrailInputs().Alpha( alpha ).AlphaEnd( alpha ).Width( f->size * ( f->ignitionOnly ? flameSettings.ignitionWidthScale : 1.0 ) ).Color( c ).ColorEnd( c ).Shader( shader ) );
@@ -1228,7 +1230,7 @@ void CG_AddFlameToScene( flameChunk_t *fHead ) {
 
 			// should we merge it with the next sprite?
 			while ( fNext && !droppedTrail ) {
-				if (    ( Distance( f->org, fNext->org ) < ( ( 0.2 + 0.8 * f->lifeFrac ) * f->size * ( isClientFlame ? 0.2 : 0.1 ) ) )
+				if (    ( ( f->org - fNext->org ).Length() < ( ( 0.2 + 0.8 * f->lifeFrac ) * f->size * ( isClientFlame ? 0.2 : 0.1 ) ) )
 						&&  ( idMath::Fabs( f->size - fNext->size ) < ( 40.0 ) )
 						&&  ( idMath::Fabs( f->timeStart - fNext->timeStart ) < 50 )
 						&&  ( ( f->velDir * fNext->velDir ) > 0.999 )
@@ -1316,7 +1318,7 @@ void CG_InitFlameChunks( void ) {
 	flameSettings.Load();
 	const CPrimitiveTemplate *body = theFxScheduler.Definition( "wolf/flame_stream" );
 	const CPrimitiveTemplate *nozzle = theFxScheduler.Definition( "wolf/flame_nozzle" );
-	if ( !body || body->mAnimation.empty() || !nozzle || nozzle->mAnimation.empty() ) {
+	if ( !body || body->mAnimation.Num() == 0 || !nozzle || nozzle->mAnimation.Num() == 0 ) {
 		CG_Error( "FX: flame animation sequences are missing" );
 	}
 	flameShaders = body->mAnimation;
@@ -1336,17 +1338,19 @@ void CG_FxBeginFlames( void ) {
 }
 
 CWolfFlameStream::~CWolfFlameStream() {
-    for ( flameChunk_t *chunk : chunks ) {
+    for ( int i = 0; i < chunks.Num(); ++i ) {
+        flameChunk_t *chunk = chunks[i];
         if ( centFlameInfo[chunk->ownerCent].lastFlameChunk == chunk ) {
             centFlameInfo[chunk->ownerCent].lastFlameChunk = NULL;
         }
         delete chunk;
     }
-    fxFlameStreams.erase( entry );
+    fxFlameStreams.Remove( this );
 }
 
 bool CWolfFlameStream::Update() {
-    for ( flameChunk_t *f : chunks ) {
+    for ( int i = 0; i < chunks.Num(); ++i ) {
+        flameChunk_t *f = chunks[i];
         if ( !f->inuse || f->dead ) { continue; }
         if ( cg.time > f->timeEnd || ( f->ignitionOnly && f->blueLife < cg.time - f->timeStart ) ) {
             f->dead = qtrue;
@@ -1364,16 +1368,16 @@ bool CWolfFlameStream::Update() {
     } else if ( head && ( !head->ignitionOnly || centFlameInfo[head->ownerCent].lastFlameChunk == head ) ) {
         CG_AddFlameToScene( head );
     }
-    for ( auto it = chunks.begin(); it != chunks.end(); ) {
-        flameChunk_t *chunk = *it;
-        if ( chunk->inuse ) { ++it; continue; }
+    for ( int i = 0; i < chunks.Num(); ) {
+        flameChunk_t *chunk = chunks[i];
+        if ( chunk->inuse ) { ++i; continue; }
         if ( centFlameInfo[chunk->ownerCent].lastFlameChunk == chunk ) {
             centFlameInfo[chunk->ownerCent].lastFlameChunk = NULL;
             centFlameInfo[chunk->ownerCent].lastClientFrame = 0;
         }
         if ( head == chunk ) { head = NULL; }
         delete chunk;
-        it = chunks.erase( it );
+        chunks.RemoveIndex( i );
     }
     return head != NULL;
 }
@@ -1391,7 +1395,8 @@ void CG_UpdateFlamethrowerSounds( void ) {
 	#define MIN_BLOW_VOLUME     30
 
 	// draw each of the headFlameChunk's
-	for ( CWolfFlameStream *stream : fxFlameStreams ) {
+	for ( int streamIndex = 0; streamIndex < fxFlameStreams.Num(); ++streamIndex ) {
+		CWolfFlameStream *stream = fxFlameStreams[streamIndex];
 		f = stream->head;
 		if ( !f ) { continue; }
 

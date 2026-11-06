@@ -22,7 +22,10 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
+#include "../../precompiled.h"
+
 #include "ai_local.h"
+static idRandom aiRandom;
 
 /*
 ============
@@ -48,7 +51,7 @@ float AICast_GetRandomViewAngle( cast_state_t *cs, float tracedist ) {
 	bestyaw = 0;
 	//
 	while ( cnt++ < 4 ) {
-		vec[YAW] = random() * 360.0;
+		vec[YAW] = aiRandom.RandomFloat() * 360.0;
 		//
 		idAngles( vec ).ToVectors( &dir, NULL, NULL );
 		end = start + dir * tracedist;
@@ -180,14 +183,23 @@ bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, const idVec3 &pos, int ent
 				trap_EA_GetInput( bs->client, 0.1, &bi );
 				if ( lmoveresult.movedir.Length() < 0.5 ) {
 					dir = goal.origin - bs->origin;
-					vectoangles( dir, cs->ideal_viewangles );
+					{
+						const idAngles convertedAngles = dir.ToAngles();
+						cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+					}
 				} else {
 					// use our velocity if we are moving
 					dir = cs->clientState->cur_ps.velocity;
 					if ( dir.Normalize() > 1 ) {
-						vectoangles( dir, cs->ideal_viewangles );
+						{
+							const idAngles convertedAngles = dir.ToAngles();
+							cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+						}
 					} else {
-						vectoangles( lmoveresult.movedir, cs->ideal_viewangles );
+						{
+							const idAngles convertedAngles = lmoveresult.movedir.ToAngles();
+							cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+						}
 					}
 				}
 				cs->ideal_viewangles[2] *= 0.5;
@@ -200,9 +212,9 @@ bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, const idVec3 &pos, int ent
 					} else {
 						cs->ideal_viewangles[1] = lmoveresult.ideal_viewangles[1];
 					}
-					cs->ideal_viewangles[1] = AngleNormalize360( cs->ideal_viewangles[1] );
+					cs->ideal_viewangles[1] = idMath::AngleNormalize360( cs->ideal_viewangles[1] );
 					cs->ideal_viewangles[0] = lmoveresult.ideal_viewangles[0];
-					cs->ideal_viewangles[0] = 0.5 * AngleNormalize180( cs->ideal_viewangles[0] );
+					cs->ideal_viewangles[0] = 0.5 * idMath::AngleNormalize180( cs->ideal_viewangles[0] );
 				}
 			}
 		}
@@ -217,7 +229,10 @@ bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, const idVec3 &pos, int ent
 		}
 
 		// look towards the marker also
-		vectoangles( dir, cs->ideal_viewangles );
+		{
+			const idAngles convertedAngles = dir.ToAngles();
+			cs->ideal_viewangles.Set( convertedAngles.pitch, convertedAngles.yaw, convertedAngles.roll );
+		}
 		cs->ideal_viewangles[2] *= 0.5;
 	}
 	// this must go last so we face the direction we avoid move
@@ -319,7 +334,7 @@ bot_moveresult_t AICast_CombatMove( cast_state_t *cs, int tfl ) {
 
 			// if we are really close, stop going for it
 			// FIXME: a better way of doing this, so we don't stop short of the goal?
-			if ( ( dist = Distance( goal.origin, cs->clientState->origin ) ) < 32 ) {
+			if ( ( dist = ( goal.origin - cs->clientState->origin ).Length() ) < 32 ) {
 				if ( cs->navigation.combatGoalTime > level.time + 3000 ) {
 					cs->navigation.combatGoalTime = level.time + 2000 + rand() % 1000;
 					cs->combat.combatSpotDelayTime = level.time + 4000 + rand() % 3000;
@@ -350,11 +365,11 @@ bot_moveresult_t AICast_CombatMove( cast_state_t *cs, int tfl ) {
 			cs->combat.combatSpotAttackCount = cs->combat.startAttackCount;
 		}
 	} else { // look for a good position to move to?
-		if ( ( ( cs->attributes[CAMPER] < random() ) && ( cs->combat.takeCoverTime < level.time ) &&
+		if ( ( ( cs->attributes[CAMPER] < aiRandom.RandomFloat() ) && ( cs->combat.takeCoverTime < level.time ) &&
 			   ( cs->combat.combatSpotAttackCount < cs->combat.startAttackCount ) &&
 			   ( cs->combat.combatSpotDelayTime < level.time ) ) ) {
 
-			if ( ( cs->attributes[TACTICAL] > 0.3 + random() * 0.5 ) &&
+			if ( ( cs->attributes[TACTICAL] > 0.3 + aiRandom.RandomFloat() * 0.5 ) &&
 				 trap_AAS_RT_GetHidePos( cs->clientState->origin, cs->clientState->entitynum, cs->clientState->areanum,
 										 cs->perception.vislist[cs->enemyNum].visible_pos, cs->enemyNum,
 										 AI_PointAreaNum( cs->perception.vislist[cs->enemyNum].visible_pos ),

@@ -1,4 +1,6 @@
 // this include must remain at the top of every CPP file
+#include "../precompiled.h"
+
 #include "FxWolf.h"
 
 #if !defined(FX_SCHEDULER_H_INC)
@@ -83,7 +85,7 @@ void CParticle::Die()
 		idVec3	norm;
 
 		// Man, this just seems so, like, uncool and stuff...
-		norm.Set( Q_flrand( -1.0f, 1.0f ), Q_flrand( -1.0f, 1.0f ), Q_flrand( -1.0f, 1.0f ) );
+		norm.Set( cgRandom.CRandomFloat(), cgRandom.CRandomFloat(), cgRandom.CRandomFloat() );
 		norm.Normalize();
 
 		theFxScheduler.PlayEffect( mDeathFxID, mOrigin1, norm );
@@ -168,10 +170,11 @@ bool CParticle::Update()
 		GetOrigin( mClientID, org );
 		GetDir( mClientID, dir );
 	
-		idVec3 ang, ax[3];
+		idAngles ang;
 
-		vectoangles( dir, ang );
-		idAngles( ang ).ToVectors( &( ax[0] ), &( ax[1] ), &( ax[2] ) );
+		idVec3 ax[3];
+		ang = dir.ToAngles();
+		ang.ToVectors( &( ax[0] ), &( ax[1] ), &( ax[2] ) );
 //		VectorCopy( dir, ax[0] );
 
 //		CrossProduct( up, ax[0], ax[1] );
@@ -382,7 +385,7 @@ void CParticle::UpdateSize()
 	if (( mFlags & FX_SIZE_RAND ))
 	{ 
 		// Random simply modulates the existing value
-		perc1 = Q_flrand( 0.0f, 1.0f ) * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	mRefEnt.radius = (mSizeStart * perc1) + (mSizeEnd * (1.0f - perc1));
@@ -459,7 +462,7 @@ void CParticle::UpdateRGB()
 	if (( mFlags & FX_RGB_RAND ))
 	{ 
 		// Random simply modulates the existing value
-		perc1 = Q_flrand( 0.0f, 1.0f ) * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	// Now get the correct color 
@@ -554,7 +557,7 @@ void CParticle::UpdateAlpha()
 	if ( (mFlags & FX_ALPHA_RAND) )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = Q_flrand( 0.0f, 1.0f ) * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	if ( mFlags & FX_USE_ALPHA )
@@ -740,7 +743,7 @@ bool CLine::Update()
 //----------------------------
 void CElectricity::Initialize()
 {
-	mRefEnt.frame = Q_flrand( 0.0f, 1.0f ) * 1265536;
+	mRefEnt.frame = cgRandom.RandomFloat() * 1265536;
 	mRefEnt.endTime = cg.time + (mTimeEnd - mTimeStart);
 
 	if ( mFlags & FX_DEPTH_HACK )
@@ -865,10 +868,11 @@ bool CTail::Update()
 		GetOrigin( mClientID, org );
 		GetDir( mClientID, dir );
 
-		idVec3 ang, ax[3];
+		idAngles ang;
+		idVec3 ax[3];
 
-		vectoangles( dir, ang );
-		idAngles( ang ).ToVectors( &( ax[0] ), &( ax[1] ), &( ax[2] ) );
+		ang = dir.ToAngles();
+		ang.ToVectors( &( ax[0] ), &( ax[1] ), &( ax[2] ) );
 
 		( org = org + ax[0] * mOrgOffset[0] );
 		( org = org + ax[1] * mOrgOffset[1] );
@@ -982,7 +986,7 @@ void CTail::UpdateLength()
 	if ( mFlags & FX_LENGTH_RAND )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = Q_flrand( 0.0f, 1.0f ) * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	mLength = (mLengthStart * perc1) + (mLengthEnd * (1.0f - perc1));
@@ -1094,7 +1098,7 @@ void CCylinder::UpdateSize2()
 	if ( mFlags & FX_SIZE2_RAND )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = Q_flrand( 0.0f, 1.0f ) * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	mRefEnt.backlerp = (mSize2Start * perc1) + (mSize2End * (1.0f - perc1));
@@ -1160,7 +1164,7 @@ void CEmitter::Draw()
 #define TRAIL_RATE		8 // we "think" at about a 60hz rate
 
 		// Pick a target step distance and square it
-		step = mDensity + Q_flrand( -1.0f, 1.0f ) * mVariance;
+		step = mDensity + cgRandom.CRandomFloat() * mVariance;
 		step *= step;
 
 		dif = 0;
@@ -1219,10 +1223,10 @@ void CEmitter::Draw()
 			}
 
 			// Is it time to draw an effect?
-			if ( DistanceSquared( org, mOldOrigin ) >= step )
+			if ( ( org - mOldOrigin ).LengthSqr() >= step )
 			{ 
 				// Pick a new target step distance and square it
-				step = mDensity + Q_flrand( -1.0f, 1.0f ) * mVariance;
+				step = mDensity + cgRandom.CRandomFloat() * mVariance;
 				step *= step;
 
 				// We met the step criteria so, we should add in the effect
@@ -1279,7 +1283,7 @@ bool CEmitter::Update()
 void CEmitter::UpdateAngles()
 {
 	( mAngles = mAngles + mAngleDelta * theFxHelper.mFrameTime * 0.01f ); // was 0.001f, but then you really have to jack up the delta to even notice anything
-	AnglesToAxis( mAngles, mRefEnt.axis );
+	idAngles( mAngles[0], mAngles[1], mAngles[2] ).ToVectors( &mRefEnt.axis[0], &mRefEnt.axis[1], &mRefEnt.axis[2] );
 }
 
 
@@ -1377,7 +1381,7 @@ void CLight::UpdateSize()
 	if ( mFlags & FX_SIZE_RAND )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = Q_flrand( 0.0f, 1.0f ) * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	mRefEnt.radius = (mSizeStart * perc1) + (mSizeEnd * (1.0f - perc1));
@@ -1454,7 +1458,7 @@ void CLight::UpdateRGB()
 	if ( mFlags & FX_RGB_RAND )
 	{ 
 		// Random simply modulates the existing value
-		perc1 = Q_flrand( 0.0f, 1.0f ) * perc1;
+		perc1 = cgRandom.RandomFloat() * perc1;
 	}
 
 	// Now get the correct color 
@@ -1927,8 +1931,8 @@ void CParticle::Configure( const CPrimitiveTemplate &definition ) {
 }
 
 void CParticle::UpdateAnimation() {
-    if ( !mAnimation.empty() ) {
-        int count = static_cast<int>(mAnimation.size());
+    if ( mAnimation.Num() > 0 ) {
+        int count = static_cast<int>(mAnimation.Num());
         float age = static_cast<float>(theFxHelper.mTime - mTimeStart) / (mTimeEnd - mTimeStart);
         int frame = static_cast<int>(age * count);
         frame = frame < 0 ? 0 : (frame >= count ? count - 1 : frame);

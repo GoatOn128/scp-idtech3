@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // tr_sky.c
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 #define SKY_SUBDIVISIONS        8

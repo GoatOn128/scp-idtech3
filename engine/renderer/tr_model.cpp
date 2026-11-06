@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_models.c -- model loading and caching
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 #define LL( x ) x = LittleLong( x )
@@ -114,7 +116,7 @@ qhandle_t RE_RegisterModel( const char *name ) {
 
 	// Ridah, caching
 	if ( r_cacheGathering->integer ) {
-		ri.Cmd_ExecuteText( EXEC_NOW, va( "cache_usedfile model %s\n", name ) );
+		ri.Cmd_ExecuteText( EXEC_NOW, idStr::FormatString( "cache_usedfile model %s\n", name ) );
 	}
 
 	//
@@ -294,7 +296,10 @@ fail:
 //-------------------------------------------------------------------------------
 // Ridah, mesh compression
 float r_anormals[NUMMDCVERTEXNORMALS][3] = {
+#pragma warning(push)
+#pragma warning(disable:4305)
 #include "anorms256.h"
+#pragma warning(pop)
 };
 
 /*
@@ -536,7 +541,8 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 	mdcTag_t            *mdcTag;
 	md3Tag_t            *md3Tag;
 
-	idVec3 axis[3], angles;
+	idVec3 axis[3];
+	idAngles angles;
 	float ftemp;
 
 	md3 = mod->md3[lod];
@@ -629,7 +635,7 @@ static qboolean R_MDC_ConvertMD3( model_t *mod, int lod, const char *mod_name ) 
 				axis[k] = idVec3( md3Tag->axis[k][0], md3Tag->axis[k][1], md3Tag->axis[k][2] );
 			}
 			// convert the axis to angles
-			AxisToAngles( axis, angles );
+			angles = idMat3( axis[0], axis[1], axis[2] ).ToAngles();
 			// copy them into the new tag
 			for ( k = 0; k < 3; k++ ) {
 				mdcTag->angles[k] = angles[k] / MDC_TAG_ANGLE_SCALE;
@@ -1176,7 +1182,7 @@ static qboolean R_LoadMDS( model_t *mod, void *buffer, const char *mod_name ) {
 				frame->localOrigin[j] = LittleFloat( frame->localOrigin[j] );
 				frame->parentOffset[j] = LittleFloat( frame->parentOffset[j] );
 			}
-			for ( j = 0 ; j < mds->numBones * sizeof( mdsBoneFrameCompressed_t ) / sizeof( short ) ; j++ ) {
+			for ( j = 0 ; j < mds->numBones * (int)sizeof( mdsBoneFrameCompressed_t ) / (int)sizeof( short ) ; j++ ) {
 				( (short *)frame->bones )[j] = LittleShort( ( (short *)frame->bones )[j] );
 			}
 		}
@@ -1528,7 +1534,9 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 */
 	model = R_GetModelByHandle( handle );
 	if ( !model->md3[0] && !model->mdc[0] && !model->mds ) {
-		AxisClear( tag->axis );
+		tag->axis[0].Set( 1.0f, 0.0f, 0.0f );
+		tag->axis[1].Set( 0.0f, 1.0f, 0.0f );
+		tag->axis[2].Set( 0.0f, 0.0f, 1.0f );
 		tag->origin.Zero();
 		return -1;
 	}
@@ -1569,13 +1577,13 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 			}
 
 			idVec3 tmpaxis[3];
-			AnglesToAxis( sangles, tmpaxis );
+			idAngles( sangles[0], sangles[1], sangles[2] ).ToVectors( &tmpaxis[0], &tmpaxis[1], &tmpaxis[2] );
 			for ( i = 0; i < 3; i++ ) {
 				ustart.axis[i][0] = tmpaxis[i][0];
 				ustart.axis[i][1] = tmpaxis[i][1];
 				ustart.axis[i][2] = tmpaxis[i][2];
 			}
-			AnglesToAxis( eangles, tmpaxis );
+			idAngles( eangles[0], eangles[1], eangles[2] ).ToVectors( &tmpaxis[0], &tmpaxis[1], &tmpaxis[2] );
 			for ( i = 0; i < 3; i++ ) {
 				uend.axis[i][0] = tmpaxis[i][0];
 				uend.axis[i][1] = tmpaxis[i][1];
@@ -1592,7 +1600,9 @@ int R_LerpTag( orientation_t *tag, const refEntity_t *refent, const char *tagNam
 	}
 
 	if ( !start || !end ) {
-		AxisClear( tag->axis );
+		tag->axis[0].Set( 1.0f, 0.0f, 0.0f );
+		tag->axis[1].Set( 0.0f, 1.0f, 0.0f );
+		tag->axis[2].Set( 0.0f, 0.0f, 1.0f );
 		tag->origin.Zero();
 		return -1;
 	}
@@ -1694,148 +1704,24 @@ void R_ModelBounds( qhandle_t handle, idVec3 &mins, idVec3 &maxs ) {
 }
 
 //---------------------------------------------------------------------------
-// Virtual Memory, used for model caching, since we can't allocate them
-// in the main Hunk (since it gets cleared on level changes), and they're
-// too large to go into the Zone, we have a special memory chunk just for
-// caching models in between levels.
-//
-// Optimized for Win32 systems, so that they'll grow the swapfile at startup
-// if needed, but won't actually commit it until it's needed.
-//
-// GOAL: reserve a big chunk of virtual memory for the media cache, and only
-// use it when we actually need it. This will make sure the swap file grows
-// at startup if needed, rather than each allocation we make.
-byte    *membase = NULL;
-int hunkmaxsize;
-int hunkcursize;        //DAJ renamed from cursize
+// Model cache storage remains valid until the cache is purged.
+static idHeapArena modelCacheArena;
 
-#define R_HUNK_MEGS     24
-#define R_HUNK_SIZE     ( R_HUNK_MEGS*1024*1024 )
+#define MODEL_CACHE_SIZE ( 24 * 1024 * 1024 )
 
-void *R_Hunk_Begin( void ) {
-	int maxsize = R_HUNK_SIZE;
-
-	//Com_Printf("R_Hunk_Begin\n");
-
+void R_CacheModelInit( void ) {
 	if ( !r_cache->integer ) {
-		return NULL;
-	}
-
-	// reserve a huge chunk of memory, but don't commit any yet
-	hunkcursize = 0;
-	hunkmaxsize = maxsize;
-
-#ifdef _WIN32
-
-	// this will "reserve" a chunk of memory for use by this application
-	// it will not be "committed" just yet, but the swap file will grow
-	// now if needed
-	membase = (byte *) VirtualAlloc( NULL, maxsize, MEM_RESERVE, PAGE_NOACCESS );
-
-#elif defined( __MACOS__ )
-
-	return; //DAJ FIXME memory leak
-
-#else   // just allocate it now
-
-	// show_bug.cgi?id=440
-	// it is possible that we have been allocated already, in case we don't do anything
-	// NOTE: in SP we currently default to r_cache 0, meaning this code is not used at all
-	//   I am merging the MP way of doing things though, just in case (since we have r_cache 1 on linux MP)
-	if ( !membase ) {
-		membase = (byte *)malloc( maxsize );
-		// TTimo NOTE: initially, I was doing the memset even if we had an existing membase
-		// but this breaks some shaders (i.e. /map mp_beach, then go back to the main menu .. some shaders are missing)
-		// I assume the shader missing is because we don't clear memory either on win32
-		// meaning even on win32 we are using memory that is still reserved but was uncommited .. it works out of pure luck
-		memset( membase, 0, maxsize );
-	}
-
-#endif
-
-	if ( !membase ) {
-		ri.Error( ERR_DROP, "R_Hunk_Begin: reserve failed" );
-	}
-
-	return (void *)membase;
-}
-
-void *R_Hunk_Alloc( int size ) {
-#ifdef _WIN32
-	void    *buf;
-#endif
-
-	//Com_Printf("R_Hunk_Alloc(%d)\n", size);
-
-	// round to cacheline
-	size = ( size + 31 ) & ~31;
-
-#ifdef _WIN32
-
-	// commit pages as needed
-	buf = VirtualAlloc( membase, hunkcursize + size, MEM_COMMIT, PAGE_READWRITE );
-
-	if ( !buf ) {
-		FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), (LPTSTR) &buf, 0, NULL );
-		ri.Error( ERR_DROP, "VirtualAlloc commit failed.\n%s", buf );
-	}
-
-#elif defined( __MACOS__ )
-
-	return NULL;    //DAJ
-
-#endif
-
-	hunkcursize += size;
-	if ( hunkcursize > hunkmaxsize ) {
-		ri.Error( ERR_DROP, "R_Hunk_Alloc overflow" );
-	}
-
-	return ( void * )( membase + hunkcursize - size );
-}
-
-// this is only called when we shutdown GL
-void R_Hunk_End( void ) {
-	//Com_Printf("R_Hunk_End\n");
-
-	if ( !r_cache->integer ) {
+		modelCacheArena.Shutdown();
 		return;
 	}
 
-	if ( membase ) {
-#ifdef _WIN32
-		VirtualFree( membase, 0, MEM_RELEASE );
-#elif defined( __MACOS__ )
-		//DAJ FIXME free (membase);
-#else
-		free( membase );
-#endif
+	if ( !modelCacheArena.Init( MODEL_CACHE_SIZE ) ) {
+		ri.Error( ERR_DROP, "Failed to initialize the model cache arena" );
 	}
-
-	membase = NULL;
 }
 
-void R_Hunk_Reset( void ) {
-	//Com_Printf("R_Hunk_Reset\n");
-
-	if ( !r_cache->integer ) {
-		return;
-	}
-
-#if !defined( __MACOS__ )
-	if ( !membase ) {
-		ri.Error( ERR_DROP, "R_Hunk_Reset called without a membase!" );
-	}
-#endif
-
-#ifdef _WIN32
-	// mark the existing committed pages as reserved, but not committed
-	VirtualFree( membase, hunkcursize, MEM_DECOMMIT );
-#endif
-	// on non win32 OS, we keep the allocated chunk as is, just start again to curzise = 0
-
-	// start again at the top
-	hunkcursize = 0;
+void R_CacheModelShutdown( void ) {
+	modelCacheArena.Shutdown();
 }
 
 //=============================================================================
@@ -1854,11 +1740,11 @@ R_CacheModelAlloc
 */
 void *R_CacheModelAlloc( int size ) {
 	if ( r_cache->integer && r_cacheModels->integer ) {
-#if defined( __MACOS__ )
-		return malloc( size );      //DAJ FIXME was co
-#else
-		return R_Hunk_Alloc( size );
-#endif
+		void *allocation = modelCacheArena.Alloc( size );
+		if ( allocation == NULL ) {
+			ri.Error( ERR_DROP, "Model cache arena overflow allocating %d bytes", size );
+		}
+		return allocation;
 	} else {
 		// if r_cache 0, this function is not supposed to get called
 		Com_Printf( "FIXME: unexpected R_CacheModelAlloc call with r_cache 0\n" );
@@ -1871,14 +1757,8 @@ void *R_CacheModelAlloc( int size ) {
 R_CacheModelFree
 ===============
 */
-void R_CacheModelFree( void *ptr ) {
-	if ( r_cache->integer && r_cacheModels->integer ) {
-		// TTimo: it's in the hunk, leave it there, next R_Hunk_Begin will clear it all
-#if defined( __MACOS__ )
-		free( ptr );    //DAJ FIXME was co
-#endif
-	} else
-	{
+void R_CacheModelFree( void * ) {
+	if ( !r_cache->integer || !r_cacheModels->integer ) {
 		// if r_cache 0, this function is not supposed to get called
 		Com_Printf( "FIXME: unexpected R_CacheModelFree call with r_cache 0\n" );
 	}
@@ -1901,8 +1781,7 @@ void R_PurgeModels( int count ) {
 	lastPurged = 0;
 	numBackupModels = 0;
 
-	// note: we can only do this since we only use the virtual memory for the model caching!
-	R_Hunk_Reset();
+	modelCacheArena.Reset();
 }
 
 /*

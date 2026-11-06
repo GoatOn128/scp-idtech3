@@ -334,7 +334,7 @@ ID_INLINE idSysWorkerThreadGroup<threadType>::idSysWorkerThreadGroup( const char
 	numThreads = abs( numThreads );
 	for( int i = 0; i < numThreads; i++ ) {
 		threadType *thread = new (TAG_THREAD) threadType;
-		thread->StartWorkerThread( va( "%s_worker%i", name, i ), (core_t) i, priority, stackSize );
+		thread->StartWorkerThread( idStr::FormatString( "%s_worker%i", name, i ), (core_t) i, priority, stackSize );
 		threadList.Append( thread );
 	}
 }

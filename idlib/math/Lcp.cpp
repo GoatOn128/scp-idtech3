@@ -1498,7 +1498,7 @@ static void DotProduct_Test() {
 			clocksGeneric = Min( clocksGeneric, timer.ClockTicks() );
 		}
 
-		PrintClocks( va( "DotProduct_Generic %d", i ), 1, clocksGeneric );
+		PrintClocks( idStr::FormatString( "DotProduct_Generic %d", i ), 1, clocksGeneric );
 
 		float dot2 = DotProduct_SIMD( fsrc0, fsrc1, i );
 		int64 clocksSIMD = 0xFFFFFFFFFFFF;
@@ -1512,7 +1512,7 @@ static void DotProduct_Test() {
 		}
 
 		const char * result = idMath::Fabs( dot1 - dot2 ) < 1e-4f ? "ok" : S_COLOR_RED"X";
-		PrintClocks( va( "DotProduct_SIMD    %d %s", i, result ), 1, clocksSIMD, clocksGeneric );
+		PrintClocks( idStr::FormatString( "DotProduct_SIMD    %d %s", i, result ), 1, clocksSIMD, clocksGeneric );
 	}
 }
 
@@ -1552,7 +1552,7 @@ static void LowerTriangularSolve_Test() {
 		tst = x;
 		x.Zero();
 
-		PrintClocks( va( "LowerTriangularSolve_Generic %dx%d", i, i ), 1, clocksGeneric );
+		PrintClocks( idStr::FormatString( "LowerTriangularSolve_Generic %dx%d", i, i ), 1, clocksGeneric );
 
 		LowerTriangularSolve_SIMD( L, x.ToFloatPtr(), b.ToFloatPtr(), i, skip );
 		int64 clocksSIMD = 0xFFFFFFFFFFFF;
@@ -1565,7 +1565,7 @@ static void LowerTriangularSolve_Test() {
 		}
 
 		const char * result = x.Compare( tst, TEST_TRIANGULAR_SOLVE_SIMD_EPSILON ) ? "ok" : S_COLOR_RED"X";
-		PrintClocks( va( "LowerTriangularSolve_SIMD    %dx%d %s", i, i, result ), 1, clocksSIMD, clocksGeneric );
+		PrintClocks( idStr::FormatString( "LowerTriangularSolve_SIMD    %dx%d %s", i, i, result ), 1, clocksSIMD, clocksGeneric );
 	}
 }
 
@@ -1603,7 +1603,7 @@ static void LowerTriangularSolveTranspose_Test() {
 		tst = x;
 		x.Zero();
 
-		PrintClocks( va( "LowerTriangularSolveTranspose_Generic %dx%d", i, i ), 1, clocksGeneric );
+		PrintClocks( idStr::FormatString( "LowerTriangularSolveTranspose_Generic %dx%d", i, i ), 1, clocksGeneric );
 
 		LowerTriangularSolveTranspose_SIMD( L, x.ToFloatPtr(), b.ToFloatPtr(), i );
 		int64 clocksSIMD = 0xFFFFFFFFFFFF;
@@ -1616,7 +1616,7 @@ static void LowerTriangularSolveTranspose_Test() {
 		}
 
 		const char * result = x.Compare( tst, TEST_TRIANGULAR_SOLVE_SIMD_EPSILON ) ? "ok" : S_COLOR_RED"X";
-		PrintClocks( va( "LowerTriangularSolveTranspose_SIMD    %dx%d %s", i, i, result ), 1, clocksSIMD, clocksGeneric );
+		PrintClocks( idStr::FormatString( "LowerTriangularSolveTranspose_SIMD    %dx%d %s", i, i, result ), 1, clocksSIMD, clocksGeneric );
 	}
 }
 
@@ -1650,7 +1650,7 @@ static void LDLT_Factor_Test() {
 			clocksGeneric = Min( clocksGeneric, timer.ClockTicks() );
 		}
 
-		PrintClocks( va( "LDLT_Factor_Generic %dx%d", i, i ), 1, clocksGeneric );
+		PrintClocks( idStr::FormatString( "LDLT_Factor_Generic %dx%d", i, i ), 1, clocksGeneric );
 
 		int64 clocksSIMD = 0xFFFFFFFFFFFF;
 		for ( int j = 0; j < NUM_TESTS; j++ ) {
@@ -1664,7 +1664,7 @@ static void LDLT_Factor_Test() {
 		}
 
 		const char * result = mat1.Compare( mat2, TEST_FACTOR_SIMD_EPSILON ) && invDiag1.Compare( invDiag2, TEST_FACTOR_SIMD_EPSILON ) ? "ok" : S_COLOR_RED"X";
-		PrintClocks( va( "LDLT_Factor_SIMD    %dx%d %s", i, i, result ), 1, clocksSIMD, clocksGeneric );
+		PrintClocks( idStr::FormatString( "LDLT_Factor_SIMD    %dx%d %s", i, i, result ), 1, clocksSIMD, clocksGeneric );
 	}
 }
 #endif

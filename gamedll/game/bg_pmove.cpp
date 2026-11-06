@@ -31,6 +31,8 @@ If you have questions concerning this license or the applicable additional terms
 // bg_pmove.c -- both games player movement code
 // takes a playerstate and a usercmd as input and returns a modifed playerstate
 
+#include "../precompiled.h"
+
 #include "q_shared.h"
 #include "bg_public.h"
 #include "bg_local.h"
@@ -469,12 +471,13 @@ static void PM_SetMovementDir( void ) {
 
 		dir = moved;
 		dir.Normalize();
-		vectoangles( dir, dir );
+		idAngles moveAngles = dir.ToAngles();
+		dir.Set( moveAngles.pitch, moveAngles.yaw, moveAngles.roll );
 
-		moveyaw = (int)AngleDelta( dir[YAW], pm->ps->viewangles[YAW] );
+		moveyaw = (int)idMath::AngleDelta( dir[YAW], pm->ps->viewangles[YAW] );
 
 		if ( pm->cmd.forwardmove < 0 ) {
-			moveyaw = (int)AngleNormalize180( moveyaw + 180 );
+			moveyaw = (int)idMath::AngleNormalize180( moveyaw + 180 );
 		}
 
 		if ( abs( moveyaw ) > 75 ) {
@@ -1419,7 +1422,7 @@ static void PM_GroundTraceMissed( void ) {
 			if ( trace.fraction < 1.0 ) {
 				float falldist, xyspeed;
 				idVec3 vel;
-				falldist = Distance( pm->ps->origin, trace.endpos );
+				falldist = ( pm->ps->origin - trace.endpos ).Length();
 				vel = pm->ps->velocity;
 				vel[2] = 0;
 				xyspeed = vel.Length();
@@ -2059,7 +2062,7 @@ static void PM_BeginWeaponChange( int oldweapon, int newweapon, qboolean reload 
 		return;
 	}
 
-	if ( newweapon != WP_NONE && !( COM_BitCheck( pm->ps->weapons, newweapon ) ) ) {
+	if ( newweapon != WP_NONE && !( idBitField::Test( pm->ps->weapons, newweapon ) ) ) {
 		return;
 	}
 
@@ -2175,7 +2178,7 @@ static void PM_FinishWeaponChange( void ) {
 		newweapon = WP_NONE;
 	}
 
-	if ( !( COM_BitCheck( pm->ps->weapons, newweapon ) ) ) {
+	if ( !( idBitField::Test( pm->ps->weapons, newweapon ) ) ) {
 		newweapon = WP_NONE;
 	}
 
@@ -2429,7 +2432,7 @@ static void PM_SwitchIfEmpty( void ) {
 	case WP_GRENADE_PINEAPPLE:
 	case WP_DYNAMITE:
 		// take the 'weapon' away from the player
-		COM_BitClear( pm->ps->weapons, pm->ps->weapon );
+		idBitField::Clear( pm->ps->weapons, pm->ps->weapon );
 		break;
 	default:
 		break;
@@ -2519,7 +2522,7 @@ void PM_CoolWeapons( void ) {
 	for ( wp = 0; wp < WP_NUM_WEAPONS; wp++ ) {
 
 		// if you have the weapon
-		if ( COM_BitCheck( pm->ps->weapons, wp ) ) {
+		if ( idBitField::Test( pm->ps->weapons, wp ) ) {
 			// and it's hot
 			if ( pm->ps->weapHeat[wp] ) {
 				pm->ps->weapHeat[wp] -= ( (float)ammoTable[wp].coolRate * pml.frametime );
@@ -3929,9 +3932,9 @@ void PM_LadderMove( void ) {
 
 	if ( pm->cmd.rightmove ) {
 		// strafe, so we can jump off ladder
-		idVec3 ladder_right, ang;
-		vectoangles( laddervec, ang );
-		idAngles( ang ).ToVectors( NULL, &ladder_right, NULL );
+		idVec3 ladder_right;
+		idAngles ang = laddervec.ToAngles();
+		ang.ToVectors( NULL, &ladder_right, NULL );
 
 		// if we are looking away from the ladder, reverse the right vector
 		if ( ( laddervec * pml.forward ) > 0 ) {
@@ -4289,8 +4292,7 @@ void PmoveSingle( pmove_t *pmove ) {
 		PM_WaterEvents();
 
 		// snap some parts of playerstate to save network bandwidth
-		trap_SnapVector( pm->ps->velocity );
-//		SnapVector( pm->ps->velocity );
+		pm->ps->velocity.Snap();
 
 		// Ridah
 	}

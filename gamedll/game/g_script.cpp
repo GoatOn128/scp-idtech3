@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 // Tab Size:		4 (real tabs)
 //===========================================================================
 
+#include "../precompiled.h"
+
 #include "../game/g_local.h"
 #include "../../engine/qcommon/q_shared.h"
 
@@ -437,7 +439,7 @@ void G_Script_ScriptParse( gentity_t *ent ) {
 									!idStr::Icmp( action->actionString, "startcamblack" ) )
 								) {
 							if ( strlen( token.c_str() ) ) { // we know there's a [0], but don't know if it's '0'
-								trap_SendServerCommand( ent->s.number, va( "addToBuild %s\n", token.c_str() ) );
+								trap_SendServerCommand( ent->s.number, idStr::FormatString( "addToBuild %s\n", token.c_str() ) );
 							}
 						}
 					}
@@ -676,7 +678,7 @@ void script_mover_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacke
 }
 
 void script_mover_pain( gentity_t *self, gentity_t *attacker, int damage, idVec3 &point ) {
-	G_Script_ScriptEvent( self, "pain", va( "%d %d", self->health, self->health + damage ) );
+	G_Script_ScriptEvent( self, "pain", idStr::FormatString( "%d %d", self->health, self->health + damage ) );
 }
 
 void script_mover_spawn( gentity_t *ent ) {

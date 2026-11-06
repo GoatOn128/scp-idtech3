@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 #include "cg_fx.h"
 #include "../ui/ui_shared.h"
@@ -1134,17 +1136,17 @@ static void CG_RegisterGraphics( void ) {
 
 	// Rafael - bleedanim
 	for ( i = 0; i < 5; i++ ) {
-		cgs.media.viewBloodAni[i] = trap_R_RegisterShader( va( "viewBloodBlend%i", i + 1 ) );
+		cgs.media.viewBloodAni[i] = trap_R_RegisterShader( idStr::FormatString( "viewBloodBlend%i", i + 1 ) );
 	}
 	cgs.media.viewFlashBlood = trap_R_RegisterShader( "viewFlashBlood" );
 	for ( i = 0; i < 16; i++ ) {
-		cgs.media.viewFlashFire[i] = trap_R_RegisterShader( va( "viewFlashFire%i", i + 1 ) );
+		cgs.media.viewFlashFire[i] = trap_R_RegisterShader( idStr::FormatString( "viewFlashFire%i", i + 1 ) );
 	}
 	// done
 
 	// Rafael bats
 	for ( i = 0; i < 10; i++ ) {
-		cgs.media.bats[i] = trap_R_RegisterShader( va( "bats%i",i + 1 ) );
+		cgs.media.bats[i] = trap_R_RegisterShader( idStr::FormatString( "bats%i",i + 1 ) );
 	}
 	// done
 
@@ -1226,7 +1228,7 @@ static void CG_RegisterGraphics( void ) {
 //----(SA)	end
 
 	for ( i = 0 ; i < NUM_CROSSHAIRS ; i++ ) {
-		cgs.media.crosshairShader[i] = trap_R_RegisterShaderNoMip( va( "gfx/2d/crosshair%c", 'a' + i ) );
+		cgs.media.crosshairShader[i] = trap_R_RegisterShaderNoMip( idStr::FormatString( "gfx/2d/crosshair%c", 'a' + i ) );
 	}
 
 	cgs.media.crosshairFriendly =  trap_R_RegisterShader( "gfx/2d/friendlycross" );  //----(SA)	added
@@ -1294,7 +1296,7 @@ static void CG_RegisterGraphics( void ) {
 	cgs.media.balloonShader = trap_R_RegisterShader( "sprites/balloon3" );
 
 	for ( i = 0; i < MAX_AISTATES; i++ ) {
-		cgs.media.aiStateShaders[i] = trap_R_RegisterShader( va( "sprites/aistate%i", i + 1 ) );
+		cgs.media.aiStateShaders[i] = trap_R_RegisterShader( idStr::FormatString( "sprites/aistate%i", i + 1 ) );
 	}
 
 	cgs.media.bloodExplosionShader = trap_R_RegisterShader( "bloodExplosion" );
@@ -1619,11 +1621,11 @@ char *CG_GetMenuBuffer( const char *filename ) {
 
 	len = trap_FS_FOpenFile( filename, &f, FS_READ );
 	if ( !f ) {
-		trap_Print( va( S_COLOR_RED "menu file not found: %s, using default\n", filename ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "menu file not found: %s, using default\n", filename ) );
 		return NULL;
 	}
 	if ( len >= MAX_MENUFILE ) {
-		trap_Print( va( S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", filename, len, MAX_MENUFILE ) );
+		trap_Print( idStr::FormatString( S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", filename, len, MAX_MENUFILE ) );
 		trap_FS_FCloseFile( f );
 		return NULL;
 	}
@@ -1755,15 +1757,15 @@ void CG_LoadMenus( const char *menuFile ) {
 	start = trap_Milliseconds();
 	len = trap_FS_FOpenFile( menuFile, &f, FS_READ );
 	if ( !f ) {
-		trap_Error( va( S_COLOR_YELLOW "menu file not found: %s, using default\n", menuFile ) );
+		trap_Error( idStr::FormatString( S_COLOR_YELLOW "menu file not found: %s, using default\n", menuFile ) );
 		len = trap_FS_FOpenFile( "ui/hud.txt", &f, FS_READ );
 		if ( !f ) {
-			trap_Error( va( S_COLOR_RED "default menu file not found: ui/hud.txt, unable to continue!\n", menuFile ) );
+			trap_Error( idStr::FormatString( S_COLOR_RED "default menu file not found: ui/hud.txt, unable to continue!\n", menuFile ) );
 			return;
 		}
 	}
 	if ( len >= MAX_MENUDEFFILE ) {
-		trap_Error( va( S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", menuFile, len, MAX_MENUDEFFILE ) );
+		trap_Error( idStr::FormatString( S_COLOR_RED "menu file too large: %s is %i, max allowed is %i", menuFile, len, MAX_MENUDEFFILE ) );
 		trap_FS_FCloseFile( f );
 		return;
 	}
@@ -1840,6 +1842,7 @@ static clientInfo_t * CG_InfoFromScoreIndex( int index, int team, int *scoreInde
 }
 
 static const char *CG_FeederItemText( float feederID, int index, int column, qhandle_t *handle ) {
+	static idStr formattedText;
 #ifdef MISSIONPACK
 	gitem_t *item;
 #endif  // #ifdef MISSIONPACK
@@ -1876,7 +1879,8 @@ static const char *CG_FeederItemText( float feederID, int index, int column, qha
 				if ( info->botSkill > 0 && info->botSkill <= 5 ) {
 					*handle = cgs.media.botSkillShaders[ info->botSkill - 1 ];
 				} else if ( info->handicap < 100 ) {
-					return va( "%i", info->handicap );
+					formattedText.Format( "%i", info->handicap );
+					return formattedText.c_str();
 				}
 			}
 			break;
@@ -1893,7 +1897,8 @@ static const char *CG_FeederItemText( float feederID, int index, int column, qha
 			}
 			if ( team == -1 ) {
 				if ( cgs.gametype == GT_TOURNAMENT ) {
-					return va( "%i/%i", info->wins, info->losses );
+					formattedText.Format( "%i/%i", info->wins, info->losses );
+					return formattedText.c_str();
 				} else if ( info->infoValid && info->team == TEAM_SPECTATOR ) {
 					return "Spectator";
 				} else {
@@ -1910,16 +1915,19 @@ static const char *CG_FeederItemText( float feederID, int index, int column, qha
 			return info->name;
 			break;
 		case 4:
-			return va( "%i", info->score );
+			formattedText.Format( "%i", info->score );
+			return formattedText.c_str();
 			break;
 		case 5:
-			return va( "%4i", sp->time );
+			formattedText.Format( "%4i", sp->time );
+			return formattedText.c_str();
 			break;
 		case 6:
 			if ( sp->ping == -1 ) {
 				return "connecting";
 			}
-			return va( "%4i", sp->ping );
+			formattedText.Format( "%4i", sp->ping );
+			return formattedText.c_str();
 			break;
 		}
 	}

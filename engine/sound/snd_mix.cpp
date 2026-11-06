@@ -35,6 +35,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "precompiled.h"
+#pragma hdrstop
+
 #include "snd_local.h"
 
 portable_samplepair_t paintbuffer[PAINTBUFFER_SIZE];

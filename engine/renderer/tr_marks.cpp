@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_marks.c -- polygon projection on the world polygons
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 //#include "assert.h"
 
@@ -154,7 +156,7 @@ void R_BoxSurfaces_r( mnode_t *node, idVec3 mins, idVec3 maxs, surfaceType_t **l
 
 	// do the tail recursion in a loop
 	while ( node->contents == -1 ) {
-		s = BoxOnPlaneSide( mins, maxs, node->plane );
+		s = idPlane( node->plane->normal, node->plane->dist ).BoxOnSide( mins, maxs );
 		if ( s == 1 ) {
 			node = node->children[0];
 		} else if ( s == 2 ) {
@@ -188,7 +190,8 @@ void R_BoxSurfaces_r( mnode_t *node, idVec3 mins, idVec3 maxs, surfaceType_t **l
 		// extra check for surfaces to avoid list overflows
 		else if ( *( surf->data ) == SF_FACE ) {
 			// the face plane should go through the box
-			s = BoxOnPlaneSide( mins, maxs, &( ( srfSurfaceFace_t * ) surf->data )->plane );
+			cplane_t *plane = &( ( srfSurfaceFace_t * ) surf->data )->plane;
+			s = idPlane( plane->normal, plane->dist ).BoxOnSide( mins, maxs );
 			if ( s == 1 || s == 2 ) {
 				surf->viewCount = tr.viewCount;
 			} else if ( ( ( ( srfSurfaceFace_t * ) surf->data )->plane.normal ) * ( dir ) < -0.5 )         {
@@ -283,6 +286,7 @@ int R_OldMarkFragments( int numPoints, const idVec3 *points, const idVec3 &proje
 	int i, j, k, m, n;
 	surfaceType_t   *surfaces[64];
 	idVec3 mins, maxs;
+	idBounds bounds;
 	int returnedFragments;
 	int returnedPoints;
 	idVec3 normals[MAX_VERTS_ON_POLY + 2];
@@ -303,17 +307,19 @@ int R_OldMarkFragments( int numPoints, const idVec3 *points, const idVec3 &proje
 	//
 	( projectionDir = projection, projectionDir.Normalize() );
 	// find all the brushes that are to be considered
-	ClearBounds( mins, maxs );
+	bounds.Clear();
 	for ( i = 0 ; i < numPoints ; i++ ) {
 		idVec3 temp;
 
-		AddPointToBounds( points[i], mins, maxs );
+		bounds.AddPoint( points[i] );
 		temp = points[i] + projection;
-		AddPointToBounds( temp, mins, maxs );
+		bounds.AddPoint( temp );
 		// make sure we get all the leafs (also the one(s) in front of the hit surface)
 		temp = points[i] + projectionDir * -20;
-		AddPointToBounds( temp, mins, maxs );
+		bounds.AddPoint( temp );
 	}
+	mins = bounds[0];
+	maxs = bounds[1];
 
 	if ( numPoints > MAX_VERTS_ON_POLY ) {
 		numPoints = MAX_VERTS_ON_POLY;
@@ -481,6 +487,7 @@ int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projec
 	int i, j, k, m, n;
 	surfaceType_t   *surfaces[4096];
 	idVec3 mins, maxs;
+	idBounds bounds;
 	int returnedFragments;
 	int returnedPoints;
 	idVec3 normals[MAX_VERTS_ON_POLY + 2];
@@ -522,17 +529,19 @@ int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projec
 	bestdist = 0;
 	bestnormal = -projectionDir;
 	// find all the brushes that are to be considered
-	ClearBounds( mins, maxs );
+	bounds.Clear();
 	for ( i = 0 ; i < numPoints ; i++ ) {
 		idVec3 temp;
 
-		AddPointToBounds( points[i], mins, maxs );
+		bounds.AddPoint( points[i] );
 		temp = points[i] + projection * 1 * ( 1 + oldMapping * radius * 4 );
-		AddPointToBounds( temp, mins, maxs );
+		bounds.AddPoint( temp );
 		// make sure we get all the leafs (also the one(s) in front of the hit surface)
 		temp = points[i] + projectionDir * -20 * ( 1.0 + (float)oldMapping * ( radius / 20.0 ) * 4 );
-		AddPointToBounds( temp, mins, maxs );
+		bounds.AddPoint( temp );
 	}
+	mins = bounds[0];
+	maxs = bounds[1];
 
 	if ( numPoints > MAX_VERTS_ON_POLY ) {
 		numPoints = MAX_VERTS_ON_POLY;
@@ -685,7 +694,7 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 			// duplicated so we don't mess with the original clips for the curved surfaces
 			idVec3 lnormals[MAX_VERTS_ON_POLY + 2];
 			float ldists[MAX_VERTS_ON_POLY + 2];
-			idVec3 lmins, lmaxs;
+			idBounds localBounds;
 
 			surf = ( srfSurfaceFace_t * ) surfaces[i];
 
@@ -731,11 +740,11 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 					originalPoints[3][j] = newCenter[j] - radius * axis[1][j] + radius * axis[2][j];
 				}
 
-				ClearBounds( lmins, lmaxs );
+				localBounds.Clear();
 
 				// create the bounding planes for the to be projected polygon
 				for ( j = 0 ; j < 4 ; j++ ) {
-					AddPointToBounds( originalPoints[j], lmins, lmaxs );
+					localBounds.AddPoint( originalPoints[j] );
 
 					v1 = originalPoints[( j + 1 ) % numPoints] - originalPoints[j];
 					v2 = originalPoints[j] - surf->plane.normal;
@@ -764,7 +773,7 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 										numPlanes, lnormals, ldists,
 										maxPoints, pointBuffer,
 										maxFragments, fragmentBuffer,
-										&returnedPoints, &returnedFragments, lmins, lmaxs );
+										&returnedPoints, &returnedFragments, localBounds[0], localBounds[1] );
 
 					if ( oldNumPoints != returnedPoints ) {
 						// flag this surface as already having computed ST's

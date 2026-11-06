@@ -5,7 +5,6 @@ set(CGAME_SOURCES
     FxPrimitives.cpp
     FxScheduler.cpp
     FxTemplate.cpp
-    genericparser2.cpp
     ../game/bg_animation.cpp
     ../game/bg_misc.cpp
     ../game/bg_pmove.cpp
@@ -61,3 +60,4 @@ if ( APPLE )
 endif()
 
 configure_target(cgame main)
+target_precompile_headers(cgame PRIVATE "${CMAKE_SOURCE_DIR}/gamedll/precompiled.h")

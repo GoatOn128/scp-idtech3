@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 static float s_quadFactor;
@@ -232,7 +234,7 @@ void Weapon_Medic( gentity_t *ent ) {
 			idAngles( angles ).ToVectors( &velocity, NULL, NULL );
 			offset = velocity * 75;
 			velocity = velocity * 50;
-			velocity[2] += 50 + crandom() * 50;
+			velocity[2] += 50 + gameRandom.CRandomFloat() * 50;
 
 			org = ent->client->ps.origin + offset;
 			ent2 = LaunchItem( item, org, velocity );
@@ -338,7 +340,7 @@ void weapon_callAirStrike( gentity_t *ent ) {
 
 	// turn off smoke grenade
 	ent->think = G_ExplodeMissile;
-	ent->nextthink = level.time + 1000 + NUMBOMBS * 100 + crandom() * 50; // 3000 offset is for aircraft flyby
+	ent->nextthink = level.time + 1000 + NUMBOMBS * 100 + gameRandom.CRandomFloat() * 50; // 3000 offset is for aircraft flyby
 
 	trap_Trace( &tr, ent->s.pos.trBase, vec3_origin, vec3_origin, bomboffset, ent->s.number, MASK_SHOT );
 	if ( ( tr.fraction < 1.0 ) && ( !( tr.surfaceFlags & SURF_SKY ) ) ) {
@@ -355,9 +357,9 @@ void weapon_callAirStrike( gentity_t *ent ) {
 	lookaxis.Normalize();
 	pos[0] = 0;
 	pos[1] = 0;
-	pos[2] = crandom(); // generate either up or down vector,
+	pos[2] = gameRandom.CRandomFloat(); // generate either up or down vector,
 	pos.Normalize(); // which adds randomness to pass direction below
-	bombaxis.RotatePointAroundVector( pos, lookaxis, 90 + crandom() * 30 ); // munge the axis line a bit so it's not totally perpendicular
+	bombaxis.RotatePointAroundVector( pos, lookaxis, 90 + gameRandom.CRandomFloat() * 30 ); // munge the axis line a bit so it's not totally perpendicular
 	bombaxis.Normalize();
 
 	pos = bombaxis;
@@ -390,7 +392,7 @@ void weapon_callAirStrike( gentity_t *ent ) {
 */
 	for ( i = 0; i < NUMBOMBS; i++ ) {
 		bomb = G_Spawn();
-		bomb->nextthink = level.time + i * 100 + crandom() * 50 + 1000; // 1000 for aircraft flyby, other term for tumble stagger
+		bomb->nextthink = level.time + i * 100 + gameRandom.CRandomFloat() * 50 + 1000; // 1000 for aircraft flyby, other term for tumble stagger
 		bomb->think = G_ExplodeMissile;
 		bomb->s.eType       = ET_MISSILE;
 		bomb->r.svFlags     = SVF_USE_CURRENT_ORIGIN | SVF_BROADCAST;
@@ -406,8 +408,8 @@ void weapon_callAirStrike( gentity_t *ent ) {
 		bomb->clipmask = MASK_MISSILESHOT;
 		bomb->s.pos.trType = TR_STATIONARY; // was TR_GRAVITY,  might wanna go back to this and drop from height
 		bomb->s.pos.trTime = level.time;        // move a bit on the very first frame
-		bomboffset[0] = crandom() * 0.5 * BOMBSPREAD;
-		bomboffset[1] = crandom() * 0.5 * BOMBSPREAD;
+		bomboffset[0] = gameRandom.CRandomFloat() * 0.5 * BOMBSPREAD;
+		bomboffset[1] = gameRandom.CRandomFloat() * 0.5 * BOMBSPREAD;
 		bomboffset[2] = 0;
 		bomb->s.pos.trBase = pos + bomboffset;
 
@@ -425,7 +427,7 @@ void weapon_callAirStrike( gentity_t *ent ) {
 		bomb->s.pos.trDelta[0] = 0; // might need to change this
 		bomb->s.pos.trDelta[1] = 0;
 		bomb->s.pos.trDelta[2] = 0;
-		SnapVector( bomb->s.pos.trDelta );          // save net bandwidth
+		bomb->s.pos.trDelta.Snap();          // save net bandwidth
 		bomb->r.currentOrigin = bomb->s.pos.trBase;
 
 		// move pos for next bomb
@@ -880,15 +882,15 @@ void Bullet_Endpos( gentity_t *ent, float spread, idVec3 *end ) {
 	qboolean randSpread = qtrue;
 	int dist = 8192;
 
-	r = crandom() * spread;
-	u = crandom() * spread;
+	r = gameRandom.CRandomFloat() * spread;
+	u = gameRandom.CRandomFloat() * spread;
 
 	// Ridah, if this is an AI shooting, apply their accuracy
 	if ( ent->r.svFlags & SVF_CASTAI ) {
 		float accuracy;
 		accuracy = ( 1.0 - AICast_GetAccuracy( ent->s.number ) ) * AICAST_AIM_SPREAD;
-		r += crandom() * accuracy;
-		u += crandom() * ( accuracy * 1.25 );
+		r += gameRandom.CRandomFloat() * accuracy;
+		u += gameRandom.CRandomFloat() * ( accuracy * 1.25 );
 	} else {
 		if ( ent->s.weapon == WP_SNOOPERSCOPE || ent->s.weapon == WP_SNIPERRIFLE || ent->s.weapon == WP_FG42SCOPE ) {
 //		if(ent->s.weapon == WP_SNOOPERSCOPE || ent->s.weapon == WP_SNIPERRIFLE) {
@@ -1336,6 +1338,7 @@ void VenomPattern( const idVec3 &origin, const idVec3 &origin2, int seed, gentit
 	idVec3 fwd, rgt, upv;
 	int oldScore;
 	qboolean hitClient = qfalse;
+	idRandom random( seed );
 
 	// derive the rgt and upv vectors from the fwd vector, because
 	// the client won't have any other information
@@ -1348,8 +1351,8 @@ void VenomPattern( const idVec3 &origin, const idVec3 &origin2, int seed, gentit
 
 	// generate the "random" spread pattern
 	for ( i = 0 ; i < DEFAULT_VENOM_COUNT ; i++ ) {
-		r = Q_crandom( &seed ) * DEFAULT_VENOM_SPREAD;
-		u = Q_crandom( &seed ) * DEFAULT_VENOM_SPREAD;
+		r = random.CRandomFloat() * DEFAULT_VENOM_SPREAD;
+		u = random.CRandomFloat() * DEFAULT_VENOM_SPREAD;
 		end = origin + fwd * 8192;
 		end = end + rgt * r;
 		end = end + upv * u;
@@ -1377,7 +1380,7 @@ void weapon_venom_fire( gentity_t *ent, qboolean fullmode, float aimSpreadScale 
 	}
 
 	tent->s.origin2 = forward * 4096;
-	SnapVector( tent->s.origin2 );
+	tent->s.origin2.Snap();
 	tent->s.eventParm = rand() & 255;       // seed for spread pattern
 	tent->s.otherEntityNum = ent->s.number;
 
@@ -1414,8 +1417,8 @@ void Weapon_RocketLauncher_Fire( gentity_t *ent, float aimSpreadScale ) {
 
 	// get a little bit of randomness and apply it back to the direction
 	if ( !ent->aiCharacter ) {
-		r = crandom() * aimSpreadScale;
-		u = crandom() * aimSpreadScale;
+		r = gameRandom.CRandomFloat() * aimSpreadScale;
+		u = gameRandom.CRandomFloat() * aimSpreadScale;
 
 		dir = forward * 16;
 		dir = dir + right * r;
@@ -1636,7 +1639,7 @@ void CalcMuzzlePoint( gentity_t *ent, int weapon, idVec3 &fwd, idVec3 &rgt, idVe
 	AddLean( ent, muzzlePoint );
 
 	// snap to integer coordinates for more efficient network bandwidth usage
-	SnapVector( muzzlePoint );
+	muzzlePoint.Snap();
 }
 
 // Rafael - for activate
@@ -1786,7 +1789,7 @@ void FireWeapon( gentity_t *ent ) {
 //		if (g_gametype.integer != GT_SINGLE_PLAYER) {
 			viewang = ent->client->ps.viewangles;
 //			viewang[PITCH] -= 6; // handled in clientthink instead
-			ent->client->sniperRifleMuzzleYaw = crandom() * 0.5; // used in clientthink
+			ent->client->sniperRifleMuzzleYaw = gameRandom.CRandomFloat() * 0.5; // used in clientthink
 			ent->client->sniperRifleMuzzlePitch = 0.8f;
 			ent->client->sniperRifleFiredTime = level.time;
 			SetClientViewAngle( ent,viewang );
@@ -1799,7 +1802,7 @@ void FireWeapon( gentity_t *ent ) {
 		if ( !ent->aiCharacter ) {
 //		if (g_gametype.integer != GT_SINGLE_PLAYER) {
 			viewang = ent->client->ps.viewangles;
-			ent->client->sniperRifleMuzzleYaw = crandom() * 0.5; // used in clientthink
+			ent->client->sniperRifleMuzzleYaw = gameRandom.CRandomFloat() * 0.5; // used in clientthink
 			ent->client->sniperRifleMuzzlePitch = 0.9f;
 			ent->client->sniperRifleFiredTime = level.time;
 			SetClientViewAngle( ent,viewang );
@@ -1817,7 +1820,7 @@ void FireWeapon( gentity_t *ent ) {
 		if ( !ent->aiCharacter ) {
 //		if (g_gametype.integer != GT_SINGLE_PLAYER) {
 			viewang = ent->client->ps.viewangles;
-//			ent->client->sniperRifleMuzzleYaw = crandom()*0.04; // used in clientthink
+//			ent->client->sniperRifleMuzzleYaw = gameRandom.CRandomFloat()*0.04; // used in clientthink
 			ent->client->sniperRifleMuzzleYaw = 0;
 			ent->client->sniperRifleMuzzlePitch = 0.07f;
 			ent->client->sniperRifleFiredTime = level.time;

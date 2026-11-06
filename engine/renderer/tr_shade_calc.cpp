@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // tr_shade_calc.c
 
+#include "../precompiled.h"
+
 #include "tr_local.h"
 
 

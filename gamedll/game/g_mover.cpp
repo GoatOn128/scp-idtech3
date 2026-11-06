@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
  *
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 char *hintStrings[] = {
@@ -420,7 +422,7 @@ qboolean G_MoverPush( gentity_t *pusher, idVec3 &move, idVec3 &amove, gentity_t 
 		 || amove[0] || amove[1] || amove[2] ) {
 		float radius;
 
-		radius = RadiusFromBounds( pusher->r.mins, pusher->r.maxs );
+		radius = idBounds( pusher->r.mins, pusher->r.maxs ).GetRadius();
 		for ( i = 0; i < 3; i++ ) {
 			mins[i] = pusher->r.currentOrigin[i] - radius + move[i];
 			maxs[i] = pusher->r.currentOrigin[i] + radius + move[i];
@@ -1088,7 +1090,8 @@ IsBinaryMoverBlocked
 */
 qboolean IsBinaryMoverBlocked( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 
-	idVec3 dir, angles;
+	idVec3 dir;
+	idAngles angles;
 	idVec3 pos;
 	idVec3 vec;
 	float dot;
@@ -1114,7 +1117,7 @@ qboolean IsBinaryMoverBlocked( gentity_t *ent, gentity_t *other, gentity_t *acti
 		pos = pos * 0.5;
 
 		dir = pos - ent->s.origin;
-		vectoangles( dir, angles );
+		angles = dir.ToAngles();
 
 		if ( ent->rotate[YAW] ) {
 			angles[YAW] += ent->angle;
@@ -1124,7 +1127,7 @@ qboolean IsBinaryMoverBlocked( gentity_t *ent, gentity_t *other, gentity_t *acti
 			angles[ROLL] += ent->angle;
 		}
 
-		idAngles( angles ).ToVectors( &forward, NULL, NULL );
+		angles.ToVectors( &forward, NULL, NULL );
 		// VectorSubtract (other->r.currentOrigin, pos, vec);
 
 		if ( is_relay ) {
@@ -1858,7 +1861,8 @@ static void Touch_DoorTriggerSpectator( gentity_t *ent, gentity_t *other, trace_
 		}
 		origin[i] = ( ent->r.absmin[i] + ent->r.absmax[i] ) * 0.5;
 	}
-	vectoangles( dir, angles );
+	idAngles doorAngles = dir.ToAngles();
+	angles.Set( doorAngles.pitch, doorAngles.yaw, doorAngles.roll );
 	TeleportPlayer( other, origin, angles );
 }
 
@@ -1957,8 +1961,11 @@ void Think_SpawnNewDoorTrigger( gentity_t *ent ) {
 	maxs = ent->r.absmax;
 
 	for ( other = ent->teamchain ; other ; other = other->teamchain ) {
-		AddPointToBounds( other->r.absmin, mins, maxs );
-		AddPointToBounds( other->r.absmax, mins, maxs );
+		idBounds bounds( mins, maxs );
+		bounds.AddPoint( other->r.absmin );
+		bounds.AddPoint( other->r.absmax );
+		mins = bounds[0];
+		maxs = bounds[1];
 	}
 
 	// find the thinnest axis, which will be the one we expand
@@ -2117,23 +2124,23 @@ DoorSetSounds
 ==============
 */
 void DoorSetSounds( gentity_t *ent, int doortype, qboolean isRotating ) {
-	ent->sound1to2 = G_SoundIndex( va( "door%i_open", doortype ) );      // opening
-	ent->soundPos2 = G_SoundIndex( va( "door%i_endo", doortype ) );      // open
-	ent->sound2to1 = G_SoundIndex( va( "door%i_close", doortype ) ); // closing
-	ent->soundPos1 = G_SoundIndex( va( "door%i_endc", doortype ) );      // closed
-	ent->sound2to3 = G_SoundIndex( va( "door%i_loopo", doortype ) ); // loopopen
-	ent->sound3to2 = G_SoundIndex( va( "door%i_loopc", doortype ) ); // loopclosed
-	ent->soundPos3 = G_SoundIndex( va( "door%i_locked", doortype ) );    // locked
+	ent->sound1to2 = G_SoundIndex( idStr::FormatString( "door%i_open", doortype ) );      // opening
+	ent->soundPos2 = G_SoundIndex( idStr::FormatString( "door%i_endo", doortype ) );      // open
+	ent->sound2to1 = G_SoundIndex( idStr::FormatString( "door%i_close", doortype ) ); // closing
+	ent->soundPos1 = G_SoundIndex( idStr::FormatString( "door%i_endc", doortype ) );      // closed
+	ent->sound2to3 = G_SoundIndex( idStr::FormatString( "door%i_loopo", doortype ) ); // loopopen
+	ent->sound3to2 = G_SoundIndex( idStr::FormatString( "door%i_loopc", doortype ) ); // loopclosed
+	ent->soundPos3 = G_SoundIndex( idStr::FormatString( "door%i_locked", doortype ) );    // locked
 
 
-	ent->soundSoftopen  = G_SoundIndex( va( "door%i_openq", doortype ) );    // opening quietly
-	ent->soundSoftendo  = G_SoundIndex( va( "door%i_endoq", doortype ) );    // open quietly
-	ent->soundSoftclose = G_SoundIndex( va( "door%i_closeq", doortype ) );   // closing quietly
-	ent->soundSoftendc  = G_SoundIndex( va( "door%i_endcq", doortype ) );    // closed quietly
+	ent->soundSoftopen  = G_SoundIndex( idStr::FormatString( "door%i_openq", doortype ) );    // opening quietly
+	ent->soundSoftendo  = G_SoundIndex( idStr::FormatString( "door%i_endoq", doortype ) );    // open quietly
+	ent->soundSoftclose = G_SoundIndex( idStr::FormatString( "door%i_closeq", doortype ) );   // closing quietly
+	ent->soundSoftendc  = G_SoundIndex( idStr::FormatString( "door%i_endcq", doortype ) );    // closed quietly
 
 	if ( isRotating ) {
-		ent->soundKicked    = G_SoundIndex( va( "door%i_kicked", doortype ) );
-		ent->soundKickedEnd = G_SoundIndex( va( "door%i_kickedend", doortype ) );
+		ent->soundKicked    = G_SoundIndex( idStr::FormatString( "door%i_kicked", doortype ) );
+		ent->soundKickedEnd = G_SoundIndex( idStr::FormatString( "door%i_kickedend", doortype ) );
 	}
 
 }
@@ -3010,7 +3017,8 @@ health = default 16 bats
 */
 void Func_train_particles_reached( gentity_t *self ) {
 	gentity_t *tent;
-	idVec3 vec, ang;
+	idVec3 vec;
+	idAngles ang;
 	idVec3 forward;
 
 	Reached_Train( self );
@@ -3025,8 +3033,8 @@ void Func_train_particles_reached( gentity_t *self ) {
 		tent->s.density = self->health;
 		tent->s.origin = self->r.currentOrigin;
 		vec = self->nextTrain->s.origin - self->r.currentOrigin;
-		vectoangles( vec, ang );
-		idAngles( ang ).ToVectors( &forward, NULL, NULL );
+		ang = vec.ToAngles();
+		ang.ToVectors( &forward, NULL, NULL );
 		tent->s.angles = forward;
 		self->count = 1;
 	} else
@@ -3035,8 +3043,8 @@ void Func_train_particles_reached( gentity_t *self ) {
 		tent->s.time = self->speed;
 		tent->s.origin = self->r.currentOrigin;
 		vec = self->nextTrain->s.origin - self->r.currentOrigin;
-		vectoangles( vec, ang );
-		idAngles( ang ).ToVectors( &forward, NULL, NULL );
+		ang = vec.ToAngles();
+		ang.ToVectors( &forward, NULL, NULL );
 		tent->s.angles = forward;
 	}
 
@@ -3107,7 +3115,7 @@ void BatMoveThink( gentity_t *bat ) {
 
 		// randomize ther movedir as we go
 		for ( i = 0; i < 3; i++ )
-			bat->movedir[i] += crandom() * (float)owner->radius * 0.1;
+			bat->movedir[i] += gameRandom.CRandomFloat() * (float)owner->radius * 0.1;
 		if ( bat->movedir.Length() > (float)owner->radius ) {
 			bat->movedir.Normalize();
 			bat->movedir = bat->movedir * (float)owner->radius;
@@ -3121,7 +3129,8 @@ void BatMoveThink( gentity_t *bat ) {
 		bat->s.pos.trTime = level.time;
 		bat->r.currentOrigin = bat->s.pos.trBase;
 		if ( dist * speed > 20 ) {
-			vectoangles( vec, bat->s.angles );
+			idAngles batAngles = vec.ToAngles();
+			bat->s.angles.Set( batAngles.pitch, batAngles.yaw, batAngles.roll );
 		}
 		trap_LinkEntity( bat );
 /*
@@ -3166,9 +3175,9 @@ void FuncBatsActivate( gentity_t *self, gentity_t * other, gentity_t * activator
 			bat->classname = "func_bat";
 			bat->s.eType = ET_BAT;
 
-			vec.Set( crandom(), crandom(), crandom() );
+			vec.Set( gameRandom.CRandomFloat(), gameRandom.CRandomFloat(), gameRandom.CRandomFloat() );
 			vec.Normalize();
-			bat->movedir = vec * random() * (float)self->radius;
+			bat->movedir = vec * gameRandom.RandomFloat() * (float)self->radius;
 			bat->s.pos.trBase = self->s.pos.trBase + bat->movedir;
 			bat->s.pos.trTime = level.time;
 			bat->s.pos.trDelta.Zero();
@@ -3212,7 +3221,7 @@ void FuncEndSpiritsThink( gentity_t *self ) {
 	idVec3 enemyPos;
 	gentity_t *cEnt, *heinrich;
 	//
-	self->nextthink = level.time + (int)( ( 1.5 + 2.0 * random() ) * ( self->wait * 1000 ) );
+	self->nextthink = level.time + (int)( ( 1.5 + 2.0 * gameRandom.RandomFloat() ) * ( self->wait * 1000 ) );
 	//
 	if ( !self->active ) {
 		return; // we are not allowed to release spirits yet
@@ -3243,9 +3252,9 @@ void FuncEndSpiritsThink( gentity_t *self ) {
 	if ( !cEnt ) {
 		G_Error( "couldnt find center marker for spirit spawner" );
 	}
-	if ( VectorDistance( enemyPos, cEnt->s.origin ) > self->radius ) {
+	if ( ( enemyPos - cEnt->s.origin ).Length() > self->radius ) {
 		// also make sure the player is between us and the center entity
-		if ( VectorDistance( self->s.origin, enemyPos ) < VectorDistance( self->s.origin, cEnt->s.origin ) ) {
+		if ( ( self->s.origin - enemyPos ).Length() < ( self->s.origin - cEnt->s.origin ).Length() ) {
 			// if we are not "spawning" then set the delay
 			if ( !self->spiritSpawnDelayStarted ) {
 				self->spiritSpawnDelayStarted = qtrue;
@@ -4280,7 +4289,7 @@ void func_explosive_explode( gentity_t *self, gentity_t *inflictor, gentity_t *a
 			// yawed
 			else
 			{
-				RotatePointAroundVector( dir, dir, tv( 1, 0, 0 ), self->s.angles[1] );
+				dir.RotatePointAroundVector( dir, tv( 1, 0, 0 ), self->s.angles[1] );
 			}
 		}
 	}

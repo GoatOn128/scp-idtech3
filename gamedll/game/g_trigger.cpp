@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../precompiled.h"
+
 #include "g_local.h"
 
 
@@ -60,7 +62,7 @@ void multi_trigger( gentity_t *ent, gentity_t *activator ) {
 
 	if ( ent->wait > 0 ) {
 		ent->think = multi_wait;
-		ent->nextthink = level.time + ( ent->wait + ent->random * crandom() ) * 1000;
+		ent->nextthink = level.time + ( ent->wait + ent->random * gameRandom.CRandomFloat() ) * 1000;
 	} else {
 		// we can't just remove (self) here, because this is a touch function
 		// called while looping through area links...
@@ -596,7 +598,7 @@ so, the basic time between firing is a random time between
 void func_timer_think( gentity_t *self ) {
 	G_UseTargets( self, self->activator );
 	// set time before next firing
-	self->nextthink = level.time + 1000 * ( self->wait + crandom() * self->random );
+	self->nextthink = level.time + 1000 * ( self->wait + gameRandom.CRandomFloat() * self->random );
 }
 
 void func_timer_use( gentity_t *self, gentity_t *other, gentity_t *activator ) {
@@ -921,19 +923,19 @@ void Touch_objective_info( gentity_t *ent, gentity_t *other, trace_t *trace ) {
 
 	if ( ent->track ) {
 		if ( ent->spawnflags & AXIS_OBJECTIVE ) {
-			trap_SendServerCommand( other - g_entities, va( "oid 0 \"" S_COLOR_RED "You are near %s\n\"", ent->track ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid 0 \"" S_COLOR_RED "You are near %s\n\"", ent->track ) );
 		} else if ( ent->spawnflags & ALLIED_OBJECTIVE ) {
-			trap_SendServerCommand( other - g_entities, va( "oid 1 \"" S_COLOR_BLUE "You are near %s\n\"", ent->track ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid 1 \"" S_COLOR_BLUE "You are near %s\n\"", ent->track ) );
 		} else {
-			trap_SendServerCommand( other - g_entities, va( "oid -1 \"You are near %s\n\"", ent->track ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid -1 \"You are near %s\n\"", ent->track ) );
 		}
 	} else {
 		if ( ent->spawnflags & AXIS_OBJECTIVE ) {
-			trap_SendServerCommand( other - g_entities, va( "oid 0 \"" S_COLOR_RED "You are near objective #%i\n\"", ent->count ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid 0 \"" S_COLOR_RED "You are near objective #%i\n\"", ent->count ) );
 		} else if ( ent->spawnflags & ALLIED_OBJECTIVE ) {
-			trap_SendServerCommand( other - g_entities, va( "oid 1 \"" S_COLOR_BLUE "You are near objective #%i\n\"", ent->count ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid 1 \"" S_COLOR_BLUE "You are near objective #%i\n\"", ent->count ) );
 		} else {
-			trap_SendServerCommand( other - g_entities, va( "oid -1 \"You are near objective #%i\n\"", ent->count ) );
+			trap_SendServerCommand( other - g_entities, idStr::FormatString( "oid -1 \"You are near objective #%i\n\"", ent->count ) );
 		}
 	}
 

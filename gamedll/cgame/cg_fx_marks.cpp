@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 
 // Projected marks are FX primitives; there is no separate mark allocator or frame loop.
+#include "../precompiled.h"
+
 #include "FxScheduler.h"
 #include "cg_fx.h"
 

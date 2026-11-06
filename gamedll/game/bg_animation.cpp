@@ -37,6 +37,8 @@ If you have questions concerning this license or the applicable additional terms
 //
 //===========================================================================
 
+#include "../precompiled.h"
+
 #include "q_shared.h"
 #include "bg_public.h"
 
@@ -1040,7 +1042,7 @@ void BG_ParseCommands( idLexer *lexer, animScriptItem_t *scriptItem, animModelIn
 					BG_AnimParseError( "BG_ParseCommands: expected showpart number" );
 				}
 				if ( atoi( token ) > 7 ) {
-					BG_AnimParseError( va( "BG_ParseCommands: showpart number '%d' is too big! (max 8)", atoi( token ) ) );
+					BG_AnimParseError( idStr::FormatString( "BG_ParseCommands: showpart number '%d' is too big! (max 8)", atoi( token ) ) );
 				}
 
 				command->accShowBits &= atoi( token );
@@ -1049,7 +1051,7 @@ void BG_ParseCommands( idLexer *lexer, animScriptItem_t *scriptItem, animModelIn
 					BG_AnimParseError( "BG_ParseCommands: expected hidepart number" );
 				}
 				if ( atoi( token ) > 7 ) {
-					BG_AnimParseError( va( "BG_ParseCommands: hidepart number '%d' is too big! (max 8)", atoi( token ) ) );
+					BG_AnimParseError( idStr::FormatString( "BG_ParseCommands: hidepart number '%d' is too big! (max 8)", atoi( token ) ) );
 				}
 
 				command->accHideBits &= atoi( token );
@@ -1897,7 +1899,7 @@ int BG_GetConditionValue( int client, int condition, qboolean checkConversion ) 
 			//if (!value)
 			//	return 0;
 			for ( i = 0; i < 8 * sizeof( globalScriptData->clientConditions[0][0] ); i++ ) {
-				if ( COM_BitCheck( globalScriptData->clientConditions[client][condition], i ) ) {
+				if ( idBitField::Test( globalScriptData->clientConditions[client][condition], i ) ) {
 					return i;
 				}
 			}

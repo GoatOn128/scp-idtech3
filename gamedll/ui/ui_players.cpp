@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // ui_players.c
 
+#include "../precompiled.h"
+
 #include "ui_local.h"
 
 
@@ -337,8 +339,12 @@ static void UI_PositionEntityOnTag( refEntity_t *entity, const refEntity_t *pare
 		entity->origin = entity->origin + parent->axis[i] * lerped.origin[i];
 	}
 
-	// cast away const because of compiler problems
-	MatrixMultiply( lerped.axis, ( (refEntity_t*)parent )->axis, entity->axis );
+	idMat3 lerpedAxis( lerped.axis[0], lerped.axis[1], lerped.axis[2] );
+	idMat3 parentAxis( parent->axis[0], parent->axis[1], parent->axis[2] );
+	idMat3 entityAxis = lerpedAxis * parentAxis;
+	entity->axis[0] = entityAxis[0];
+	entity->axis[1] = entityAxis[1];
+	entity->axis[2] = entityAxis[2];
 	entity->backlerp = parent->backlerp;
 }
 
@@ -352,7 +358,6 @@ static void UI_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_
 										   clipHandle_t parentModel, char *tagName ) {
 	int i;
 	orientation_t lerped;
-	idVec3 tempAxis[3];
 
 	// lerp the tag
 	trap_CM_LerpTag( &lerped, parent, tagName, 0 );
@@ -363,9 +368,14 @@ static void UI_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_
 		entity->origin = entity->origin + parent->axis[i] * lerped.origin[i];
 	}
 
-	// cast away const because of compiler problems
-	MatrixMultiply( entity->axis, ( (refEntity_t *)parent )->axis, tempAxis );
-	MatrixMultiply( lerped.axis, tempAxis, entity->axis );
+	idMat3 entityMatrix( entity->axis[0], entity->axis[1], entity->axis[2] );
+	idMat3 parentMatrix( parent->axis[0], parent->axis[1], parent->axis[2] );
+	idMat3 tempMatrix = entityMatrix * parentMatrix;
+	idMat3 lerpedMatrix( lerped.axis[0], lerped.axis[1], lerped.axis[2] );
+	idMat3 resultMatrix = lerpedMatrix * tempMatrix;
+	entity->axis[0] = resultMatrix[0];
+	entity->axis[1] = resultMatrix[1];
+	entity->axis[2] = resultMatrix[2];
 }
 
 
@@ -383,7 +393,7 @@ static void UI_SetLerpFrameAnimation( playerInfo_t *ci, lerpFrame_t *lf, int new
 	newAnimation &= ~ANIM_TOGGLEBIT;
 
 	if ( newAnimation < 0 || newAnimation >= MAX_ANIMATIONS ) {
-		trap_Error( va("Bad animation number (UI_SLFA): %i", newAnimation) );
+		trap_Error( idStr::FormatString("Bad animation number (UI_SLFA): %i", newAnimation) );
 	}
 
 	anim = &ci->animations[ newAnimation ];
@@ -512,7 +522,7 @@ static void UI_SwingAngles( float destination, float swingTolerance, float clamp
 
 	if ( !*swinging ) {
 		// see if a swing should be started
-		swing = AngleSubtract( *angle, destination );
+		swing = idMath::AngleDelta( *angle, destination );
 		if ( swing > swingTolerance || swing < -swingTolerance ) {
 			*swinging = qtrue;
 		}
@@ -524,7 +534,7 @@ static void UI_SwingAngles( float destination, float swingTolerance, float clamp
 
 	// modify the speed depending on the delta
 	// so it doesn't seem so linear
-	swing = AngleSubtract( destination, *angle );
+	swing = idMath::AngleDelta( destination, *angle );
 	scale = fabs( swing );
 	if ( scale < swingTolerance * 0.5 ) {
 		scale = 0.5;
@@ -541,22 +551,22 @@ static void UI_SwingAngles( float destination, float swingTolerance, float clamp
 			move = swing;
 			*swinging = qfalse;
 		}
-		*angle = AngleMod( *angle + move );
+		*angle = idMath::AngleNormalize360( *angle + move );
 	} else if ( swing < 0 ) {
 		move = uis.frametime * scale * -speed;
 		if ( move <= swing ) {
 			move = swing;
 			*swinging = qfalse;
 		}
-		*angle = AngleMod( *angle + move );
+		*angle = idMath::AngleNormalize360( *angle + move );
 	}
 
 	// clamp to no more than tolerance
-	swing = AngleSubtract( destination, *angle );
+	swing = idMath::AngleDelta( destination, *angle );
 	if ( swing > clampTolerance ) {
-		*angle = AngleMod( destination - ( clampTolerance - 1 ) );
+		*angle = idMath::AngleNormalize360( destination - ( clampTolerance - 1 ) );
 	} else if ( swing < -clampTolerance ) {
-		*angle = AngleMod( destination + ( clampTolerance - 1 ) );
+		*angle = idMath::AngleNormalize360( destination + ( clampTolerance - 1 ) );
 	}
 }
 
@@ -616,7 +626,7 @@ static void UI_PlayerAngles( playerInfo_t *pi, idVec3 legs[3], idVec3 torso[3], 
 	float adjust;
 
 	headAngles = pi->viewAngles;
-	headAngles[YAW] = AngleMod( headAngles[YAW] );
+	headAngles[YAW] = idMath::AngleNormalize360( headAngles[YAW] );
 	legsAngles.Zero();
 	torsoAngles.Zero();
 
@@ -661,9 +671,9 @@ static void UI_PlayerAngles( playerInfo_t *pi, idVec3 legs[3], idVec3 torso[3], 
 
 	AnglesSubtract( legsAngles, pi->moveAngles, legsAngles );       // NERVE - SMF
 
-	AnglesToAxis( legsAngles, legs );
-	AnglesToAxis( torsoAngles, torso );
-	AnglesToAxis( headAngles, head );
+	idAngles( legsAngles ).ToVectors( &legs[0], &legs[1], &legs[2] );
+	idAngles( torsoAngles ).ToVectors( &torso[0], &torso[1], &torso[2] );
+	idAngles( headAngles ).ToVectors( &head[0], &head[1], &head[2] );
 }
 
 
@@ -715,7 +725,7 @@ float   UI_MachinegunSpinAngle( playerInfo_t *pi ) {
 	}
 	if ( pi->barrelSpinning == !( torsoAnim == TORSO_ATTACK ) ) {
 		pi->barrelTime = dp_realtime;
-		pi->barrelAngle = AngleMod( angle );
+		pi->barrelAngle = idMath::AngleNormalize360( angle );
 		pi->barrelSpinning = !!( torsoAnim == TORSO_ATTACK );
 	}
 
@@ -793,7 +803,9 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 
 	refdef.rdflags = RDF_NOWORLDMODEL;
 
-	AxisClear( refdef.viewaxis );
+	refdef.viewaxis[0] = mat3_identity[0];
+	refdef.viewaxis[1] = mat3_identity[1];
+	refdef.viewaxis[2] = mat3_identity[2];
 
 	refdef.x = x;
 	refdef.y = y;
@@ -1086,7 +1098,7 @@ static qboolean AnimParseAnimConfig( playerInfo_t *animModelInfo, const char *fi
 
 		if ( animModelInfo->version < 2 ) {
 			// if it is a number, start parsing animations
-			if ( Q_isnumeric( token[0] ) ) {
+			if ( idStr::CharIsNumeric( token[0] ) ) {
 				pending = token;      // unget the token
 				havePending = qtrue;
 				break;
@@ -1211,19 +1223,9 @@ UI_ParseAnimationFile
 ======================
 */
 static qboolean UI_ParseAnimationFile( const char *filename, playerInfo_t *pi ) {
-	char        *text_p, *prev;
 	int len;
-	int i;
-	char        *token;
-	float fps;
-	int skip;
 	char text[20000];
 	fileHandle_t f;
-
-	token = NULL;
-	i = 0;
-	fps = 0;
-	prev = 0;
 
 	memset( pi->animations, 0, sizeof( animation_t ) * MAX_ANIMATIONS );
 
@@ -1240,101 +1242,8 @@ static qboolean UI_ParseAnimationFile( const char *filename, playerInfo_t *pi ) 
 	text[len] = 0;
 	trap_FS_FCloseFile( f );
 
-	// parse the text
-	text_p = text;
-	skip = 0;   // quite the compiler warning
-
-	// NERVE - SMF - new!!!!
 	AnimParseAnimConfig( pi, filename, text );
 	return qtrue;
-
-	// -NERVE - SMF - This does not work with wolf's new animation system
-/*
-	// read optional parameters
-	while ( 1 ) {
-		prev = text_p;	// so we can unget
-		token = COM_Parse( &text_p );
-		if ( !token ) {
-			break;
-		}
-		if ( !idStr::Icmp( token, "footsteps" ) ) {
-			token = COM_Parse( &text_p );
-			if ( !token ) {
-				break;
-			}
-			continue;
-		} else if ( !idStr::Icmp( token, "headoffset" ) ) {
-			for ( i = 0 ; i < 3 ; i++ ) {
-				token = COM_Parse( &text_p );
-				if ( !token ) {
-					break;
-				}
-			}
-			continue;
-		} else if ( !idStr::Icmp( token, "sex" ) ) {
-			token = COM_Parse( &text_p );
-			if ( !token ) {
-				break;
-			}
-			continue;
-		}
-
-		// if it is a number, start parsing animations
-		if ( Q_isnumeric(token[0]) ) {
-			text_p = prev;	// unget the token
-			break;
-		}
-
-		Com_Printf( "unknown token '%s' is %s\n", token, filename );
-	}
-
-	// read information for each frame
-	for ( i = 0 ; i < MAX_ANIMATIONS ; i++ ) {
-
-		token = COM_Parse( &text_p );
-		if ( !token ) {
-			break;
-		}
-		animations[i].firstFrame = atoi( token );
-		// leg only frames are adjusted to not count the upper body only frames
-		if ( i == LEGS_WALKCR ) {
-			skip = animations[LEGS_WALKCR].firstFrame - animations[TORSO_GESTURE].firstFrame;
-		}
-		if ( i >= LEGS_WALKCR ) {
-			animations[i].firstFrame -= skip;
-		}
-
-		token = COM_Parse( &text_p );
-		if ( !token ) {
-			break;
-		}
-		animations[i].numFrames = atoi( token );
-
-		token = COM_Parse( &text_p );
-		if ( !token ) {
-			break;
-		}
-		animations[i].loopFrames = atoi( token );
-
-		token = COM_Parse( &text_p );
-		if ( !token ) {
-			break;
-		}
-		fps = atof( token );
-		if ( fps == 0 ) {
-			fps = 1;
-		}
-		animations[i].frameLerp = 1000 / fps;
-		animations[i].initialLerp = 1000 / fps;
-	}
-
-	if ( i != MAX_ANIMATIONS ) {
-		Com_Printf( "Error parsing animation file: %s", filename );
-		return qfalse;
-	}
-
-	return qtrue;
-*/
 }
 
 
@@ -1434,7 +1343,7 @@ qboolean UI_RegisterClientModelname( playerInfo_t *pi, const char *modelSkinName
 			}
 		}
 
-		strcpy( skinName, va( "%s%s1", team, playerClass ) );
+		strcpy( skinName, idStr::FormatString( "%s%s1", team, playerClass ) );
 	}
 	// -NERVE - SMF
 
@@ -1471,11 +1380,11 @@ qboolean UI_RegisterClientModelname( playerInfo_t *pi, const char *modelSkinName
 
 	// NERVE - SMF - load backpack and helmet
 	if ( backpack ) {
-		pi->backpackModel = trap_R_RegisterModel( va( "models/players/%s/%s", modelName, backpack ) );
+		pi->backpackModel = trap_R_RegisterModel( idStr::FormatString( "models/players/%s/%s", modelName, backpack ) );
 	}
 
 	if ( helmet ) {
-		pi->helmetModel = trap_R_RegisterModel( va( "models/players/%s/%s", modelName, helmet ) );
+		pi->helmetModel = trap_R_RegisterModel( idStr::FormatString( "models/players/%s/%s", modelName, helmet ) );
 	}
 
 	// if any skins failed to load, fall back to default

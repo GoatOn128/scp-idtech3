@@ -35,8 +35,9 @@ If you have questions concerning this license or the applicable additional terms
  *
  *****************************************************************************/
 
+#include "../precompiled.h"
+
 #include "../../engine/qcommon/q_shared.h"
-#include "l_utils.h"
 #include "l_libvar.h"
 #include "l_log.h"
 #include "l_struct.h"
@@ -82,28 +83,6 @@ typedef struct campspot_s
 	float random;
 	struct campspot_s *next;
 } campspot_t;
-
-//FIXME: these are game specific
-typedef enum {
-	GT_FFA,             // free for all
-	GT_TOURNAMENT,      // one on one tournament
-	GT_SINGLE_PLAYER,   // single player tournament
-
-	//-- team games go after this --
-
-	GT_TEAM,            // team deathmatch
-	GT_CTF,             // capture the flag
-
-	GT_MAX_GAME_TYPE
-} gametype_t;
-
-// Rafael gameskill
-typedef enum {
-	GSKILL_EASY,
-	GSKILL_MEDIUM,
-	GSKILL_HARD, // normal default level
-	GSKILL_MAX
-} gameskill_t;
 
 typedef struct levelitem_s
 {

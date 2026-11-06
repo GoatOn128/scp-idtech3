@@ -34,6 +34,8 @@ If you have questions concerning this license or the applicable additional terms
 // Tab Size:		4 (real tabs)
 //===========================================================================
 
+#include "../precompiled.h"
+
 #include "../game/g_local.h"
 #include "../../engine/qcommon/q_shared.h"
 
@@ -146,7 +148,7 @@ qboolean G_ScriptAction_GotoMarker( gentity_t *ent, char *params ) {
 			ent->pos1 = ent->r.currentOrigin;
 			ent->pos2 = target->r.currentOrigin;
 			ent->speed = speed;
-			dist = VectorDistance( ent->pos1, ent->pos2 );
+			dist = ( ent->pos1 - ent->pos2 ).Length();
 			// setup the movement with the new parameters
 			InitMover( ent );
 
@@ -376,7 +378,7 @@ qboolean G_ScriptAction_MusicStart( gentity_t *ent, char *params ) {
 		fadeupTime = atoi( token.c_str() );
 	}
 
-	trap_SendServerCommand( -1, va( "mu_start %s %d", cvarName, fadeupTime ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "mu_start %s %d", cvarName, fadeupTime ) );
 
 	return qtrue;
 }
@@ -400,7 +402,7 @@ qboolean G_ScriptAction_MusicPlay( gentity_t *ent, char *params ) {
 	}
 	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
-	trap_SendServerCommand( -1, va( "mu_play %s %d", cvarName, fadeupTime ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "mu_play %s %d", cvarName, fadeupTime ) );
 
 	return qtrue;
 }
@@ -422,7 +424,7 @@ qboolean G_ScriptAction_MusicStop( gentity_t *ent, char *params ) {
 		fadeoutTime = atoi( token.c_str() );
 	}
 
-	trap_SendServerCommand( -1, va( "mu_stop %i\n", fadeoutTime ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "mu_stop %i\n", fadeoutTime ) );
 
 	return qtrue;
 }
@@ -452,7 +454,7 @@ qboolean G_ScriptAction_MusicFade( gentity_t *ent, char *params ) {
 	}
 	fadetime = atoi( token.c_str() );
 
-	trap_SendServerCommand( -1, va( "mu_fade %f %i\n", targetvol, fadetime ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "mu_fade %f %i\n", targetvol, fadetime ) );
 
 	return qtrue;
 }
@@ -780,17 +782,17 @@ qboolean G_ScriptAction_MissionFailed( gentity_t *ent, char *params ) {
 	trap_SendServerCommand( -1, "mu_play sound/music/l_failed_1.wav 0\n" );
 	trap_SetConfigstring( CS_MUSIC_QUEUE, "" );  // clear queue so it'll be quiet after hit
 
-	trap_SendServerCommand( -1, va( "snd_fade 0 %d", time * 1000 ) );   //----(SA)	added
+	trap_SendServerCommand( -1, idStr::FormatString( "snd_fade 0 %d", time * 1000 ) );   //----(SA)	added
 
 	if ( mof < 0 ) {
 		mof = 0;
 	}
-	trap_SendServerCommand( -1, va( "cp missionfail%d", mof ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "cp missionfail%d", mof ) );
 
 	// reload the current savegame, after a delay
-	trap_SetConfigstring( CS_SCREENFADE, va( "1 %i %i", level.time + 250, time * 1000 ) );
+	trap_SetConfigstring( CS_SCREENFADE, idStr::FormatString( "1 %i %i", level.time + 250, time * 1000 ) );
 //	reloading = RELOAD_FAILED;
-	trap_Cvar_Set( "g_reloading", va( "%d", RELOAD_FAILED ) );
+	trap_Cvar_Set( "g_reloading", idStr::FormatString( "%d", RELOAD_FAILED ) );
 
 	level.reloadDelayTime = level.time + 1000 + time * 1000;
 
@@ -834,9 +836,9 @@ qboolean G_ScriptAction_MissionSuccess( gentity_t *ent, char *params ) {
 	player->missionObjectives |= ( 1 << ( lvl - 1 ) );  // make this bitwise
 
 	//set g_objective<n> cvar
-	trap_Cvar_Register( &cvar, va( "g_objective%i", lvl ), "1", CVAR_ROM );
+	trap_Cvar_Register( &cvar, idStr::FormatString( "g_objective%i", lvl ), "1", CVAR_ROM );
 	// set it to make sure
-	trap_Cvar_Set( va( "g_objective%i", lvl ), "1" );
+	trap_Cvar_Set( idStr::FormatString( "g_objective%i", lvl ), "1" );
 
 	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
@@ -1105,7 +1107,7 @@ qboolean G_ScriptAction_StartCam( gentity_t *ent, char *params ) {
 	if ( !player ) {
 		G_Error( "player not found, perhaps you should give them more time to spawn in" );
 	}
-	trap_SendServerCommand( player->s.number, va( "startCam %s", token.c_str() ) );
+	trap_SendServerCommand( player->s.number, idStr::FormatString( "startCam %s", token.c_str() ) );
 
 	return qtrue;
 }
@@ -1170,7 +1172,7 @@ qboolean G_ScriptAction_AxisRespawntime( gentity_t *ent, char *params ) {
 		G_Error( "G_ScriptAction_AxisRespawntime: time parameter required\n" );
 	}
 
-	trap_Cvar_Set( "g_redlimbotime", va( "%s000", token.c_str() ) );
+	trap_Cvar_Set( "g_redlimbotime", idStr::FormatString( "%s000", token.c_str() ) );
 
 	return qtrue;
 }
@@ -1192,7 +1194,7 @@ qboolean G_ScriptAction_AlliedRespawntime( gentity_t *ent, char *params ) {
 		G_Error( "G_ScriptAction_AlliedRespawntime: time parameter required\n" );
 	}
 
-	trap_Cvar_Set( "g_bluelimbotime", va( "%s000", token.c_str() ) );
+	trap_Cvar_Set( "g_bluelimbotime", idStr::FormatString( "%s000", token.c_str() ) );
 
 	return qtrue;
 }
@@ -1417,7 +1419,7 @@ qboolean G_ScriptAction_Announce( gentity_t *ent, char *params ) {
 		G_Error( "G_ScriptAction_Announce: statement parameter required\n" );
 	}
 
-	trap_SendServerCommand( -1, va( "cp \"%s\"", token.c_str() ) );
+	trap_SendServerCommand( -1, idStr::FormatString( "cp \"%s\"", token.c_str() ) );
 
 	return qtrue;
 }

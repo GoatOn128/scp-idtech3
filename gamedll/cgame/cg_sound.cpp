@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 
 // Ridah, cg_sound.c - parsing and use of sound script files
 
+#include "../precompiled.h"
+
 #include "cg_local.h"
 
 
