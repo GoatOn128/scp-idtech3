@@ -96,8 +96,8 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 				// move there
 				trap_EA_Move( cs->entityNum, cs->combat.takeCoverPos, 200 );
 			} else if ( AICast_GetAvoid( cs, NULL, cs->combat.takeCoverPos, qtrue, cs->enemyNum ) ) {
-				VectorSubtract( cs->combat.takeCoverPos, cs->clientState->origin, cs->combat.takeCoverPos );
-				if ( VectorNormalize( cs->combat.takeCoverPos ) > 60 ) {
+				cs->combat.takeCoverPos = cs->combat.takeCoverPos - cs->clientState->origin;
+				if ( cs->combat.takeCoverPos.Normalize() > 60 ) {
 					cs->navigation.obstructingTime = level.time + 1000 + rand() % 600;
 				}
 				return NULL;
@@ -172,7 +172,6 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 	if ( cs->navigation.obstructingTime > level.time ) {
 		// setup a combatgoal in the obstructionYaw direction
 		//cs->navigation.combatGoalTime = level.time + 10;
-		//VectorCopy( cs->navigation.obstructingPos, cs->navigation.combatGoalOrigin );
 		AICast_MoveToPos( cs, cs->navigation.obstructingPos, -1 );
 		// if not crouching, walk instead of running
 		cs->speedScale = cs->attributes[WALKING_SPEED] / cs->attributes[RUNNING_SPEED];
@@ -206,7 +205,7 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 		trap_BotResetAvoidReach(bs->ms);
 		// reset the combatgoal
 		cs->navigation.combatGoalTime = 0;
-	} else if (cs->navigation.combatGoalTime > level.time && VectorLength(cs->clientState->cur_ps.velocity)) {	// crouch if moving?
+	} else if (cs->navigation.combatGoalTime > level.time && cs->clientState->cur_ps.velocity.Length()) {	// crouch if moving?
 		if (cs->attributes[ATTACK_CROUCH] > 0.1) {
 			AICast_RequestCrouchAttack( cs, cs->clientState->origin, 0.5 );
 		}
@@ -268,16 +267,16 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 	if ( ( cs->attributes[AGGRESSION] < 1.0 ) && ( ent->client->ps.weapon ) &&
 		 ( ent->client->ps.groundEntityNum == ENTITYNUM_WORLD ) &&
 		 ( !cs->lastRollMove || cs->lastRollMove < level.time - 4000 ) && ( cs->attributes[TACTICAL] > 0.5 ) &&
-		 ( cs->aiFlags & AIFL_ROLL_ANIM ) && ( VectorLength( cs->clientState->cur_ps.velocity ) < 1 ) ) {
-		vec3_t aim, enemyVec, right;
+		 ( cs->aiFlags & AIFL_ROLL_ANIM ) && ( cs->clientState->cur_ps.velocity.Length() < 1 ) ) {
+		idVec3 aim, enemyVec, right;
 		// are they aiming at us?
-		AngleVectors( enemy->client->ps.viewangles, aim, right, NULL );
-		VectorSubtract( cs->clientState->origin, enemy->r.currentOrigin, enemyVec );
-		VectorNormalize( enemyVec );
+		idAngles( enemy->client->ps.viewangles ).ToVectors( &aim, &right, NULL );
+		enemyVec = cs->clientState->origin - enemy->r.currentOrigin;
+		enemyVec.Normalize();
 		// if they are looking at us, we should avoid them
-		if ( DotProduct( aim, enemyVec ) > 0.97 ) {
+		if ( ( aim * enemyVec ) > 0.97 ) {
 			aicast_predictmove_t move;
-			vec3_t dir;
+			idVec3 dir;
 			bot_input_t bi, bi_back;
 			usercmd_t ucmd;
 			float simTime = 0.8;
@@ -287,13 +286,13 @@ char *AIFunc_Battle( cast_state_t *cs ) {
 			trap_EA_GetInput( cs->entityNum, (float)level.time / 1000, &bi_back );
 			trap_EA_ResetInput( cs->entityNum, NULL );
 			if ( level.time % 200 < 100 ) {
-				VectorNegate( right, dir );
+				dir = -right;
 			} else {
-				VectorCopy( right, dir );
+				dir = right;
 			}
 			trap_EA_Move( cs->entityNum, dir, 400 );
 			trap_EA_GetInput( cs->entityNum, (float)level.time / 1000, &bi );
-			VectorCopy( dir, bi.dir );
+			bi.dir = dir;
 			AICast_InputToUserCommand( cs, &bi, &ucmd, bs->cur_ps.delta_angles );
 			AICast_PredictMovement( cs, 4, simTime / 4, &move, &ucmd, cs->enemyNum );
 
@@ -402,13 +401,13 @@ AICast_UpdateBattleInventory
 ==================
 */
 void AICast_UpdateBattleInventory( cast_state_t *cs, int enemy ) {
-	vec3_t dir;
+	idVec3 dir;
 	int i;
 
 	if ( enemy >= 0 ) {
-		VectorSubtract( cs->perception.vislist[cs->enemyNum].visible_pos, cs->clientState->origin, dir );
+		dir = cs->perception.vislist[cs->enemyNum].visible_pos - cs->clientState->origin;
 		cs->combat.enemyHeight = (int)dir[2];
-		cs->combat.enemyDist = (int)VectorLength( dir );
+		cs->combat.enemyDist = (int)dir.Length();
 	}
 
 	// stock up ammo that should never run out
@@ -562,14 +561,14 @@ int AICast_WantsToTakeCover( cast_state_t *cs, qboolean attacking ) {
 	// Dodge enemy aim?
 	if ( cs->attributes[AGGRESSION] < 1.0 && attacking && ( cs->enemyNum >= 0 ) &&
 		 ( g_entities[cs->enemyNum].client->ps.weapon ) && ( cs->attributes[TACTICAL] > 0.5 ) &&
-		 ( cs->aiFlags & AIFL_ROLL_ANIM ) && ( VectorLength( cs->clientState->cur_ps.velocity ) < 1 ) ) {
-		vec3_t aim, enemyVec;
+		 ( cs->aiFlags & AIFL_ROLL_ANIM ) && ( cs->clientState->cur_ps.velocity.Length() < 1 ) ) {
+		idVec3 aim, enemyVec;
 		// are they aiming at us?
-		AngleVectors( g_entities[cs->enemyNum].client->ps.viewangles, aim, NULL, NULL );
-		VectorSubtract( cs->clientState->origin, g_entities[cs->enemyNum].r.currentOrigin, enemyVec );
-		VectorNormalize( enemyVec );
+		idAngles( g_entities[cs->enemyNum].client->ps.viewangles ).ToVectors( &aim, NULL, NULL );
+		enemyVec = cs->clientState->origin - g_entities[cs->enemyNum].r.currentOrigin;
+		enemyVec.Normalize();
 		// if they are looking at us, we should avoid them
-		if ( DotProduct( aim, enemyVec ) > 0.97 ) {
+		if ( ( aim * enemyVec ) > 0.97 ) {
 			//G_Printf("%s: I'm in danger, I should probably avoid\n", g_entities[cs->entityNum].aiName);
 			aggrScale *= 0.6;
 		}
