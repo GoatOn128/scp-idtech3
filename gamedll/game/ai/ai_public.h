@@ -66,16 +66,16 @@ qboolean AICast_NoFlameDamage( int entNum );
 void AICast_SetFlameDamage( int entNum, qboolean status );
 qboolean AICast_HasFiredWeapon( int entNum, int weapon );
 void G_SetAASBlockingEntity( gentity_t *ent, qboolean blocking );
-qboolean AICast_InFieldOfVision( vec3_t viewangles, float fov, vec3_t angles );
-qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum, vec3_t destpos, int destnum, qboolean updateVisPos );
+qboolean AICast_InFieldOfVision( const idVec3 &viewangles, float fov, const idVec3 &angles );
+qboolean AICast_VisibleFromPos( const idVec3 &srcpos, int srcnum, const idVec3 &destpos, int destnum, qboolean updateVisPos );
 qboolean AICast_AllowFlameDamage( int entNum );
 void AICast_AdjustIdealYawForMover( int entnum, float yaw );
 void AICast_AgePlayTime( int entnum );
 int AICast_NoReload( int entnum );
 void AICast_RecordScriptSound( int client );
 void AICast_UpdateVisibility( gentity_t *srcent, gentity_t *destent, qboolean shareVis, qboolean directview );
-void AICast_ProcessBullet( gentity_t *attacker, vec3_t start, vec3_t end );
-void AICast_AudibleEvent( int srcnum, vec3_t pos, float range );
+void AICast_ProcessBullet( gentity_t *attacker, const idVec3 &start, const idVec3 &end );
+void AICast_AudibleEvent( int srcnum, const idVec3 &pos, float range );
 
 //----(SA)	added
 int AICast_PlayTime( int entnum );

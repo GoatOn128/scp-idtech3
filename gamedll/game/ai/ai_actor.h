@@ -173,7 +173,7 @@ typedef struct {
 	char *skin;
 	int weapons[8];
 	int bboxType;
-	vec2_t crouchstandZ;
+	idVec2 crouchstandZ;
 	int aiFlags;
 
 	const ai_ability_set_t *abilities;
@@ -219,11 +219,11 @@ typedef struct {
 	int real_update_timestamp;
 	int real_notvisible_timestamp;
 	int visible_timestamp; // time we last recorded a sighting
-	vec3_t visible_pos; // position we last knew of them being at (could be hearing, etc)
-	vec3_t real_visible_pos; // position we last physically saw them
-	vec3_t visible_vel; // velocity during last sighting
+	idVec3 visible_pos; // position we last knew of them being at (could be hearing, etc)
+	idVec3 real_visible_pos; // position we last physically saw them
+	idVec3 visible_vel; // velocity during last sighting
 	int notvisible_timestamp; // last time we didn't see the entity (used for reaction delay)
-	vec3_t chase_marker[MAX_CHASE_MARKERS];
+	idVec3 chase_marker[MAX_CHASE_MARKERS];
 	int chase_marker_count;
 	int lastcheck_health;
 } cast_visibility_t;
@@ -276,13 +276,13 @@ typedef struct {
 	int playAnimViewlockTime;
 	int scriptGotoEnt; // just goto them, then resume normal behaviour (don't follow)
 	int scriptGotoId;
-	vec3_t scriptWaitPos;
+	idVec3 scriptWaitPos;
 	int scriptWaitMovetime;
-	vec3_t scriptWaitHidePos;
+	idVec3 scriptWaitHidePos;
 	int scriptWaitHideTime;
 	int scriptNoSightTime;
 	int scriptAttackEnt; // we should always attack this AI if they are alive
-	vec3_t playanim_viewangles;
+	idVec3 playanim_viewangles;
 } cast_script_status_t;
 //
 typedef struct {
@@ -308,9 +308,9 @@ typedef struct aicast_checkattack_cache_s {
 // the main cast structure
 // Ability state belongs to each actor and is serialized with it.
 typedef struct {
-	vec3_t stimFlyAttackPos;
+	idVec3 stimFlyAttackPos;
 	int animHitCount; // for stepping through the frames on which to inflict damage
-	vec3_t loperLeapVel;
+	idVec3 loperLeapVel;
 	AILoperLeapPhase loperLeapPhase;
 	int loperPhaseStartedAt;
 	int loperLegAnimation;
@@ -325,9 +325,9 @@ typedef struct {
 	int bulletImpactEntity;
 	int bulletImpactTime; // last time we heard/saw a bullet impact
 	int bulletImpactIgnoreTime;
-	vec3_t bulletImpactStart, bulletImpactEnd;
+	idVec3 bulletImpactStart, bulletImpactEnd;
 	int audibleEventTime;
-	vec3_t audibleEventOrg;
+	idVec3 audibleEventOrg;
 	int audibleEventEnt;
 } ai_perception_state_t;
 
@@ -354,17 +354,17 @@ typedef struct {
 	int followTime; // if this runs out, the scripting has probably been interupted
 	qboolean followSlowApproach;
 	float combatGoalTime;
-	vec3_t combatGoalOrigin;
+	idVec3 combatGoalOrigin;
 	int blockedTime; // time they were last blocked by a solid entity
 	int obstructingTime; // time that we should move so we are not obstructing someone else
-	vec3_t obstructingPos;
+	idVec3 obstructingPos;
 	int blockedAvoidTime;
 	float blockedAvoidYaw;
 	int doorMarker, doorEntNum;
 	int dangerLastGetAvoid;
 	int lastAvoid;
 	int doorMarkerTime, doorMarkerNum, doorMarkerDoor;
-	vec3_t lastMoveToPosGoalOrg; // if this changes, we should reset the Bot Avoid Reach
+	idVec3 lastMoveToPosGoalOrg; // if this changes, we should reset the Bot Avoid Reach
 	int lastValidAreaNum[2]; // last valid area within each AAS world
 	int lastValidAreaTime[2]; // time we last got the area
 	bot_moveresult_t lastMoveResult;
@@ -380,12 +380,12 @@ typedef struct {
 	int startBattleChaseTime;
 	int enemyHeight;
 	int enemyDist;
-	vec3_t takeCoverPos, takeCoverEnemyPos;
+	idVec3 takeCoverPos, takeCoverEnemyPos;
 	int takeCoverTime;
 	int attackSpotTime;
 	int triggerReleaseTime;
 	int lastWeaponFired; // set each time a weapon is fired. used to detect when a weapon has been fired from within scripting
-	vec3_t lastWeaponFiredPos;
+	idVec3 lastWeaponFiredPos;
 	int lastWeaponFiredWeaponNum;
 	aicast_checkattack_cache_t checkAttackCache;
 	int noAttackTime; // used by dynamic AI to stop attacking for set time
@@ -435,7 +435,7 @@ typedef struct cast_state_s {
 	ai_state_callback_t currentState;
 	ai_state_callback_t previousState;
 
-	void ( *painfunc )( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point );
+	void ( *painfunc )( gentity_t *ent, gentity_t *attacker, int damage, const idVec3 &point );
 	void ( *deathfunc )( gentity_t *ent, gentity_t *attacker, int damage, int mod ); //----(SA)	added mod
 	void ( *sightfunc )( gentity_t *ent, gentity_t *other, int lastSight );
 	void ( *sightEnemy )( gentity_t *ent, gentity_t *other );
@@ -463,13 +463,13 @@ typedef struct cast_state_s {
 
 	int dangerEntity;
 	int dangerEntityValidTime; // dangerEntity is valid until this time expires
-	vec3_t dangerEntityPos; // dangerEntity is predicted to end up here
+	idVec3 dangerEntityPos; // dangerEntity is predicted to end up here
 	int dangerEntityTimestamp; // time this danger was recorded
 	float dangerDist;
 
 	int mountedEntity; // mg42, etc that we have mounted
 	int inspectBodyTime;
-	vec3_t startOrigin;
+	idVec3 startOrigin;
 
 	int damageQuota;
 	int damageQuotaTime;
@@ -486,7 +486,7 @@ typedef struct cast_state_s {
 	int lastDodgeRoll; // last time we rolled to get out of our enemies direct aim
 	int battleRollTime;
 
-	vec3_t viewlock_viewangles;
+	idVec3 viewlock_viewangles;
 
 	int totalPlayTime, lastLoadTime;
 
@@ -502,7 +502,7 @@ typedef struct cast_state_s {
 
 	int weaponNum; // our current weapon
 	int enemyNum; // our current enemy
-	vec3_t ideal_viewangles, viewangles;
+	idVec3 ideal_viewangles, viewangles;
 	usercmd_t lastucmd;
 	int attackcrouch_time;
 	int bFlags;
@@ -516,8 +516,8 @@ typedef struct cast_state_s {
 #define CSFOFS( x ) ( (int)(intptr_t)&( ( (cast_state_t *)0 )->x ) )
 //
 typedef struct aicast_predictmove_s {
-	vec3_t endpos; //position at the end of movement prediction
-	vec3_t velocity; //velocity at the end of movement prediction
+	idVec3 endpos; //position at the end of movement prediction
+	idVec3 velocity; //velocity at the end of movement prediction
 	int presencetype; //presence type at end of movement prediction
 	int stopevent; //event that made the prediction stop
 	float time; //time predicted ahead
