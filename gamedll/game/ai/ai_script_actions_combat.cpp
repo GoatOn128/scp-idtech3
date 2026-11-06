@@ -44,16 +44,16 @@ void AICast_NoAttackIfNotHurtSinceLastScriptAction( cast_state_t *cs ) {
 	}
 
 	// if not moving, we should attack
-	if ( VectorLength( cs->clientState->velocity ) < 10 ) {
+	if ( cs->clientState->velocity.Length() < 10 ) {
 		return;
 	}
 
 	// if our enemy is in the direction we are moving, don't hold back
 	if ( cs->enemyNum >= 0 && cs->script.castScriptStatus.scriptGotoEnt >= 0 ) {
-		vec3_t v;
+		idVec3 v;
 
-		VectorSubtract( g_entities[cs->enemyNum].r.currentOrigin, cs->clientState->origin, v );
-		if ( DotProduct( cs->clientState->velocity, v ) > 0 ) {
+		v = g_entities[cs->enemyNum].r.currentOrigin - cs->clientState->origin;
+		if ( ( cs->clientState->velocity * v ) > 0 ) {
 			return;
 		}
 	}
@@ -119,13 +119,14 @@ AICast_ScriptAction_SetAmmo
 =================
 */
 qboolean AICast_ScriptAction_SetAmmo( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int weapon;
 	int i;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_combat" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: setammo without ammo identifier\n" );
 	}
@@ -134,18 +135,18 @@ qboolean AICast_ScriptAction_SetAmmo( cast_state_t *cs, char *params ) {
 
 	for ( i = 1; bg_itemlist[i].classname; i++ ) {
 		//----(SA)	first try the name they see in the editor, then the pickup name
-		if ( !Q_strcasecmp( token, bg_itemlist[i].classname ) ) {
+		if ( !idStr::Icmp( token.c_str(), bg_itemlist[i].classname ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
 
-		if ( !Q_strcasecmp( token, bg_itemlist[i].pickup_name ) ) {
+		if ( !idStr::Icmp( token.c_str(), bg_itemlist[i].pickup_name ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
 	}
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: setammo without ammo count\n" );
 	}
@@ -153,9 +154,9 @@ qboolean AICast_ScriptAction_SetAmmo( cast_state_t *cs, char *params ) {
 	if ( weapon != WP_NONE ) {
 		// give them the ammo
 
-		if ( atoi( token ) ) {
+		if ( atoi( token.c_str() ) ) {
 			int amt;
-			amt = atoi( token );
+			amt = atoi( token.c_str() );
 			if ( amt > 50 + ammoTable[BG_FindAmmoForWeapon( weapon )].maxammo ) {
 				amt = 999; // unlimited
 			}
@@ -186,13 +187,14 @@ AICast_ScriptAction_SetClip
 =================
 */
 qboolean AICast_ScriptAction_SetClip( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int weapon;
 	int i;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_combat" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: setclip without weapon identifier\n" );
 	}
@@ -201,25 +203,25 @@ qboolean AICast_ScriptAction_SetClip( cast_state_t *cs, char *params ) {
 
 	for ( i = 1; bg_itemlist[i].classname; i++ ) {
 		//----(SA)	first try the name they see in the editor, then the pickup name
-		if ( !Q_strcasecmp( token, bg_itemlist[i].classname ) ) {
+		if ( !idStr::Icmp( token.c_str(), bg_itemlist[i].classname ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
 
-		if ( !Q_strcasecmp( token, bg_itemlist[i].pickup_name ) ) {
+		if ( !idStr::Icmp( token.c_str(), bg_itemlist[i].pickup_name ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
 	}
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: setclip without ammo count\n" );
 	}
 
 	if ( weapon != WP_NONE ) {
 
-		int spillover = atoi( token ) - ammoTable[weapon].maxclip;
+		int spillover = atoi( token.c_str() ) - ammoTable[weapon].maxclip;
 
 		if ( spillover > 0 ) {
 			// there was excess, put it in storage and fill the clip
@@ -227,7 +229,7 @@ qboolean AICast_ScriptAction_SetClip( cast_state_t *cs, char *params ) {
 			g_entities[cs->entityNum].client->ps.ammoclip[BG_FindClipForWeapon( weapon )] = ammoTable[weapon].maxclip;
 		} else {
 			// set the clip amount to the exact specified value
-			g_entities[cs->entityNum].client->ps.ammoclip[weapon] = atoi( token );
+			g_entities[cs->entityNum].client->ps.ammoclip[weapon] = atoi( token.c_str() );
 		}
 
 	} else {
@@ -253,12 +255,12 @@ qboolean AICast_ScriptAction_SuggestWeapon( cast_state_t *cs, char *params ) {
 
 	for ( i = 1; bg_itemlist[i].classname; i++ ) {
 		//----(SA)	first try the name they see in the editor, then the pickup name
-		if ( !Q_strcasecmp( params, bg_itemlist[i].classname ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].classname ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
 
-		if ( !Q_strcasecmp( params, bg_itemlist[i].pickup_name ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].pickup_name ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
@@ -288,12 +290,12 @@ qboolean AICast_ScriptAction_SelectWeapon( cast_state_t *cs, char *params ) {
 
 	for ( i = 1; bg_itemlist[i].classname; i++ ) {
 		//----(SA)	first try the name they see in the editor, then the pickup name
-		if ( !Q_strcasecmp( params, bg_itemlist[i].classname ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].classname ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
 
-		if ( !Q_strcasecmp( params, bg_itemlist[i].pickup_name ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].pickup_name ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
@@ -361,11 +363,11 @@ qboolean AICast_ScriptAction_GiveArmor( cast_state_t *cs, char *params ) {
 
 	for ( i = 1; bg_itemlist[i].classname; i++ ) {
 		//----(SA)	first try the name they see in the editor, then the pickup name
-		if ( !Q_strcasecmp( params, bg_itemlist[i].classname ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].classname ) ) {
 			item = &bg_itemlist[i];
 		}
 
-		if ( !Q_strcasecmp( params, bg_itemlist[i].pickup_name ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].pickup_name ) ) {
 			item = &bg_itemlist[i];
 		}
 	}
@@ -402,12 +404,12 @@ qboolean AICast_ScriptAction_GiveWeapon( cast_state_t *cs, char *params ) {
 
 	for ( i = 1; bg_itemlist[i].classname; i++ ) {
 		//----(SA)	first try the name they see in the editor, then the pickup name
-		if ( !Q_strcasecmp( params, bg_itemlist[i].classname ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].classname ) ) {
 			weapon = bg_itemlist[i].giTag;
 			break;
 		}
 
-		if ( !Q_strcasecmp( params, bg_itemlist[i].pickup_name ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].pickup_name ) ) {
 			weapon = bg_itemlist[i].giTag;
 		}
 	}
@@ -439,7 +441,7 @@ qboolean AICast_ScriptAction_GiveWeapon( cast_state_t *cs, char *params ) {
 
 		// monsters have full ammo for their attacks
 		// knife gets infinite ammo too
-		if ( !Q_strncasecmp( params, "monsterattack", 13 ) || weapon == WP_KNIFE ) {
+		if ( !idStr::Icmpn( params, "monsterattack", 13 ) || weapon == WP_KNIFE ) {
 			g_entities[cs->entityNum].client->ps.ammo[BG_FindAmmoForWeapon( weapon )] = 999;
 			Fill_Clip( &g_entities[cs->entityNum].client->ps, weapon ); //----(SA)	added
 		}
@@ -470,7 +472,7 @@ qboolean AICast_ScriptAction_TakeWeapon( cast_state_t *cs, char *params ) {
 
 	weapon = WP_NONE;
 
-	if ( !Q_stricmp( params, "all" ) ) {
+	if ( !idStr::Icmp( params, "all" ) ) {
 
 		// clear out all weapons
 		memset( g_entities[cs->entityNum].client->ps.weapons, 0,
@@ -484,12 +486,12 @@ qboolean AICast_ScriptAction_TakeWeapon( cast_state_t *cs, char *params ) {
 
 		for ( i = 1; bg_itemlist[i].classname; i++ ) {
 			//----(SA)	first try the name they see in the editor, then the pickup name
-			if ( !Q_strcasecmp( params, bg_itemlist[i].classname ) ) {
+			if ( !idStr::Icmp( params, bg_itemlist[i].classname ) ) {
 				weapon = bg_itemlist[i].giTag;
 				break;
 			}
 
-			if ( !Q_strcasecmp( params, bg_itemlist[i].pickup_name ) ) {
+			if ( !idStr::Icmp( params, bg_itemlist[i].pickup_name ) ) {
 				weapon = bg_itemlist[i].giTag;
 				break;
 			}
@@ -554,11 +556,11 @@ qboolean AICast_ScriptAction_GiveInventory( cast_state_t *cs, char *params ) {
 
 	for ( i = 1; bg_itemlist[i].classname; i++ ) {
 		//----(SA)	first try the name they see in the editor, then the pickup name
-		if ( !Q_strcasecmp( params, bg_itemlist[i].classname ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].classname ) ) {
 			item = &bg_itemlist[i];
 		}
 
-		if ( !Q_strcasecmp( params, bg_itemlist[i].pickup_name ) ) {
+		if ( !idStr::Icmp( params, bg_itemlist[i].pickup_name ) ) {
 			item = &bg_itemlist[i];
 		}
 	}
@@ -585,14 +587,15 @@ AICast_ScriptAction_FireAtTarget
 */
 qboolean AICast_ScriptAction_FireAtTarget( cast_state_t *cs, char *params ) {
 	gentity_t *ent;
-	vec3_t vec, org, src;
-	char *pString, *token;
+	idVec3 vec, org, src;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	float diff;
 	int i;
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_combat" );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI Scripting: fireattarget without a targetname\n" );
 	}
@@ -602,11 +605,11 @@ qboolean AICast_ScriptAction_FireAtTarget( cast_state_t *cs, char *params ) {
 	}
 
 	// find this targetname
-	ent = G_Find( NULL, FOFS( targetname ), token );
+	ent = G_Find( NULL, FOFS( targetname ), ( char * ) token.c_str() );
 	if ( !ent ) {
-		ent = AICast_FindEntityForName( token );
+		ent = AICast_FindEntityForName( ( char * ) token.c_str() );
 		if ( !ent ) {
-			G_Error( "AI Scripting: fireattarget cannot find targetname/aiName \"%s\"\n", token );
+			G_Error( "AI Scripting: fireattarget cannot find targetname/aiName \"%s\"\n", token.c_str() );
 		}
 	}
 
@@ -628,14 +631,14 @@ qboolean AICast_ScriptAction_FireAtTarget( cast_state_t *cs, char *params ) {
 	cs->script.castScriptStatus.playAnimViewlockTime = 0;
 	// set the view angle manually
 	BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
-	VectorCopy( cs->clientState->origin, src );
+	src = cs->clientState->origin;
 	src[2] += cs->clientState->cur_ps.viewheight;
-	VectorSubtract( org, src, vec );
-	VectorNormalize( vec );
+	vec = org - src;
+	vec.Normalize();
 	vectoangles( vec, cs->ideal_viewangles );
 	for ( i = 0; i < 2; i++ ) {
 		diff = fabs( AI_AngleDifference( cs->clientState->cur_ps.viewangles[i], cs->ideal_viewangles[i] ) );
-		if ( VectorCompare( vec3_origin, ent->s.pos.trDelta ) ) {
+		if ( vec3_origin.Compare( ent->s.pos.trDelta ) ) {
 			if ( diff ) {
 				return qfalse; // not facing yet
 			}
@@ -657,12 +660,12 @@ qboolean AICast_ScriptAction_FireAtTarget( cast_state_t *cs, char *params ) {
 	}
 	//
 	// do we need to stay and fire for a duration?
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		return qtrue; // no need to wait around
 	}
 	// only return true if we've been firing for long enough
-	return ( ( cs->script.castScriptStatus.castScriptStackChangeTime + atoi( token ) ) < level.time );
+	return ( ( cs->script.castScriptStatus.castScriptStackChangeTime + atoi( token.c_str() ) ) < level.time );
 }
 
 /*
@@ -677,9 +680,9 @@ qboolean AICast_ScriptAction_GodMode( cast_state_t *cs, char *params ) {
 		G_Error( "AI Scripting: godmode requires an on/off specifier\n" );
 	}
 
-	if ( !Q_stricmp( params, "on" ) ) {
+	if ( !idStr::Icmp( params, "on" ) ) {
 		g_entities[cs->clientState->entitynum].flags |= FL_GODMODE;
-	} else if ( !Q_stricmp( params, "off" ) ) {
+	} else if ( !idStr::Icmp( params, "off" ) ) {
 		g_entities[cs->clientState->entitynum].flags &= ~FL_GODMODE;
 	} else {
 		G_Error( "AI Scripting: godmode requires an on/off specifier\n" );
@@ -700,9 +703,9 @@ qboolean AICast_ScriptAction_NoAIDamage( cast_state_t *cs, char *params ) {
 		G_Error( "AI Scripting: noaidamage requires an on/off specifier\n" );
 	}
 
-	if ( !Q_stricmp( params, "on" ) ) {
+	if ( !idStr::Icmp( params, "on" ) ) {
 		cs->script.castScriptStatus.scriptFlags |= SFL_NOAIDAMAGE;
-	} else if ( !Q_stricmp( params, "off" ) ) {
+	} else if ( !idStr::Icmp( params, "off" ) ) {
 		cs->script.castScriptStatus.scriptFlags &= ~SFL_NOAIDAMAGE;
 	} else {
 		G_Error( "AI Scripting: noaidamage requires an on/off specifier\n" );
@@ -716,8 +719,8 @@ AICast_ScriptAction_LightningDamage
 =================
 */
 qboolean AICast_ScriptAction_LightningDamage( cast_state_t *cs, char *params ) {
-	Q_strlwr( params );
-	if ( !Q_stricmp( params, "on" ) ) {
+	idStr::Copynz( params, idStr( params ).ToLower().c_str(), strlen( params ) + 1 );
+	if ( !idStr::Icmp( params, "on" ) ) {
 		cs->aiFlags |= AIFL_ROLL_ANIM; // hijacking this since the player doesn't use it
 	} else {
 		cs->aiFlags &= ~AIFL_ROLL_ANIM;
