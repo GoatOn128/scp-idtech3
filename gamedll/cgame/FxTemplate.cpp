@@ -30,8 +30,8 @@ CPrimitiveTemplate::CPrimitiveTemplate()
 	mRadius.SetRange( 1.0f, 1.0f );
 	mHeight.SetRange( 1.0f, 1.0f );
 
-	VectorSet( mMin, 0.0f, 0.0f, 0.0f );
-	VectorSet( mMax, 0.0f, 0.0f, 0.0f );
+	mMin.Set( 0.0f, 0.0f, 0.0f );
+	mMax.Set( 0.0f, 0.0f, 0.0f );
 
 	mRedStart.SetRange( 1.0f, 1.0f );
 	mGreenStart.SetRange( 1.0f, 1.0f );
@@ -76,8 +76,8 @@ void CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that)
 	mCollisionMask = that.mCollisionMask;
 	mSoftness = that.mSoftness;
 	mProjectionDepth = that.mProjectionDepth;
-	VectorCopy( that.mVelocityScale, mVelocityScale );
-	VectorCopy( that.mSizeVelocity, mSizeVelocity );
+	( mVelocityScale = that.mVelocityScale );
+	( mSizeVelocity = that.mSizeVelocity );
 	mCountSpacing = that.mCountSpacing;
 	mProperties = that.mProperties;
     mRepeat = that.mRepeat;
@@ -99,8 +99,8 @@ void CPrimitiveTemplate::operator=(const CPrimitiveTemplate &that)
 	mFlags				= that.mFlags;
 	mSpawnFlags			= that.mSpawnFlags;
 
-	VectorCopy( that.mMin, mMin );
-	VectorCopy( that.mMax, mMax );
+	( mMin = that.mMin );
+	( mMax = that.mMax );
 
 	mOrigin1X			= that.mOrigin1X;
 	mOrigin1Y			= that.mOrigin1Y;
@@ -219,13 +219,9 @@ bool CPrimitiveTemplate::ParseFloat( const char *val, float *min, float *max )
 // return:
 //	success of parse operation.
 //------------------------------------------------------
-bool CPrimitiveTemplate::ParseVector( const char *val, vec3_t min, vec3_t max )
+bool CPrimitiveTemplate::ParseVector( const char *val, idVec3 &min, idVec3 &max )
 {
 	// we don't allow passing in a null
-	if ( min == 0 || max == 0 )
-	{
-		return false;
-	}
 
 	// attempt to read out our values
 	int v = sscanf( val, "%f %f %f   %f %f %f", &min[0], &min[1], &min[2], &max[0], &max[1], &max[2] );
@@ -237,7 +233,7 @@ bool CPrimitiveTemplate::ParseVector( const char *val, vec3_t min, vec3_t max )
 	}
 	else if ( v == 3 )
 	{ // only a min was entered, so copy the result into max
-		VectorCopy( min, max );
+		( max = min );
 	}
 
 	return true;
@@ -321,11 +317,11 @@ bool CPrimitiveTemplate::ParseGroupFlags( const char *val, int *flags )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseMin( const char *val )
 {
-	vec3_t min;
+	idVec3 min;
 
 	if ( ParseVector( val, min, min ) == true )
 	{
-		VectorCopy( min, mMin );
+		( mMin = min );
 
 		// We assume that if a min is being set that we are using physics and a bounding box
 		mFlags |= (FX_USE_BBOX | FX_APPLY_PHYSICS);
@@ -347,11 +343,11 @@ bool CPrimitiveTemplate::ParseMin( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseMax( const char *val )
 {
-	vec3_t max;
+	idVec3 max;
 
 	if ( ParseVector( val, max, max ) == true )
 	{
-		VectorCopy( max, mMax );
+		( mMax = max );
 
 		// We assume that if a max is being set that we are using physics and a bounding box
 		mFlags |= (FX_USE_BBOX | FX_APPLY_PHYSICS);
@@ -469,7 +465,7 @@ bool CPrimitiveTemplate::ParseElasticity( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseOrigin1( const char *val )
 {
-	vec3_t min, max;
+	idVec3 min, max;
 
 	if ( ParseVector( val, min, max ) == true )
 	{
@@ -494,7 +490,7 @@ bool CPrimitiveTemplate::ParseOrigin1( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseOrigin2( const char *val )
 {
-	vec3_t min, max;
+	idVec3 min, max;
 
 	if ( ParseVector( val, min, max ) == true )
 	{
@@ -611,7 +607,7 @@ bool CPrimitiveTemplate::ParseRotationDelta( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseAngle( const char *val )
 {
-	vec3_t min, max;
+	idVec3 min, max;
 
 	if ( ParseVector( val, min, max ) == true )
 	{
@@ -636,7 +632,7 @@ bool CPrimitiveTemplate::ParseAngle( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseAngleDelta( const char *val )
 {
-	vec3_t min, max;
+	idVec3 min, max;
 
 	if ( ParseVector( val, min, max ) == true )
 	{
@@ -661,7 +657,7 @@ bool CPrimitiveTemplate::ParseAngleDelta( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseVelocity( const char *val )
 {
-	vec3_t min, max;
+	idVec3 min, max;
 
 	if ( ParseVector( val, min, max ) == true )
 	{
@@ -856,7 +852,7 @@ bool CPrimitiveTemplate::ParseSpawnFlags( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseAcceleration( const char *val )
 {
-	vec3_t min, max;
+	idVec3 min, max;
 
 	if ( ParseVector( val, min, max ) == true )
 	{
@@ -955,7 +951,7 @@ bool CPrimitiveTemplate::ParseVariance( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseRGBStart( const char *val )
 {
-	vec3_t min, max;
+	idVec3 min, max;
 
 	if ( ParseVector( val, min, max ) == true )
 	{
@@ -980,7 +976,7 @@ bool CPrimitiveTemplate::ParseRGBStart( const char *val )
 //------------------------------------------------------
 bool CPrimitiveTemplate::ParseRGBEnd( const char *val )
 {
-	vec3_t min, max;
+	idVec3 min, max;
 
 	if ( ParseVector( val, min, max ) == true )
 	{
@@ -2280,7 +2276,7 @@ bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp )
 		{
 			ParseRotation( val );
 		}
-		else if ( !Q_stricmp( key, "rotationDelta" ))
+		else if ( !idStr::Icmp( key, "rotationDelta" ))
 		{
 			ParseRotationDelta( val );
 		}
@@ -2297,7 +2293,7 @@ bool CPrimitiveTemplate::ParsePrimitive( CGPGroup *grp )
 			if ( val )
 			{
 				// just stash the descriptive name of the primitive
-				Q_strncpyz( mName, val, sizeof(mName) );
+				idStr::Copynz( mName, val, sizeof(mName) );
 			}
 		}
 		else
