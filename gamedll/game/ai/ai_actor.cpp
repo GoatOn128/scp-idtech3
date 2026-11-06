@@ -81,9 +81,9 @@ void AICast_Think( int client, float thinktime ) {
 	//ent->r.svFlags |= SVF_BROADCAST;
 	ent->client->ps.eFlags &= ~EF_FORCE_END_FRAME;
 	//origin of the cast
-	VectorCopy( ent->client->ps.origin, cs->clientState->origin );
+	cs->clientState->origin = ent->client->ps.origin;
 	//eye coordinates of the cast
-	VectorCopy( ent->client->ps.origin, cs->clientState->eye );
+	cs->clientState->eye = ent->client->ps.origin;
 	cs->clientState->eye[2] += ent->client->ps.viewheight;
 	//get the area the cast is in
 	cs->clientState->areanum = AI_PointAreaNum( cs->clientState->origin );
@@ -104,7 +104,7 @@ void AICast_Think( int client, float thinktime ) {
 		}
 		//
 		if ( cs->rebirthTime && cs->rebirthTime < level.time ) {
-			vec3_t mins, maxs;
+			idVec3 mins, maxs;
 			int touch[10], numTouch;
 			float oldmaxZ;
 
@@ -113,8 +113,8 @@ void AICast_Think( int client, float thinktime ) {
 			// make sure the area is clear
 			AIChar_SetBBox( ent, cs, qfalse );
 
-			VectorAdd( ent->r.currentOrigin, ent->r.mins, mins );
-			VectorAdd( ent->r.currentOrigin, ent->r.maxs, maxs );
+			mins = ent->r.currentOrigin + ent->r.mins;
+			maxs = ent->r.currentOrigin + ent->r.maxs;
 			trap_UnlinkEntity( ent );
 
 			numTouch = trap_EntitiesInBox( mins, maxs, touch, 10 );
@@ -270,16 +270,16 @@ void AICast_Think( int client, float thinktime ) {
 	// HACK for village2, if they are stuck, find a good position (there is a friendly guy placed inside a table)
 	{
 		trace_t tr;
-		vec3_t org;
+		idVec3 org;
 		trap_Trace( &tr, cs->clientState->cur_ps.origin, cs->clientState->cur_ps.mins, cs->clientState->cur_ps.maxs, cs->clientState->cur_ps.origin, cs->entityNum, CONTENTS_SOLID );
 		while ( tr.startsolid ) {
-			VectorCopy( cs->clientState->cur_ps.origin, org );
+			org = cs->clientState->cur_ps.origin;
 			org[0] += 96 * crandom();
 			org[1] += 96 * crandom();
 			org[2] += 16 * crandom();
 			trap_Trace( &tr, org, cs->clientState->cur_ps.mins, cs->clientState->cur_ps.maxs, org, cs->entityNum, CONTENTS_SOLID );
 			G_SetOrigin( &g_entities[cs->entityNum], org );
-			VectorCopy( org, g_entities[cs->entityNum].client->ps.origin );
+			g_entities[cs->entityNum].client->ps.origin = org;
 		}
 	}
 #endif
@@ -392,7 +392,7 @@ void AICast_QueryThink( cast_state_t *cs ) {
 	gentity_t *ent;
 	qboolean visible;
 	cast_state_t *ocs;
-	vec3_t vec;
+	idVec3 vec;
 
 	ent = &g_entities[cs->entityNum];
 	ocs = AICast_GetCastState( cs->enemyNum );
@@ -401,8 +401,8 @@ void AICast_QueryThink( cast_state_t *cs ) {
 	cs->attackcrouch_time = 0;
 
 	// look at where we last (thought we) saw them
-	VectorSubtract( cs->perception.vislist[cs->enemyNum].visible_pos, cs->clientState->origin, vec );
-	VectorNormalize( vec );
+	vec = cs->perception.vislist[cs->enemyNum].visible_pos - cs->clientState->origin;
+	vec.Normalize();
 	vectoangles( vec, cs->ideal_viewangles );
 
 	// are they visible now?

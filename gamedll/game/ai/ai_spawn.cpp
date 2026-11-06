@@ -195,7 +195,7 @@ void AIChar_spawn( gentity_t *ent ) {
 		cs->aiFlags |= AIFL_DIVE_ANIM;
 	}
 	// HACK
-	if ( ent->aiName && !Q_stricmp( ent->aiName, "deathshead" ) ) {
+	if ( ent->aiName && !idStr::Icmp( ent->aiName, "deathshead" ) ) {
 		cs->aiFlags |= AIFL_NO_FLAME_DAMAGE;
 	}
 	//
@@ -205,9 +205,9 @@ void AIChar_spawn( gentity_t *ent ) {
 	}
 	// set these values now so scripting system isn't relying on a Think having been run prior to running a script
 	//origin of the cast
-	VectorCopy( ent->client->ps.origin, cs->clientState->origin );
+	cs->clientState->origin = ent->client->ps.origin;
 	//velocity of the cast
-	VectorCopy( ent->client->ps.velocity, cs->clientState->velocity );
+	cs->clientState->velocity = ent->client->ps.velocity;
 	//playerstate
 	cs->clientState->cur_ps = ent->client->ps;
 	//
