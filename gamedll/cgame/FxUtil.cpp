@@ -1601,7 +1601,7 @@ void FX_AddQuad( idVec3 &origin, idVec3 &normal,
 							salpha, ealpha, 0.0f,
 							sRGB, eRGB, 0.0f,
 							rotation, 0.0f, 
-							NULL, NULL, 0.0f, 0, 0, life,
+							vec3_origin, vec3_origin, 0.0f, 0, 0, life,
 							shader, 0 );
 }
 

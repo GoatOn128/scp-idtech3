@@ -517,7 +517,7 @@ static void CG_AddToTeamChat( const char *str ) {
 			cgs.teamChatPos++;
 			p = cgs.teamChatMsgs[cgs.teamChatPos % chatHeight];
 			*p = 0;
-			*p++ = Q_COLOR_ESCAPE;
+			*p++ = C_COLOR_ESCAPE;
 			*p++ = lastcolor;
 			len = 0;
 			ls = NULL;
@@ -682,7 +682,7 @@ static void CG_MapRestart( void ) {
 	// done.
 
 	// RF, init ZombieFX
-	trap_RB_ZombieFXAddNewHit( -1, NULL, NULL );
+	trap_RB_ZombieFXAddNewHit( -1, vec3_origin, vec3_origin );
 
 	// make sure the "3 frags left" warnings play again
 	cg.fraglimitWarnings = 0;
@@ -730,7 +730,7 @@ static void CG_MapRestart( void ) {
 	}
 	// clear out rumble effects
 	memset( cg.cameraShake, 0, sizeof( cg.cameraShake ) );
-	memset( cg.cameraShakeAngles, 0, sizeof( cg.cameraShakeAngles ) );
+	cg.cameraShakeAngles.Zero();
 	cg.rumbleScale = 0;
 
 	// play the "fight" sound if this is a restart without warmup

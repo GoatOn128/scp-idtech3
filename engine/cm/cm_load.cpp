@@ -574,7 +574,7 @@ void CM_FreeMap( void ) {
 #endif //BSPC
 
 unsigned CM_LumpChecksum( lump_t *lump ) {
-	return LittleLong( Com_BlockChecksum( cmod_base + lump->fileofs, lump->filelen ) );
+	return LittleLong( MD4_BlockChecksum( cmod_base + lump->fileofs, lump->filelen ) );
 }
 
 unsigned CM_Checksum( dheader_t *header ) {
@@ -591,7 +591,7 @@ unsigned CM_Checksum( dheader_t *header ) {
 	checksums[9] = CM_LumpChecksum( &header->lumps[LUMP_SURFACES] );
 	checksums[10] = CM_LumpChecksum( &header->lumps[LUMP_DRAWVERTS] );
 
-	return LittleLong( Com_BlockChecksum( checksums, 11 * 4 ) );
+	return LittleLong( MD4_BlockChecksum( checksums, 11 * 4 ) );
 }
 
 /*
@@ -650,7 +650,7 @@ void CM_LoadMap( const char *name, qboolean clientload, int *checksum ) {
 		Com_Error( ERR_DROP, "Couldn't load %s", name );
 	}
 
-	last_checksum = LittleLong( Com_BlockChecksum( buf, length ) );
+	last_checksum = LittleLong( MD4_BlockChecksum( buf, length ) );
 	*checksum = last_checksum;
 
 	header = *(dheader_t *)buf;
@@ -861,5 +861,4 @@ void CM_ModelBounds( clipHandle_t model, idVec3 &mins, idVec3 &maxs ) {
 	( mins = cmod->mins );
 	( maxs = cmod->maxs );
 }
-
 

@@ -180,11 +180,11 @@ typedef struct {
 // this defines the layout of the mission stats
 // NOTE: these must match the stats sent in AICast_ScriptAction_ChangeLevel()
 static statsItem_t statsItems[] = {
-	{ "end_time",        168,    214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  "%02i:%02i:%02i",    348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  3 },
-	{ "end_objectives",  28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  2 },
-	{ "end_secrets", 28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  2 },
-	{ "end_treasure",    28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {0.62f, 0.56f,  0.0f,   1.0f},  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  2 },
-	{ "end_attempts",    28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  "%i",                348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    {1.0f,  1.0f,   1.0f,   1.0f},  1 },
+	{ "end_time",        168,    214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  "%02i:%02i:%02i",    348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  3 },
+	{ "end_objectives",  28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  2 },
+	{ "end_secrets", 28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  2 },
+	{ "end_treasure",    28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 0.62f, 0.56f, 0.0f, 1.0f ),  "%i/%i",         348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  2 },
+	{ "end_attempts",    28,     214,        ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  "%i",                348,    ITEM_TEXTSTYLE_SHADOWEDMORE,    idVec4( 1.0f, 1.0f, 1.0f, 1.0f ),  1 },
 
 	{ NULL }
 };
@@ -276,7 +276,7 @@ CG_DrawExitStats
 
 void CG_DrawExitStats( void ) {
 	int i, y, v, j;
-	float *color;   // faded color based on cursor hint drawing
+	idVec4 *color;   // faded color based on cursor hint drawing
 	idVec4 color2( 0, 0, 0, 1 );
 	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
 	idToken token;
@@ -302,10 +302,10 @@ void CG_DrawExitStats( void ) {
 
 	// check for fade up
 	if ( cg.time < ( cg.exitStatsTime + cg.exitStatsFade ) ) {
-		color[3] = (float)( cg.time - cg.exitStatsTime ) / (float)cg.exitStatsFade;
+		(*color)[3] = (float)( cg.time - cg.exitStatsTime ) / (float)cg.exitStatsFade;
 	}
 
-	color2[3] = color[3];
+	color2[3] = (*color)[3];
 
 
 // parse it
@@ -344,7 +344,7 @@ void CG_DrawExitStats( void ) {
 
 	// title
 	color2[0] = color2[1] = color2[2] = 1;
-	color2[3] = color[3];
+	color2[3] = (*color)[3];
 //	CG_Text_Paint(280, 120, 2, 0.25f, color2, va("%s", CG_translateString("end_title")), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE);
 	//----(SA)	scale change per MK
 	CG_Text_Paint( 270, 120, 2, 0.313f, color2, va( "%s", CG_translateString( "end_title" ) ), 0, 0, ITEM_TEXTSTYLE_SHADOWEDMORE );
@@ -374,7 +374,7 @@ void CG_DrawExitStats( void ) {
 
 		color2 = statsItems[i].labelColor;
 //		statsItems[i].labelColor[3] = statsItems[i].formatColor[3] = color[3];	// set proper alpha
-		color2[3] = statsItems[i].formatColor[3] = color[3];    // set proper alpha
+		color2[3] = statsItems[i].formatColor[3] = (*color)[3];    // set proper alpha
 
 
 		if ( statsItems[i].numVars ) {

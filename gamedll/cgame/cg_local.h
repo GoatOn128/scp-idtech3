@@ -42,6 +42,8 @@ If you have questions concerning this license or the applicable additional terms
 #include "tr_types.h"
 #include "../game/bg_public.h"
 #include "cg_public.h"
+#include "math/Random.h"
+#include "math/DirTable.h"
 
 
 #define POWERUP_BLINKS      5
@@ -1597,6 +1599,7 @@ typedef struct {
 
 extern cgs_t cgs;
 extern cg_t cg;
+extern idRandom cgRandom;
 extern centity_t cg_entities[MAX_GENTITIES];
 extern weaponInfo_t cg_weapons[MAX_WEAPONS];
 extern itemInfo_t cg_items[MAX_ITEMS];
@@ -1816,7 +1819,7 @@ void CG_Concussive( centity_t *cent );
 // cg_drawtools.c
 //
 void CG_AdjustFrom640( float *x, float *y, float *w, float *h );
-void CG_FillRect( float x, float y, float width, float height, const float *color );
+void CG_FillRect( float x, float y, float width, float height, const idVec4 &color );
 void CG_HorizontalPercentBar( float x, float y, float width, float height, float percent );
 void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader );
 void CG_FilledBar( float x, float y, float w, float h, const idVec4 &startColorIn, idVec4 *endColor, const idVec4 *bgColor, float frac, int flags );
@@ -1827,24 +1830,24 @@ void CG_DrawString( float x, float y, const char *string,
 					float charWidth, float charHeight, const float *modulate );
 
 
-void CG_DrawStringExt( int x, int y, const char *string, const float *setColor,
+void CG_DrawStringExt( int x, int y, const char *string, const idVec4 &setColor,
 					   qboolean forceColor, qboolean shadow, int charWidth, int charHeight, int maxChars );
 // JOSEPH 4-17-00
-void CG_DrawStringExt2( int x, int y, const char *string, const float *setColor,
+void CG_DrawStringExt2( int x, int y, const char *string, const idVec4 &setColor,
 						qboolean forceColor, qboolean shadow, int charWidth, int charHeight, int maxChars );
 // END JOSEPH
 void CG_DrawBigString( int x, int y, const char *s, float alpha );
-void CG_DrawBigStringColor( int x, int y, const char *s, idVec4 &color );
+void CG_DrawBigStringColor( int x, int y, const char *s, const idVec4 &color );
 void CG_DrawSmallString( int x, int y, const char *s, float alpha );
-void CG_DrawSmallStringColor( int x, int y, const char *s, idVec4 &color );
+void CG_DrawSmallStringColor( int x, int y, const char *s, const idVec4 &color );
 // JOSEPH 4-25-00
 void CG_DrawBigString2( int x, int y, const char *s, float alpha );
-void CG_DrawBigStringColor2( int x, int y, const char *s, idVec4 &color );
+void CG_DrawBigStringColor2( int x, int y, const char *s, const idVec4 &color );
 // END JOSEPH
 int CG_DrawStrlen( const char *str );
 
-float   *CG_FadeColor( int startMsec, int totalMsec );
-float *CG_TeamColor( int team );
+idVec4 *CG_FadeColor( int startMsec, int totalMsec );
+idVec4 *CG_TeamColor( int team );
 void CG_TileClear( void );
 void CG_ColorForHealth( idVec4 &hcolor );
 void CG_GetColorForHealth( int health, int armor, idVec4 &hcolor );
@@ -1855,7 +1858,7 @@ extern idVec4 colorBlack;
 void UI_DrawProportionalString( int x, int y, const char* str, int style, idVec4 &color );
 
 // new hud stuff
-void CG_DrawRect( float x, float y, float width, float height, float size, const float *color );
+void CG_DrawRect( float x, float y, float width, float height, float size, const idVec4 &color );
 void CG_DrawSides( float x, float y, float w, float h, float size );
 void CG_DrawTopBottom( float x, float y, float w, float h, float size );
 
@@ -1880,15 +1883,15 @@ void CG_DrawActive( stereoFrame_t stereoView );
 void CG_DrawFlagModel( float x, float y, float w, float h, int team );
 
 void CG_DrawTeamBackground( int x, int y, int w, int h, float alpha, int team );
-void CG_OwnerDraw( float x, float y, float w, float h, float text_x, float text_y, int ownerDraw, int ownerDrawFlags, int align, float special, int font, float scale, idVec4 &color, qhandle_t shader, int textStyle );
-void CG_Text_Paint( float x, float y, int font, float scale, idVec4 &color, const char *text, float adjust, int limit, int style );    //----(SA)	modified
+void CG_OwnerDraw( float x, float y, float w, float h, float text_x, float text_y, int ownerDraw, int ownerDrawFlags, int align, float special, int font, float scale, const idVec4 &color, qhandle_t shader, int textStyle );
+void CG_Text_Paint( float x, float y, int font, float scale, const idVec4 &color, const char *text, float adjust, int limit, int style );    //----(SA)	modified
 int CG_Text_Width( const char *text, int font, float scale, int limit );
 int CG_Text_Height( const char *text, int font, float scale, int limit );
 void CG_SelectPrevPlayer();
 void CG_SelectNextPlayer();
 float CG_GetValue( int ownerDraw, int type ); // 'type' is relative or absolute (fractional-'0.5' or absolute- '50' health)
 qboolean CG_OwnerDrawVisible( int flags );
-void CG_RunMenuScript( char **args );
+void CG_RunMenuScript( idLexer *args );
 void CG_ShowResponseHead();
 void CG_SetPrintString( int type, const char *p );
 void CG_InitTeamChat();
@@ -1951,10 +1954,10 @@ void CG_PainEvent( centity_t *cent, int health, qboolean crouching );
 void CG_SetEntitySoundPosition( centity_t *cent );
 void CG_AddPacketEntities( void );
 void CG_Beam( centity_t *cent );
-void CG_AdjustPositionForMover( const idVec3 &in, int moverNum, int fromTime, int toTime, idVec3 &out, idVec3 &outDeltaAngles );
+void CG_AdjustPositionForMover( const idVec3 &in, int moverNum, int fromTime, int toTime, idVec3 &out, idVec3 *outDeltaAngles );
 
 void CG_PositionEntityOnTag( refEntity_t *entity, const refEntity_t *parent,
-							 char *tagName, int startIndex, const idVec3 *offset );
+							 const char *tagName, int startIndex, const idVec3 *offset );
 void CG_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_t *parent, char *tagName );
 
 
@@ -2128,7 +2131,7 @@ void CG_ProjectedSpotLight( const idVec3 &start, const idVec3 &dir );
 // done.
 
 //----(SA)
-void CG_Spotlight( centity_t *cent, float *color, const idVec3 &start, const idVec3 &dir, int segs, float range, int startWidth, float coneAngle, int flags );
+void CG_Spotlight( centity_t *cent, const idVec4 &color, const idVec3 &start, const idVec3 &dir, int segs, float range, int startWidth, float coneAngle, int flags );
 #define SL_NOTRACE          0x001   // don't do a trace check for shortening the beam, always draw at full 'range' length
 #define SL_NODLIGHT         0x002   // don't put a dlight at the end
 #define SL_NOSTARTCAP       0x004   // dont' cap the start circle
@@ -2426,6 +2429,6 @@ int         CG_LoadCamera( const char *name );
 void        CG_FreeCamera( int camNum );
 //----(SA)	end
 
-void CG_StartShakeCamera( float p, int duration, idVec3 &src, float radius );
+void CG_StartShakeCamera( float p, int duration, const idVec3 &src, float radius );
 
 qboolean    trap_GetModelInfo( int clientNum, char *modelName, animModelInfo_t **modelInfo );

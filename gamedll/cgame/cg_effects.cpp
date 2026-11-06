@@ -40,7 +40,7 @@ CG_BubbleTrail
 Bullets shot underwater
 ==================
 */
-void CG_BubbleTrail( vec3_t start, vec3_t end, float size, float spacing ) {}
+void CG_BubbleTrail( idVec3 start, idVec3 end, float size, float spacing ) {}
 
 /*
 ==================
@@ -49,7 +49,7 @@ CG_SpawnEffect
 Player teleporting in or out
 ==================
 */
-void CG_SpawnEffect( vec3_t origin ) {}
+void CG_SpawnEffect( idVec3 origin ) {}
 
 
 
@@ -59,40 +59,43 @@ void CG_SpawnEffect( vec3_t origin ) {}
 CG_MakeExplosion
 ====================
 */
-fxEntity_t *CG_MakeExplosion( vec3_t origin, vec3_t dir,
+fxEntity_t *CG_MakeExplosion( idVec3 origin, idVec3 dir,
 								 qhandle_t hModel, qhandle_t shader,
 								 int msec, qboolean isSprite ) {
 	float ang;
 	fxEntity_t   *ex;
 	int offset;
-	vec3_t tmpVec, newOrigin;
+	idVec3 tmpVec, newOrigin;
 
 	if ( msec <= 0 ) {
 		CG_Error( "CG_MakeExplosion: msec = %i", msec );
 	}
 
 	// skew the time a bit so they aren't all in sync
-	offset = rand() & CG_FxInt( "wolf/controller_makeexplosion", "offset" );
+	offset = cgRandom.RandomInt() & CG_FxInt( "wolf/controller_makeexplosion", "offset" );
 
 	ex = CG_FxSpawnModel( "wolf/controller_makeexplosion" );
 	if ( isSprite ) {
 		ex->leType = LE_SPRITE_EXPLOSION;
 
 		// randomly rotate sprite orientation
-		ex->refEntity.rotation = rand() % CG_FxInt( "wolf/controller_makeexplosion", "ex_refEntity_rotation" );
-		VectorScale( dir, CG_FxInt( "wolf/controller_makeexplosion", "tuning" ), tmpVec );
-		VectorAdd( tmpVec, origin, newOrigin );
+		ex->refEntity.rotation = cgRandom.RandomInt() % CG_FxInt( "wolf/controller_makeexplosion", "ex_refEntity_rotation" );
+		tmpVec = dir * (CG_FxInt( "wolf/controller_makeexplosion", "tuning" ));
+		newOrigin = tmpVec + origin;
 	} else {
 		ex->leType = LE_EXPLOSION;
-		VectorCopy( origin, newOrigin );
+		newOrigin = origin;
 
 		// set axis with random rotate
-		if ( !dir ) {
+		if ( dir.LengthSqr() == 0.0f ) {
 			AxisClear( ex->refEntity.axis );
 		} else {
-			ang = rand() % CG_FxInt( "wolf/controller_makeexplosion", "ang" );
-			VectorCopy( dir, ex->refEntity.axis[0] );
-			RotateAroundDirection( ex->refEntity.axis, ang );
+			ang = cgRandom.RandomInt() % CG_FxInt( "wolf/controller_makeexplosion", "ang" );
+			ex->refEntity.axis[0] = dir;
+			ex->refEntity.axis[1].PerpendicularVector( ex->refEntity.axis[0] );
+			ex->refEntity.axis[2] = ex->refEntity.axis[1];
+			ex->refEntity.axis[1].RotatePointAroundVector( ex->refEntity.axis[0], ex->refEntity.axis[2], ang );
+			ex->refEntity.axis[2] = ex->refEntity.axis[0].Cross( ex->refEntity.axis[1] );
 		}
 	}
 
@@ -106,14 +109,14 @@ fxEntity_t *CG_MakeExplosion( vec3_t origin, vec3_t dir,
 	ex->refEntity.customShader = shader;
 
 	// set origin
-	VectorCopy( newOrigin, ex->refEntity.origin );
-	VectorCopy( newOrigin, ex->refEntity.oldorigin );
+	ex->refEntity.origin = newOrigin;
+	ex->refEntity.oldorigin = newOrigin;
 
 	// Ridah, move away from the wall as the sprite expands
 	ex->pos.trType = TR_LINEAR;
 	ex->pos.trTime = cg.time;
-	VectorCopy( newOrigin, ex->pos.trBase );
-	VectorScale( dir, CG_FxInt( "wolf/controller_makeexplosion", "tuning_2" ), ex->pos.trDelta );
+	ex->pos.trBase = newOrigin;
+	ex->pos.trDelta = dir * (CG_FxInt( "wolf/controller_makeexplosion", "tuning_2" ));
 	// done.
 
 	ex->color[0] = ex->color[1] = ex->color[2] = CG_FxValue( "wolf/controller_makeexplosion", "ex_color_x" );
@@ -126,7 +129,7 @@ fxEntity_t *CG_MakeExplosion( vec3_t origin, vec3_t dir,
 CG_AddBloodTrails
 =================
 */
-void CG_AddBloodTrails( vec3_t origin, vec3_t direction ) {
+void CG_AddBloodTrails( idVec3 origin, idVec3 direction ) {
     if ( cg_blood.integer ) { CG_FxPlay( "wolf/blood_spurt", origin, direction ); }
 }
 
@@ -137,11 +140,11 @@ CG_Bleed
 This is the spurt of blood when a character gets hit
 =================
 */
-void CG_Bleed( vec3_t origin, int entityNum ) {
+void CG_Bleed( idVec3 origin, int entityNum ) {
 
 //	fxEntity_t *ex;
 	centity_t *cent;
-//	vec3_t	dir;
+//	idVec3	dir;
 
 	if ( !cg_blood.integer ) {
 		return;
@@ -161,7 +164,7 @@ void CG_Bleed( vec3_t origin, int entityNum ) {
 
 	// Ridah, blood spurts
 	if ( entityNum != cg.snap->ps.clientNum ) {
-		vec3_t vhead, vlegs, vtorso, bOrigin, dir, vec, pvec;
+		idVec3 vhead, vlegs, vtorso, bOrigin, dir, vec, pvec;
 
 		CG_GetBleedOrigin( vhead, vtorso, vlegs, entityNum );
 
@@ -169,30 +172,30 @@ void CG_Bleed( vec3_t origin, int entityNum ) {
 		ProjectPointOntoVector( origin, vtorso, vhead, bOrigin );
 
 		// if it's below the waste, or above the head, clamp
-		VectorSubtract( vhead, vtorso, vec );
-		VectorSubtract( bOrigin, vtorso, pvec );
-		if ( DotProduct( pvec, vec ) < 0 ) {
-			VectorCopy( vtorso, bOrigin );
+		vec = vhead - vtorso;
+		pvec = bOrigin - vtorso;
+		if ( ((pvec) * (vec)) < 0 ) {
+			bOrigin = vtorso;
 		} else {
-			VectorSubtract( bOrigin, vhead, pvec );
-			if ( DotProduct( pvec, vec ) > 0 ) {
-				VectorCopy( vhead, bOrigin );
+			pvec = bOrigin - vhead;
+			if ( ((pvec) * (vec)) > 0 ) {
+				bOrigin = vhead;
 			}
 		}
 
 		// spawn some blood trails, heading out towards the impact point
-		VectorSubtract( origin, bOrigin, dir );
-		VectorNormalize( dir );
+		dir = origin - bOrigin;
+		(dir).Normalize();
 
 		{
 			float len;
-			vec3_t vsub;
+			idVec3 vsub;
 
-			VectorSubtract( bOrigin, vhead, vsub );
-			len = VectorLength( vsub );
+			vsub = bOrigin - vhead;
+			len = (vsub).Length();
 
 			if ( len > 8 ) {
-				VectorMA( bOrigin, 8, dir, bOrigin );
+				bOrigin = bOrigin + dir * (8);
 			}
 		}
 
@@ -210,7 +213,7 @@ void CG_Bleed( vec3_t origin, int entityNum ) {
 CG_LaunchGib
 ==================
 */
-void CG_LaunchGib( centity_t *cent, vec3_t origin, vec3_t angles, vec3_t velocity, qhandle_t hModel, float sizeScale, int breakCount ) {
+void CG_LaunchGib( centity_t *cent, idVec3 origin, idVec3 angles, idVec3 velocity, qhandle_t hModel, float sizeScale, int breakCount ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
 	int i;
@@ -220,25 +223,25 @@ void CG_LaunchGib( centity_t *cent, vec3_t origin, vec3_t angles, vec3_t velocit
 
 	le->leType = LE_FRAGMENT;
 	le->startTime = cg.time;
-	// le->endTime = le->startTime + 60000 + random() * 60000;
-	le->endTime = le->startTime + CG_FxInt( "wolf/controller_launchgib", "le_endTime" ) + ( crandom() * CG_FxInt( "wolf/controller_launchgib", "le_endTime_2" ) );
+	// le->endTime = le->startTime + 60000 + cgRandom.RandomFloat() * 60000;
+	le->endTime = le->startTime + CG_FxInt( "wolf/controller_launchgib", "le_endTime" ) + ( cgRandom.CRandomFloat() * CG_FxInt( "wolf/controller_launchgib", "le_endTime_2" ) );
 	le->breakCount = breakCount;
 	le->sizeScale = sizeScale;
 
-	VectorCopy( angles, le->angles.trBase );
-	VectorCopy( origin, re->origin );
+	le->angles.trBase = angles;
+	re->origin = origin;
 	AnglesToAxis( angles, re->axis );
 	if ( sizeScale != 1.0 ) {
-		for ( i = 0; i < 3; i++ ) VectorScale( re->axis[i], sizeScale, re->axis[i] );
+		for ( i = 0; i < 3; i++ ) re->axis[i] = re->axis[i] * (sizeScale);
 	}
 	re->hModel = hModel;
 
 	switch ( cent->currentState.aiChar ) {
 	case AICHAR_ZOMBIE:
 		le->pos.trType = TR_GRAVITY_LOW;
-		le->angles.trDelta[0] = CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_x" ) * crandom();
-		le->angles.trDelta[1] = CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_y" ) * crandom();
-		le->angles.trDelta[2] = CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_z" ) * crandom();
+		le->angles.trDelta[0] = CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_x" ) * cgRandom.CRandomFloat();
+		le->angles.trDelta[1] = CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_y" ) * cgRandom.CRandomFloat();
+		le->angles.trDelta[2] = CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_z" ) * cgRandom.CRandomFloat();
 
 		le->leBounceSoundType = LEBS_BONE;
 
@@ -252,11 +255,11 @@ void CG_LaunchGib( centity_t *cent, vec3_t origin, vec3_t angles, vec3_t velocit
 		le->leMarkType = LEMT_BLOOD;
 		le->pos.trType = TR_GRAVITY;
 
-		le->angles.trDelta[0] = ( CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_x_2" ) + ( rand() & CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_x_3" ) ) ) - CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_x_4" );
-		//	le->angles.trDelta[0] = (100 + (rand()&500)) - 300;	// pitch
-		le->angles.trDelta[1] = ( CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_y_2" ) + ( rand() & CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_y_3" ) ) ) - CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_y_4" ); // (SA) this is the safe one right now (yaw)  turn the others up when I have tumbling things landing properly
-		le->angles.trDelta[2] = ( CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_z_2" ) + ( rand() & CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_z_3" ) ) ) - CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_z_4" );
-		//	le->angles.trDelta[2] = (100 + (rand()&500)) - 300;	// roll
+		le->angles.trDelta[0] = ( CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_x_2" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_x_3" ) ) ) - CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_x_4" );
+		//	le->angles.trDelta[0] = (100 + (cgRandom.RandomInt()&500)) - 300;	// pitch
+		le->angles.trDelta[1] = ( CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_y_2" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_y_3" ) ) ) - CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_y_4" ); // (SA) this is the safe one right now (yaw)  turn the others up when I have tumbling things landing properly
+		le->angles.trDelta[2] = ( CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_z_2" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_z_3" ) ) ) - CG_FxInt( "wolf/controller_launchgib", "le_angles_trDelta_z_4" );
+		//	le->angles.trDelta[2] = (100 + (cgRandom.RandomInt()&500)) - 300;	// roll
 
 		le->bounceFactor = CG_FxValue( "wolf/controller_launchgib", "le_bounceFactor_2" );
 		break;
@@ -271,8 +274,8 @@ void CG_LaunchGib( centity_t *cent, vec3_t origin, vec3_t angles, vec3_t velocit
 		//}
 	}
 
-	VectorCopy( origin, le->pos.trBase );
-	VectorCopy( velocity, le->pos.trDelta );
+	le->pos.trBase = origin;
+	le->pos.trDelta = velocity;
 	le->pos.trTime = cg.time;
 
 	re->fadeStartTime       = le->endTime - CG_FxInt( "wolf/controller_launchgib", "re__fadeStartTime_value" );
@@ -304,12 +307,12 @@ void CG_LaunchGib( centity_t *cent, vec3_t origin, vec3_t angles, vec3_t velocit
 CG_LoseHat
 ==============
 */
-void CG_LoseHat( centity_t *cent, vec3_t dir ) {
+void CG_LoseHat( centity_t *cent, const idVec3 &dir ) {
 	clientInfo_t    *ci;
 	int clientNum;
 //	int i, count, tagIndex, gibIndex;
 	int tagIndex;
-	vec3_t origin, velocity;
+	idVec3 origin, velocity;
 
 	clientNum = cent->currentState.clientNum;
 	if ( clientNum < 0 || clientNum >= MAX_CLIENTS ) {
@@ -323,9 +326,9 @@ void CG_LoseHat( centity_t *cent, vec3_t dir ) {
 
 	tagIndex = CG_GetOriginForTag( cent, &cent->pe.headRefEnt, "tag_mouth", 0, origin, NULL );
 
-	velocity[0] = dir[0] * ( CG_FxValue( "wolf/controller_losehat", "velocity_x" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-	velocity[1] = dir[1] * ( CG_FxValue( "wolf/controller_losehat", "velocity_y" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-	velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) - CG_FxInt( "wolf/controller_losehat", "velocity_z" ) + dir[2] * ( CG_FxValue( "wolf/controller_losehat", "velocity_z_2" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	velocity[0] = dir[0] * ( CG_FxValue( "wolf/controller_losehat", "velocity_x" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	velocity[1] = dir[1] * ( CG_FxValue( "wolf/controller_losehat", "velocity_y" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) - CG_FxInt( "wolf/controller_losehat", "velocity_z" ) + dir[2] * ( CG_FxValue( "wolf/controller_losehat", "velocity_z_2" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 
 	{
 		fxEntity_t   *le;
@@ -336,10 +339,12 @@ void CG_LoseHat( centity_t *cent, vec3_t dir ) {
 
 		le->leType = LE_FRAGMENT;
 		le->startTime = cg.time;
-		le->endTime = le->startTime + CG_FxInt( "wolf/controller_losehat", "le_endTime" ) + ( crandom() * CG_FxInt( "wolf/controller_losehat", "le_endTime_2" ) );
+		le->endTime = le->startTime + CG_FxInt( "wolf/controller_losehat", "le_endTime" ) + ( cgRandom.CRandomFloat() * CG_FxInt( "wolf/controller_losehat", "le_endTime_2" ) );
 
-		VectorCopy( origin, re->origin );
-		AxisCopy( axisDefault, re->axis );
+		re->origin = origin;
+		re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 		re->hModel = ci->accModels[ACC_HAT];
 
 		re->fadeStartTime       = le->endTime - CG_FxInt( "wolf/controller_losehat", "re__fadeStartTime_value" );
@@ -347,15 +352,15 @@ void CG_LoseHat( centity_t *cent, vec3_t dir ) {
 
 		// (SA) FIXME: origin of hat md3 is offset from center.  need to center the origin when you toss it
 		le->pos.trType = TR_GRAVITY;
-		VectorCopy( origin, le->pos.trBase );
-		VectorCopy( velocity, le->pos.trDelta );
+		le->pos.trBase = origin;
+		le->pos.trDelta = velocity;
 		le->pos.trTime = cg.time;
 
 		// spin it a bit
 		le->angles.trType       = TR_LINEAR;
-		VectorCopy( tv( 0, 0, 0 ), le->angles.trBase );
+		le->angles.trBase = idVec3( 0, 0, 0 );
 		le->angles.trDelta[0]   = CG_FxInt( "wolf/controller_losehat", "le_angles_trDelta_x" );
-		le->angles.trDelta[1]   = ( CG_FxInt( "wolf/controller_losehat", "le_angles_trDelta_y" ) + ( rand() & CG_FxInt( "wolf/controller_losehat", "le_angles_trDelta_y_2" ) ) ) - CG_FxInt( "wolf/controller_losehat", "le_angles_trDelta_y_3" );
+		le->angles.trDelta[1]   = ( CG_FxInt( "wolf/controller_losehat", "le_angles_trDelta_y" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_losehat", "le_angles_trDelta_y_2" ) ) ) - CG_FxInt( "wolf/controller_losehat", "le_angles_trDelta_y_3" );
 //		le->angles.trDelta[2]	= 0;
 		le->angles.trDelta[2]   = CG_FxInt( "wolf/controller_losehat", "le_angles_trDelta_z" );  // (SA) this is set with a very particular value to try to get it
 										// to flip exactly once before landing (based on player alive
@@ -381,19 +386,19 @@ CG_GibHead
   from the model TAG's
 ==============
 */
-void CG_GibHead( vec3_t headOrigin ) {
-	vec3_t origin, velocity;
+void CG_GibHead( idVec3 headOrigin ) {
+	idVec3 origin, velocity;
 
-	VectorCopy( headOrigin, origin );
-	velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-	velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-	velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	origin = headOrigin;
+	velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 	CG_LaunchGib( NULL, origin, vec3_origin, velocity, cgs.media.gibSkull, 1.0, 0 );
 
-	VectorCopy( headOrigin, origin );
-	velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-	velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-	velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	origin = headOrigin;
+	velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+	velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 	CG_LaunchGib( NULL, origin, vec3_origin, velocity, cgs.media.gibBrain, 1.0, 0 );
 
 }
@@ -407,7 +412,7 @@ CG_GetOriginForTag
   returns the index of the tag it used, so we can cycle through tag's with the same name
 ======================
 */
-int CG_GetOriginForTag( centity_t *cent, refEntity_t *parent, char *tagName, int startIndex, vec3_t org, vec3_t axis[3] ) {
+int CG_GetOriginForTag( centity_t *cent, refEntity_t *parent, char *tagName, int startIndex, idVec3 &org, idVec3 *axis ) {
 	int i;
 	orientation_t lerped;
 	int retval;
@@ -419,10 +424,10 @@ int CG_GetOriginForTag( centity_t *cent, refEntity_t *parent, char *tagName, int
 		return retval;
 	}
 
-	VectorCopy( parent->origin, org );
+	org = parent->origin;
 
 	for ( i = 0 ; i < 3 ; i++ ) {
-		VectorMA( org, lerped.origin[i], parent->axis[i], org );
+		org = org + parent->axis[i] * (lerped.origin[i]);
 	}
 
 	if ( axis ) {
@@ -442,8 +447,8 @@ Generated a bunch of gibs launching out from the bodies location
 */
 #define MAXJUNCTIONS 8
 
-void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
-	vec3_t origin, velocity, dir;
+void CG_GibPlayer( centity_t *cent, idVec3 playerOrigin, idVec3 gdir ) {
+	idVec3 origin, velocity, dir;
 	int i, count, tagIndex, gibIndex;
 	trace_t trace;
 	qboolean foundtag;
@@ -454,11 +459,11 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 	// Rafael
 	// BloodCloud
 	qboolean newjunction[MAXJUNCTIONS];
-	vec3_t junctionOrigin[MAXJUNCTIONS];
+	idVec3 junctionOrigin[MAXJUNCTIONS];
 	int junction;
 	int j;
 	float size = 0;
-	vec3_t axis[3], angles;
+	idVec3 axis[3], angles;
 
 	char *JunctiongibTags[] = {
 		// leg tag
@@ -545,15 +550,15 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 
 			foundtag = qtrue;
 
-			VectorSubtract( origin, re->origin, dir );
-			VectorNormalize( dir );
+			dir = origin - re->origin;
+			(dir).Normalize();
 
 			// spawn a gib
-			velocity[0] = dir[0] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_x" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_x_2" );
-			velocity[1] = dir[1] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_y" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_y_2" );
-			velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + dir[2] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_z" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_z_2" );
+			velocity[0] = dir[0] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_x" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_x_2" );
+			velocity[1] = dir[1] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_y" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_y_2" );
+			velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + dir[2] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_z" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_z_2" );
 
-			VectorMA( velocity, CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ), gdir, velocity );
+			velocity = velocity + gdir * (CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ));
 
 			AxisToAngles( axis, angles );
 
@@ -562,12 +567,12 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 				 ( cent->currentState.aiChar == AICHAR_HELGA ) ||
 				 ( cent->currentState.aiChar == AICHAR_HEINRICH ) ) {
 				//VectorScale( velocity, 4, velocity );
-				size = CG_FxValue( "wolf/controller_gibplayer", "size" ) + CG_FxValue( "wolf/controller_gibplayer", "size_2" ) * random();
+				size = CG_FxValue( "wolf/controller_gibplayer", "size" ) + CG_FxValue( "wolf/controller_gibplayer", "size_2" ) * cgRandom.RandomFloat();
 				if ( ( cent->currentState.aiChar == AICHAR_HELGA ) || ( cent->currentState.aiChar == AICHAR_HEINRICH ) ) {
 					//size *= 3.0;
-					velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_x_3" );
-					velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_y_3" );
-					velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+					velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_x_3" );
+					velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_y_3" );
+					velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 					// additional gibs
 					CG_LaunchGib( cent, origin, angles, velocity, ci->gibModels[gibIndex], size, 1 );
 					CG_LaunchGib( cent, origin, angles, velocity, ci->gibModels[gibIndex], size, 1 );
@@ -580,8 +585,8 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 
 			for ( junction = 0; junction < MAXJUNCTIONS; junction++ )
 			{
-				if ( !Q_stricmp( gibTags[gibIndex], JunctiongibTags[junction] ) ) {
-					VectorCopy( origin, junctionOrigin[junction] );
+				if ( !idStr::Icmp( gibTags[gibIndex], JunctiongibTags[junction] ) ) {
+					junctionOrigin[junction] = origin;
 					newjunction[junction] = qtrue;
 				}
 			}
@@ -594,10 +599,10 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 		if ( newjunction[i] == qtrue ) {
 			for ( j = 0; j < MAXJUNCTIONS; j++ )
 			{
-				if ( !Q_stricmp( JunctiongibTags[j], ConnectTags[i] ) ) {
+				if ( !idStr::Icmp( JunctiongibTags[j], ConnectTags[i] ) ) {
 					if ( newjunction[j] == qtrue ) {
 						// spawn a blood cloud somewhere on the vec from
-						VectorSubtract( junctionOrigin[i], junctionOrigin[j], dir );
+						dir = junctionOrigin[i] - junctionOrigin[j];
 
 						// ok now lets spawn a little blood
 						if ( cent->currentState.aiChar == AICHAR_ZOMBIE ) {
@@ -607,7 +612,7 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 						}
 
 						// RF, also spawn some blood in this direction
-						VectorMA( junctionOrigin[i], 2.0, dir, origin );
+						origin = junctionOrigin[i] + dir * (2.0);
 						if ( cent->currentState.aiChar == AICHAR_ZOMBIE ) {
 							CG_ParticleBloodCloudZombie( cent, origin, dir );
 						} else {
@@ -619,28 +624,28 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 							 ( cent->currentState.aiChar == AICHAR_HEINRICH ) ||
 							 ( cent->currentState.aiChar == AICHAR_HELGA ) ) {
 							// spawn a gib
-							VectorCopy( junctionOrigin[i], origin );
+							origin = junctionOrigin[i];
 
 							if ( ( cent->currentState.aiChar == AICHAR_HELGA ) || ( cent->currentState.aiChar == AICHAR_HEINRICH ) ) {
 								size *= CG_FxValue( "wolf/controller_gibplayer", "size_3" );
-								velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_x_4" );
-								velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_y_4" );
-								velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + random() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+								velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_x_4" );
+								velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_y_4" );
+								velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.RandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 							} else {
-								velocity[0] = dir[0] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_x_5" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_x_6" );
-								velocity[1] = dir[1] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_y_5" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_y_6" );
-								velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + dir[2] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_z_3" ) + random() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_z_4" );
-								VectorMA( velocity, CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ), gdir, velocity );
+								velocity[0] = dir[0] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_x_5" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_x_6" );
+								velocity[1] = dir[1] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_y_5" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_y_6" );
+								velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + dir[2] * ( CG_FxValue( "wolf/controller_gibplayer", "velocity_z_3" ) + cgRandom.RandomFloat() ) * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ) * CG_FxValue( "wolf/controller_gibplayer", "velocity_z_4" );
+								velocity = velocity + gdir * (CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" ));
 							}
 
 							vectoangles( dir, angles );
 
-							VectorScale( velocity, 3, velocity );
-							size = CG_FxValue( "wolf/controller_gibplayer", "size_4" ) + CG_FxValue( "wolf/controller_gibplayer", "size_5" ) * random();
+							velocity = velocity * (3);
+							size = CG_FxValue( "wolf/controller_gibplayer", "size_4" ) + CG_FxValue( "wolf/controller_gibplayer", "size_5" ) * cgRandom.RandomFloat();
 							if ( ( cent->currentState.aiChar == AICHAR_HELGA ) || ( cent->currentState.aiChar == AICHAR_HEINRICH ) ) {
-								CG_LaunchGib( cent, origin, angles, velocity, ci->gibModels[rand() % 4], size, 1 );
+								CG_LaunchGib( cent, origin, angles, velocity, ci->gibModels[cgRandom.RandomInt() % 4], size, 1 );
 							} else {
-								CG_LaunchGib( cent, origin, angles, velocity, ci->gibModels[rand() % 4], size, 1 + (int)( 2.0 * ( size - 0.4 ) ) );
+								CG_LaunchGib( cent, origin, angles, velocity, ci->gibModels[cgRandom.RandomInt() % 4], size, 1 + (int)( 2.0 * ( size - 0.4 ) ) );
 							}
 						}
 					}
@@ -655,11 +660,11 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 
 		// old style gibs
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		if ( rand() & 1 ) {
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		if ( cgRandom.RandomInt() & 1 ) {
 			CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibSkull, 1.0, 0 );
 		} else {
 			CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibBrain, 1.0, 0 );
@@ -670,83 +675,83 @@ void CG_GibPlayer( centity_t *cent, vec3_t playerOrigin, vec3_t gdir ) {
 			return;
 		}
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 		CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibAbdomen, 1.0, 0 );
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 		CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibArm, 1.0, 0 );
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 		CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibChest, 1.0, 0 );
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 		CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibFist, 1.0, 0 );
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 		CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibFoot, 1.0, 0 );
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 		CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibForearm, 1.0, 0 );
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 		CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibIntestine, 1.0, 0 );
 
-		VectorCopy( playerOrigin, origin );
-		velocity[0] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[1] = crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
-		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + crandom() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		origin = playerOrigin;
+		velocity[0] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[1] = cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
+		velocity[2] = CG_FxValue( "wolf/controller_gibplayer", "gibJump" ) + cgRandom.CRandomFloat() * CG_FxValue( "wolf/controller_gibplayer", "gibVelocity" );
 		CG_LaunchGib( cent, origin, vec3_origin, velocity, cgs.media.gibLeg, 1.0, 0 );
 	}
 
 
 //----(SA)	toss the hat
 	if ( !( cent->currentState.eFlags & EF_HEADSHOT ) ) { // (SA) already lost hat while living
-		CG_LoseHat( cent, tv( 0, 0, 1 ) );
+		CG_LoseHat( cent, idVec3( 0, 0, 1 ) );
 	}
 //----(SA)	end
 
 	// Ridah, spawn a bunch of blood dots around the place
 	#define GIB_BLOOD_DOTS  4
 	for ( i = 0, count = 0; i < GIB_BLOOD_DOTS * 2; i++ ) {
-		//static vec3_t mins = {-10,-10,-10}; // TTimo: unused
-		//static vec3_t maxs = { 10, 10, 10}; // TTimo: unused
+		//static idVec3 mins = {-10,-10,-10}; // TTimo: unused
+		//static idVec3 maxs = { 10, 10, 10}; // TTimo: unused
 
 		if ( i > 0 ) {
-			velocity[0] = ( ( i % CG_FxInt( "wolf/controller_gibplayer", "velocity_x_7" ) ) * CG_FxInt( "wolf/controller_gibplayer", "velocity_x_8" ) - CG_FxInt( "wolf/controller_gibplayer", "velocity_x_9" ) ) * ( CG_FxInt( "wolf/controller_gibplayer", "velocity_x_10" ) + CG_FxInt( "wolf/controller_gibplayer", "velocity_x_11" ) * random() );
-			velocity[1] = ( ( ( i / CG_FxInt( "wolf/controller_gibplayer", "velocity_y_7" ) ) % CG_FxInt( "wolf/controller_gibplayer", "velocity_y_8" ) ) * CG_FxInt( "wolf/controller_gibplayer", "velocity_y_9" ) - CG_FxInt( "wolf/controller_gibplayer", "velocity_y_10" ) ) * ( CG_FxInt( "wolf/controller_gibplayer", "velocity_y_11" ) + CG_FxInt( "wolf/controller_gibplayer", "velocity_y_12" ) * random() );
+			velocity[0] = ( ( i % CG_FxInt( "wolf/controller_gibplayer", "velocity_x_7" ) ) * CG_FxInt( "wolf/controller_gibplayer", "velocity_x_8" ) - CG_FxInt( "wolf/controller_gibplayer", "velocity_x_9" ) ) * ( CG_FxInt( "wolf/controller_gibplayer", "velocity_x_10" ) + CG_FxInt( "wolf/controller_gibplayer", "velocity_x_11" ) * cgRandom.RandomFloat() );
+			velocity[1] = ( ( ( i / CG_FxInt( "wolf/controller_gibplayer", "velocity_y_7" ) ) % CG_FxInt( "wolf/controller_gibplayer", "velocity_y_8" ) ) * CG_FxInt( "wolf/controller_gibplayer", "velocity_y_9" ) - CG_FxInt( "wolf/controller_gibplayer", "velocity_y_10" ) ) * ( CG_FxInt( "wolf/controller_gibplayer", "velocity_y_11" ) + CG_FxInt( "wolf/controller_gibplayer", "velocity_y_12" ) * cgRandom.RandomFloat() );
 			velocity[2] = ( ( ( i < GIB_BLOOD_DOTS ) * CG_FxInt( "wolf/controller_gibplayer", "velocity_z_5" ) ) - CG_FxInt( "wolf/controller_gibplayer", "velocity_z_6" ) ) * CG_FxInt( "wolf/controller_gibplayer", "velocity_z_7" );
 		} else {
-			VectorClear( velocity );
+			velocity.Zero();
 			velocity[2] = -CG_FxInt( "wolf/controller_gibplayer", "velocity_z_8" );
 		}
 
-		VectorAdd( playerOrigin, velocity, origin );
+		origin = playerOrigin + velocity;
 
 		CG_Trace( &trace, playerOrigin, NULL, NULL, origin, -1, CONTENTS_SOLID );
 		if ( trace.fraction < 1.0 ) {
 			BG_GetMarkDir( velocity, trace.plane.normal, velocity );
-			CG_ImpactMark( cgs.media.bloodDotShaders[rand() % 5], trace.endpos, velocity, random() * CG_FxInt( "wolf/controller_gibplayer", "tuning" ),
+			CG_ImpactMark( cgs.media.bloodDotShaders[cgRandom.RandomInt() % 5], trace.endpos, velocity, cgRandom.RandomFloat() * CG_FxInt( "wolf/controller_gibplayer", "tuning" ),
 						   CG_FxInt( "wolf/controller_gibplayer", "ImpactMark_value" ),CG_FxInt( "wolf/controller_gibplayer", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_gibplayer", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_gibplayer", "ImpactMark_value_4" ), qtrue, CG_FxInt( "wolf/controller_gibplayer", "tuning_2" ), qfalse, cg_bloodTime.integer * CG_FxInt( "wolf/controller_gibplayer", "ImpactMark_value_5" ) );
 			if ( count++ > GIB_BLOOD_DOTS ) {
 				break;
@@ -812,13 +817,14 @@ float lt_crandom( int thisrandseed, int t ) {
 CG_DynamicLightningBolt
 ===============
 */
-void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int numBolts, float maxWidth, qboolean fade, float startAlpha, int recursion, int randseed ) {
+void CG_DynamicLightningBolt( qhandle_t shader, const idVec3 &start, const idVec3 &pend, int numBolts, float maxWidth, qboolean fade, float startAlpha, int recursion, int randseed ) {
 	int i,j;
 	float segMin, segMax, length;
 	float thisSeg, distLeft, thisWidth;
-	vec3_t pos, vec, end;
+	idVec3 pos, vec, end;
 	int curJunc;
-	vec3_t c, bc = {0.8,0.9,1};
+	idVec3 c;
+	idVec3 bc( 0.8f, 0.9f, 1.0f );
 	const float rndSize = CG_FxValue( "wolf/controller_dynamiclightningbolt", "rndSize" );
 	const float maxSTscale = CG_FxValue( "wolf/controller_dynamiclightningbolt", "maxSTscale" );
 	float stScale;
@@ -829,7 +835,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 	#define FORK_CHANCE     0.5
 	#define VIEW_SCALE_DIST 128
 
-	VectorCopy( pend, end );    // need this so recursive calls don't override stacked endpoints
+	end = pend;    // need this so recursive calls don't override stacked endpoints
 
 	// HACK, updated sprite, so downscale all widths
 	maxWidth *= CG_FxValue( "wolf/controller_dynamiclightningbolt", "maxWidth" );
@@ -855,7 +861,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 	for ( i = 0; i < numBolts; i++ )
 	{
 		distLeft = length;
-		VectorCopy( start, pos );
+		pos = start;
 		// drop a start junction
 		stScale = maxSTscale * ( 0.5 + lt_random( randseed,i + 1 ) * 0.5 );
 		if ( fade ) {
@@ -872,7 +878,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 			}
 		}
 		thisWidth = maxWidth * ( CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth" ) + CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_2" ) * alpha );
-		if ( ( viewDist = VectorDistance( pos, cg.refdef.vieworg ) ) < VIEW_SCALE_DIST ) {
+		if ( ( viewDist = ((pos) - (cg.refdef.vieworg)).Length() ) < VIEW_SCALE_DIST ) {
 			thisWidth *= CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_3" ) + ( CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_4" ) * ( viewDist / VIEW_SCALE_DIST ) );
 			if ( thisWidth < CG_FxValue( "wolf/controller_dynamiclightningbolt", "tuning_2" ) && thisWidth < maxWidth ) {
 				thisWidth = CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_5" );
@@ -885,7 +891,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 			}
 		}
 		//
-		VectorScale( bc, alpha, c );
+		c = bc * (alpha);
 		c[2] *= 1.0 + ( 1.0 - alpha );
 		if ( c[2] > 1.0 ) {
 			c[2] = 1.0;
@@ -898,12 +904,12 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 			thisSeg = segMin + ( segMax - segMin ) * lt_random( randseed,2 );
 			thisWidth = maxWidth * ( CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_9" ) + CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_10" ) * alpha );
 			if ( thisSeg >= distLeft - rndSize ) { // go directly to the end point
-				VectorCopy( end, pos );
+				pos = end;
 				thisWidth *= CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_11" );
 			} else if ( (float)distLeft / length < 0.3 ) {
-				VectorSubtract( end, pos, vec );
-				VectorNormalize( vec );
-				VectorMA( pos, thisSeg, vec, pos );
+				vec = end - pos;
+				(vec).Normalize();
+				pos = pos + vec * (thisSeg);
 				// randomize the position a bit
 				thisSeg *= 0.05;
 				if ( thisSeg > rndSize ) {
@@ -919,9 +925,9 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 					pos[j] += viewDist * thisSeg;
 				}
 			} else {
-				VectorSubtract( end, pos, vec );
-				VectorNormalize( vec );
-				VectorMA( pos, thisSeg, vec, pos );
+				vec = end - pos;
+				(vec).Normalize();
+				pos = pos + vec * (thisSeg);
 				// randomize the position a bit
 				thisSeg *= 0.25;
 				if ( thisSeg > rndSize ) {
@@ -953,7 +959,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 				}
 			}
 			//thisWidth *= alpha;
-			if ( ( viewDist = VectorDistance( pos, cg.refdef.vieworg ) ) < VIEW_SCALE_DIST ) {
+			if ( ( viewDist = ((pos) - (cg.refdef.vieworg)).Length() ) < VIEW_SCALE_DIST ) {
 				thisWidth *= CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_12" ) + ( CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_13" ) * ( viewDist / VIEW_SCALE_DIST ) );
 				if ( thisWidth < CG_FxValue( "wolf/controller_dynamiclightningbolt", "tuning_3" ) && thisWidth < maxWidth ) {
 					thisWidth = CG_FxValue( "wolf/controller_dynamiclightningbolt", "thisWidth_14" );
@@ -967,7 +973,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 
 			}
 			//
-			VectorScale( bc, alpha, c );
+			c = bc * (alpha);
 			c[2] *= 1.0 + ( 1.0 - alpha );
 			if ( c[2] > 1.0 ) {
 				c[2] = 1.0;
@@ -979,15 +985,12 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 
 			// fork from here?
 			if ( thisWidth < CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_4" ) && distLeft > CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_5" ) && recursion < 3 && forks < 3 && lt_random( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_6" ) + i + forks ) < FORK_CHANCE ) {
-				vec3_t fend;
+				idVec3 fend;
 				forks++;
-				VectorSet( fend,
-						   distLeft * 0.3 * lt_crandom( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_7" ) + i + forks ),
-						   distLeft * 0.3 * lt_crandom( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_8" ) + i + forks ),
-						   distLeft * 0.3 * lt_crandom( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_9" ) + i + forks ) );
-				VectorAdd( fend, end, fend );
-				VectorSubtract( fend, pos, fend );
-				VectorMA( pos, 0.2 + 0.7 * lt_random( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_10" ) + i + forks ), fend, fend );
+				fend.Set(distLeft * 0.3 * lt_crandom( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_7" ) + i + forks ), distLeft * 0.3 * lt_crandom( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_8" ) + i + forks ), distLeft * 0.3 * lt_crandom( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_9" ) + i + forks ));
+				fend = fend + end;
+				fend = fend - pos;
+				fend = pos + fend * (0.2 + 0.7 * lt_random( randseed,CG_FxInt( "wolf/controller_dynamiclightningbolt", "tuning_10" ) + i + forks ));
 
 				//if (recursion > 0 && recursion < 2) {
 				//	CG_DynamicLightningBolt( cgs.media.lightningBoltShader, pos, fend, 1, maxWidth, qtrue, alpha, recursion, randseed );
@@ -1010,12 +1013,12 @@ void CG_DynamicLightningBolt( qhandle_t shader, vec3_t start, vec3_t pend, int n
 CG_ProjectedSpotLight
 ================
 */
-void CG_ProjectedSpotLight( vec3_t start, vec3_t dir ) {
-	vec3_t end, proj;
+void CG_ProjectedSpotLight( idVec3 start, idVec3 dir ) {
+	idVec3 end, proj;
 	trace_t tr;
 	float alpha, radius;
 
-	VectorMA( start, 1000, dir, end );
+	end = start + dir * (1000);
 	CG_Trace( &tr, start, NULL, NULL, end, -1, CONTENTS_SOLID );
 	if ( tr.fraction == 1.0 ) {
 		return;
@@ -1027,7 +1030,7 @@ void CG_ProjectedSpotLight( vec3_t start, vec3_t dir ) {
 	}
 	//
 	radius = CG_FxInt( "wolf/controller_projectedspotlight", "radius" ) + CG_FxInt( "wolf/controller_projectedspotlight", "radius_2" ) * tr.fraction;
-	VectorNegate( dir, proj );
+	proj = -(dir);
 	CG_ImpactMark( CG_FxMaterial( "wolf/controller_projectedspotlight", "spotLightShader" ), tr.endpos, proj, CG_FxInt( "wolf/controller_projectedspotlight", "ImpactMark_value" ), alpha, alpha, alpha, CG_FxValue( "wolf/controller_projectedspotlight", "ImpactMark_value_2" ), qfalse, radius, qtrue, -CG_FxInt( "wolf/controller_projectedspotlight", "ImpactMark_value_3" ) );
 }
 
@@ -1062,18 +1065,18 @@ CG_Spotlight
 ==============
 */
 
-void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t lightDir, int segs, float range, int startWidth, float coneAngle, int flags ) {
+void CG_Spotlight( centity_t *cent, const idVec4 &color, const idVec3 &realstart, const idVec3 &lightDir, int segs, float range, int startWidth, float coneAngle, int flags ) {
 	int i, j;
-	vec3_t start, traceEnd, proj;
-	vec3_t right, up;
-	vec3_t v1, v2;
-	vec3_t startvec, endvec;        // the vectors to rotate around lightDir to create the circles
-	vec3_t conevec;
-	vec3_t start_points[MAX_SPOT_SEGS], end_points[MAX_SPOT_SEGS];
-	vec3_t coreright;
+	idVec3 start, traceEnd, proj;
+	idVec3 right, up;
+	idVec3 v1, v2;
+	idVec3 startvec, endvec;        // the vectors to rotate around lightDir to create the circles
+	idVec3 conevec;
+	idVec3 start_points[MAX_SPOT_SEGS], end_points[MAX_SPOT_SEGS];
+	idVec3 coreright;
 	polyVert_t verts[MAX_SPOT_SEGS * 4]; // x4 for 4 verts per poly
 	polyVert_t plugVerts[MAX_SPOT_SEGS];
-	vec3_t endCenter;
+	idVec3 endCenter;
 	polyVert_t coreverts[4];
 	trace_t tr;
 	float /*alpha,*/ radius = CG_FxValue( "wolf/controller_spotlight", "radius" );       // TTimo: init
@@ -1082,12 +1085,12 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 	float hitDist;          // the actual distance of the trace impact	(0 is no hit)
 	float beamLen;          // actual distance of the drawn beam
 	float startAlpha, endAlpha;
-	vec4_t colorNorm;       // normalized color vector
+	idVec4 colorNorm;       // normalized color vector
 	refEntity_t ent;
-	vec3_t angles;
+	idVec3 angles;
 	float deadFrac = 0;
 
-	VectorCopy( realstart, start );
+	start = realstart;
 
 	// normalize color
 	colorNorm[3] = CG_FxInt( "wolf/controller_spotlight", "colorNorm_a" );   // store normalize multiplier in alpha index
@@ -1098,9 +1101,9 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 	}
 
 	if ( colorNorm[3] != 1 ) {     // it needs to be boosted
-		VectorMA( color, 1.0 / colorNorm[3], color, colorNorm );    // FIXME: div by 0
+		colorNorm = color + color * (1.0 / colorNorm[3]);    // FIXME: div by 0
 	} else {
-		VectorCopy( color, colorNorm );
+		colorNorm = color;
 	}
 	colorNorm[3] = color[3];
 
@@ -1115,9 +1118,9 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 
 
 	if ( flags & SL_LOCKTRACETORANGE ) {
-		VectorMA( start, range, lightDir, traceEnd );           // trace out to 'range'
+		traceEnd = start + lightDir * (range);           // trace out to 'range'
 	} else {
-		VectorMA( start, CG_FxValue( "wolf/controller_spotlight", "maxRange" ), lightDir, traceEnd );  // trace all the way out to max dist
+		traceEnd = start + lightDir * (CG_FxValue( "wolf/controller_spotlight", "maxRange" ));  // trace all the way out to max dist
 	}
 
 	// first trace to see if anything is hit
@@ -1171,8 +1174,8 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 	ent.frame = 0;
 	ent.oldframe = 0;
 	ent.backlerp = 0;
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( cent->lerpOrigin, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = cent->lerpOrigin;
 //		ent.hModel = cgs.gameModels[cent->currentState.modelindex];
 	if ( cent->currentState.frame == 1 ) {
 		ent.hModel = CG_FxModel( "wolf/controller_spotlight", "spotLightLightModelBroke" );
@@ -1191,7 +1194,7 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 	trap_R_AddRefEntityToScene( &ent );
 
 	// push start out a bit so the beam fits to the front of the base model
-	VectorMA( start, CG_FxInt( "wolf/controller_spotlight", "tuning" ), lightDir, start );
+	start = start + lightDir * (CG_FxInt( "wolf/controller_spotlight", "tuning" ));
 //	}
 
 
@@ -1210,37 +1213,37 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 
 //// BEAM
 
-	PerpendicularVector( up, lightDir );
-	CrossProduct( lightDir, up, right );
+	up.PerpendicularVector( lightDir );
+	right = (lightDir).Cross(up);
 
 	// find first vert of the start
-	VectorScale( right, startWidth, startvec );
+	startvec = right * (startWidth);
 	// find the first vert of the end
-	RotatePointAroundVector( conevec, up, lightDir, -coneAngle );
-	VectorMA( startvec, beamLen, conevec, endvec );   // this applies the offset of the start diameter before finding the end points
+	conevec.RotatePointAroundVector( up, lightDir, -coneAngle );
+	endvec = startvec + conevec * (beamLen);   // this applies the offset of the start diameter before finding the end points
 
-	VectorScale( lightDir, beamLen, endCenter );
-	VectorSubtract( endCenter, endvec, coreverts[3].xyz );    // get a vector of the radius out at the end for the core to use
-	coreEndRadius = VectorLength( coreverts[3].xyz );
+	endCenter = lightDir * (beamLen);
+	coreverts[3].xyz = endCenter - endvec;    // get a vector of the radius out at the end for the core to use
+	coreEndRadius = (coreverts[3].xyz).Length();
 
 //
 //	generate the flat beam 'core'
 //
 	if ( !( flags & SL_NOCORE ) ) {
-		VectorSubtract( start, cg.refdef.vieworg, v1 );
-		VectorNormalize( v1 );
-		VectorSubtract( traceEnd, cg.refdef.vieworg, v2 );
-		VectorNormalize( v2 );
-		CrossProduct( v1, v2, coreright );
-		VectorNormalize( coreright );
+		v1 = start - cg.refdef.vieworg;
+		(v1).Normalize();
+		v2 = traceEnd - cg.refdef.vieworg;
+		(v2).Normalize();
+		coreright = (v1).Cross(v2);
+		(coreright).Normalize();
 
 		memset( &coreverts[0], 0, CG_FxInt( "wolf/controller_spotlight", "tuning_2" ) * sizeof( polyVert_t ) );
-		VectorMA( start, startWidth * 0.8f, coreright, coreverts[0].xyz );
-		VectorMA( start, -startWidth * 0.8f, coreright, coreverts[1].xyz );
-		VectorMA( endCenter, -coreEndRadius * CG_FxValue( "wolf/controller_spotlight", "coreScale" ), coreright, coreverts[2].xyz );
-		VectorAdd( start, coreverts[2].xyz, coreverts[2].xyz );
-		VectorMA( endCenter, coreEndRadius * CG_FxValue( "wolf/controller_spotlight", "coreScale" ), coreright, coreverts[3].xyz );
-		VectorAdd( start, coreverts[3].xyz, coreverts[3].xyz );
+		coreverts[0].xyz = start + coreright * (startWidth * 0.8f);
+		coreverts[1].xyz = start + coreright * (-startWidth * 0.8f);
+		coreverts[2].xyz = endCenter + coreright * (-coreEndRadius * CG_FxValue( "wolf/controller_spotlight", "coreScale" ));
+		coreverts[2].xyz = start + coreverts[2].xyz;
+		coreverts[3].xyz = endCenter + coreright * (coreEndRadius * CG_FxValue( "wolf/controller_spotlight", "coreScale" ));
+		coreverts[3].xyz = start + coreverts[3].xyz;
 
 		for ( i = 0; i < 4; i++ ) {
 			coreverts[i].modulate[0] = color[0] * CG_FxValue( "wolf/controller_spotlight", "_modulate_x" );
@@ -1263,18 +1266,18 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 
 
 	for ( i = 0; i <= segs; i++ ) {
-		RotatePointAroundVector( start_points[i], lightDir, startvec, ( CG_FxValue( "wolf/controller_spotlight", "tuning_4" ) / (float)segs ) * i );
-		VectorAdd( start_points[i], start, start_points[i] );
+		start_points[i].RotatePointAroundVector( lightDir, startvec, ( CG_FxValue( "wolf/controller_spotlight", "tuning_4" ) / (float)segs ) * i );
+		start_points[i] = start_points[i] + start;
 
-		RotatePointAroundVector( end_points[i], lightDir, endvec, ( CG_FxValue( "wolf/controller_spotlight", "tuning_5" ) / (float)segs ) * i );
-		VectorAdd( end_points[i], start, end_points[i] );
+		end_points[i].RotatePointAroundVector( lightDir, endvec, ( CG_FxValue( "wolf/controller_spotlight", "tuning_5" ) / (float)segs ) * i );
+		end_points[i] = end_points[i] + start;
 	}
 
 	for ( i = 0; i < segs; i++ ) {
 
 		j = ( i * CG_FxInt( "wolf/controller_spotlight", "j" ) );
 
-		VectorCopy( start_points[i], verts[( i * 4 )].xyz );
+		verts[( i * 4 )].xyz = start_points[i];
 		verts[j].st[0]  = 0;
 		verts[j].st[1]  = 1;
 		verts[j].modulate[0] = color[0] * 255.0f;
@@ -1283,7 +1286,7 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 		verts[j].modulate[3] = startAlpha;
 		j++;
 
-		VectorCopy( end_points[i], verts[j].xyz );
+		verts[j].xyz = end_points[i];
 		verts[j].st[0]  = 0;
 		verts[j].st[1]  = 0;
 		verts[j].modulate[0] = color[0] * 255.0f;
@@ -1292,7 +1295,7 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 		verts[j].modulate[3] = endAlpha;
 		j++;
 
-		VectorCopy( end_points[i + 1], verts[j].xyz );
+		verts[j].xyz = end_points[i + 1];
 		verts[j].st[0]  = 1;
 		verts[j].st[1]  = 0;
 		verts[j].modulate[0] = color[0] * 255.0f;
@@ -1301,7 +1304,7 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 		verts[j].modulate[3] = endAlpha;
 		j++;
 
-		VectorCopy( start_points[i + 1], verts[j].xyz );
+		verts[j].xyz = start_points[i + 1];
 		verts[j].st[0]  = 1;
 		verts[j].st[1]  = 1;
 		verts[j].modulate[0] = color[0] * 255.0f;
@@ -1310,7 +1313,7 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 		verts[j].modulate[3] = startAlpha;
 
 		if ( capStart ) {
-			VectorCopy( start_points[i], plugVerts[i].xyz );
+			plugVerts[i].xyz = start_points[i];
 			plugVerts[i].st[0]  = 0;
 			plugVerts[i].st[1]  = 0;
 			plugVerts[i].modulate[0] = color[0] * 255.0f;
@@ -1333,14 +1336,14 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 
 	if ( !( flags & SL_NOIMPACT ) ) {
 		if ( hitDist ) {
-			vec3_t impactPos;
-			VectorMA( startvec, hitDist, conevec, endvec );
+			idVec3 impactPos;
+			endvec = startvec + conevec * (hitDist);
 
 			radius = CG_FxValue( "wolf/controller_spotlight", "radius_2" ) * coreEndRadius * ( hitDist / beamLen );
 
-			VectorNegate( lightDir, proj );
+			proj = -(lightDir);
 
-			VectorMA( tr.endpos, -0.5f * radius, lightDir, impactPos );   // back away a little from the hit
+			impactPos = tr.endpos + lightDir * (-0.5f * radius);   // back away a little from the hit
 
 			CG_ImpactMark( CG_FxMaterial( "wolf/controller_spotlight", "spotLightShader" ), impactPos, proj, CG_FxInt( "wolf/controller_spotlight", "ImpactMark_value" ), colorNorm[0], colorNorm[1], colorNorm[2], CG_FxValue( "wolf/controller_spotlight", "ImpactMark_value_2" ), qfalse, radius, qtrue, -CG_FxInt( "wolf/controller_spotlight", "ImpactMark_value_3" ) );
 //			CG_ImpactMark( cgs.media.spotLightShader, tr.endpos, proj, 0, colorNorm[0], colorNorm[1], colorNorm[2], 1.0f, qfalse, radius, qtrue, -1 );
@@ -1351,9 +1354,9 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 
 	// add d light at end
 	if ( !( flags & SL_NODLIGHT ) ) {
-		vec3_t dlightLoc;
+		idVec3 dlightLoc;
 //		VectorMA(tr.endpos, -60, lightDir, dlightLoc);	// back away from the hit
-		VectorMA( tr.endpos, 0, lightDir, dlightLoc );    // back away from the hit
+		dlightLoc = tr.endpos + lightDir * (0);    // back away from the hit
 //		trap_R_AddLightToScene(dlightLoc, 200, colorNorm[0], colorNorm[1], colorNorm[2], 0);	// ,REF_JUNIOR_DLIGHT);
 //		trap_R_AddLightToScene(dlightLoc, radius*2, colorNorm[0], colorNorm[1], colorNorm[2], 0);	// ,REF_JUNIOR_DLIGHT);
 		trap_R_AddLightToScene( dlightLoc, radius * 2, 0.3, 0.3, 0.3, 0 );  // ,REF_JUNIOR_DLIGHT);
@@ -1364,22 +1367,22 @@ void CG_Spotlight( centity_t *cent, float *color, vec3_t realstart, vec3_t light
 	// draw flare at source
 	if ( !( flags & SL_NOFLARE ) ) {
 		qboolean lightInEyes = qfalse;
-		vec3_t camloc, dirtolight;
+		idVec3 camloc, dirtolight;
 		float dot, deg, dist;
 		float flarescale = 0.0f;       // TTimo: init
 
 		// get camera position and direction to lightsource
-		VectorCopy( cg.snap->ps.origin, camloc );
+		camloc = cg.snap->ps.origin;
 		camloc[2] += cg.snap->ps.viewheight;
-		VectorSubtract( start, camloc, dirtolight );
-		dist = VectorNormalize( dirtolight );
+		dirtolight = start - camloc;
+		dist = (dirtolight).Normalize();
 
 		// first use dot to determine if it's facing the camera
-		dot = DotProduct( lightDir, dirtolight );
+		dot = ((lightDir) * (dirtolight));
 
 		// it's facing the camera, find out how closely and trace to see if the source can be seen
 
-		deg = RAD2DEG( M_PI - acos( dot ) );
+		deg = RAD2DEG( idMath::PI - acos( dot ) );
 		if ( deg <= CG_FxValue( "wolf/controller_spotlight", "flareAngle" ) ) { // start flare a bit before the camera gets inside the cylinder
 			lightInEyes = qtrue;
 			flarescale = 1 - ( deg / CG_FxValue( "wolf/controller_spotlight", "flareAngle" ) );
@@ -1419,7 +1422,7 @@ CG_RumbleEfx
 void CG_RumbleEfx( float pitch, float yaw ) {
 	float pitchRecoilAdd, pitchAdd;
 	float yawRandom;
-	vec3_t recoil;
+	idVec3 recoil;
 
 	//
 	pitchRecoilAdd = 0;
@@ -1431,8 +1434,8 @@ void CG_RumbleEfx( float pitch, float yaw ) {
 		pitch = 1;
 	}
 
-	pitchRecoilAdd = pow( random(),8 ) * ( 10 + VectorLength( cg.snap->ps.velocity ) / 5 );
-	pitchAdd = ( rand() % (int)pitch ) - ( pitch * 0.5 ); //5
+	pitchRecoilAdd = pow( cgRandom.RandomFloat(),8 ) * ( 10 + (cg.snap->ps.velocity).Length() / 5 );
+	pitchAdd = ( cgRandom.RandomInt() % (int)pitch ) - ( pitch * 0.5 ); //5
 	yawRandom = yaw; //2
 
 	pitchRecoilAdd *= 0.5;
@@ -1440,16 +1443,13 @@ void CG_RumbleEfx( float pitch, float yaw ) {
 	yawRandom *= 0.5;
 
 	// calc the recoil
-	recoil[YAW] = crandom() * yawRandom;
+	recoil[YAW] = cgRandom.CRandomFloat() * yawRandom;
 	recoil[ROLL] = -recoil[YAW];    // why not
 	recoil[PITCH] = -pitchAdd;
 	// scale it up a bit (easier to modify this while tweaking)
-	VectorScale( recoil, 30, recoil );
+	recoil = recoil * (30);
 	// set the recoil
-	VectorCopy( recoil, cg.kickAVel );
+	cg.kickAVel = recoil;
 	// set the recoil
 	cg.recoilPitch -= pitchRecoilAdd;
 }
-
-
-

@@ -1643,7 +1643,7 @@ int BG_ExecuteCommand( playerState_t *ps, animScriptCommand_t *scriptCommand, qb
 	}
 
 	if ( scriptCommand->soundIndex ) {
-		globalScriptData->playSound( scriptCommand->soundIndex, ps->origin, ps->clientNum );
+		globalScriptData->playSound( scriptCommand->soundIndex, &ps->origin, ps->clientNum );
 	}
 
 //----(SA)	added

@@ -1672,7 +1672,7 @@ typedef struct
 	// pointers to functions from the owning module
 	//
 	int ( *soundIndex )( const char *name );
-	void ( *playSound )( int soundIndex, const idVec3 &org, int clientNum );
+	void ( *playSound )( int soundIndex, const idVec3 *org, int clientNum );
 } animScriptData_t;
 
 //------------------------------------------------------------------

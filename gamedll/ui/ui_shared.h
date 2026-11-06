@@ -457,15 +457,9 @@ qboolean Int_Parse( idLexer *p, int *i );
 qboolean Rect_Parse( idLexer *p, rectDef_t *r );
 qboolean String_Parse( idLexer *p, const char **out );
 qboolean Script_Parse( idLexer *p, const char **out );
-qboolean PC_Float_Parse( int handle, float *f );
-qboolean PC_Color_Parse( int handle, idVec4 *c );
-qboolean PC_Int_Parse( int handle, int *i );
-qboolean PC_Rect_Parse( int handle, rectDef_t *r );
-qboolean PC_String_Parse( int handle, const char **out );
-qboolean PC_Script_Parse( int handle, const char **out );
-qboolean PC_Char_Parse( int handle, char *out );              // NERVE - SMF
+qboolean Char_Parse( idLexer *p, char *out );
 int Menu_Count();
-void Menu_New( int handle );
+void Menu_New( idLexer *handle );
 void Menu_PaintAll();
 menuDef_t *Menus_ActivateByName( const char *p );
 void Menu_Reset();
@@ -496,11 +490,5 @@ void        UI_RoQDone( void ); // ui callback.  roq is done, allow menu to hand
 void        Controls_GetConfig( void );
 void        Controls_SetConfig( qboolean restart );
 void        Controls_SetDefaults( void );
-
-int         trap_PC_AddGlobalDefine( char *define );
-int         trap_PC_LoadSource( const char *filename );
-int         trap_PC_FreeSource( int handle );
-int         trap_PC_ReadToken( int handle, pc_token_t *pc_token );
-int         trap_PC_SourceFileAndLine( int handle, char *filename, int *line );
 
 #endif

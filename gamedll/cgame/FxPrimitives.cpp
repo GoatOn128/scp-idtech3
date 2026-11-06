@@ -858,7 +858,7 @@ bool CTail::Update()
 		}
 
 		idVec3	dir, org;
-//		vec3_t	right, up;
+//		idVec3	right, up;
 		idVec3 	realVel, realAccel;
 
 		// Get our current position and direction
@@ -1517,7 +1517,8 @@ void CPoly::Draw()
 		verts[i].modulate[3] = mRefEnt.shaderRGBA[3];
 
 		// Copy the ST coords
-		( verts[i].st = mST[i] );
+		verts[i].st[0] = mST[i].x;
+		verts[i].st[1] = mST[i].y;
 	}
 
 	// Add this poly

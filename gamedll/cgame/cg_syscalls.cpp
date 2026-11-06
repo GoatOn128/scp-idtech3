@@ -432,27 +432,6 @@ int trap_Key_GetKey( const char *binding ) {
 }
 
 
-int trap_PC_AddGlobalDefine( char *define ) {
-	return cgImports->PC_AddGlobalDefine( define );
-}
-
-int trap_PC_LoadSource( const char *filename ) {
-	return cgImports->PC_LoadSourceHandle( filename );
-}
-
-int trap_PC_FreeSource( int handle ) {
-	return cgImports->PC_FreeSourceHandle( handle );
-}
-
-int trap_PC_ReadToken( int handle, pc_token_t *pc_token ) {
-	return cgImports->PC_ReadTokenHandle( handle, pc_token );
-}
-
-
-int trap_PC_SourceFileAndLine( int handle, char *filename, int *line ) {
-	return cgImports->PC_SourceFileAndLine( handle, filename, line );
-}
-
 void trap_S_StopBackgroundTrack( void ) {
 	cgImports->S_StopBackgroundTrack(  );
 }

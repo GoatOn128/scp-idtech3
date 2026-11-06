@@ -49,39 +49,38 @@ enum utf8Encoding_t {
 
 // these library functions should not be used for cross platform compatibility
 #define strcmp			idStr::Cmp		// use_idStr_Cmp
-#define strncmp			use_idStr_Cmpn
+#define strncmp			idStr::Cmpn
 
 #if defined( StrCmpN )
 #undef StrCmpN
 #endif
-#define StrCmpN			use_idStr_Cmpn
+#define StrCmpN			idStr::Cmpn
 
 #if defined( strcmpi )
 #undef strcmpi
 #endif
-#define strcmpi			use_idStr_Icmp
+#define strcmpi			idStr::Icmp
 
 #if defined( StrCmpI )
 #undef StrCmpI
 #endif
-#define StrCmpI			use_idStr_Icmp
+#define StrCmpI			idStr::Icmp
 
 #if defined( StrCmpNI )
 #undef StrCmpNI
 #endif
-#define StrCmpNI		use_idStr_Icmpn
+#define StrCmpNI		idStr::Icmpn
 
 #define stricmp			idStr::Icmp		// use_idStr_Icmp
-#define _stricmp		use_idStr_Icmp
-#define strcasecmp		use_idStr_Icmp
-#define strnicmp		use_idStr_Icmpn
-#define _strnicmp		use_idStr_Icmpn
-#define _memicmp		use_idStr_Icmpn
+#define _stricmp		idStr::Icmp
+#define strcasecmp		idStr::Icmp
+#define strnicmp		idStr::Icmpn
+#define _strnicmp		idStr::Icmpn
 
-#define snprintf		use_idStr_snPrintf
-#define _snprintf		use_idStr_snPrintf
-#define vsnprintf		use_idStr_vsnPrintf
-#define _vsnprintf		use_idStr_vsnPrintf
+#define snprintf		idStr::snPrintf
+#define _snprintf		idStr::snPrintf
+#define vsnprintf		idStr::vsnPrintf
+#define _vsnprintf		idStr::vsnPrintf
 
 class idVec4;
 

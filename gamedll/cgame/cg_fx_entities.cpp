@@ -91,12 +91,12 @@ void CG_BloodTrail( fxEntity_t *le ) {
 		BG_EvaluateTrajectory( &le->pos, t, newOrigin );
 
 #ifdef BLOOD_PARTICLE_TRAIL
-		CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, CG_FxInt( "wolf/controller_bloodtrail", "Particle_Bleed_value" ), CG_FxInt( "wolf/controller_bloodtrail", "tuning" ) + rand() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_2" ) );
+		CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, CG_FxInt( "wolf/controller_bloodtrail", "Particle_Bleed_value" ), CG_FxInt( "wolf/controller_bloodtrail", "tuning" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_2" ) );
 #else
 
 
 		if ( cent && cent->currentState.aiChar == AICHAR_ZOMBIE ) {
-			CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, CG_FxInt( "wolf/controller_bloodtrail", "Particle_Bleed_value_2" ), CG_FxInt( "wolf/controller_bloodtrail", "tuning_3" ) + rand() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_4" ) );
+			CG_Particle_Bleed( CG_FxMaterial( "wolf/controller_bloodtrail", "smokePuffShader" ), newOrigin, vec3_origin, CG_FxInt( "wolf/controller_bloodtrail", "Particle_Bleed_value_2" ), CG_FxInt( "wolf/controller_bloodtrail", "tuning_3" ) + cgRandom.RandomInt() % CG_FxInt( "wolf/controller_bloodtrail", "tuning_4" ) );
 		} else {
 			// Ridah, blood trail using trail code (should be faster since we don't have to spawn as many)
 			le->headJuncIndex = CG_FxTrail( "wolf/trail_gib_blood", le->headJuncIndex, newOrigin,
@@ -121,8 +121,8 @@ void CG_FragmentBounceMark( fxEntity_t *le, trace_t *trace ) {
 
 		// don't drop too many blood marks
 		if ( !( lastBloodMark > cg.time || lastBloodMark > cg.time - CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning" ) ) ) {
-			radius = CG_FxInt( "wolf/controller_fragmentbouncemark", "radius" ) + ( rand() & CG_FxInt( "wolf/controller_fragmentbouncemark", "radius_2" ) );
-			CG_ImpactMark( cgs.media.bloodDotShaders[rand() % 5], trace->endpos, trace->plane.normal, Q_flrand( 0.0f, 1.0f ) * CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning_2" ),
+			radius = CG_FxInt( "wolf/controller_fragmentbouncemark", "radius" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_fragmentbouncemark", "radius_2" ) );
+			CG_ImpactMark( cgs.media.bloodDotShaders[cgRandom.RandomInt() % 5], trace->endpos, trace->plane.normal, Q_flrand( 0.0f, 1.0f ) * CG_FxInt( "wolf/controller_fragmentbouncemark", "tuning_2" ),
 						   CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_2" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_3" ),CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_4" ), qtrue, radius, qfalse, cg_bloodTime.integer * CG_FxInt( "wolf/controller_fragmentbouncemark", "ImpactMark_value_5" ) );
 
 			lastBloodMark = cg.time;
@@ -142,8 +142,8 @@ CG_FragmentBounceSound
 void CG_FragmentBounceSound( fxEntity_t *le, trace_t *trace ) {
 	if ( le->leBounceSoundType == LEBS_BLOOD ) {
 		// half the gibs will make splat sounds
-		if ( rand() & 1 ) {
-			int r = rand() & 3;
+		if ( cgRandom.RandomInt() & 1 ) {
+			int r = cgRandom.RandomInt() & 3;
 			sfxHandle_t s;
 
 			if ( r < 2 ) {
@@ -160,8 +160,8 @@ void CG_FragmentBounceSound( fxEntity_t *le, trace_t *trace ) {
 //----(SA) added
 	} else if ( le->leBounceSoundType == LEBS_ROCK ) {
 		// half the hits will make thunk sounds	(this is just to start since we don't even have the sound yet... (SA))
-		if ( rand() & 1 ) {
-			int r = rand() & 3;
+		if ( cgRandom.RandomInt() & 1 ) {
+			int r = cgRandom.RandomInt() & 3;
 			sfxHandle_t s;
 
 			if ( r < 2 ) {
@@ -353,12 +353,12 @@ void CG_AddFragment( fxEntity_t *le ) {
 		//	TODO: FIXME: this is not quite right, because it'll become fps dependant - in a bad way.
 		//		the slower the fps, the /more/ smoke there'll be, probably driving the fps lower.
 		if ( !cg_paused.integer ) {    // don't add while paused
-			if ( !( rand() % CG_FxInt( "wolf/controller_addfragment", "tuning_3" ) ) ) {
+			if ( !( cgRandom.RandomInt() % CG_FxInt( "wolf/controller_addfragment", "tuning_3" ) ) ) {
 				alpha = CG_FxValue( "wolf/controller_addfragment", "alpha" ) - ( (float)( cg.time - le->startTime ) / (float)( le->endTime - le->startTime ) );
 				alpha *= CG_FxValue( "wolf/controller_addfragment", "alpha_2" );
 				memset( &flash, 0, sizeof( flash ) );
 				CG_PositionEntityOnTag( &flash, &le->refEntity, "tag_flash", 0, NULL );
-				CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addfragment", "smokeParticleShader" ), flash.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_addfragment", "tuning_4" ), CG_FxInt( "wolf/controller_addfragment", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_addfragment", "tuning_5" ), CG_FxInt( "wolf/controller_addfragment", "tuning_6" ), CG_FxInt( "wolf/controller_addfragment", "tuning_7" ), alpha );
+				CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_addfragment", "smokeParticleShader" ), flash.origin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_addfragment", "tuning_4" ), CG_FxInt( "wolf/controller_addfragment", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_addfragment", "tuning_5" ), CG_FxInt( "wolf/controller_addfragment", "tuning_6" ), CG_FxInt( "wolf/controller_addfragment", "tuning_7" ), alpha );
 			}
 		}
 	}
@@ -567,9 +567,9 @@ void CG_AddFragment( fxEntity_t *le ) {
 			nle = CG_FxSpawnModel( "wolf/controller_addfragment" );
 			*nle = *le;
 			if ( nle->breakCount-- < 2 ) {
-				nle->refEntity.hModel = ci->gibModels[rand() % 2];
+				nle->refEntity.hModel = ci->gibModels[cgRandom.RandomInt() % 2];
 			} else {
-				nle->refEntity.hModel = ci->gibModels[rand() % 4];
+				nle->refEntity.hModel = ci->gibModels[cgRandom.RandomInt() % 4];
 			}
 			// make it smaller
 			nle->endTime = le->endTime + ( cg.time - le->startTime );
@@ -582,7 +582,7 @@ void CG_AddFragment( fxEntity_t *le ) {
 			( dir = nle->pos.trDelta ).Normalize();
 			( nle->pos.trBase = trace.endpos + dir * CG_FxValue( "wolf/controller_addfragment", "tuning_8" ) * le->sizeScale * i );
 			// randomize vel a bit
-			( nle->pos.trDelta = nle->pos.trDelta + bytedirs[rand() % NUMVERTEXNORMALS] * ( nle->pos.trDelta.Length() ) * 0.3 );
+			( nle->pos.trDelta = nle->pos.trDelta + bytedirs[cgRandom.RandomInt() % NUMVERTEXNORMALS] * ( nle->pos.trDelta.Length() ) * 0.3 );
 		}
 		// we're done
 		CG_FxFreeEntity( le );
@@ -902,7 +902,7 @@ void CG_AddClientCritter( fxEntity_t *le ) {
 			BG_EvaluateTrajectory( &le->pos, time + 1000, newOrigin );
 
 			// if we would go passed the enemy, don't bother
-			if ( VectorDistance( le->refEntity.origin, enemyPos ) > VectorDistance( le->refEntity.origin, newOrigin ) ) {
+			if ( ((le->refEntity.origin) - (enemyPos)).Length() > ((le->refEntity.origin) - (newOrigin)).Length() ) {
 
 				trap_CM_BoxTrace( &trace, le->refEntity.origin, newOrigin, NULL, NULL, 0, MASK_SOLID );
 

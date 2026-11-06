@@ -684,7 +684,7 @@ void CG_PredictPlayerState( void ) {
 			} else {
 				idVec3 adjusted;
 				CG_AdjustPositionForMover( cg.predictedPlayerState.origin,
-										   cg.predictedPlayerState.groundEntityNum, cg.physicsTime, cg.oldTime, adjusted, deltaAngles );
+										   cg.predictedPlayerState.groundEntityNum, cg.physicsTime, cg.oldTime, adjusted, &deltaAngles );
 				// RF, add the deltaAngles (fixes jittery view while riding trains)
 				cg.predictedPlayerState.delta_angles[YAW] += ANGLE2SHORT( deltaAngles[YAW] );
 
@@ -767,7 +767,7 @@ void CG_PredictPlayerState( void ) {
 	// adjust for the movement of the groundentity
 	CG_AdjustPositionForMover( cg.predictedPlayerState.origin,
 							   cg.predictedPlayerState.groundEntityNum,
-							   cg.physicsTime, cg.time, cg.predictedPlayerState.origin, deltaAngles );
+							   cg.physicsTime, cg.time, cg.predictedPlayerState.origin, &deltaAngles );
 
 	// fire events and other transition triggered things
 	CG_TransitionPlayerState( &cg.predictedPlayerState, &oldPlayerState );

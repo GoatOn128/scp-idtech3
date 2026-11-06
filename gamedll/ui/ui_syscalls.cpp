@@ -361,26 +361,6 @@ void trap_SetCDKey( char *buf ) {
 	uiImports->CLUI_SetCDKey( buf );
 }
 
-int trap_PC_AddGlobalDefine( char *define ) {
-	return uiImports->PC_AddGlobalDefine( define );
-}
-
-int trap_PC_LoadSource( const char *filename ) {
-	return uiImports->PC_LoadSourceHandle( filename );
-}
-
-int trap_PC_FreeSource( int handle ) {
-	return uiImports->PC_FreeSourceHandle( handle );
-}
-
-int trap_PC_ReadToken( int handle, pc_token_t *pc_token ) {
-	return uiImports->PC_ReadTokenHandle( handle, pc_token );
-}
-
-int trap_PC_SourceFileAndLine( int handle, char *filename, int *line ) {
-	return uiImports->PC_SourceFileAndLine( handle, filename, line );
-}
-
 void trap_S_StopBackgroundTrack( void ) {
 	uiImports->S_StopBackgroundTrack(  );
 }

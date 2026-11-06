@@ -11,5 +11,6 @@
 */
 
 unsigned long MD4_BlockChecksum( const void *data, int length );
+unsigned long MD4_BlockChecksum( const void *data, int length, unsigned int key );
 
 #endif /* !__MD4_H__ */

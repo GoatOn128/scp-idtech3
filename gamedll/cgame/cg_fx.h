@@ -15,11 +15,11 @@ struct FxParameters {
 	float life, size, sizeEnd, alpha, scale, fadeTime, speed, acceleration;
 	float heightMin, heightMax, spread;
 	float pathLength = 0, aspect = -1, verticalSign = 1;
-	idVec3 spreadAxes( 0, 0, 0 );
+	idVec3 spreadAxes;
 	qhandle_t shader;
 	int group;
 	FxParameters() : life(-1), size(-1), sizeEnd(-1), alpha(-1), scale(1),
-		fadeTime(-1), speed(0), acceleration(0), heightMin(0), heightMax(0), spread(0), shader(0), group(-1) {
+		fadeTime(-1), speed(0), acceleration(0), heightMin(0), heightMax(0), spread(0), spreadAxes(0, 0, 0), shader(0), group(-1) {
 		velocity.Zero();
 	}
 };
@@ -33,7 +33,8 @@ struct FxTrailInputs {
 	float life = -1, alpha = -1, alphaEnd = -1, width = -1, widthEnd = -1;
 	float ratio = -1, speed = -1;
 	int shader = 0, flags = -1, mapping = -1;
-	idVec3 color( -1, -1, -1 ), colorEnd = { -1, -1, -1 };
+	idVec3 color = idVec3( -1, -1, -1 );
+	idVec3 colorEnd = idVec3( -1, -1, -1 );
 	FxTrailInputs &Time( int value ) { time = value; return *this; }
 	FxTrailInputs &Life( float value ) { life = value; return *this; }
 	FxTrailInputs &Alpha( float value ) { alpha = value; return *this; }

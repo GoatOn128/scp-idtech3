@@ -38,7 +38,7 @@ static void CG_PlayParticle( const char *name, const idVec3 &origin, const FxPar
 }
 
 qboolean CG_ParticleLODCheck( void ) {
-    return cg_particleLOD.integer <= 1 || rand() % cg_particleLOD.integer == 0 ? qtrue : qfalse;
+    return cg_particleLOD.integer <= 1 || cgRandom.RandomInt() % cg_particleLOD.integer == 0 ? qtrue : qfalse;
 }
 
 void CG_ParticleSnowFlurry( qhandle_t shader, centity_t *cent ) {

@@ -165,11 +165,6 @@ typedef struct {
 	int ( QDECL *Key_GetCatcher )( void );
 	void ( QDECL *Key_SetCatcher )( int catcher );
 	int ( QDECL *Key_GetKey )( const char *binding );
-	int ( QDECL *PC_AddGlobalDefine )( char *define );
-	int ( QDECL *PC_LoadSourceHandle )( const char *filename );
-	int ( QDECL *PC_FreeSourceHandle )( int handle );
-	int ( QDECL *PC_ReadTokenHandle )( int handle, pc_token_t *pc_token );
-	int ( QDECL *PC_SourceFileAndLine )( int handle, char *filename, int *line );
 	void ( QDECL *S_StopBackgroundTrack )( void );
 	int ( QDECL *Com_RealTime )( qtime_t *qtime );
 	void ( QDECL *Sys_SnapVector )( float *v );

@@ -8,7 +8,7 @@
 vmCvar_t fx_debug;
 vmCvar_t fx_freeze;
 
-extern void CG_StartShakeCamera( float intensity, int time, idVec3 &origin, float radius );
+extern void CG_StartShakeCamera( float intensity, int time, const idVec3 &origin, float radius );
 
 static void FX_RenderPrimitive(FxRefEntity *ent);
 
@@ -224,7 +224,7 @@ static void FX_RenderPrimitive( FxRefEntity *ent ) {
 		up = ent->axis[0].Cross( side );
 		for ( int i = 0; i < 16; i++ ) {
 			for ( int j = 0; j < 2; j++ ) {
-				float angle = ( i + j ) * 2.0f * M_PI / 16;
+				float angle = ( i + j ) * 2.0f * idMath::PI / 16;
 				radial[j] = side * ( cosf( angle ) );
 				radial[j] = radial[j] + up * ( sinf( angle ) );
 			}

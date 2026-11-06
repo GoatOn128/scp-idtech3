@@ -192,8 +192,8 @@ void CG_DamageFeedback( int yawByte, int pitchByte, int damage ) {
 		if ( front <= 0.1 ) {
 			front = 0.1;
 		}
-		vd->damageX = ( 2.0 * ( rand() / ( float )RAND_MAX ) - 1.0 ) * 0.3 + -left / front;
-		vd->damageY = ( 2.0 * ( rand() / ( float )RAND_MAX ) - 1.0 ) * 0.3 + up / dist;
+		vd->damageX = ( 2.0 * ( cgRandom.RandomInt() / ( float )RAND_MAX ) - 1.0 ) * 0.3 + -left / front;
+		vd->damageY = ( 2.0 * ( cgRandom.RandomInt() / ( float )RAND_MAX ) - 1.0 ) * 0.3 + up / dist;
 	}
 
 	// clamp the position

@@ -37,7 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 CG_DrawScoreboard
 =================
 */
-static void CG_DrawClientScore( int x, int y, score_t *score, float *color, float fade ) {
+static void CG_DrawClientScore( int x, int y, score_t *score, const idVec4 &color, float fade ) {
 	char string[1024];
 	idVec3 headAngles;
 	clientInfo_t    *ci;
@@ -92,7 +92,7 @@ static void CG_DrawClientScore( int x, int y, score_t *score, float *color, floa
 
 	// highlight your position
 	if ( score->client == cg.snap->ps.clientNum ) {
-		float hcolor[4];
+		idVec4 hcolor;
 		int rank;
 
 		if ( cg.snap->ps.persistant[PERS_TEAM] == TEAM_SPECTATOR
@@ -140,7 +140,7 @@ CG_TeamScoreboard
 static int CG_TeamScoreboard( int x, int y, team_t team, float fade ) {
 	int i;
 	score_t *score;
-	float color[4];
+	idVec4 color;
 	int count;
 	int lineHeight;
 	clientInfo_t    *ci;
@@ -178,7 +178,7 @@ static int INFO_LATENCY_WIDTH   = 80;
 static int INFO_TEAM_HEIGHT     = 24;
 static int INFO_BORDER          = 2;
 
-static void WM_DrawClientScore( int x, int y, score_t *score, float *color, float fade ) {
+static void WM_DrawClientScore( int x, int y, score_t *score, const idVec4 &color, float fade ) {
 	float tempx;
 	idVec4 hcolor;
 	clientInfo_t *ci;
@@ -441,7 +441,7 @@ Draw the normal in-game scoreboard
 qboolean CG_DrawScoreboard( void ) {
 	int x = 0, y = 0, w;     // TTimo init
 	float fade;
-	float   *fadeColor;
+	idVec4  *fadeColor;
 	char    *s;
 
 	// don't draw amuthing if the menu or console is up
@@ -468,7 +468,7 @@ qboolean CG_DrawScoreboard( void ) {
 	if ( cg.showScores || cg.predictedPlayerState.pm_type == PM_DEAD ||
 		 cg.predictedPlayerState.pm_type == PM_INTERMISSION ) {
 		fade = 1.0;
-		fadeColor = colorWhite.ToFloatPtr();
+		fadeColor = &colorWhite;
 	} else {
 		fadeColor = CG_FadeColor( cg.scoreFadeTime, FADE_TIME );
 
@@ -478,7 +478,7 @@ qboolean CG_DrawScoreboard( void ) {
 			cg.killerName[0] = 0;
 			return qfalse;
 		}
-		fade = *fadeColor;
+		fade = ( *fadeColor )[3];
 	}
 
 
@@ -695,4 +695,3 @@ void CG_DrawTourneyScoreboard( void ) {
 
 
 }
-

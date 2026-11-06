@@ -667,7 +667,7 @@ void G_Sound( gentity_t *ent, int soundIndex ) {
 G_AnimScriptSound
 =============
 */
-void G_AnimScriptSound( int soundIndex, idVec3 &org, int client ) {
+void G_AnimScriptSound( int soundIndex, const idVec3 *org, int client ) {
 	gentity_t *e;
 	e = &g_entities[client];
 	G_AddEvent( e, EV_GENERAL_SOUND, soundIndex );

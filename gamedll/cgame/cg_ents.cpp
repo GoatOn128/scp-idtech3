@@ -52,7 +52,7 @@ tag location
 ======================
 */
 void CG_PositionEntityOnTag( refEntity_t *entity, const refEntity_t *parent,
-							 char *tagName, int startIndex, vec3_t *offset ) {
+							 const char *tagName, int startIndex, const idVec3 *offset ) {
 	int i;
 	orientation_t lerped;
 
@@ -61,15 +61,15 @@ void CG_PositionEntityOnTag( refEntity_t *entity, const refEntity_t *parent,
 
 	// FIXME: allow origin offsets along tag?	//----(SA) Yes! Adding.
 
-	VectorCopy( parent->origin, entity->origin );
+	entity->origin = parent->origin;
 
 	if ( offset ) {
-		VectorAdd( lerped.origin, *offset, lerped.origin );
+		lerped.origin = lerped.origin + *offset;
 	}
 //----(SA) end
 
 	for ( i = 0 ; i < 3 ; i++ ) {
-		VectorMA( entity->origin, lerped.origin[i], parent->axis[i], entity->origin );
+		entity->origin = entity->origin + parent->axis[i] * (lerped.origin[i]);
 	}
 
 	// had to cast away the const to avoid compiler problems...
@@ -92,16 +92,16 @@ void CG_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_t *pare
 									char *tagName ) {
 	int i;
 	orientation_t lerped;
-	vec3_t tempAxis[3];
+	idVec3 tempAxis[3];
 
 //AxisClear( entity->axis );
 	// lerp the tag
 	trap_R_LerpTag( &lerped, parent, tagName, 0 );
 
 	// FIXME: allow origin offsets along tag?
-	VectorCopy( parent->origin, entity->origin );
+	entity->origin = parent->origin;
 	for ( i = 0 ; i < 3 ; i++ ) {
-		VectorMA( entity->origin, lerped.origin[i], parent->axis[i], entity->origin );
+		entity->origin = entity->origin + parent->axis[i] * (lerped.origin[i]);
 	}
 
 	// had to cast away the const to avoid compiler problems...
@@ -180,7 +180,7 @@ void CG_LoseArmor( centity_t *cent, int index ) {
 	int dmgbits = CG_FxInt( "wolf/controller_losearmor", "dmgbits" );         // 32/2;
 	int clientNum;
 	int tagIndex;
-	vec3_t origin, velocity, dir;
+	idVec3 origin, velocity, dir;
 
 
 	if ( cent->currentState.aiChar == AICHAR_PROTOSOLDIER ) {
@@ -230,8 +230,8 @@ void CG_LoseArmor( centity_t *cent, int index ) {
 	tagIndex = CG_GetOriginForTag( cent, &cent->pe.torsoRefEnt, tags[index], 0, origin, NULL );
 
 	// calculate direction vector based on player center->tag position
-	VectorSubtract( origin, cent->currentState.origin, dir );
-	VectorNormalize( dir );
+	dir = origin - cent->currentState.origin;
+	(dir).Normalize();
 
 //----(SA)	added
 	if ( sound ) {
@@ -244,11 +244,11 @@ void CG_LoseArmor( centity_t *cent, int index ) {
 #define FLY_VELOCITY 200
 #define FLY_JUMP 300
 
-//	velocity[0] = dir[0]*(0.75+random())*FLY_VELOCITY;
-//	velocity[1] = dir[1]*(0.75+random())*FLY_VELOCITY;
+//	velocity[0] = dir[0]*(0.75+cgRandom.RandomFloat())*FLY_VELOCITY;
+//	velocity[1] = dir[1]*(0.75+cgRandom.RandomFloat())*FLY_VELOCITY;
 	velocity[0] = dir[0] * FLY_VELOCITY;
 	velocity[1] = dir[1] * FLY_VELOCITY;
-	velocity[2] = FLY_JUMP - CG_FxInt( "wolf/controller_losearmor", "velocity_z" ) + dir[2] * ( CG_FxValue( "wolf/controller_losearmor", "velocity_z_2" ) + random() ) * FLY_VELOCITY;
+	velocity[2] = FLY_JUMP - CG_FxInt( "wolf/controller_losearmor", "velocity_z" ) + dir[2] * ( CG_FxValue( "wolf/controller_losearmor", "velocity_z_2" ) + cgRandom.RandomFloat() ) * FLY_VELOCITY;
 
 	{
 		fxEntity_t   *le;
@@ -259,10 +259,12 @@ void CG_LoseArmor( centity_t *cent, int index ) {
 
 		le->leType = LE_FRAGMENT;
 		le->startTime = cg.time;
-		le->endTime = le->startTime + CG_FxInt( "wolf/controller_losearmor", "le_endTime" ) + ( crandom() * CG_FxInt( "wolf/controller_losearmor", "le_endTime_2" ) );
+		le->endTime = le->startTime + CG_FxInt( "wolf/controller_losearmor", "le_endTime" ) + ( cgRandom.CRandomFloat() * CG_FxInt( "wolf/controller_losearmor", "le_endTime_2" ) );
 
-		VectorCopy( origin, re->origin );
-		AxisCopy( axisDefault, re->axis );
+		re->origin = origin;
+		re->axis[0] = idVec3( 1, 0, 0 );
+		 re->axis[1] = idVec3( 0, 1, 0 );
+		 re->axis[2] = idVec3( 0, 0, 1 );
 
 		if ( cent->currentState.dmgFlags & ( 1 << ( index + dynamicparts ) ) ) {
 			re->hModel = models[index + ( 2 * dynamicparts )];
@@ -276,15 +278,15 @@ void CG_LoseArmor( centity_t *cent, int index ) {
 
 		// (SA) FIXME: origin of md3 is offset from center.  need to center the origin when you toss it
 		le->pos.trType = TR_GRAVITY;
-		VectorCopy( origin, le->pos.trBase );
-		VectorCopy( velocity, le->pos.trDelta );
+		le->pos.trBase = origin;
+		le->pos.trDelta = velocity;
 		le->pos.trTime = cg.time;
 
 		// spin it a bit
 		le->angles.trType       = TR_LINEAR;
-		VectorCopy( tv( 0, 0, 0 ), le->angles.trBase );
+		le->angles.trBase = idVec3( 0, 0, 0 );
 		le->angles.trDelta[0]   = CG_FxInt( "wolf/controller_losearmor", "le_angles_trDelta_x" );
-		le->angles.trDelta[1]   = ( CG_FxInt( "wolf/controller_losearmor", "le_angles_trDelta_y" ) + ( rand() & CG_FxInt( "wolf/controller_losearmor", "le_angles_trDelta_y_2" ) ) ) - CG_FxInt( "wolf/controller_losearmor", "le_angles_trDelta_y_3" );
+		le->angles.trDelta[1]   = ( CG_FxInt( "wolf/controller_losearmor", "le_angles_trDelta_y" ) + ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_losearmor", "le_angles_trDelta_y_2" ) ) ) - CG_FxInt( "wolf/controller_losearmor", "le_angles_trDelta_y_3" );
 		le->angles.trDelta[2]   = CG_FxInt( "wolf/controller_losearmor", "le_angles_trDelta_z" );
 		le->angles.trTime       = cg.time;
 		le->bounceFactor = CG_FxValue( "wolf/controller_losearmor", "le_bounceFactor" );
@@ -361,11 +363,11 @@ Also called by event processing code
 */
 void CG_SetEntitySoundPosition( centity_t *cent ) {
 	if ( cent->currentState.solid == SOLID_BMODEL ) {
-		vec3_t origin;
-		float   *v;
+		idVec3 origin;
+		idVec3 v;
 
 		v = cgs.inlineModelMidpoints[ cent->currentState.modelindex ];
-		VectorAdd( cent->lerpOrigin, v, origin );
+		origin = cent->lerpOrigin + v;
 		trap_S_UpdateEntityPosition( cent->currentState.number, origin );
 	} else {
 		trap_S_UpdateEntityPosition( cent->currentState.number, cent->lerpOrigin );
@@ -441,8 +443,8 @@ void CG_AddLightstyle( centity_t *cent ) {
 
 	lightval = ( lightval * ( 1000.0f / 24.0f ) ) - 200.0f;  // they want 'm' as the "middle" value as 300
 
-	lightval = max( 0.0f,    lightval );
-	lightval = min( 1000.0f, lightval );
+	lightval = Max( 0.0f, lightval );
+	lightval = Min( 1000.0f, lightval );
 
 	cl = cent->currentState.constantLight;
 	r = cl & 255;
@@ -483,11 +485,11 @@ static void CG_EntityEffects( centity_t *cent ) {
 				trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.gameSounds[ cent->currentState.loopSound ], 255 );
 			}
 		} else if ( cent->currentState.solid == SOLID_BMODEL )   {
-			vec3_t origin;
-			float   *v;
+			idVec3 origin;
+			idVec3 v;
 
 			v = cgs.inlineModelMidpoints[ cent->currentState.modelindex ];
-			VectorAdd( cent->lerpOrigin, v, origin );
+			origin = cent->lerpOrigin + v;
 
 			if ( cgs.gameSoundTypes[ cent->currentState.loopSound ] == 1 ) {   // old style
 				trap_S_AddLoopingSound( cent->currentState.number, origin, vec3_origin, cgs.gameSounds[ cent->currentState.loopSound ], 255 );
@@ -575,8 +577,8 @@ static void CG_General( centity_t *cent ) {
 
 	}
 
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( cent->lerpOrigin, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = cent->lerpOrigin;
 
 	ent.hModel = cgs.gameModels[s1->modelindex];
 
@@ -590,9 +592,9 @@ static void CG_General( centity_t *cent ) {
 
 	// scale gamemodels
 	if ( cent->currentState.eType == ET_GAMEMODEL ) {
-		VectorScale( ent.axis[0], cent->currentState.angles2[0], ent.axis[0] );
-		VectorScale( ent.axis[1], cent->currentState.angles2[1], ent.axis[1] );
-		VectorScale( ent.axis[2], cent->currentState.angles2[2], ent.axis[2] );
+		ent.axis[0] = ent.axis[0] * (cent->currentState.angles2[0]);
+		ent.axis[1] = ent.axis[1] * (cent->currentState.angles2[1]);
+		ent.axis[2] = ent.axis[2] * (cent->currentState.angles2[2]);
 		ent.nonNormalizedAxes = qtrue;
 
 //		if( (cent->currentState.angles2[0] * cent->currentState.angles2[1] * cent->currentState.angles2[2]) != 1) {
@@ -639,7 +641,7 @@ static void CG_Speaker( centity_t *cent ) {
 
 	//	ent->s.frame = ent->wait * 10;
 	//	ent->s.clientNum = ent->random * 10;
-	cent->miscTime = cg.time + cent->currentState.frame * 100 + cent->currentState.clientNum * 100 * crandom();
+	cent->miscTime = cg.time + cent->currentState.frame * 100 + cent->currentState.clientNum * 100 * cgRandom.CRandomFloat();
 }
 
 
@@ -656,7 +658,7 @@ void CG_DrawHoldableSelect( void ) {
 	int count;
 	int amount;
 	int i, x, y, w;
-	float   *color;
+	idVec4  *color;
 	char    *name;
 	gitem_t     *item;
 
@@ -669,7 +671,7 @@ void CG_DrawHoldableSelect( void ) {
 	if ( !color ) {
 		return;
 	}
-	trap_R_SetColor( color );
+	trap_R_SetColor( color->ToFloatPtr() );
 
 	// showing select clears pickup item display, but not the blend blob
 	cg.itemPickupTime = 0;
@@ -727,7 +729,7 @@ void CG_DrawHoldableSelect( void ) {
 
 		// draw remaining uses if there's more than one
 		if ( amount > 1 ) {
-			CG_DrawBigStringColor( x + 6, y + 40, va( "%d", amount ), color );
+			CG_DrawBigStringColor( x + 6, y + 40, va( "%d", amount ), *color );
 		}
 
 		// draw selection marker
@@ -749,7 +751,7 @@ void CG_DrawHoldableSelect( void ) {
 				w = CG_DrawStrlen( name ) * 10;
 				x = ( SCREEN_WIDTH - w ) / 2;
 //				CG_DrawBigStringColor(x, y - 22, name, color);
-				CG_DrawStringExt2( x, y + 74, name, color, qfalse, qtrue, 10, 10, 0 );
+				CG_DrawStringExt2( x, y + 74, name, *color, qfalse, qtrue, 10, 10, 0 );
 //				CG_Text_Paint(x, y + 74, 2, 0.3f, color, name, 0, 0, 6); // ITEM_TEXTSTYLE_SHADOWEDMORE
 			}
 		}
@@ -882,20 +884,20 @@ void CG_HoldableUsedupChange( void ) {
 
 
 qboolean CG_PlayerSeesItem( playerState_t *ps, entityState_t *item, int atTime, int itemType ) {
-	vec3_t vorigin, eorigin, viewa, dir;
+	idVec3 vorigin, eorigin, viewa, dir;
 	float dot, dist, foo;
 	trace_t tr;
 
 	BG_EvaluateTrajectory( &item->pos, atTime, eorigin );
 
-	VectorCopy( ps->origin, vorigin );
+	vorigin = ps->origin;
 	vorigin[2] += ps->viewheight;           // get the view loc up to the viewheight
 //	eorigin[2] += 8;						// and subtract the item's offset (that is used to place it on the ground)
 
 
-	VectorSubtract( vorigin, eorigin, dir );
+	dir = vorigin - eorigin;
 
-	dist = VectorNormalize( dir );            // dir is now the direction from the item to the player
+	dist = (dir).Normalize();            // dir is now the direction from the item to the player
 
 	if ( dist > 255 ) {
 		return qfalse;                      // only run the remaining stuff on items that are close enough
@@ -907,8 +909,8 @@ qboolean CG_PlayerSeesItem( playerState_t *ps, entityState_t *item, int atTime, 
 	//		just pick them up.  (if anybody is storing this somewhere,
 	//		for the current frame please let me know so I don't
 	//		have to do redundant calcs)
-	AngleVectors( ps->viewangles, viewa, 0, 0 );
-	dot = DotProduct( viewa, dir );
+	idAngles(ps->viewangles).ToVectors(&(viewa), 0, 0);
+	dot = ((viewa) * (dir));
 
 	// give more range based on distance (the hit area is wider when closer)
 
@@ -968,7 +970,7 @@ static void CG_Item( centity_t *cent ) {
 	if ( cg_simpleItems.integer && item->giType != IT_TEAM ) {
 		memset( &ent, 0, sizeof( ent ) );
 		ent.reType = RT_SPRITE;
-		VectorCopy( cent->lerpOrigin, ent.origin );
+		ent.origin = cent->lerpOrigin;
 		ent.radius = 14;
 		ent.customShader = cg_items[es->modelindex].icons[0];
 		ent.shaderRGBA[0] = 255;
@@ -1000,20 +1002,20 @@ static void CG_Item( centity_t *cent ) {
 
 			if ( es->eFlags & EF_SPINNING ) {
 				if ( es->groundEntityNum == -1 || !es->groundEntityNum ) { // (SA) spinning with a stand will spin the stand and the attached weap (only when in the air)
-					VectorCopy( cg.autoAnglesSlow, cent->lerpAngles );
-					VectorCopy( cg.autoAnglesSlow, cent->lastLerpAngles );
+					cent->lerpAngles = cg.autoAnglesSlow;
+					cent->lastLerpAngles = cg.autoAnglesSlow;
 				} else {
-					VectorCopy( cent->lastLerpAngles, cent->lerpAngles );   // make a tossed weapon sit on the ground in a position that matches how it was yawed
+					cent->lerpAngles = cent->lastLerpAngles;   // make a tossed weapon sit on the ground in a position that matches how it was yawed
 				}
 			}
 
 			AnglesToAxis( cent->lerpAngles, stand.axis );
-			VectorCopy( cent->lerpOrigin, stand.origin );
+			stand.origin = cent->lerpOrigin;
 
 			// scale the stand to match the weapon scale ( the weapon will also be scaled inside CG_PositionEntityOnTag() )
-			VectorScale( stand.axis[0], 1.5, stand.axis[0] );
-			VectorScale( stand.axis[1], 1.5, stand.axis[1] );
-			VectorScale( stand.axis[2], 1.5, stand.axis[2] );
+			stand.axis[0] = stand.axis[0] * (1.5);
+			stand.axis[1] = stand.axis[1] * (1.5);
+			stand.axis[2] = stand.axis[2] * (1.5);
 
 //----(SA)	modified
 			if ( cent->currentState.frame ) {
@@ -1023,7 +1025,7 @@ static void CG_Item( centity_t *cent ) {
 			}
 //----(SA)	end
 
-			VectorCopy( ent.origin, ent.oldorigin );
+			ent.oldorigin = ent.origin;
 			ent.nonNormalizedAxes = qtrue;
 
 		} else {                                // then default to laying it on it's side
@@ -1034,31 +1036,31 @@ static void CG_Item( centity_t *cent ) {
 			AnglesToAxis( cent->lerpAngles, ent.axis );
 
 			// increase the size of the weapons when they are presented as items
-			VectorScale( ent.axis[0], 1.5, ent.axis[0] );
-			VectorScale( ent.axis[1], 1.5, ent.axis[1] );
-			VectorScale( ent.axis[2], 1.5, ent.axis[2] );
+			ent.axis[0] = ent.axis[0] * (1.5);
+			ent.axis[1] = ent.axis[1] * (1.5);
+			ent.axis[2] = ent.axis[2] * (1.5);
 			ent.nonNormalizedAxes = qtrue;
 
-			VectorCopy( cent->lerpOrigin, ent.origin );
-			VectorCopy( cent->lerpOrigin, ent.oldorigin );
+			ent.origin = cent->lerpOrigin;
+			ent.oldorigin = cent->lerpOrigin;
 
 			if ( es->eFlags & EF_SPINNING ) {  // spinning will override the angles set by a stand
 				if ( es->groundEntityNum == -1 || !es->groundEntityNum ) { // (SA) spinning with a stand will spin the stand and the attached weap (only when in the air)
-					VectorCopy( cg.autoAnglesSlow, cent->lerpAngles );
-					VectorCopy( cg.autoAnglesSlow, cent->lastLerpAngles );
+					cent->lerpAngles = cg.autoAnglesSlow;
+					cent->lastLerpAngles = cg.autoAnglesSlow;
 				} else {
-					VectorCopy( cent->lastLerpAngles, cent->lerpAngles );   // make a tossed weapon sit on the ground in a position that matches how it was yawed
+					cent->lerpAngles = cent->lastLerpAngles;   // make a tossed weapon sit on the ground in a position that matches how it was yawed
 				}
 			}
 		}
 
 	} else {
 		AnglesToAxis( cent->lerpAngles, ent.axis );
-		VectorCopy( cent->lerpOrigin, ent.origin );
-		VectorCopy( cent->lerpOrigin, ent.oldorigin );
+		ent.origin = cent->lerpOrigin;
+		ent.oldorigin = cent->lerpOrigin;
 
 		if ( es->eFlags & EF_SPINNING ) {  // spinning will override the angles set by a stand
-			VectorCopy( cg.autoAnglesSlow, cent->lerpAngles );
+			cent->lerpAngles = cg.autoAnglesSlow;
 			AxisCopy( cg.autoAxisSlow, ent.axis );
 		}
 	}
@@ -1075,10 +1077,10 @@ static void CG_Item( centity_t *cent ) {
 				ent.hModel = cg_items[es->modelindex].models[es->density];  // multi-state powerups store their state in 'density'
 
 				// add steam to 'hot' meals
-				if ( !Q_stricmp( item->classname, "item_health_turkey" ) ) {
+				if ( !idStr::Icmp( item->classname, "item_health_turkey" ) ) {
 					if ( !cg_paused.integer ) {    // don't add while paused
-						if ( !( rand() % 7 ) ) {
-							CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_2" ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_3" ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_4" ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_5" ), CG_FxValue( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_6" ) );
+						if ( !( cgRandom.RandomInt() % 7 ) ) {
+							CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_2" ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_3" ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_4" ), CG_FxInt( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_5" ), CG_FxValue( "wolf/controller_item", "ParticleImpactSmokePuffExtended_value_6" ) );
 						}
 					}
 				}
@@ -1093,7 +1095,7 @@ static void CG_Item( centity_t *cent ) {
 	//----(SA)	find midpoint for highlight corona.
 	//			Can't do it when item is registered since it wouldn't know about replacement model
 	if ( !( cent->usehighlightOrigin ) ) {
-		vec3_t mins, maxs, offset;
+		idVec3 mins, maxs, offset;
 		int i;
 
 		trap_R_ModelBounds( ent.hModel, mins, maxs );           // get bounds
@@ -1102,7 +1104,7 @@ static void CG_Item( centity_t *cent ) {
 			offset[i] = mins[i] + 0.5 * ( maxs[i] - mins[i] );  // find object-space center
 		}
 
-		VectorCopy( cent->lerpOrigin, cent->highlightOrigin );        // set 'midpoint' to origin
+		cent->highlightOrigin = cent->lerpOrigin;        // set 'midpoint' to origin
 
 		for ( i = 0 ; i < 3 ; i++ ) {                           // adjust midpoint by offset and orientation
 			cent->highlightOrigin[i] += offset[0] * ent.axis[0][i] +
@@ -1190,7 +1192,7 @@ static void CG_Missile( centity_t *cent ) {
 	weapon = &cg_weapons[s1->weapon];
 
 	// calculate the axis
-	VectorCopy( s1->angles, cent->lerpAngles );
+	cent->lerpAngles = s1->angles;
 
 	// add trails
 	if ( cent->currentState.eType == ET_FP_PARTS
@@ -1212,7 +1214,7 @@ static void CG_Missile( centity_t *cent ) {
 
 	// add missile sound
 	if ( weapon->missileSound ) {
-		vec3_t velocity;
+		idVec3 velocity;
 
 		BG_EvaluateTrajectoryDelta( &cent->currentState.pos, cg.time, velocity );
 		trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, velocity, weapon->missileSound, 255 );
@@ -1220,8 +1222,8 @@ static void CG_Missile( centity_t *cent ) {
 
 	// create the render entity
 	memset( &ent, 0, sizeof( ent ) );
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( cent->lerpOrigin, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = cent->lerpOrigin;
 
 //----(SA) removed plasma gun code as sp5 is taking that spot
 
@@ -1247,16 +1249,16 @@ static void CG_Missile( centity_t *cent ) {
 	ent.renderfx = weapon->missileRenderfx | RF_NOSHADOW;
 
 	// convert direction of travel into axis
-	if ( VectorNormalize2( s1->pos.trDelta, ent.axis[0] ) == 0 ) {
+	if ( ((ent.axis[0] = s1->pos.trDelta), (ent.axis[0]).Normalize()) == 0 ) {
 		ent.axis[0][2] = 1;
 	}
 
 	// spin as it moves
-	if ( s1->pos.trType != TR_STATIONARY ) {
-		RotateAroundDirection( ent.axis, cg.time / 4 );
-	} else {
-		RotateAroundDirection( ent.axis, s1->time );
-	}
+	const float yaw = s1->pos.trType != TR_STATIONARY ? cg.time / 4.0f : static_cast<float>( s1->time );
+	ent.axis[1].PerpendicularVector( ent.axis[0] );
+	ent.axis[2] = ent.axis[1];
+	ent.axis[1].RotatePointAroundVector( ent.axis[0], ent.axis[2], yaw );
+	ent.axis[2] = ent.axis[0].Cross( ent.axis[1] );
 
 	// Rafael
 	// Added this since it may be a propExlosion
@@ -1284,12 +1286,12 @@ static void CG_ZombieSpit( centity_t *cent ) {
 	weapon = &cg_weapons[s1->weapon];
 
 	// calculate the axis
-	VectorCopy( s1->angles, cent->lerpAngles );
+	cent->lerpAngles = s1->angles;
 
 	// create the render entity
 	memset( &ent, 0, sizeof( ent ) );
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( cent->lerpOrigin, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = cent->lerpOrigin;
 
 	// flicker between two skins
 	ent.skinNum = cg.clientFrame & 1;
@@ -1299,16 +1301,17 @@ static void CG_ZombieSpit( centity_t *cent ) {
 	ent.renderfx = weapon->missileRenderfx | RF_NOSHADOW;
 
 	// convert direction of travel into axis
-	if ( VectorNormalize2( s1->pos.trDelta, ent.axis[0] ) == 0 ) {
+	if ( ((ent.axis[0] = s1->pos.trDelta), (ent.axis[0]).Normalize()) == 0 ) {
 		ent.axis[0][2] = 1;
 	}
 
 	// spin as it moves
-	if ( s1->pos.trType != TR_STATIONARY ) {
-		RotateAroundDirection( ent.axis, cg.time / CG_FxInt( "wolf/controller_zombiespit", "tuning" ) );
-	} else {
-		RotateAroundDirection( ent.axis, s1->time );
-	}
+	const float yaw = s1->pos.trType != TR_STATIONARY ?
+		cg.time / static_cast<float>( CG_FxInt( "wolf/controller_zombiespit", "tuning" ) ) : static_cast<float>( s1->time );
+	ent.axis[1].PerpendicularVector( ent.axis[0] );
+	ent.axis[2] = ent.axis[1];
+	ent.axis[1].RotatePointAroundVector( ent.axis[0], ent.axis[2], yaw );
+	ent.axis[2] = ent.axis[0].Cross( ent.axis[1] );
 
 	// add to refresh list, possibly with quad glow
 	CG_AddRefEntityWithPowerups( &ent, s1->powerups, TEAM_FREE, s1, vec3_origin );
@@ -1340,7 +1343,7 @@ static void CG_Bat( centity_t *cent ) {
 	refent.renderfx = RF_NOSHADOW | RF_MINLIGHT;    //----(SA)
 	refent.reType = RT_MODEL;
 	refent.shaderRGBA[3] = 255;
-	VectorCopy( cent->lerpOrigin, refent.origin );
+	refent.origin = cent->lerpOrigin;
 	AnglesToAxis( cent->currentState.angles, refent.axis );
 	// draw it
 	trap_R_AddRefEntityToScene( &refent );
@@ -1365,12 +1368,12 @@ static void CG_Crowbar( centity_t *cent ) {
 	weapon = &cg_weapons[s1->weapon];
 
 	// calculate the axis
-	VectorCopy( s1->angles, cent->lerpAngles );
+	cent->lerpAngles = s1->angles;
 
 	// create the render entity
 	memset( &ent, 0, sizeof( ent ) );
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( cent->lerpOrigin, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = cent->lerpOrigin;
 
 	// flicker between two skins
 	ent.skinNum = cg.clientFrame & 1;
@@ -1380,16 +1383,16 @@ static void CG_Crowbar( centity_t *cent ) {
 	ent.renderfx = weapon->missileRenderfx | RF_NOSHADOW;
 
 	// convert direction of travel into axis
-	if ( VectorNormalize2( s1->pos.trDelta, ent.axis[0] ) == 0 ) {
+	if ( ((ent.axis[0] = s1->pos.trDelta), (ent.axis[0]).Normalize()) == 0 ) {
 		ent.axis[0][2] = 1;
 	}
 
 	// spin as it moves
-	if ( s1->pos.trType != TR_STATIONARY ) {
-		RotateAroundDirection( ent.axis, cg.time / 4 );
-	} else {
-		RotateAroundDirection( ent.axis, s1->time );
-	}
+	const float yaw = s1->pos.trType != TR_STATIONARY ? cg.time / 4.0f : static_cast<float>( s1->time );
+	ent.axis[1].PerpendicularVector( ent.axis[0] );
+	ent.axis[2] = ent.axis[1];
+	ent.axis[1].RotatePointAroundVector( ent.axis[0], ent.axis[2], yaw );
+	ent.axis[2] = ent.axis[0].Cross( ent.axis[1] );
 
 	// add to refresh list, possibly with quad glow
 	CG_AddRefEntityWithPowerups( &ent, s1->powerups, TEAM_FREE, s1, vec3_origin );
@@ -1538,8 +1541,8 @@ static void CG_Trap( centity_t *cent ) {
 
 	CG_RunAnim( cent, &ent.frame, &ent.oldframe, &ent.backlerp );
 
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( cent->lerpOrigin, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = cent->lerpOrigin;
 
 	ent.hModel = cgs.gameModels[cs->modelindex];
 
@@ -1566,7 +1569,7 @@ static void CG_Corona( centity_t *cent ) {
 			 toofar = qfalse;
 
 	float dot, dist;
-	vec3_t dir;
+	idVec3 dir;
 
 	if ( cg_coronas.integer == 0 ) {   // if set to '0' no coronas
 		return;
@@ -1579,14 +1582,14 @@ static void CG_Corona( centity_t *cent ) {
 
 	// only coronas that are in your PVS are being added
 
-	VectorSubtract( cg.refdef.vieworg, cent->lerpOrigin, dir );
+	dir = cg.refdef.vieworg - cent->lerpOrigin;
 
-	dist = VectorNormalize2( dir, dir );
+	dist = ((dir = dir), (dir).Normalize());
 	if ( dist > cg_coronafardist.integer ) {   // performance variable cg_coronafardist will keep down super long traces
 		toofar = qtrue;
 	}
 
-	dot = DotProduct( dir, cg.refdef.viewaxis[0] );
+	dot = ((dir) * (cg.refdef.viewaxis[0]));
 	if ( dot >= -0.6 ) {     // assumes ~90 deg fov	(SA) changed value to 0.6 (screen corner at 90 fov)
 		behind = qtrue;     // use the dot to at least do trivial removal of those behind you.
 	}
@@ -1617,14 +1620,14 @@ static void CG_Corona( centity_t *cent ) {
 CG_Efx
 ==============
 */
-extern void CG_Explodef( vec3_t origin, vec3_t dir, int mass, int type, qhandle_t sound, int forceLowGrav, qhandle_t shader, int parent, qboolean damage );
+extern void CG_Explodef( idVec3 origin, idVec3 dir, int mass, int type, qhandle_t sound, int forceLowGrav, qhandle_t shader, int parent, qboolean damage );
 
 static void CG_Efx( centity_t *cent ) {
 	int i;
 	float rnd;
 	trace_t trace;
-	vec3_t perpvec;
-	vec3_t stickPoint;
+	idVec3 perpvec;
+	idVec3 stickPoint;
 	float movePerUpdate;
 
 	if ( cent->currentState.eType == ET_TESLA_EF ) {
@@ -1632,11 +1635,11 @@ static void CG_Efx( centity_t *cent ) {
 
 		for ( i = 0; i < MAX_TESLA_BOLTS; i++ ) {
 			if ( cent->boltTimes[i] < cg.time ) {
-				VectorSet( cent->boltLocs[i], crandom(), crandom(), crandom() );
-				VectorNormalize2( cent->boltLocs[i], cent->boltLocs[i] );
-				VectorMA( cent->currentState.origin2, rnd, cent->boltLocs[i], cent->boltLocs[i] );
+				cent->boltLocs[i].Set(cgRandom.CRandomFloat(), cgRandom.CRandomFloat(), cgRandom.CRandomFloat());
+				((cent->boltLocs[i] = cent->boltLocs[i]), (cent->boltLocs[i]).Normalize());
+				cent->boltLocs[i] = cent->currentState.origin2 + cent->boltLocs[i] * (rnd);
 
-				cent->boltTimes[i] = cg.time + rand() % cent->currentState.time2;     // hold this position for ~1 second ('stickytime' value is stored in .time2)
+				cent->boltTimes[i] = cg.time + cgRandom.RandomInt() % cent->currentState.time2;     // hold this position for ~1 second ('stickytime' value is stored in .time2)
 
 				// cut the bolt short if it collides w/ something
 				CG_Trace( &trace, cent->currentState.origin, NULL, NULL, cent->boltLocs[i], -1, MASK_SOLID | CONTENTS_BODY );
@@ -1648,21 +1651,21 @@ static void CG_Efx( centity_t *cent ) {
 //						cg_entities[trace.entityNum].pe.teslaDamagedTime = cg.time;
 					}
 
-					VectorCopy( trace.endpos, cent->boltLocs[i] );
+					cent->boltLocs[i] = trace.endpos;
 
 					// store perpendicular vector so end can 'crawl'
-					PerpendicularVector( perpvec, trace.plane.normal );
+					perpvec.PerpendicularVector( trace.plane.normal );
 
-					RotatePointAroundVector( stickPoint, trace.plane.normal, perpvec, crandom() * CG_FxInt( "wolf/controller_efx", "tuning" ) );
+					stickPoint.RotatePointAroundVector( trace.plane.normal, perpvec, cgRandom.CRandomFloat() * CG_FxInt( "wolf/controller_efx", "tuning" ) );
 
 					// scale it so it won't move too far with bolts that have long boltTimer's
 					movePerUpdate = 1.0f / (float)( cent->boltTimes[i] - cg.time );
 
 					// move a max of 64 away from the 'original' target location
-					VectorScale( stickPoint, movePerUpdate * trace.fraction * CG_FxValue( "wolf/controller_efx", "tuning_2" ), cent->boltCrawlDirs[i] );
+					cent->boltCrawlDirs[i] = stickPoint * (movePerUpdate * trace.fraction * CG_FxValue( "wolf/controller_efx", "tuning_2" ));
 
 				} else {
-					VectorSet( cent->boltCrawlDirs[i], 0, 0, 0 );
+					cent->boltCrawlDirs[i].Set(0, 0, 0);
 				}
 
 			}
@@ -1670,10 +1673,10 @@ static void CG_Efx( centity_t *cent ) {
 
 		for ( i = 0; i < MAX_TESLA_BOLTS; i++ ) {
 
-			if ( cent->boltCrawlDirs[0] || cent->boltCrawlDirs[1] || cent->boltCrawlDirs[2] ) {
-				VectorMA( cent->boltLocs[i], cent->boltTimes[i] - cg.time, cent->boltCrawlDirs[i], perpvec );
+			if ( cent->boltCrawlDirs[i].LengthSqr() > 0.0f ) {
+				perpvec = cent->boltLocs[i] + cent->boltCrawlDirs[i] * (cent->boltTimes[i] - cg.time);
 			} else {
-				VectorCopy( cent->boltLocs[i], perpvec );
+				perpvec = cent->boltLocs[i];
 			}
 
 			CG_DynamicLightningBolt(    CG_FxMaterial( "wolf/controller_efx", "lightningBoltShader" ),  // shader
@@ -1703,14 +1706,14 @@ static void CG_Efx( centity_t *cent ) {
 		}
 	} else if ( cent->currentState.eType == ET_SPOTLIGHT_EF )     {
 
-		vec3_t targetpos, normalized_direction, direction;
+		idVec3 targetpos, normalized_direction, direction;
 		float dist, fov = CG_FxInt( "wolf/controller_efx", "fov" );
-		vec4_t color = {(float)CG_FxInt( "wolf/controller_efx", "color" ), (float)CG_FxInt( "wolf/controller_efx", "color_2" ), (float)CG_FxInt( "wolf/controller_efx", "color_3" ), CG_FxValue( "wolf/controller_efx", "color_4" )};
+		idVec4 color( (float)CG_FxInt( "wolf/controller_efx", "color" ), (float)CG_FxInt( "wolf/controller_efx", "color_2" ), (float)CG_FxInt( "wolf/controller_efx", "color_3" ), CG_FxValue( "wolf/controller_efx", "color_4" ) );
 		int splinetarget = 0;
 		char    *cs;
 		int time = 0;
 
-		VectorCopy( cent->currentState.origin2, targetpos );
+		targetpos = cent->currentState.origin2;
 
 		splinetarget = cent->overheatTime;
 
@@ -1719,9 +1722,9 @@ static void CG_Efx( centity_t *cent ) {
 			time = cent->currentState.time2;    // 'time2' set when it died, so you have a good position
 
 
-			if ( rand() % CG_FxInt( "wolf/controller_efx", "tuning_4" ) == 1 ) {
-				vec3_t angNorm;                 // normalized angles
-				VectorNormalize2( cent->lerpAngles, angNorm );
+			if ( cgRandom.RandomInt() % CG_FxInt( "wolf/controller_efx", "tuning_4" ) == 1 ) {
+				idVec3 angNorm;                 // normalized angles
+				((angNorm = cent->lerpAngles), (angNorm).Normalize());
 				//		(origin, dir, speed, duration, count, 'randscale')
 				CG_AddBulletParticles( cent->lerpOrigin, angNorm, CG_FxInt( "wolf/controller_efx", "AddBulletParticles_value" ), CG_FxInt( "wolf/controller_efx", "tuning_5" ), CG_FxInt( "wolf/controller_efx", "tuning_6" ), CG_FxValue( "wolf/controller_efx", "tuning_7" ) );
 				trap_S_StartSound( NULL, cent->currentState.number, CHAN_AUTO, cgs.media.sparkSounds[0] );
@@ -1729,8 +1732,8 @@ static void CG_Efx( centity_t *cent ) {
 
 			// smoking dead light
 			if ( !cg_paused.integer ) {    // don't add while paused
-				if ( !( rand() % 3 ) ) {
-					CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_efx", "smokeParticleShader" ), cent->currentState.origin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_efx", "tuning_8" ), CG_FxInt( "wolf/controller_efx", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_efx", "tuning_9" ), CG_FxInt( "wolf/controller_efx", "tuning_10" ), CG_FxInt( "wolf/controller_efx", "tuning_11" ), CG_FxValue( "wolf/controller_efx", "ParticleImpactSmokePuffExtended_value_2" ) );
+				if ( !( cgRandom.RandomInt() % 3 ) ) {
+					CG_ParticleImpactSmokePuffExtended( CG_FxMaterial( "wolf/controller_efx", "smokeParticleShader" ), cent->currentState.origin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_efx", "tuning_8" ), CG_FxInt( "wolf/controller_efx", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_efx", "tuning_9" ), CG_FxInt( "wolf/controller_efx", "tuning_10" ), CG_FxInt( "wolf/controller_efx", "tuning_11" ), CG_FxValue( "wolf/controller_efx", "ParticleImpactSmokePuffExtended_value_2" ) );
 				}
 			}
 		}
@@ -1742,7 +1745,7 @@ static void CG_Efx( centity_t *cent ) {
 				trap_startCamera( splinetarget, cg.time );
 			}
 		} else {
-			vec3_t angles;
+			idVec3 angles;
 			if ( splinetarget != -1 ) {
 				if ( trap_getCameraInfo( splinetarget, time, &targetpos, &angles, &fov ) ) {
 				} else {    // loop
@@ -1757,7 +1760,7 @@ static void CG_Efx( centity_t *cent ) {
 		normalized_direction[1] = direction[1] = targetpos[1] - cent->currentState.origin[1];
 		normalized_direction[2] = direction[2] = targetpos[2] - cent->currentState.origin[2];
 
-		dist = VectorNormalize( normalized_direction );
+		dist = (normalized_direction).Normalize();
 
 		if ( dist == 0 ) {
 			return;
@@ -1772,7 +1775,7 @@ static void CG_Efx( centity_t *cent ) {
 		CG_Spotlight( cent, color, cent->currentState.origin, normalized_direction, CG_FxInt( "wolf/controller_efx", "tuning_14" ), CG_FxInt( "wolf/controller_efx", "tuning_15" ), CG_FxInt( "wolf/controller_efx", "tuning_16" ), fov, 0 );
 
 	} else if ( cent->currentState.eType == ET_EFFECT3 ) {
-		vec3_t forward;
+		idVec3 forward;
 		// tag attached emitter
 
 		// messed up tag attachment rotation (forward for a tag is not forward in the world)
@@ -1842,8 +1845,8 @@ static void CG_Explosive( centity_t *cent ) {
 	}
 //----(SA)	end
 
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( cent->lerpOrigin, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = cent->lerpOrigin;
 
 	// fade out
 	if ( cent->currentState.time ) {
@@ -1895,8 +1898,8 @@ static void CG_Mover( centity_t *cent ) {
 	// create the render entity
 	memset( &ent, 0, sizeof( ent ) );
 
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( cent->lerpOrigin, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = cent->lerpOrigin;
 
 	AnglesToAxis( cent->lerpAngles, ent.axis );
 
@@ -1920,9 +1923,9 @@ static void CG_Mover( centity_t *cent ) {
 	// Rafael
 	//  testing for mike to get movers to scale
 	if ( cent->currentState.density == ET_MOVERSCALED ) {
-		VectorScale( ent.axis[0], cent->currentState.angles2[0], ent.axis[0] );
-		VectorScale( ent.axis[1], cent->currentState.angles2[1], ent.axis[1] );
-		VectorScale( ent.axis[2], cent->currentState.angles2[2], ent.axis[2] );
+		ent.axis[0] = ent.axis[0] * (cent->currentState.angles2[0]);
+		ent.axis[1] = ent.axis[1] * (cent->currentState.angles2[1]);
+		ent.axis[2] = ent.axis[2] * (cent->currentState.angles2[2]);
 		ent.nonNormalizedAxes = qtrue;
 	}
 
@@ -1956,10 +1959,10 @@ static void CG_Mover( centity_t *cent ) {
 	// add propeller and sfx to me109
 	if ( cent->currentState.density == 7 || cent->currentState.density == 8 ) {
 		refEntity_t propeller;
-		vec3_t angles;
+		idVec3 angles;
 
 		memset( &propeller, 0, sizeof( propeller ) );
-		VectorCopy( ent.lightingOrigin, propeller.lightingOrigin );
+		propeller.lightingOrigin = ent.lightingOrigin;
 		propeller.shadowPlane = ent.shadowPlane;
 		propeller.renderfx = ent.renderfx;
 
@@ -1975,10 +1978,10 @@ static void CG_Mover( centity_t *cent ) {
 
 		if ( cent->currentState.density == 8 ) {
 			refEntity_t flash;
-			vec3_t flashAngles;
+			idVec3 flashAngles;
 
 			flashAngles[YAW] = 90;
-			flashAngles[ROLL] = random() * 90;
+			flashAngles[ROLL] = cgRandom.RandomFloat() * 90;
 
 			memset( &flash, 0, sizeof( flash ) );
 			flash.renderfx = ent.shadowPlane;
@@ -1989,7 +1992,7 @@ static void CG_Mover( centity_t *cent ) {
 			CG_PositionRotatedEntityOnTag( &flash, &ent, "tag_gun1" );
 
 			trap_R_AddRefEntityToScene( &flash );
-			trap_R_AddLightToScene( flash.origin, 200 + ( rand() & 31 ),1.0, 0.6, 0.23, 0 );
+			trap_R_AddLightToScene( flash.origin, 200 + ( cgRandom.RandomInt() & 31 ),1.0, 0.6, 0.23, 0 );
 
 			memset( &flash, 0, sizeof( flash ) );
 			flash.renderfx = ent.shadowPlane;
@@ -2000,7 +2003,7 @@ static void CG_Mover( centity_t *cent ) {
 			CG_PositionRotatedEntityOnTag( &flash, &ent, "tag_gun02" );
 
 			trap_R_AddRefEntityToScene( &flash );
-			trap_R_AddLightToScene( flash.origin, 200 + ( rand() & 31 ),1.0, 0.6, 0.23, 0 );
+			trap_R_AddLightToScene( flash.origin, 200 + ( cgRandom.RandomInt() & 31 ),1.0, 0.6, 0.23, 0 );
 		}
 	}
 
@@ -2013,9 +2016,9 @@ static void CG_Mover( centity_t *cent ) {
 
 	if ( cent->currentState.eType == ET_ALARMBOX ) {
 		if ( cent->currentState.frame == 2 ) {    // i'm dead
-			if ( rand() % 50 == 1 ) {
-				vec3_t angNorm;                 // normalized angles
-				VectorNormalize2( cent->lerpAngles, angNorm );
+			if ( cgRandom.RandomInt() % 50 == 1 ) {
+				idVec3 angNorm;                 // normalized angles
+				((angNorm = cent->lerpAngles), (angNorm).Normalize());
 				//		(origin, dir, speed, duration, count, 'randscale')
 				CG_AddBulletParticles( cent->lerpOrigin, angNorm, CG_FxInt( "wolf/controller_mover", "AddBulletParticles_value" ), CG_FxInt( "wolf/controller_mover", "AddBulletParticles_value_2" ), CG_FxInt( "wolf/controller_mover", "AddBulletParticles_value_3" ), CG_FxValue( "wolf/controller_mover", "AddBulletParticles_value_4" ) );
 				trap_S_StartSound( NULL, cent->currentState.number, CHAN_AUTO, cgs.media.sparkSounds[0] );
@@ -2039,8 +2042,8 @@ void CG_Beam( centity_t *cent ) {
 
 	// create the render entity
 	memset( &ent, 0, sizeof( ent ) );
-	VectorCopy( s1->pos.trBase, ent.origin );
-	VectorCopy( s1->origin2, ent.oldorigin );
+	ent.origin = s1->pos.trBase;
+	ent.oldorigin = s1->origin2;
 
 	AxisClear( ent.axis );
 	ent.reType = RT_BEAM;
@@ -2065,16 +2068,16 @@ static void CG_Portal( centity_t *cent ) {
 
 	// create the render entity
 	memset( &ent, 0, sizeof( ent ) );
-	VectorCopy( cent->lerpOrigin, ent.origin );
-	VectorCopy( s1->origin2, ent.oldorigin );
+	ent.origin = cent->lerpOrigin;
+	ent.oldorigin = s1->origin2;
 	ByteToDir( s1->eventParm, ent.axis[0] );
-	PerpendicularVector( ent.axis[1], ent.axis[0] );
+	ent.axis[1].PerpendicularVector( ent.axis[0] );
 
 	// negating this tends to get the directions like they want
 	// we really should have a camera roll value
-	VectorSubtract( vec3_origin, ent.axis[1], ent.axis[1] );
+	ent.axis[1] = vec3_origin - ent.axis[1];
 
-	CrossProduct( ent.axis[0], ent.axis[1], ent.axis[2] );
+	ent.axis[2] = (ent.axis[0]).Cross(ent.axis[1]);
 	ent.reType = RT_PORTALSURFACE;
 	ent.frame = s1->frame;      // rotation speed
 	ent.skinNum = s1->clientNum / 256.0 * 360;    // roll offset
@@ -2091,7 +2094,7 @@ CG_Prop
 static void CG_Prop( centity_t *cent ) {
 	refEntity_t ent;
 	entityState_t       *s1;
-	vec3_t angles;
+	idVec3 angles;
 	float scale;
 
 	s1 = &cent->currentState;
@@ -2104,16 +2107,16 @@ static void CG_Prop( centity_t *cent ) {
 	memset( &ent, 0, sizeof( ent ) );
 
 	if ( cg.renderingThirdPerson ) {
-		VectorCopy( cent->lerpOrigin, ent.origin );
-		VectorCopy( cent->lerpOrigin, ent.oldorigin );
+		ent.origin = cent->lerpOrigin;
+		ent.oldorigin = cent->lerpOrigin;
 
 		ent.frame = s1->frame;
 		ent.oldframe = ent.frame;
 		ent.backlerp = 0;
 	} else
 	{
-		VectorCopy( cg.refdef.vieworg, ent.origin );
-		VectorCopy( cg.refdefViewAngles, angles );
+		ent.origin = cg.refdef.vieworg;
+		angles = cg.refdefViewAngles;
 
 		if ( cg.bobcycle & 1 ) {
 			scale = -cg.xyspeed;
@@ -2126,7 +2129,7 @@ static void CG_Prop( centity_t *cent ) {
 		angles[YAW] += scale * cg.bobfracsin * 0.01;
 		angles[PITCH] += cg.xyspeed * cg.bobfracsin * 0.005;
 
-		VectorCopy( angles, cent->lerpAngles );
+		cent->lerpAngles = angles;
 
 		ent.frame = s1->frame;
 		ent.oldframe = ent.frame;
@@ -2237,24 +2240,24 @@ CG_AdjustPositionForMover
 Also called by client movement prediction code
 =========================
 */
-void CG_AdjustPositionForMover( const vec3_t in, int moverNum, int fromTime, int toTime, vec3_t out, vec3_t outDeltaAngles ) {
+void CG_AdjustPositionForMover( const idVec3 &in, int moverNum, int fromTime, int toTime, idVec3 &out, idVec3 *outDeltaAngles ) {
 	centity_t   *cent;
-	vec3_t oldOrigin, origin, deltaOrigin;
-	vec3_t oldAngles, angles, deltaAngles;
+	idVec3 oldOrigin, origin, deltaOrigin;
+	idVec3 oldAngles, angles, deltaAngles;
 
 	if ( outDeltaAngles ) {
-		VectorClear( outDeltaAngles );
+		outDeltaAngles->Zero();
 	}
 
 	if ( moverNum <= 0 || moverNum >= ENTITYNUM_MAX_NORMAL ) {
-		VectorCopy( in, out );
+		out = in;
 		return;
 	}
 
 	cent = &cg_entities[ moverNum ];
 
 	if ( cent->currentState.eType != ET_MOVER ) {
-		VectorCopy( in, out );
+		out = in;
 		return;
 	}
 
@@ -2264,12 +2267,12 @@ void CG_AdjustPositionForMover( const vec3_t in, int moverNum, int fromTime, int
 	BG_EvaluateTrajectory( &cent->currentState.pos, toTime, origin );
 	BG_EvaluateTrajectory( &cent->currentState.apos, toTime, angles );
 
-	VectorSubtract( origin, oldOrigin, deltaOrigin );
-	VectorSubtract( angles, oldAngles, deltaAngles );
+	deltaOrigin = origin - oldOrigin;
+	deltaAngles = angles - oldAngles;
 
-	VectorAdd( in, deltaOrigin, out );
+	out = in + deltaOrigin;
 	if ( outDeltaAngles ) {
-		VectorCopy( deltaAngles, outDeltaAngles );
+		*outDeltaAngles = deltaAngles;
 	}
 
 	// FIXME: origin change when on a rotating object
@@ -2282,7 +2285,7 @@ CG_InterpolateEntityPosition
 =============================
 */
 static void CG_InterpolateEntityPosition( centity_t *cent ) {
-	vec3_t current, next;
+	idVec3 current, next;
 	float f;
 
 	// it would be an internal error to find an entity that interpolates without
@@ -2305,9 +2308,9 @@ static void CG_InterpolateEntityPosition( centity_t *cent ) {
 	BG_EvaluateTrajectory( &cent->currentState.apos, cg.snap->serverTime, current );
 	BG_EvaluateTrajectory( &cent->nextState.apos, cg.nextSnap->serverTime, next );
 
-	cent->lerpAngles[0] = LerpAngle( current[0], next[0], f );
-	cent->lerpAngles[1] = LerpAngle( current[1], next[1], f );
-	cent->lerpAngles[2] = LerpAngle( current[2], next[2], f );
+	cent->lerpAngles[0] = current[0] + f * idMath::AngleDelta( next[0], current[0] );
+	cent->lerpAngles[1] = current[1] + f * idMath::AngleDelta( next[1], current[1] );
+	cent->lerpAngles[2] = current[2] + f * idMath::AngleDelta( next[2], current[2] );
 
 }
 
@@ -2363,8 +2366,8 @@ static void CG_ProcessEntity( centity_t *cent ) {
 	case ET_MG42:
 		if ( cent->currentState.frame == 2 ) {     // dead
 			if ( !cg_paused.integer ) {    // don't add while paused
-				if ( !( rand() % 7 ) ) {
-					CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, tv( 0,0,1 ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_2" ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_3" ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_4" ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_5" ), CG_FxValue( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_6" ) );
+				if ( !( cgRandom.RandomInt() % 7 ) ) {
+					CG_ParticleImpactSmokePuffExtended( cgs.media.smokeParticleShader, cent->lerpOrigin, idVec3( 0,0,1 ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value" ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_2" ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_3" ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_4" ), CG_FxInt( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_5" ), CG_FxValue( "wolf/controller_processentity", "ParticleImpactSmokePuffExtended_value_6" ) );
 				}
 			}
 		}
@@ -2467,9 +2470,10 @@ static void CG_AddEntityToTag( centity_t *cent ) {
 	centity_t           *centParent;
 	entityState_t       *sParent;
 	refEntity_t ent;
-	char *cs, *token = NULL;
+	char *cs;
+	idToken token;
 	int i, pi;
-	vec3_t ang;
+	idVec3 ang;
 
 	memset( &ent, 0, sizeof( ent ) );
 
@@ -2498,24 +2502,24 @@ static void CG_AddEntityToTag( centity_t *cent ) {
 	centParent = NULL;
 	for ( i = CS_TAGCONNECTS + 1; i < CS_TAGCONNECTS + MAX_TAGCONNECTS; i++ ) {   // NOTE: +1 since G_FindConfigStringIndex() starts at index 1 rather than 0 (not sure why)
 		cs = (char *)CG_ConfigString( i );
-		token = COM_Parse( &cs );
-		if ( !token[0] ) {
+		idLexer lexer( cs, strlen( cs ), "entity tag configstring" );
+		if ( !lexer.ReadToken( &token ) ) {
 			break;
 		}
-		if ( atoi( token ) == s1->number ) {
-			token = COM_Parse( &cs );
-			if ( !token[0] ) {
+		if ( atoi( token.c_str() ) == s1->number ) {
+			if ( !lexer.ReadToken( &token ) ) {
 				CG_Error( "CG_EntityTagConnected: missing parameter in configstring" );
+				return;
 			}
-			pi = atoi( token );
+			pi = atoi( token.c_str() );
 			if ( pi < 0 || pi >= MAX_GENTITIES ) {
 				CG_Error( "CG_EntityTagConnected: parent out of range" );
 			}
 			centParent = &cg_entities[pi];
 			sParent = &( cg_entities[pi].currentState );
-			token = COM_Parse( &cs );
-			if ( !token[0] ) {
+			if ( !lexer.ReadToken( &token ) ) {
 				CG_Error( "CG_EntityTagConnected: missing parameter in configstring" );
+				return;
 			}
 
 			// NOTE: token is now the tag name to attach to
@@ -2553,14 +2557,14 @@ static void CG_AddEntityToTag( centity_t *cent ) {
 	//AnglesToAxis( cent->lerpAngles, ent.axis );
 
 	// get the tag position from parent
-	CG_PositionEntityOnTag( &ent, &centParent->refEnt, token, 0, NULL );
+	CG_PositionEntityOnTag( &ent, &centParent->refEnt, token.c_str(), 0, NULL );
 //	CG_PositionRotatedEntityOnTag( &ent, &centParent->refEnt, centParent->refEnt.hModel, token );
 
-	VectorCopy( ent.origin, cent->lerpOrigin );
+	cent->lerpOrigin = ent.origin;
 	// we need to add the child's angles to the tag angles
 	//if (!cent->currentState.density) {	// this entity should rotate with it's parent, but can turn around using it's own angles
 	AxisToAngles( ent.axis, ang );
-	VectorAdd( cent->lerpAngles, ang, cent->lerpAngles );
+	cent->lerpAngles = cent->lerpAngles + ang;
 	//} else {	// face our angles exactly
 	//	BG_EvaluateTrajectory( &cent->currentState.apos, cg.time, cent->lerpAngles );
 	//}

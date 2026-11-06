@@ -222,7 +222,7 @@ CG_HorizontalPercentBar
 void CG_HorizontalPercentBar( float x, float y, float width, float height, float percent ) {
 	idVec4 bgcolor( 0.5f, 0.5f, 0.5f, 0.3f ),
 		   color = idVec4( 1.0f, 1.0f, 1.0f, 0.3f );
-	CG_FilledBar( x, y, width, height, color, NULL, bgcolor, percent, BAR_BG | BAR_NOHUDALPHA );
+	CG_FilledBar( x, y, width, height, color, NULL, &bgcolor, percent, BAR_BG | BAR_NOHUDALPHA );
 }
 
 
@@ -410,7 +410,10 @@ void CG_DrawStringExt( int x, int y, const char *string, const idVec4 &setColor,
 	while ( *s && cnt < maxChars ) {
 		if ( Q_IsColorString( s ) ) {
 			if ( !forceColor ) {
-				memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
+				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
+						   g_color_table[ColorIndex( *( s + 1 ) )][1],
+						   g_color_table[ColorIndex( *( s + 1 ) )][2],
+						   g_color_table[ColorIndex( *( s + 1 ) )][3] );
 				color[3] = setColor[3];
 				trap_R_SetColor( color.ToFloatPtr() );
 			}
@@ -473,7 +476,10 @@ void CG_DrawStringExt2( int x, int y, const char *string, const idVec4 &setColor
 	while ( *s && cnt < maxChars ) {
 		if ( Q_IsColorString( s ) ) {
 			if ( !forceColor ) {
-				memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
+				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
+						   g_color_table[ColorIndex( *( s + 1 ) )][1],
+						   g_color_table[ColorIndex( *( s + 1 ) )][2],
+						   g_color_table[ColorIndex( *( s + 1 ) )][3] );
 				color[3] = setColor[3];
 				trap_R_SetColor( color.ToFloatPtr() );
 			}
@@ -549,7 +555,10 @@ void CG_DrawStringExt3( int x, int y, const char *string, const idVec4 &setColor
 	while ( *s && cnt < maxChars ) {
 		if ( Q_IsColorString( s ) ) {
 			if ( !forceColor ) {
-				memcpy( color, g_color_table[ColorIndex( *( s + 1 ) )], sizeof( color ) );
+				color.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
+						   g_color_table[ColorIndex( *( s + 1 ) )][1],
+						   g_color_table[ColorIndex( *( s + 1 ) )][2],
+						   g_color_table[ColorIndex( *( s + 1 ) )][3] );
 				color[3] = setColor[3];
 				trap_R_SetColor( color.ToFloatPtr() );
 			}
@@ -576,7 +585,7 @@ Coordinates are at 640 by 480 virtual resolution
 */
 /*void CG_DrawStringExt2( int x, int y, const char *string, const float *setColor,
 		qboolean forceColor, qboolean shadow, int charWidth, int charHeight, int maxChars ) {
-	vec4_t		color;
+	idVec4		color;
 	const char	*s;
 	int			xx;
 	int			cnt;
@@ -636,7 +645,7 @@ void CG_DrawBigString( int x, int y, const char *s, float alpha ) {
 	CG_DrawStringExt2( x, y, s, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 }
 
-void CG_DrawBigStringColor( int x, int y, const char *s, idVec4 &color ) {
+void CG_DrawBigStringColor( int x, int y, const char *s, const idVec4 &color ) {
 	//CG_DrawStringExt( x, y, s, color, qtrue, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 	CG_DrawStringExt2( x, y, s, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 }
@@ -651,7 +660,7 @@ void CG_DrawBigString2( int x, int y, const char *s, float alpha ) {
 	CG_DrawStringExt3( x, y, s, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 }
 
-void CG_DrawBigStringColor2( int x, int y, const char *s, idVec4 &color ) {
+void CG_DrawBigStringColor2( int x, int y, const char *s, const idVec4 &color ) {
 	CG_DrawStringExt3( x, y, s, color, qfalse, qtrue, BIGCHAR_WIDTH, BIGCHAR_HEIGHT, 0 );
 }
 // END JOSEPH
@@ -664,7 +673,7 @@ void CG_DrawSmallString( int x, int y, const char *s, float alpha ) {
 	CG_DrawStringExt( x, y, s, color, qfalse, qfalse, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 }
 
-void CG_DrawSmallStringColor( int x, int y, const char *s, idVec4 &color ) {
+void CG_DrawSmallStringColor( int x, int y, const char *s, const idVec4 &color ) {
 	CG_DrawStringExt( x, y, s, color, qtrue, qfalse, SMALLCHAR_WIDTH, SMALLCHAR_HEIGHT, 0 );
 }
 
@@ -754,7 +763,7 @@ void CG_TileClear( void ) {
 CG_FadeColor
 ================
 */
-float *CG_FadeColor( int startMsec, int totalMsec ) {
+idVec4 *CG_FadeColor( int startMsec, int totalMsec ) {
 	static idVec4 color;
 	int t;
 
@@ -776,7 +785,7 @@ float *CG_FadeColor( int startMsec, int totalMsec ) {
 	}
 	color[0] = color[1] = color[2] = 1;
 
-	return color.ToFloatPtr();
+	return &color;
 }
 
 
@@ -785,7 +794,7 @@ float *CG_FadeColor( int startMsec, int totalMsec ) {
 CG_TeamColor
 ================
 */
-float *CG_TeamColor( int team ) {
+idVec4 *CG_TeamColor( int team ) {
 	static idVec4 red( 1, 0.2, 0.2, 1 );
 	static idVec4 blue( 0.2, 0.2, 1, 1 );
 	static idVec4 other( 1, 1, 1, 1 );
@@ -793,13 +802,13 @@ float *CG_TeamColor( int team ) {
 
 	switch ( team ) {
 	case TEAM_RED:
-		return red.ToFloatPtr();
+		return &red;
 	case TEAM_BLUE:
-		return blue.ToFloatPtr();
+		return &blue;
 	case TEAM_SPECTATOR:
-		return spectator.ToFloatPtr();
+		return &spectator;
 	default:
-		return other.ToFloatPtr();
+		return &other;
 	}
 }
 
@@ -1281,9 +1290,6 @@ void UI_DrawProportionalString( int x, int y, const char* str, int style, idVec4
 
 	UI_DrawProportionalString2( x, y, str, color, sizeScale, cgs.media.charsetProp );
 }
-
-
-
 
 
 

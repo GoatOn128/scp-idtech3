@@ -120,11 +120,6 @@ typedef struct {
 	int ( QDECL *Hunk_MemoryRemaining )( void );
 	void ( QDECL *CLUI_GetCDKey )( char *buf, int buflen );
 	void ( QDECL *CLUI_SetCDKey )( char *buf );
-	int ( QDECL *PC_AddGlobalDefine )( char *define );
-	int ( QDECL *PC_LoadSourceHandle )( const char *filename );
-	int ( QDECL *PC_FreeSourceHandle )( int handle );
-	int ( QDECL *PC_ReadTokenHandle )( int handle, pc_token_t *pc_token );
-	int ( QDECL *PC_SourceFileAndLine )( int handle, char *filename, int *line );
 	void ( QDECL *S_StopBackgroundTrack )( void );
 	void ( QDECL *S_StartBackgroundTrack )( const char *intro, const char *loop, int fadeupTime );
 	int ( QDECL *Com_RealTime )( qtime_t *qtime );

@@ -372,7 +372,7 @@ void CG_FireFlameChunks( centity_t *cent, idVec3 origin, idVec3 angles, float sp
 
 		flameLife = flameSettings.Lifetime() * ( 1.0 / ( 0.5 + 0.5 * speedScale ) );
 		of = centInfo->lastFlameChunk;
-		timeInc = 1000.0 * ( firing ? 1.0 : 0.5 ) * ( flameSettings.chunkDistance /**(1.0+crandom()*0.1)*/ / ( flameSettings.startSpeed * speedScale ) );
+		timeInc = 1000.0 * ( firing ? 1.0 : 0.5 ) * ( flameSettings.chunkDistance /**(1.0+cgRandom.CRandomFloat()*0.1)*/ / ( flameSettings.startSpeed * speedScale ) );
 		ft = ( (double)of->timeStart );
 		// never spawn too many chunk in one call (framerate preservation)
 		if ( ( ( (double)cg.time - ft ) / timeInc ) > MAX_CHUNKS_PER_CALL ) {
@@ -411,7 +411,7 @@ void CG_FireFlameChunks( centity_t *cent, idVec3 origin, idVec3 angles, float sp
 			f->sizeStart = f->size = flameSettings.startSize * speedScale; // * (firing ? 1.0 : 0.2);
 			f->sizeMax = ( flameSettings.speedBase + flameSettings.speedWeight * speedScale ) * ( flameSettings.startMaxSize + f->sizeRand * ( firing ? 1.0 : 0.0 ) );
 			//if (cent->currentState.aiChar == AICHAR_ZOMBIE) {
-			//	f->sizeRand = crandom() * flameSettings.startMaxSizeRandom;
+			//	f->sizeRand = cgRandom.CRandomFloat() * flameSettings.startMaxSizeRandom;
 			//	f->sizeMax = 20;
 			//} else {
 			f->sizeRand = 0;
@@ -502,7 +502,7 @@ void CG_FireFlameChunks( centity_t *cent, idVec3 origin, idVec3 angles, float sp
 			f->sizeMax = flameSettings.maxSize;
 		}
 		//if (cent->currentState.aiChar == AICHAR_ZOMBIE) {
-		//	f->sizeRand = crandom() * flameSettings.startMaxSizeRandom;
+		//	f->sizeRand = cgRandom.CRandomFloat() * flameSettings.startMaxSizeRandom;
 		//	f->sizeMax = 20;
 		//} else {
 		f->sizeRand = 0;
@@ -669,8 +669,8 @@ void CG_MoveFlameChunk( flameChunk_t *f, int t ) {
 	trace_t trace;
 	int jiggleCount;
 	float dot;
-	//static vec3_t	umins = {-1,-1,-1}; // TTimo: unused
-	//static vec3_t	umaxs = { 1, 1, 1}; // TTimo: unused
+	//static idVec3	umins = {-1,-1,-1}; // TTimo: unused
+	//static idVec3	umaxs = { 1, 1, 1}; // TTimo: unused
 
 	// subtract friction from speed
 	if ( f->velSpeed > 1 && f->lastFrictionTake < t - 50 ) {
@@ -728,7 +728,7 @@ void CG_MoveFlameChunk( flameChunk_t *f, int t ) {
 
 		if ( trace.fraction == 1.0 ) {
 			// check for hitting client
-			if ( ( f->ownerCent != cg.snap->ps.clientNum ) && !( cg.snap->ps.eFlags & EF_DEAD ) && VectorDistance( newOrigin, cg.snap->ps.origin ) < 32 ) {
+			if ( ( f->ownerCent != cg.snap->ps.clientNum ) && !( cg.snap->ps.eFlags & EF_DEAD ) && ((newOrigin) - (cg.snap->ps.origin)).Length() < 32 ) {
 				( trace.plane.normal = -f->velDir );
 			} else {
 				break;
@@ -778,7 +778,7 @@ void CG_FlameDamage( int owner, idVec3 org, float radius ) {
 	static int lastTime;
 
 	if ( cg.time == lastTime ) {
-		if ( VectorDistance( org, lastPos ) < radius ) {
+		if ( ((org) - (lastPos)).Length() < radius ) {
 			return;
 		}
 	}
@@ -914,7 +914,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		// BOTTOM LEFT
 		x = ( -radius + rdist[0] );
 		if ( x < -fovRadius[0] ) {    // clip
-			( point = f->org + rright * -radius + ( -fovRadius[0] - x ) );
+			( point = f->org + rright * ( -radius + ( -fovRadius[0] - x ) ) );
 			verts[0].st[0] = 0.0 + ( -fovRadius[0] - x ) / ( radius * 2 );
 		} else {
 			( point = f->org + rright * -radius );
@@ -922,7 +922,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		}
 		x = ( -radius + rdist[1] );
 		if ( x < -fovRadius[1] ) {
-			( point = point + rup * -radius + ( -fovRadius[1] - x ) );
+			( point = point + rup * ( -radius + ( -fovRadius[1] - x ) ) );
 			verts[0].st[1] = 0.0 + ( -fovRadius[1] - x ) / ( radius * 2 );
 		} else {
 			( point = point + rup * -radius );
@@ -933,7 +933,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		// TOP LEFT
 		x = ( -radius + rdist[0] );
 		if ( x < -fovRadius[0] ) {    // clip
-			( point = f->org + rright * -radius + ( -fovRadius[0] - x ) );
+			( point = f->org + rright * ( -radius + ( -fovRadius[0] - x ) ) );
 			verts[1].st[0] = 0.0 + ( -fovRadius[0] - x ) / ( radius * 2 );
 		} else {
 			( point = f->org + rright * -radius );
@@ -941,7 +941,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		}
 		x = ( radius + rdist[1] );
 		if ( x > fovRadius[1] ) {
-			( point = point + rup * radius + ( fovRadius[1] - x ) );
+			( point = point + rup * ( radius + ( fovRadius[1] - x ) ) );
 			verts[1].st[1] = 1.0 + ( fovRadius[1] - x ) / ( radius * 2 );
 		} else {
 			( point = point + rup * radius );
@@ -952,7 +952,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		// TOP RIGHT
 		x = ( radius + rdist[0] );
 		if ( x > fovRadius[0] ) {
-			( point = f->org + rright * radius + ( fovRadius[0] - x ) );
+			( point = f->org + rright * ( radius + ( fovRadius[0] - x ) ) );
 			verts[2].st[0] = 1.0 + ( fovRadius[0] - x ) / ( radius * 2 );
 		} else {
 			( point = f->org + rright * radius );
@@ -960,7 +960,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		}
 		x = ( radius + rdist[1] );
 		if ( x > fovRadius[1] ) {
-			( point = point + rup * radius + ( fovRadius[1] - x ) );
+			( point = point + rup * ( radius + ( fovRadius[1] - x ) ) );
 			verts[2].st[1] = 1.0 + ( fovRadius[1] - x ) / ( radius * 2 );
 		} else {
 			( point = point + rup * radius );
@@ -971,7 +971,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		// BOTTOM RIGHT
 		x = ( radius + rdist[0] );
 		if ( x > fovRadius[0] ) {
-			( point = f->org + rright * radius + ( fovRadius[0] - x ) );
+			( point = f->org + rright * ( radius + ( fovRadius[0] - x ) ) );
 			verts[3].st[0] = 1.0 + ( fovRadius[0] - x ) / ( radius * 2 );
 		} else {
 			( point = f->org + rright * radius );
@@ -979,7 +979,7 @@ void CG_AddFlameSpriteToScene( flameChunk_t *f, float lifeFrac, float alpha ) {
 		}
 		x = ( -radius + rdist[1] );
 		if ( x < -fovRadius[1] ) {
-			( point = point + rup * -radius + ( -fovRadius[1] - x ) );
+			( point = point + rup * ( -radius + ( -fovRadius[1] - x ) ) );
 			verts[3].st[1] = 0.0 + ( -fovRadius[1] - x ) / ( radius * 2 );
 		} else {
 			( point = point + rup * -radius );

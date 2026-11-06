@@ -1059,21 +1059,6 @@ static uiImport_t CL_CreateUIImports() {
 		CLUI_SetCDKey( buf );
 		return;
 	};
-	imports.PC_AddGlobalDefine = []( char *define ) -> int {
-		return botlib_export->PC_AddGlobalDefine( define );
-	};
-	imports.PC_LoadSourceHandle = []( const char *filename ) -> int {
-		return botlib_export->PC_LoadSourceHandle( filename );
-	};
-	imports.PC_FreeSourceHandle = []( int handle ) -> int {
-		return botlib_export->PC_FreeSourceHandle( handle );
-	};
-	imports.PC_ReadTokenHandle = []( int handle, pc_token_t *pc_token ) -> int {
-		return botlib_export->PC_ReadTokenHandle( handle, pc_token );
-	};
-	imports.PC_SourceFileAndLine = []( int handle, char *filename, int *line ) -> int {
-		return botlib_export->PC_SourceFileAndLine( handle, filename, line );
-	};
 	imports.S_StopBackgroundTrack = []( void ) -> void {
 		S_StopBackgroundTrack();
 		return;

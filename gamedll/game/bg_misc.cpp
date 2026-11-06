@@ -4004,7 +4004,7 @@ void BG_EvaluateTrajectory( const trajectory_t *tr, int atTime, idVec3 &result )
 		break;
 	case TR_SINE:
 		deltaTime = ( atTime - tr->trTime ) / (float) tr->trDuration;
-		phase = sin( deltaTime * M_PI * 2 );
+		phase = sin( deltaTime * idMath::PI * 2 );
 		result = tr->trBase + tr->trDelta * phase;
 		break;
 //----(SA)	removed
@@ -4093,7 +4093,7 @@ void BG_EvaluateTrajectoryDelta( const trajectory_t *tr, int atTime, idVec3 &res
 		break;
 	case TR_SINE:
 		deltaTime = ( atTime - tr->trTime ) / (float) tr->trDuration;
-		phase = cos( deltaTime * M_PI * 2 );    // derivative of sin = cos
+		phase = cos( deltaTime * idMath::PI * 2 );    // derivative of sin = cos
 		phase *= 0.5;
 		result = tr->trDelta * phase;
 		break;
@@ -4169,7 +4169,7 @@ void BG_GetMarkDir( const idVec3 &dir, const idVec3 &normal, idVec3 &out ) {
 	}
 
 	ndir = dir;
-	ndir.Negate();
+	ndir *= -1.0f;
 	ndir.Normalize();
 	if ( normal[2] > 0.8 ) {
 		minDot = 0.7;

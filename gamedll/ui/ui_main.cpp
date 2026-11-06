@@ -755,33 +755,31 @@ char *GetMenuBuffer( const char *filename ) {
 
 }
 
-qboolean Asset_Parse( int handle ) {
-	pc_token_t token;
+qboolean Asset_Parse( idLexer *handle ) {
+	idToken token;
 	const char *tempStr;
 
-	if ( !trap_PC_ReadToken( handle, &token ) ) {
+	if ( !handle->ReadToken( &token ) ) {
 		return qfalse;
 	}
-	if ( idStr::Icmp( token.string, "{" ) != 0 ) {
+	if ( idStr::Icmp( token.c_str(), "{" ) != 0 ) {
 		return qfalse;
 	}
 
 	while ( 1 ) {
 
-		memset( &token, 0, sizeof( pc_token_t ) );
-
-		if ( !trap_PC_ReadToken( handle, &token ) ) {
+		if ( !handle->ReadToken( &token ) ) {
 			return qfalse;
 		}
 
-		if ( idStr::Icmp( token.string, "}" ) == 0 ) {
+		if ( idStr::Icmp( token.c_str(), "}" ) == 0 ) {
 			return qtrue;
 		}
 
 		// font
-		if ( idStr::Icmp( token.string, "font" ) == 0 ) {
+		if ( idStr::Icmp( token.c_str(), "font" ) == 0 ) {
 			int pointSize;
-			if ( !PC_String_Parse( handle, &tempStr ) || !PC_Int_Parse( handle,&pointSize ) ) {
+			if ( !String_Parse( handle, &tempStr ) || !Int_Parse( handle,&pointSize ) ) {
 				return qfalse;
 			}
 			trap_R_RegisterFont( tempStr, pointSize, &uiInfo.uiDC.Assets.textFont );
@@ -789,18 +787,18 @@ qboolean Asset_Parse( int handle ) {
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "smallFont" ) == 0 ) {
+		if ( idStr::Icmp( token.c_str(), "smallFont" ) == 0 ) {
 			int pointSize;
-			if ( !PC_String_Parse( handle, &tempStr ) || !PC_Int_Parse( handle,&pointSize ) ) {
+			if ( !String_Parse( handle, &tempStr ) || !Int_Parse( handle,&pointSize ) ) {
 				return qfalse;
 			}
 			trap_R_RegisterFont( tempStr, pointSize, &uiInfo.uiDC.Assets.smallFont );
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "bigFont" ) == 0 ) {
+		if ( idStr::Icmp( token.c_str(), "bigFont" ) == 0 ) {
 			int pointSize;
-			if ( !PC_String_Parse( handle, &tempStr ) || !PC_Int_Parse( handle,&pointSize ) ) {
+			if ( !String_Parse( handle, &tempStr ) || !Int_Parse( handle,&pointSize ) ) {
 				return qfalse;
 			}
 			trap_R_RegisterFont( tempStr, pointSize, &uiInfo.uiDC.Assets.bigFont );
@@ -808,9 +806,9 @@ qboolean Asset_Parse( int handle ) {
 		}
 
 		// handwriting
-		if ( idStr::Icmp( token.string, "handwritingFont" ) == 0 ) {
+		if ( idStr::Icmp( token.c_str(), "handwritingFont" ) == 0 ) {
 			int pointSize;
-			if ( !PC_String_Parse( handle, &tempStr ) || !PC_Int_Parse( handle,&pointSize ) ) {
+			if ( !String_Parse( handle, &tempStr ) || !Int_Parse( handle,&pointSize ) ) {
 				return qfalse;
 			}
 			trap_R_RegisterFont( tempStr, pointSize, &uiInfo.uiDC.Assets.handwritingFont );
@@ -819,8 +817,8 @@ qboolean Asset_Parse( int handle ) {
 
 
 		// gradientbar
-		if ( idStr::Icmp( token.string, "gradientbar" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
+		if ( idStr::Icmp( token.c_str(), "gradientbar" ) == 0 ) {
+			if ( !String_Parse( handle, &tempStr ) ) {
 				return qfalse;
 			}
 			uiInfo.uiDC.Assets.gradientBar = trap_R_RegisterShaderNoMip( tempStr );
@@ -828,8 +826,8 @@ qboolean Asset_Parse( int handle ) {
 		}
 
 		// enterMenuSound
-		if ( idStr::Icmp( token.string, "menuEnterSound" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
+		if ( idStr::Icmp( token.c_str(), "menuEnterSound" ) == 0 ) {
+			if ( !String_Parse( handle, &tempStr ) ) {
 				return qfalse;
 			}
 			uiInfo.uiDC.Assets.menuEnterSound = trap_S_RegisterSound( tempStr );
@@ -837,8 +835,8 @@ qboolean Asset_Parse( int handle ) {
 		}
 
 		// exitMenuSound
-		if ( idStr::Icmp( token.string, "menuExitSound" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
+		if ( idStr::Icmp( token.c_str(), "menuExitSound" ) == 0 ) {
+			if ( !String_Parse( handle, &tempStr ) ) {
 				return qfalse;
 			}
 			uiInfo.uiDC.Assets.menuExitSound = trap_S_RegisterSound( tempStr );
@@ -846,8 +844,8 @@ qboolean Asset_Parse( int handle ) {
 		}
 
 		// itemFocusSound
-		if ( idStr::Icmp( token.string, "itemFocusSound" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
+		if ( idStr::Icmp( token.c_str(), "itemFocusSound" ) == 0 ) {
+			if ( !String_Parse( handle, &tempStr ) ) {
 				return qfalse;
 			}
 			uiInfo.uiDC.Assets.itemFocusSound = trap_S_RegisterSound( tempStr );
@@ -855,59 +853,59 @@ qboolean Asset_Parse( int handle ) {
 		}
 
 		// menuBuzzSound
-		if ( idStr::Icmp( token.string, "menuBuzzSound" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &tempStr ) ) {
+		if ( idStr::Icmp( token.c_str(), "menuBuzzSound" ) == 0 ) {
+			if ( !String_Parse( handle, &tempStr ) ) {
 				return qfalse;
 			}
 			uiInfo.uiDC.Assets.menuBuzzSound = trap_S_RegisterSound( tempStr );
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "cursor" ) == 0 ) {
-			if ( !PC_String_Parse( handle, &uiInfo.uiDC.Assets.cursorStr ) ) {
+		if ( idStr::Icmp( token.c_str(), "cursor" ) == 0 ) {
+			if ( !String_Parse( handle, &uiInfo.uiDC.Assets.cursorStr ) ) {
 				return qfalse;
 			}
 			uiInfo.uiDC.Assets.cursor = trap_R_RegisterShaderNoMip( uiInfo.uiDC.Assets.cursorStr );
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "fadeClamp" ) == 0 ) {
-			if ( !PC_Float_Parse( handle, &uiInfo.uiDC.Assets.fadeClamp ) ) {
+		if ( idStr::Icmp( token.c_str(), "fadeClamp" ) == 0 ) {
+			if ( !Float_Parse( handle, &uiInfo.uiDC.Assets.fadeClamp ) ) {
 				return qfalse;
 			}
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "fadeCycle" ) == 0 ) {
-			if ( !PC_Int_Parse( handle, &uiInfo.uiDC.Assets.fadeCycle ) ) {
+		if ( idStr::Icmp( token.c_str(), "fadeCycle" ) == 0 ) {
+			if ( !Int_Parse( handle, &uiInfo.uiDC.Assets.fadeCycle ) ) {
 				return qfalse;
 			}
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "fadeAmount" ) == 0 ) {
-			if ( !PC_Float_Parse( handle, &uiInfo.uiDC.Assets.fadeAmount ) ) {
+		if ( idStr::Icmp( token.c_str(), "fadeAmount" ) == 0 ) {
+			if ( !Float_Parse( handle, &uiInfo.uiDC.Assets.fadeAmount ) ) {
 				return qfalse;
 			}
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "shadowX" ) == 0 ) {
-			if ( !PC_Float_Parse( handle, &uiInfo.uiDC.Assets.shadowX ) ) {
+		if ( idStr::Icmp( token.c_str(), "shadowX" ) == 0 ) {
+			if ( !Float_Parse( handle, &uiInfo.uiDC.Assets.shadowX ) ) {
 				return qfalse;
 			}
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "shadowY" ) == 0 ) {
-			if ( !PC_Float_Parse( handle, &uiInfo.uiDC.Assets.shadowY ) ) {
+		if ( idStr::Icmp( token.c_str(), "shadowY" ) == 0 ) {
+			if ( !Float_Parse( handle, &uiInfo.uiDC.Assets.shadowY ) ) {
 				return qfalse;
 			}
 			continue;
 		}
 
-		if ( idStr::Icmp( token.string, "shadowColor" ) == 0 ) {
-			if ( !PC_Color_Parse( handle, &uiInfo.uiDC.Assets.shadowColor ) ) {
+		if ( idStr::Icmp( token.c_str(), "shadowColor" ) == 0 ) {
+			if ( !Color_Parse( handle, &uiInfo.uiDC.Assets.shadowColor ) ) {
 				return qfalse;
 			}
 			uiInfo.uiDC.Assets.shadowFadeClamp = uiInfo.uiDC.Assets.shadowColor[3];
@@ -934,100 +932,75 @@ void UI_Report() {
 }
 
 void UI_ParseMenu( const char *menuFile ) {
-	int handle;
-	pc_token_t token;
+	idStr menuSource;
+	idLexer parser;
+	idToken token;
 
 	Com_Printf( "Parsing menu file:%s\n", menuFile );
 
-	handle = trap_PC_LoadSource( menuFile );
-	if ( !handle ) {
+	menuSource = GetMenuBuffer( menuFile );
+	if ( menuSource.IsEmpty() ) {
 		return;
 	}
+	parser.LoadMemory( menuSource.c_str(), menuSource.Length(), menuFile );
 
-	while ( 1 ) {
-		memset( &token, 0, sizeof( pc_token_t ) );
-		if ( !trap_PC_ReadToken( handle, &token ) ) {
+	while ( parser.ReadToken( &token ) ) {
+		if ( token[0] == '}' ) {
 			break;
 		}
-
-		//if ( idStr::Icmp( token, "{" ) ) {
-		//	Com_Printf( "Missing { in menu file\n" );
-		//	break;
-		//}
-
-		//if ( menuCount == MAX_MENUS ) {
-		//	Com_Printf( "Too many menus!\n" );
-		//	break;
-		//}
-
-		if ( token.string[0] == '}' ) {
-			break;
-		}
-
-		if ( idStr::Icmp( token.string, "assetGlobalDef" ) == 0 ) {
-			if ( Asset_Parse( handle ) ) {
-				continue;
-			} else {
+		if ( idStr::Icmp( token.c_str(), "assetGlobalDef" ) == 0 ) {
+			if ( !Asset_Parse( &parser ) ) {
 				break;
 			}
 		}
 
-		if ( idStr::Icmp( token.string, "menudef" ) == 0 ) {
-			// start a new menu
-			Menu_New( handle );
+		if ( idStr::Icmp( token.c_str(), "menudef" ) == 0 ) {
+			Menu_New( &parser );
 		}
 	}
-	trap_PC_FreeSource( handle );
 }
 
-qboolean Load_Menu( int handle ) {
-	pc_token_t token;
+qboolean Load_Menu( idLexer *parser ) {
+	idToken token;
 
-	if ( !trap_PC_ReadToken( handle, &token ) ) {
+	if ( !parser->ReadToken( &token ) ) {
 		return qfalse;
 	}
-	if ( token.string[0] != '{' ) {
+	if ( token[0] != '{' ) {
 		return qfalse;
 	}
 
-	while ( 1 ) {
-
-		if ( !trap_PC_ReadToken( handle, &token ) ) {
-			return qfalse;
-		}
-
-		if ( token.string[0] == 0 ) {
-			return qfalse;
-		}
-
-		if ( token.string[0] == '}' ) {
+	while ( parser->ReadToken( &token ) ) {
+		if ( token[0] == '}' ) {
 			return qtrue;
 		}
-
-		UI_ParseMenu( token.string );
+		UI_ParseMenu( token.c_str() );
 	}
 	return qfalse;
 }
 
 void UI_LoadMenus( const char *menuFile, qboolean reset ) {
-	pc_token_t token;
-	int handle;
+	idStr menuSource;
+	idLexer parser;
+	idToken token;
 	int start;
 
 	start = trap_Milliseconds();
 
-	handle = trap_PC_LoadSource( menuFile );
-	if ( !handle ) {
+	menuSource = GetMenuBuffer( menuFile );
+	if ( menuSource.IsEmpty() ) {
 		trap_Error( va( S_COLOR_YELLOW "menu file not found: %s, using default\n", menuFile ) );
 #ifdef WOLF_SP_DEMO
-		handle = trap_PC_LoadSource( "ui/menus.txt" );
+		menuSource = GetMenuBuffer( "ui/menus.txt" );
 #else
-		handle = trap_PC_LoadSource( "ui/demomenus.txt" );
+		menuSource = GetMenuBuffer( "ui/demomenus.txt" );
 #endif
-		if ( !handle ) {
+		if ( menuSource.IsEmpty() ) {
 			trap_Error( va( S_COLOR_RED "default menu file not found: ui/menus.txt, unable to continue!\n", menuFile ) );
+			return;
 		}
 	}
+	parser.LoadMemory( menuSource.c_str(), menuSource.Length(), menuFile );
 
 	ui_new.integer = 1;
 
@@ -1035,22 +1008,13 @@ void UI_LoadMenus( const char *menuFile, qboolean reset ) {
 		Menu_Reset();
 	}
 
-	while ( 1 ) {
-		if ( !trap_PC_ReadToken( handle, &token ) ) {
-			break;
-		}
-		if ( token.string[0] == 0 || token.string[0] == '}' ) {
+	while ( parser.ReadToken( &token ) ) {
+		if ( token[0] == 0 || token[0] == '}' ) {
 			break;
 		}
 
-		if ( token.string[0] == '}' ) {
-			break;
-		}
-
-		if ( idStr::Icmp( token.string, "loadmenu" ) == 0 ) {
-			if ( Load_Menu( handle ) ) {
-				continue;
-			} else {
+		if ( idStr::Icmp( token.c_str(), "loadmenu" ) == 0 ) {
+			if ( !Load_Menu( &parser ) ) {
 				break;
 			}
 		}
@@ -1058,7 +1022,6 @@ void UI_LoadMenus( const char *menuFile, qboolean reset ) {
 
 	Com_Printf( "UI menu load time = %d milli seconds\n", trap_Milliseconds() - start );
 
-	trap_PC_FreeSource( handle );
 }
 
 
@@ -1142,7 +1105,7 @@ static const char *handicapValues[] = {"None","95","90","85","80","75","70","65"
 static void UI_DrawHandicap( rectDef_t *rect, int font, float scale, const idVec4 &color, int textStyle ) {
 	int i, h;
 
-	h = Com_Clamp( 5, 100, trap_Cvar_VariableValue( "handicap" ) );
+	h = idMath::ClampInt( 5, 100, (int)trap_Cvar_VariableValue( "handicap" ) );
 	i = 20 - h / 5;
 
 	Text_Paint( rect->x, rect->y, font, scale, color, handicapValues[i], 0, 0, textStyle );

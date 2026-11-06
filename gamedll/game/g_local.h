@@ -807,7 +807,7 @@ void    G_InitGentity( gentity_t *e );
 gentity_t   *G_Spawn( void );
 gentity_t *G_TempEntity( idVec3 &origin, int event );
 void    G_Sound( gentity_t *ent, int soundIndex );
-void    G_AnimScriptSound( int soundIndex, idVec3 &org, int client );
+void    G_AnimScriptSound( int soundIndex, const idVec3 *org, int client );
 void    G_FreeEntity( gentity_t *e );
 //qboolean	G_EntitiesFree( void );
 
