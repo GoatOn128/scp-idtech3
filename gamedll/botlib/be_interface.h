@@ -26,6 +26,8 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 
+#include "../../idlib/Heap.h"
+
 
 /*****************************************************************************
  * name:		be_interface.h
@@ -73,7 +75,7 @@ typedef struct botlib_globals_s
 #ifdef DEBUG
 	qboolean debug;                         //true if debug is on
 	int goalareanum;
-	vec3_t goalorigin;
+	idVec3 goalorigin;
 	int runai;
 #endif
 } botlib_globals_t;
@@ -87,7 +89,7 @@ typedef struct botlib_globals_s
 extern botlib_globals_t botlibglobals;
 extern botlib_import_t botimport;
 extern int bot_developer;                   //true if developer is on
+extern idRandom botlibRandom;
 
 //
 int Sys_MilliSeconds( void );
-

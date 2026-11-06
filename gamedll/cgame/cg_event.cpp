@@ -1468,7 +1468,7 @@ void CG_SpawnSpirit( centity_t *cent ) {
 	v = enemyPos - le->pos.trBase;
 	(v).Normalize();
 	vectoangles( v, ang );
-	AnglesToAxis( ang, re->axis );
+	idAngles( ang[0], ang[1], ang[2] ).ToVectors( &re->axis[0], &re->axis[1], &re->axis[2] );
 	le->pos.trDelta = v * (CG_FxInt( "wolf/controller_spawnspirit", "tuning" ));
 
 }

@@ -538,7 +538,7 @@ static cgameImport_t CL_CreateCGameImports() {
 		CM_TransformedBoxTrace( results, start, end, mins, maxs, model, brushmask, origin, angles, /*int capsule*/ qtrue );
 		return;
 	};
-	imports.RE_MarkFragments = []( int numPoints, const idVec3 *points, const idVec3 &projection, int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) -> int {
+	imports.RE_MarkFragments = []( int numPoints, const idVec3 *points, const idVec3 &projection, int maxPoints, idVec5 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) -> int {
 		return re.MarkFragments( numPoints, points, projection, maxPoints, pointBuffer, maxFragments, fragmentBuffer );
 	};
 	imports.S_StartSound = []( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfx ) -> void {

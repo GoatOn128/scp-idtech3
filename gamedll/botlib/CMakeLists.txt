@@ -12,9 +12,6 @@ set(BOTLIB_SOURCES
 	l_crc.cpp
 	l_libvar.cpp
 	l_log.cpp
-	l_memory.cpp
-	l_precomp.cpp
-	l_script.cpp
 	l_struct.cpp
 	${CMAKE_SOURCE_DIR}/engine/qcommon/q_shared.cpp)
 
@@ -32,7 +29,7 @@ if ( NOT WIN32 )
 endif()
 target_compile_definitions(botlib PRIVATE _LIB BOTLIB)
 target_compile_features(botlib PRIVATE cxx_std_17)
-target_link_libraries(botlib PUBLIC detour)
+target_link_libraries(botlib PUBLIC detour idlib)
 if ( MSVC )
 	target_link_libraries(botlib PRIVATE winmm)
 	target_link_options(botlib PRIVATE /BASE:0x40000000 /MAP:${CMAKE_SOURCE_DIR}/bin/botlibx86.map)

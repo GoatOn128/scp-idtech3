@@ -114,7 +114,7 @@ static void CG_MachineGunEjectBrassNew( centity_t *cent ) {
 	le->pos.trType = TR_GRAVITY;
 	le->pos.trTime = cg.time - ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrassnew", "le_pos_trTime" ) );
 
-	AnglesToAxis( cent->lerpAngles, v );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &v[0], &v[1], &v[2] );
 
 	re->origin = ejectBrassCasingOrigin;
 
@@ -203,7 +203,7 @@ static void CG_MachineGunEjectBrass( centity_t *cent ) {
 	le->pos.trType = TR_GRAVITY;
 	le->pos.trTime = cg.time - ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_machinegunejectbrass", "le_pos_trTime" ) );
 
-	AnglesToAxis( cent->lerpAngles, v );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &v[0], &v[1], &v[2] );
 
 	if ( cg.snap->ps.persistant[PERS_HWEAPON_USE] ) {
 		offset[0] = CG_FxInt( "wolf/controller_machinegunejectbrass", "offset_x" );
@@ -310,7 +310,7 @@ static void CG_PanzerFaustEjectBrass( centity_t *cent ) {
 	le->pos.trTime = cg.time - ( cgRandom.RandomInt() & CG_FxInt( "wolf/controller_panzerfaustejectbrass", "le_pos_trTime" ) );
 //	le->pos.trTime = cg.time - 2000;
 
-	AnglesToAxis( cent->lerpAngles, v );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &v[0], &v[1], &v[2] );
 
 //	offset[0] = 12;
 //	offset[1] = -4;
@@ -1660,7 +1660,7 @@ static void CG_CalculateWeaponPosition( idVec3 origin, idVec3 angles ) {
 		origin = origin + right * (angles[ROLL]);
 
 		// pitch the gun down a bit to show that firing is not allowed when leaning
-		angles[PITCH] += ( fabs( cg.predictedPlayerState.leanf ) / 2.0f );
+		angles[PITCH] += ( idMath::Fabs( cg.predictedPlayerState.leanf ) / 2.0f );
 
 		// this gives you some impression that the weapon stays in relatively the same
 		// position while you lean, so you appear to 'peek' over the weapon
@@ -1706,7 +1706,7 @@ static void CG_CalculateWeaponPosition( idVec3 origin, idVec3 angles ) {
 //	scale = cg.xyspeed + 40;
 	scale = 80;
 //----(SA)	end
-	fracsin = sin( cg.time * 0.001 );
+	fracsin = idMath::Sin( cg.time * 0.001 );
 	angles[ROLL] += scale * fracsin * 0.01;
 	angles[YAW] += scale * fracsin * 0.01;
 	angles[PITCH] += scale * fracsin * 0.01;
@@ -1986,19 +1986,19 @@ alpha = 1;
 				gun->shaderRGBA[3] = (unsigned char)(255.0*alpha);
 				// calc the fireRiseDir from the velocity
 				VectorNegate( cg.snap->ps.velocity, gun->fireRiseDir );
-				VectorNormalize( gun->fireRiseDir );
+				gun->fireRiseDir.Normalize();
 				gun->fireRiseDir[2] += 1;
-				if (VectorNormalize( gun->fireRiseDir ) < 1) {
-					VectorClear( gun->fireRiseDir );
+				if (gun->fireRiseDir.Normalize() < 1) {
+					gun->fireRiseDir.Zero();
 					gun->fireRiseDir[2] = 1;
 				}
 				// now move towards the newDir
 				adjust = 5.0*(0.001*cg.frametime);
-				VectorMA( cg.v_fireRiseDir, adjust, gun->fireRiseDir, cg.v_fireRiseDir );
-				if (VectorNormalize( cg.v_fireRiseDir ) <= 0.1) {
-					VectorCopy( gun->fireRiseDir, cg.v_fireRiseDir );
+				cg.v_fireRiseDir = cg.v_fireRiseDir + gun->fireRiseDir * adjust;
+				if (cg.v_fireRiseDir.Normalize() <= 0.1) {
+					cg.v_fireRiseDir = gun->fireRiseDir;
 				}
-				VectorCopy( cg.v_fireRiseDir, gun->fireRiseDir );
+				gun->fireRiseDir = cg.v_fireRiseDir;
 
 //				gun->reFlags |= REFLAG_ONLYHAND;
 gun->customShader = cgs.media.dripWetShader2;
@@ -2573,7 +2573,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			}
 
 			if ( spunpart ) {
-				AnglesToAxis( angles, barrel.axis );
+				idAngles( angles[0], angles[1], angles[2] ).ToVectors( &barrel.axis[0], &barrel.axis[1], &barrel.axis[2] );
 			}
 			// end spinning
 
@@ -2601,7 +2601,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 			if ( weaponNum == WP_VENOM ) {
 
 				angles[ROLL] = CG_VenomSpinAngle( cent );
-				AnglesToAxis( angles, barrel.axis );
+				idAngles( angles[0], angles[1], angles[2] ).ToVectors( &barrel.axis[0], &barrel.axis[1], &barrel.axis[2] );
 
 				barrel.hModel = weapon->wpPartModels[W_TP_MODEL][W_PART_1];
 				CG_PositionRotatedEntityOnTag( &barrel, &gun, "tag_barrel" );
@@ -2650,7 +2650,7 @@ void CG_AddPlayerWeapon( refEntity_t *parent, playerState_t *ps, centity_t *cent
 	angles[YAW]     = 0;
 	angles[PITCH]   = 0;
 	angles[ROLL]    = cgRandom.CRandomFloat() * 10;
-	AnglesToAxis( angles, flash.axis );
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 
 	CG_PositionRotatedEntityOnTag( &flash, &gun, "tag_flash" );
 
@@ -2823,7 +2823,7 @@ void CG_AddPlayerFoot( refEntity_t *parent, playerState_t *ps, centity_t *cent )
 	if ( kickangle[0] < 0 ) {
 		kickangle[0] = 0;                       //----(SA)	avoid "Rockette" syndrome :)
 	}
-	AnglesToAxis( kickangle, wolfkick.axis );
+	idAngles( kickangle[0], kickangle[1], kickangle[2] ).ToVectors( &wolfkick.axis[0], &wolfkick.axis[1], &wolfkick.axis[2] );
 
 
 	frame = cg.snap->ps.persistant[PERS_WOLFKICK];
@@ -2871,8 +2871,8 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 
 		if ( cg.predictedPlayerState.eFlags & EF_FIRING ) {
 			// special hack for lightning gun...
-			VectorCopy( cg.refdef.vieworg, origin );
-			VectorMA( origin, -8, cg.refdef.viewaxis[2], origin );
+			origin = cg.refdef.vieworg;
+			origin = origin + cg.refdef.viewaxis[2] * -8;
 			CG_LightningBolt( &cg_entities[ps->clientNum], origin );
 		}
 */
@@ -2938,7 +2938,7 @@ void CG_AddViewWeapon( playerState_t *ps ) {
 		hand.origin = hand.origin + cg.refdef.viewaxis[1] * (gunoff[1]);
 		hand.origin = hand.origin + cg.refdef.viewaxis[2] * (( gunoff[2] + fovOffset ));
 
-		AnglesToAxis( angles, hand.axis );
+		idAngles( angles[0], angles[1], angles[2] ).ToVectors( &hand.axis[0], &hand.axis[1], &hand.axis[2] );
 
 		if ( cg_gun_frame.integer ) {
 			hand.frame = hand.oldframe = cg_gun_frame.integer;
@@ -4435,7 +4435,7 @@ void CG_MG42EFX( centity_t *cent ) {
 	flash.hModel = cgs.media.mg42muzzleflash;
 
 	flash.origin = point;
-	AnglesToAxis( cg.refdefViewAngles, flash.axis );
+	idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 
 	trap_R_AddRefEntityToScene( &flash );
 }
@@ -4477,7 +4477,7 @@ void CG_FLAKEFX( centity_t *cent, int whichgun ) {
 	flash.hModel = cgs.media.mg42muzzleflash;
 
 	flash.origin = point;
-	AnglesToAxis( cg.refdefViewAngles, flash.axis );
+	idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 
 	trap_R_AddRefEntityToScene( &flash );
 
@@ -4509,7 +4509,7 @@ void CG_MortarEFX( centity_t *cent ) {
 		flash.renderfx = RF_LIGHTING_ORIGIN;
 		flash.hModel = CG_FxModel( "wolf/controller_mortarefx", "mg42muzzleflash" );
 		flash.origin = cent->currentState.origin;
-		AnglesToAxis( cg.refdefViewAngles, flash.axis );
+		idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 		trap_R_AddRefEntityToScene( &flash );
 	}
 }
@@ -4574,7 +4574,7 @@ void CG_WeaponFireRecoil( int weapon ) {
 		// push the player back instead
 		break;
 	case WP_VENOM:
-		pitchRecoilAdd = pow( cgRandom.RandomFloat(),8 ) * ( 10 + (cg.snap->ps.velocity).Length() / 5 );
+		pitchRecoilAdd = idMath::Pow( cgRandom.RandomFloat(),8 ) * ( 10 + (cg.snap->ps.velocity).Length() / 5 );
 		pitchAdd = ( cgRandom.RandomInt() % 5 ) - 2;
 		yawRandom = 2;
 
@@ -4845,7 +4845,7 @@ void CG_AddDebris( const idVec3 &origin, const idVec3 &dir, int speed, int durat
 		le = CG_FxSpawnModel( "wolf/controller_adddebris" );
 		re = &le->refEntity;
 
-		unitvel.Set(dir[0] + cgRandom.CRandomFloat() * 0.9, dir[1] + cgRandom.CRandomFloat() * 0.9, fabs( dir[2] ) > 0.5 ? dir[2] * ( 0.2 + 0.8 * cgRandom.RandomFloat() ) : cgRandom.RandomFloat() * 0.6);
+		unitvel.Set(dir[0] + cgRandom.CRandomFloat() * 0.9, dir[1] + cgRandom.CRandomFloat() * 0.9, idMath::Fabs( dir[2] ) > 0.5 ? dir[2] * ( 0.2 + 0.8 * cgRandom.RandomFloat() ) : cgRandom.RandomFloat() * 0.6);
 		velocity = unitvel * ((float)speed + (float)speed * 0.5 * cgRandom.CRandomFloat());
 
 		le->leType = LE_DEBRIS;
@@ -5119,9 +5119,9 @@ void CG_MissileHitWall( int weapon, int clientNum, const idVec3 &origin, const i
 
 						sfx->s.density = type;
 
-						VectorCopy (tr.endpos, start);
+						start = tr.endpos;
 
-						VectorCopy (muzzleTrace, dir);
+						dir = muzzleTrace;
 						VectorNegate (dir, dir);
 
 						G_SetOrigin (sfx, start);
@@ -5982,8 +5982,8 @@ void CG_Bullet( const idVec3 &end, int sourceEntityNum, const idVec3 &normal, qb
 		/*
 		// special FX for Zombie
 		if (cent->currentState.aiChar == AICHAR_ZOMBIE) {
-			VectorSubtract( end, start, dir );
-			VectorNormalize( dir );
+			dir = end - start;
+			dir.Normalize();
 			// upper
 			trap_RB_ZombieFXAddNewHit( cent->currentState.number, end, dir );
 			// lower

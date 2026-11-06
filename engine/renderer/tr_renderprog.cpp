@@ -320,7 +320,7 @@ qboolean RB_BeginScreenPass( screenProgram_t kind ) {
 	rpUniform4f( screenProgram->viewport, view->viewportX, view->viewportY, view->viewportWidth, view->viewportHeight );
 	rpUniform2f( screenProgram->depthSize, screenDepthWidth, screenDepthHeight );
 	rpUniformMatrix4fv( screenProgram->inverseViewProjection, 1, GL_FALSE, inverse );
-	rpUniform3fv( screenProgram->viewOrigin, 1, view->orent.origin );
+	rpUniform3fv( screenProgram->viewOrigin, 1, view->orent.origin.ToFloatPtr() );
 	rpUniform2f( screenProgram->projection, view->projectionMatrix[10], view->projectionMatrix[14] );
 	return qtrue;
 }
@@ -340,11 +340,11 @@ void RB_ScreenSoftness( float value ) {
 	rpUniform1f( screenProgram->softness, value );
 }
 
-void RB_ScreenDecalProjection( const vec3_t origin, const vec3_t right, const vec3_t up, const vec3_t normal ) {
-	rpUniform3fv( screenProgram->origin, 1, origin );
-	rpUniform3fv( screenProgram->right, 1, right );
-	rpUniform3fv( screenProgram->up, 1, up );
-	rpUniform3fv( screenProgram->normal, 1, normal );
+void RB_ScreenDecalProjection( const idVec3 &origin, const idVec3 &right, const idVec3 &up, const idVec3 &normal ) {
+	rpUniform3fv( screenProgram->origin, 1, origin.ToFloatPtr() );
+	rpUniform3fv( screenProgram->right, 1, right.ToFloatPtr() );
+	rpUniform3fv( screenProgram->up, 1, up.ToFloatPtr() );
+	rpUniform3fv( screenProgram->normal, 1, normal.ToFloatPtr() );
 }
 
 void RB_BindScreenMaterial( const refEntity_t *entity ) {

@@ -67,7 +67,7 @@ static int frameSize;
 static short           *sh, *sh2;
 static float           *pf;
 static idVec3 angles, tangles, torsoParentOffset, torsoAxis[3], tmpAxis[3];
-static float           *tempVert, *tempNormal;
+static idVec3 tempVert, tempNormal;
 static idVec3 vec, v2, dir;
 static float diff, a1, a2;
 static int render_count;
@@ -85,7 +85,7 @@ static int totalrv, totalrt, totalv, totalt;    //----(SA)
 
 //-----------------------------------------------------------------------------
 
-static float ProjectRadius( float r, float r, const idVec3 &location ) {
+static float ProjectRadius( float r, const idVec3 &location ) {
 	float pr;
 	float dist;
 	float c;
@@ -462,22 +462,16 @@ static float sp, sy;
 static float cp, cy;
 
 __inline void LocalAngleVector( const idVec3 &angs, idVec3 &forward ) {
-	LAVangle = angs[YAW] * ( M_PI * 2 / 360 );
+	LAVangle = angs[YAW] * ( idMath::TWO_PI / 360.0f );
 	sy = sin( LAVangle );
 	cy = cos( LAVangle );
-	LAVangle = angs[PITCH] * ( M_PI * 2 / 360 );
+	LAVangle = angs[PITCH] * ( idMath::TWO_PI / 360.0f );
 	sp = sin( LAVangle );
 	cp = cos( LAVangle );
 
 	forward[0] = cp * cy;
 	forward[1] = cp * sy;
 	forward[2] = -sp;
-}
-
-__inline void LocalidVec3 &out = const idVec3 &org + const idVec3 &dirv * float dist {
-	out[0] = org[0] + dist * dirv[0];
-	out[1] = org[1] + dist * dirv[1];
-	out[2] = org[2] + dist * dirv[2];
 }
 
 #define ANGLES_SHORT_TO_FLOAT( pf, sh )     { *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); }
@@ -722,15 +716,15 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 	// rotation
 	if ( fullTorso ) {
 		sh = (short *)cTBonePtr->angles;
-		pf = angles;
+		pf = angles.ToFloatPtr();
 		ANGLES_SHORT_TO_FLOAT( pf, sh );
 	} else {
 		sh = (short *)cBonePtr->angles;
-		pf = angles;
+		pf = angles.ToFloatPtr();
 		ANGLES_SHORT_TO_FLOAT( pf, sh );
 		if ( isTorso ) {
 			sh = (short *)cTBonePtr->angles;
-			pf = tangles;
+			pf = tangles.ToFloatPtr();
 			ANGLES_SHORT_TO_FLOAT( pf, sh );
 			// blend the angles together
 			for ( j = 0; j < 3; j++ ) {
@@ -754,7 +748,7 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 			angles[1] = cTBonePtr->ofsAngles[1];
 			angles[2] = 0;
 			LocalAngleVector( angles, vec );
-			LocalbonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
+			bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 		} else {
 
 			angles[0] = cBonePtr->ofsAngles[0];
@@ -770,36 +764,36 @@ void R_CalcBone( mdsHeader_t *header, const refEntity_t *refent, int boneNum ) {
 
 				// blend the angles together
 				SLerp_Normal( vec, v2, thisBoneInfo->torsoWeight, vec );
-				LocalbonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
+				bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 
 			} else {    // legs bone
-				LocalbonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
+				bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 			}
 		}
 #else
 		if ( fullTorso ) {
-			sh = (short *)cTBonePtr->ofsAngles; pf = angles;
+			sh = (short *)cTBonePtr->ofsAngles; pf = angles.ToFloatPtr();
 			*( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = 0;
 			LocalAngleVector( angles, vec );
-			LocalbonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
+			bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 		} else {
 
-			sh = (short *)cBonePtr->ofsAngles; pf = angles;
+			sh = (short *)cBonePtr->ofsAngles; pf = angles.ToFloatPtr();
 			*( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = 0;
 			LocalAngleVector( angles, vec );
 
 			if ( isTorso ) {
 				sh = (short *)cTBonePtr->ofsAngles;
-				pf = tangles;
+				pf = tangles.ToFloatPtr();
 				*( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = SHORT2ANGLE( *( sh++ ) ); *( pf++ ) = 0;
 				LocalAngleVector( tangles, v2 );
 
 				// blend the angles together
 				SLerp_Normal( vec, v2, thisBoneInfo->torsoWeight, vec );
-				LocalbonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
+				bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 
 			} else {    // legs bone
-				LocalbonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
+				bonePtr->translation = parentBone->translation + vec * thisBoneInfo->parentDist;
 			}
 		}
 #endif
@@ -861,7 +855,7 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 
 		sh = (short *)cTBonePtr->angles;
 		sh2 = (short *)cOldTBonePtr->angles;
-		pf = angles;
+		pf = angles.ToFloatPtr();
 
 		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - torsoBacklerp * diff;
@@ -874,7 +868,7 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 
 		sh = (short *)cBonePtr->angles;
 		sh2 = (short *)cOldBonePtr->angles;
-		pf = angles;
+		pf = angles.ToFloatPtr();
 
 		a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
 		*( pf++ ) = a1 - backlerp * diff;
@@ -887,7 +881,7 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 
 			sh = (short *)cTBonePtr->angles;
 			sh2 = (short *)cOldTBonePtr->angles;
-			pf = tangles;
+			pf = tangles.ToFloatPtr();
 
 			a1 = SHORT2ANGLE( *( sh++ ) ); a2 = SHORT2ANGLE( *( sh2++ ) ); diff = AngleNormalize180( a1 - a2 );
 			*( pf++ ) = a1 - torsoBacklerp * diff;
@@ -920,13 +914,13 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 			sh2 = (short *)cOldBonePtr->ofsAngles;
 		}
 
-		pf = angles;
+		pf = angles.ToFloatPtr();
 		*( pf++ ) = SHORT2ANGLE( *( sh++ ) );
 		*( pf++ ) = SHORT2ANGLE( *( sh++ ) );
 		*( pf++ ) = 0;
 		LocalAngleVector( angles, v2 );     // new
 
-		pf = angles;
+		pf = angles.ToFloatPtr();
 		*( pf++ ) = SHORT2ANGLE( *( sh2++ ) );
 		*( pf++ ) = SHORT2ANGLE( *( sh2++ ) );
 		*( pf++ ) = 0;
@@ -946,13 +940,13 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 			sh = (short *)cTBonePtr->ofsAngles;
 			sh2 = (short *)cOldTBonePtr->ofsAngles;
 
-			pf = angles;
+			pf = angles.ToFloatPtr();
 			*( pf++ ) = SHORT2ANGLE( *( sh++ ) );
 			*( pf++ ) = SHORT2ANGLE( *( sh++ ) );
 			*( pf++ ) = 0;
 			LocalAngleVector( angles, v2 );     // new
 
-			pf = angles;
+			pf = angles.ToFloatPtr();
 			*( pf++ ) = SHORT2ANGLE( *( sh2++ ) );
 			*( pf++ ) = SHORT2ANGLE( *( sh2++ ) );
 			*( pf++ ) = 0;
@@ -966,7 +960,7 @@ void R_CalcBoneLerp( mdsHeader_t *header, const refEntity_t *refent, int boneNum
 
 		}
 
-		LocalbonePtr->translation = parentBone->translation + dir * thisBoneInfo->parentDist;
+		bonePtr->translation = parentBone->translation + dir * thisBoneInfo->parentDist;
 
 	} else {    // just interpolate the frame positions
 
@@ -1306,12 +1300,11 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 	//
 	numVerts = surface->numVerts;
 	v = ( mdsVertex_t * )( (byte *)surface + surface->ofsVerts );
-	tempVert = ( float * )( tess.xyz + baseVertex );
-	tempNormal = ( float * )( tess.normal + baseVertex );
-	for ( j = 0; j < render_count; j++, tempVert += 4, tempNormal += 4 ) {
+	for ( j = 0; j < render_count; j++ ) {
 		mdsWeight_t *w;
 
 		tempVert.Zero();
+		tempNormal.Zero();
 
 		w = v->weights;
 		for ( k = 0 ; k < v->numWeights ; k++, w++ ) {
@@ -1319,6 +1312,8 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 			LocalAddScaledMatrixTransformVectorTranslate( w->offset, w->boneWeight, bone->matrix, bone->translation, tempVert );
 		}
 		LocalMatrixTransformVector( v->normal, bones[v->weights[0].boneIndex].matrix, tempNormal );
+		tess.xyz[baseVertex + j].ToVec3() = tempVert;
+		tess.normal[baseVertex + j].ToVec3() = tempNormal;
 
 		tess.texCoords[baseVertex + j][0][0] = v->texCoords[0];
 		tess.texCoords[baseVertex + j][0][1] = v->texCoords[1];
@@ -1341,10 +1336,10 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 				for ( j = 0; j < 3; j++ ) {
 					vec.Zero();
 					vec[j] = 1;
-					qglColor3fv( vec );
-					qglVertex3fv( bonePtr->translation );
+					qglColor3fv( vec.ToFloatPtr() );
+					qglVertex3fv( bonePtr->translation.ToFloatPtr() );
 					vec = bonePtr->translation + bonePtr->matrix[j] * 5;
-					qglVertex3fv( vec );
+					qglVertex3fv( vec.ToFloatPtr() );
 				}
 				qglEnd();
 
@@ -1353,8 +1348,8 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 					qglLineWidth( 2 );
 					qglBegin( GL_LINES );
 					qglColor3f( .6,.6,.6 );
-					qglVertex3fv( bonePtr->translation );
-					qglVertex3fv( bones[boneInfo[*boneRefs].parent].translation );
+					qglVertex3fv( bonePtr->translation.ToFloatPtr() );
+					qglVertex3fv( bones[boneInfo[*boneRefs].parent].translation.ToFloatPtr() );
 					qglEnd();
 				}
 
@@ -1366,9 +1361,6 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 			int render_indexes = ( tess.numIndexes - oldIndexes );
 
 			// show mesh edges
-			tempVert = ( float * )( tess.xyz + baseVertex );
-			tempNormal = ( float * )( tess.normal + baseVertex );
-
 			GL_Bind( tr.whiteImage );
 			qglLineWidth( 1 );
 			qglBegin( GL_LINES );
@@ -1376,14 +1368,14 @@ void RB_SurfaceAnim( mdsSurface_t *surface ) {
 
 			pIndexes = &tess.indexes[oldIndexes];
 			for ( j = 0; j < render_indexes / 3; j++, pIndexes += 3 ) {
-				qglVertex3fv( tempVert + 4 * pIndexes[0] );
-				qglVertex3fv( tempVert + 4 * pIndexes[1] );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[0]].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[1]].ToFloatPtr() );
 
-				qglVertex3fv( tempVert + 4 * pIndexes[1] );
-				qglVertex3fv( tempVert + 4 * pIndexes[2] );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[1]].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[2]].ToFloatPtr() );
 
-				qglVertex3fv( tempVert + 4 * pIndexes[2] );
-				qglVertex3fv( tempVert + 4 * pIndexes[0] );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[2]].ToFloatPtr() );
+				qglVertex3fv( tess.xyz[baseVertex + pIndexes[0]].ToFloatPtr() );
 			}
 
 			qglEnd();

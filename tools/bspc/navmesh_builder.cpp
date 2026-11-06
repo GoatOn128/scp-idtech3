@@ -22,12 +22,6 @@ along with IceWolf.  If not, see <http://www.gnu.org/licenses/>.
 ===========================================================================
 */
 
-#include "navmesh_builder.h"
-
-#include "../../engine/qcommon/wolf_nav.h"
-#include "../../engine/qcommon/q_shared.h"
-#include "q3files.h"
-
 #include <DetourNavMeshBuilder.h>
 #include <DetourNavMesh.h>
 #include <DetourNavMeshQuery.h>
@@ -45,6 +39,12 @@ along with IceWolf.  If not, see <http://www.gnu.org/licenses/>.
 #include <sstream>
 #include <string>
 #include <vector>
+
+#include "navmesh_builder.h"
+
+#include "../../engine/qcommon/wolf_nav.h"
+#include "../../engine/qcommon/q_shared.h"
+#include "q3files.h"
 
 namespace {
 constexpr int kSurfaceSky = 0x4;
@@ -143,24 +143,23 @@ bool ReadLump( const std::vector<std::uint8_t> &file, const q3_lump_t &lump, std
 	return true;
 }
 
-void AddVertex( std::vector<float> &verts, const float quake[3] ) {
+void AddVertex( std::vector<float> &verts, const idVec3 &quake ) {
 	float nav[3];
-	wolf::nav::QuakeToNav( quake, nav );
+	wolf::nav::QuakeToNav( quake.ToFloatPtr(), nav );
 	verts.insert( verts.end(), nav, nav + 3 );
 }
 
-std::array<float, 3> Bezier( const q3_drawVert_t &a, const q3_drawVert_t &b, const q3_drawVert_t &c, float t ) {
+idVec3 Bezier( const idVec3 &a, const idVec3 &b, const idVec3 &c, float t ) {
 	const float s = 1.0f - t;
-	return { s * s * a.xyz[0] + 2 * s * t * b.xyz[0] + t * t * c.xyz[0],
-		s * s * a.xyz[1] + 2 * s * t * b.xyz[1] + t * t * c.xyz[1],
-		s * s * a.xyz[2] + 2 * s * t * b.xyz[2] + t * t * c.xyz[2] };
+	return idVec3( s * s * a[0] + 2 * s * t * b[0] + t * t * c[0],
+				   s * s * a[1] + 2 * s * t * b[1] + t * t * c[1],
+				   s * s * a[2] + 2 * s * t * b[2] + t * t * c[2] );
 }
 
-std::array<float, 3> PatchPoint( const q3_drawVert_t control[3][3], float u, float v ) {
-	q3_drawVert_t rows[3]{};
+idVec3 PatchPoint( const idVec3 control[3][3], float u, float v ) {
+	idVec3 rows[3];
 	for ( int y = 0; y < 3; ++y ) {
-		auto p = Bezier( control[y][0], control[y][1], control[y][2], u );
-		std::copy( p.begin(), p.end(), rows[y].xyz );
+		rows[y] = Bezier( control[y][0], control[y][1], control[y][2], u );
 	}
 	return Bezier( rows[0], rows[1], rows[2], v );
 }
@@ -208,13 +207,13 @@ bool ExtractGeometry( const std::filesystem::path &path, std::vector<float> &ver
 		} else if ( surface.surfaceType == MST_PATCH && surface.patchWidth >= 3 && surface.patchHeight >= 3 ) {
 			constexpr int subdivisions = 4;
 			for ( int py = 0; py + 2 < surface.patchHeight; py += 2 ) for ( int px = 0; px + 2 < surface.patchWidth; px += 2 ) {
-				q3_drawVert_t control[3][3]{};
+				idVec3 control[3][3];
 				for ( int y = 0; y < 3; ++y ) for ( int x = 0; x < 3; ++x )
-					control[y][x] = drawVerts[surface.firstVert + ( py + y ) * surface.patchWidth + px + x];
+					control[y][x] = drawVerts[surface.firstVert + ( py + y ) * surface.patchWidth + px + x].xyz;
 				const int base = static_cast<int>( verts.size() / 3 );
 				for ( int y = 0; y <= subdivisions; ++y ) for ( int x = 0; x <= subdivisions; ++x ) {
-					auto p = PatchPoint( control, x / float( subdivisions ), y / float( subdivisions ) );
-					AddVertex( verts, p.data() );
+					idVec3 point = PatchPoint( control, x / float( subdivisions ), y / float( subdivisions ) );
+					AddVertex( verts, point );
 				}
 				for ( int y = 0; y < subdivisions; ++y ) for ( int x = 0; x < subdivisions; ++x ) {
 					const int a = base + y * ( subdivisions + 1 ) + x;
@@ -274,7 +273,7 @@ bool ExtractGeometry( const std::filesystem::path &path, std::vector<float> &ver
 			}
 			if ( winding.size() < 3 ) continue;
 			const int base = static_cast<int>( verts.size() / 3 );
-			for ( const auto &point : winding ) AddVertex( verts, point.data() );
+			for ( const auto &point : winding ) AddVertex( verts, idVec3( point[0], point[1], point[2] ) );
 			for ( int i = 1; i + 1 < static_cast<int>( winding.size() ); ++i ) tris.insert( tris.end(), { base, base + i, base + i + 1 } );
 		}
 	}
@@ -333,7 +332,7 @@ bool BuildNavMesh( const NavBuildOptions &options, std::string &error ) {
 	rcFilterWalkableLowHeightSpans( &context, cfg.walkableHeight, *solid );
 	RcOwner<rcCompactHeightfield, rcFreeCompactHeightfield> compact{ rcAllocCompactHeightfield() };
 	if ( !compact.value || !rcBuildCompactHeightfield( &context, cfg.walkableHeight, cfg.walkableClimb, *solid, *compact ) ) { error = "could not build compact heightfield"; return false; }
-	for ( int i = 0; i < compact->spanCount; ++i ) if ( compact->areas[i] != RC_NULL_AREA && compact->spans[i].h < normalHeight ) compact->areas[i] = 1;
+	for ( int i = 0; i < compact->spanCount; ++i ) if ( compact->areas[i] != RC_NULL_AREA && static_cast<int>( compact->spans[i].h ) < normalHeight ) compact->areas[i] = 1;
 	if ( !rcErodeWalkableArea( &context, cfg.walkableRadius, *compact ) || !rcBuildDistanceField( &context, *compact ) ||
 		 !rcBuildRegions( &context, *compact, 0, cfg.minRegionArea, cfg.mergeRegionArea ) ) { error = "could not build walkable regions"; return false; }
 	RcOwner<rcContourSet, rcFreeContourSet> contours{ rcAllocContourSet() };

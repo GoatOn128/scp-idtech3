@@ -2223,6 +2223,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 	//int	*center;
 	qboolean /*invalid,*/ skip;
 	idVec3 fCol, fScale;
+	static idRandom cropImageRandom;
 	qboolean filterColors = qfalse;
 	int fCount;
 	float f,c;
@@ -2294,7 +2295,7 @@ qboolean R_CropImage( char *name, byte **pic, int border, int *width, int *heigh
 						if ( f <= 0 ) {
 							*( (int *)inpixel ) = 0;
 						} else {
-							f += 0.2 * crandom();
+							f += 0.2 * cropImageRandom.CRandomFloat();
 							if ( f < 1.0 ) {
 								if ( f <= 0 ) {
 									*( (int *)inpixel ) = 0;

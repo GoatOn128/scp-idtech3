@@ -95,7 +95,7 @@ typedef struct aas_trace_s
 {
 	qboolean startsolid;    // if true, the initial point was in a solid area
 	float fraction;         // time completed, 1.0 = didn't hit anything
-	vec3_t endpos;          // final position
+	idVec3 endpos;          // final position
 	int ent;                // entity blocking the trace
 	int lastarea;           // last area the trace was in (zero if none)
 	int area;               // area blocking the trace (zero if none)
@@ -118,7 +118,7 @@ typedef struct bsp_trace_s
 	qboolean		allsolid;	// if true, plane is not valid
 	qboolean		startsolid;	// if true, the initial point was in a solid area
 	float			fraction;	// time completed, 1.0 = didn't hit anything
-	vec3_t		endpos;		// final position
+	idVec3		endpos;		// final position
 	cplane_t		plane;		// surface normal at impact
 	float			exp_dist;	// expanded plane distance
 	int			sidenum;		// number of the brush side hit
@@ -138,12 +138,12 @@ typedef struct aas_entityinfo_s
 	float ltime;            // local time
 	float update_time;      // time between last and current update
 	int number;             // number of the entity
-	vec3_t origin;          // origin of the entity
-	vec3_t angles;          // angles of the model
-	vec3_t old_origin;      // for lerping
-	vec3_t lastvisorigin;   // last visible origin
-	vec3_t mins;            // bounding box minimums
-	vec3_t maxs;            // bounding box maximums
+	idVec3 origin;          // origin of the entity
+	idVec3 angles;          // angles of the model
+	idVec3 old_origin;      // for lerping
+	idVec3 lastvisorigin;   // last visible origin
+	idVec3 mins;            // bounding box minimums
+	idVec3 maxs;            // bounding box maximums
 	int groundent;          // ground entity
 	int solid;              // solid type
 	int modelindex;         // model used
@@ -176,8 +176,8 @@ typedef struct aas_entityinfo_s
 
 typedef struct aas_clientmove_s
 {
-	vec3_t endpos;          //position at the end of movement prediction
-	vec3_t velocity;        //velocity at the end of movement prediction
+	idVec3 endpos;          //position at the end of movement prediction
+	idVec3 velocity;        //velocity at the end of movement prediction
 	aas_trace_t trace;      //last trace
 	int presencetype;       //presence type at end of movement prediction
 	int stopevent;          //event that made the prediction stop
@@ -188,7 +188,7 @@ typedef struct aas_clientmove_s
 
 typedef struct aas_altroutegoal_s
 {
-	vec3_t origin;
+	idVec3 origin;
 	int areanum;
 	unsigned short starttraveltime;
 	unsigned short goaltraveltime;

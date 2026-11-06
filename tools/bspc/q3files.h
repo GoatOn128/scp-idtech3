@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __QFILES_H__
 #define __QFILES_H__
 
+#include "../../idlib/precompiled.h"
+#include "../../idlib/math/Vector.h"
+
 //
 // qfiles.h: quake file formats
 // This file must be identical in the quake and utils directories
@@ -109,16 +112,16 @@ typedef struct _TargaHeader {
 #define MD3_XYZ_SCALE       ( 1.0 / 64 )
 
 typedef struct md3Frame_s {
-	vec3_t bounds[2];
-	vec3_t localOrigin;
+	idVec3 bounds[2];
+	idVec3 localOrigin;
 	float radius;
 	char name[16];
 } md3Frame_t;
 
 typedef struct md3Tag_s {
 	char name[MAX_QPATH];           // tag name
-	vec3_t origin;
-	vec3_t axis[3];
+	idVec3 origin;
+	idVec3 axis[3];
 } md3Tag_t;
 
 /*
@@ -338,10 +341,10 @@ typedef struct {
 } q3_dfog_t;
 
 typedef struct {
-	vec3_t xyz;
+	idVec3 xyz;
 	float st[2];
 	float lightmap[2];
-	vec3_t normal;
+	idVec3 normal;
 	byte color[4];
 } q3_drawVert_t;
 
@@ -368,8 +371,8 @@ typedef struct {
 	int lightmapX, lightmapY;
 	int lightmapWidth, lightmapHeight;
 
-	vec3_t lightmapOrigin;
-	vec3_t lightmapVecs[3];         // for patches, [0] and [1] are lodbounds
+	idVec3 lightmapOrigin;
+	idVec3 lightmapVecs[3];         // for patches, [0] and [1] are lodbounds
 
 	int patchWidth;
 	int patchHeight;

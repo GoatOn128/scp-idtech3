@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __QFILES_H__
 #define __QFILES_H__
 
+#include "../../idlib/precompiled.h"
+#include "../../idlib/math/Vector.h"
+
 //
 // qfiles.h: quake file formats
 // This file must be identical in the quake and utils directories
@@ -109,16 +112,16 @@ typedef struct _TargaHeader {
 #define MD3_XYZ_SCALE       ( 1.0 / 64 )
 
 typedef struct md3Frame_s {
-	vec3_t bounds[2];
-	vec3_t localOrigin;
+	idVec3 bounds[2];
+	idVec3 localOrigin;
 	float radius;
 	char name[16];
 } md3Frame_t;
 
 typedef struct md3Tag_s {
 	char name[MAX_QPATH];           // tag name
-	vec3_t origin;
-	vec3_t axis[3];
+	idVec3 origin;
+	idVec3 axis[3];
 } md3Tag_t;
 
 /*
@@ -300,12 +303,12 @@ MD4 file format
 typedef struct {
 	int boneIndex;              // these are indexes into the boneReferences,
 	float boneWeight;           // not the global per-frame bone list
-	vec3_t offset;
+	idVec3 offset;
 } md4Weight_t;
 
 typedef struct {
-	vec3_t normal;
-	vec2_t texCoords;
+	idVec3 normal;
+	idVec2 texCoords;
 	int numWeights;
 	md4Weight_t weights[1];     // variable sized
 } md4Vertex_t;
@@ -345,8 +348,8 @@ typedef struct {
 } md4Bone_t;
 
 typedef struct {
-	vec3_t bounds[2];               // bounds of all surfaces of all LOD's for this frame
-	vec3_t localOrigin;             // midpoint of bounds, used for sphere cull
+	idVec3 bounds[2];               // bounds of all surfaces of all LOD's for this frame
+	idVec3 localOrigin;             // midpoint of bounds, used for sphere cull
 	float radius;                   // dist from localOrigin to corner
 	char name[16];
 	md4Bone_t bones[1];             // [numBones]
@@ -398,12 +401,12 @@ MDS file format (Wolfenstein Skeletal Format)
 typedef struct {
 	int boneIndex;              // these are indexes into the boneReferences,
 	float boneWeight;           // not the global per-frame bone list
-	vec3_t offset;
+	idVec3 offset;
 } mdsWeight_t;
 
 typedef struct {
-	vec3_t normal;
-	vec2_t texCoords;
+	idVec3 normal;
+	idVec2 texCoords;
 	int numWeights;
 	int fixedParent;            // stay equi-distant from this parent
 	float fixedDist;
@@ -453,15 +456,15 @@ typedef struct {
 
 // NOTE: this only used at run-time
 typedef struct {
-	float matrix[3][3];             // 3x3 rotation
-	vec3_t translation;             // translation vector
+	idVec3 matrix[3];               // 3x3 rotation
+	idVec3 translation;             // translation vector
 } mdsBoneFrame_t;
 
 typedef struct {
-	vec3_t bounds[2];               // bounds of all surfaces of all LOD's for this frame
-	vec3_t localOrigin;             // midpoint of bounds, used for sphere cull
+	idVec3 bounds[2];               // bounds of all surfaces of all LOD's for this frame
+	idVec3 localOrigin;             // midpoint of bounds, used for sphere cull
 	float radius;                   // dist from localOrigin to corner
-	vec3_t parentOffset;            // one bone is an ascendant of all other bones, it starts the hierachy at this position
+	idVec3 parentOffset;            // one bone is an ascendant of all other bones, it starts the hierachy at this position
 	mdsBoneFrameCompressed_t bones[1];              // [numBones]
 } mdsFrame_t;
 
@@ -661,10 +664,10 @@ typedef struct {
 } dfog_t;
 
 typedef struct {
-	vec3_t xyz;
+	idVec3 xyz;
 	float st[2];
 	float lightmap[2];
-	vec3_t normal;
+	idVec3 normal;
 	byte color[4];
 } drawVert_t;
 
@@ -691,8 +694,8 @@ typedef struct {
 	int lightmapX, lightmapY;
 	int lightmapWidth, lightmapHeight;
 
-	vec3_t lightmapOrigin;
-	vec3_t lightmapVecs[3];         // for patches, [0] and [1] are lodbounds
+	idVec3 lightmapOrigin;
+	idVec3 lightmapVecs[3];         // for patches, [0] and [1] are lodbounds
 
 	int patchWidth;
 	int patchHeight;

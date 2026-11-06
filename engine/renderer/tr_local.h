@@ -523,7 +523,7 @@ typedef struct {
 
 	// for clipping distance in fog when outside
 	qboolean hasSurface;
-	float surface[4];
+	idVec4 surface;
 } fog_t;
 
 typedef struct {
@@ -1535,7 +1535,7 @@ MARKERS, POLYGON PROJECTION ON WORLD POLYGONS
 */
 
 int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projection,
-						 int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+						 int maxPoints, idVec5 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
 
 /*

@@ -51,13 +51,13 @@ Out must have space for two more vertexes than in
 #define SIDE_ON     2
 static void R_ChopPolyBehindPlane( int numInPoints, idVec3 inPoints[MAX_VERTS_ON_POLY],
 								   int *numOutPoints, idVec3 outPoints[MAX_VERTS_ON_POLY],
-								   idVec3 normal, vec_t dist, vec_t epsilon ) {
+								   idVec3 normal, float dist, float epsilon ) {
 	float dists[MAX_VERTS_ON_POLY + 4];
 	int sides[MAX_VERTS_ON_POLY + 4];
 	int counts[3];
 	float dot;
 	int i, j;
-	float       *p1, *p2, *clip;
+	idVec3       *p1, *p2, *clip;
 	float d;
 
 	// don't clip if it might overflow
@@ -97,8 +97,8 @@ static void R_ChopPolyBehindPlane( int numInPoints, idVec3 inPoints[MAX_VERTS_ON
 	}
 
 	for ( i = 0 ; i < numInPoints ; i++ ) {
-		p1 = inPoints[i];
-		clip = outPoints[ *numOutPoints ];
+		p1 = &inPoints[i];
+		clip = &outPoints[ *numOutPoints ];
 
 		if ( sides[i] == SIDE_ON ) {
 			clip = p1;
@@ -109,7 +109,7 @@ static void R_ChopPolyBehindPlane( int numInPoints, idVec3 inPoints[MAX_VERTS_ON
 		if ( sides[i] == SIDE_FRONT ) {
 			clip = p1;
 			( *numOutPoints )++;
-			clip = outPoints[ *numOutPoints ];
+			clip = &outPoints[ *numOutPoints ];
 		}
 
 		if ( sides[i + 1] == SIDE_ON || sides[i + 1] == sides[i] ) {
@@ -117,7 +117,7 @@ static void R_ChopPolyBehindPlane( int numInPoints, idVec3 inPoints[MAX_VERTS_ON
 		}
 
 		// generate a split point
-		p2 = inPoints[ ( i + 1 ) % numInPoints ];
+		p2 = &inPoints[ ( i + 1 ) % numInPoints ];
 
 		d = dists[i] - dists[i + 1];
 		if ( d == 0 ) {
@@ -217,7 +217,7 @@ R_AddMarkFragments
 */
 void R_AddMarkFragments( int numClipPoints, idVec3 clipPoints[2][MAX_VERTS_ON_POLY],
 						 int numPlanes, idVec3 *normals, float *dists,
-						 int maxPoints, idVec3 *pointBuffer,
+						 int maxPoints, idVec5 *pointBuffer,
 						 int maxFragments, markFragment_t *fragmentBuffer,
 						 int *returnedPoints, int *returnedFragments,
 						 idVec3 mins, idVec3 maxs ) {
@@ -264,7 +264,7 @@ void R_AddMarkFragments( int numClipPoints, idVec3 clipPoints[2][MAX_VERTS_ON_PO
 	mf->numPoints = numClipPoints;
 	//memcpy( pointBuffer + (*returnedPoints) * 3, clipPoints[pingPong], numClipPoints * sizeof(idVec3) );
 	for ( i = 0; i < numClipPoints; i++ ) {
-		(float *)pointBuffer + 5 * ( *returnedPoints + i ) = clipPoints[pingPong][i];
+		pointBuffer[*returnedPoints + i] = clipPoints[pingPong][i];
 	}
 
 	( *returnedPoints ) += numClipPoints;
@@ -278,7 +278,7 @@ R_OldMarkFragments
 =================
 */
 int R_OldMarkFragments( int numPoints, const idVec3 *points, const idVec3 &projection,
-						int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
+						int maxPoints, idVec5 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
 	int numsurfaces, numPlanes;
 	int i, j, k, m, n;
 	surfaceType_t   *surfaces[64];
@@ -289,7 +289,6 @@ int R_OldMarkFragments( int numPoints, const idVec3 *points, const idVec3 &proje
 	float dists[MAX_VERTS_ON_POLY + 2];
 	idVec3 clipPoints[2][MAX_VERTS_ON_POLY];
 	int numClipPoints;
-	float           *v;
 	srfSurfaceFace_t *surf;
 	srfGridMesh_t   *cv;
 	drawVert_t      *dv;
@@ -332,7 +331,7 @@ int R_OldMarkFragments( int numPoints, const idVec3 *points, const idVec3 &proje
 	normals[numPoints] = projectionDir;
 	dists[numPoints] = ( normals[numPoints] ) * ( points[0] ) - 32;
 	normals[numPoints + 1] = projectionDir;
-	normals[numPoints + 1].Negate();
+	normals[numPoints + 1] *= -1.0f;
 	dists[numPoints + 1] = ( normals[numPoints + 1] ) * ( points[0] ) - 20;
 	numPlanes = numPoints + 2;
 
@@ -443,8 +442,10 @@ int R_OldMarkFragments( int numPoints, const idVec3 *points, const idVec3 &proje
 			indexes = ( int * )( (byte *)surf + surf->ofsIndices );
 			for ( k = 0 ; k < surf->numIndices ; k += 3 ) {
 				for ( j = 0 ; j < 3 ; j++ ) {
-					v = surf->points[0] + VERTEXSIZE * indexes[k + j];;
-					clipPoints[0][j] = v + surf->plane.normal * MARKER_OFFSET;
+					clipPoints[0][j].Set( surf->points[indexes[k + j]][0],
+										 surf->points[indexes[k + j]][1],
+										 surf->points[indexes[k + j]][2] );
+					clipPoints[0][j] += surf->plane.normal * MARKER_OFFSET;
 				}
 				// add the fragments of this face
 				R_AddMarkFragments( 3, clipPoints,
@@ -475,7 +476,7 @@ R_MarkFragments
 =================
 */
 int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projection,
-					 int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
+					 int maxPoints, idVec5 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer ) {
 	int numsurfaces, numPlanes;
 	int i, j, k, m, n;
 	surfaceType_t   *surfaces[4096];
@@ -486,7 +487,6 @@ int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projec
 	float dists[MAX_VERTS_ON_POLY + 2];
 	idVec3 clipPoints[2][MAX_VERTS_ON_POLY];
 	int numClipPoints;
-	float           *v;
 	srfSurfaceFace_t *surf;
 	srfGridMesh_t   *cv;
 	drawVert_t      *dv;
@@ -520,7 +520,7 @@ int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projec
 	//
 	radius = ( projectionDir = projection, projectionDir.Normalize() ) / 2.0;
 	bestdist = 0;
-	VectorNegate( projectionDir, bestnormal );
+	bestnormal = -projectionDir;
 	// find all the brushes that are to be considered
 	ClearBounds( mins, maxs );
 	for ( i = 0 ; i < numPoints ; i++ ) {
@@ -550,7 +550,7 @@ int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projec
 	normals[numPoints] = projectionDir;
 	dists[numPoints] = ( normals[numPoints] ) * ( points[0] ) - radius * ( 1 + oldMapping * 10 );
 	normals[numPoints + 1] = projectionDir;
-	normals[numPoints + 1].Negate();
+	normals[numPoints + 1] *= -1.0f;
 	dists[numPoints + 1] = ( normals[numPoints + 1] ) * ( points[0] ) - radius * ( 1 + oldMapping * 10 );
 	numPlanes = numPoints + 2;
 
@@ -591,7 +591,7 @@ int R_MarkFragments( int orientation, const idVec3 *points, const idVec3 &projec
 		center = bestCenter;
 Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bestnormal[2] );
 */
-		VectorNegate( bestnormal, bestnormal );
+		bestnormal = -bestnormal;
 	}
 
 	for ( i = 0 ; i < numsurfaces ; i++ ) {
@@ -676,7 +676,6 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				}
 			}
 		} else if ( *surfaces[i] == SF_FACE )     {
-			extern float Vector( (idVec3 v1) - (idVec3 v2) ).Length();
 			idVec3 axis[3];
 			float texScale, dot;
 			idVec3 originalPoints[4];
@@ -752,8 +751,10 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				indexes = ( int * )( (byte *)surf + surf->ofsIndices );
 				for ( k = 0 ; k < surf->numIndices ; k += 3 ) {
 					for ( j = 0 ; j < 3 ; j++ ) {
-						v = surf->points[0] + VERTEXSIZE * indexes[k + j];
-						clipPoints[0][j] = v + surf->plane.normal * MARKER_OFFSET;
+						clipPoints[0][j].Set( surf->points[indexes[k + j]][0],
+											 surf->points[indexes[k + j]][1],
+											 surf->points[indexes[k + j]][2] );
+						clipPoints[0][j] += surf->plane.normal * MARKER_OFFSET;
 					}
 
 					oldNumPoints = returnedPoints;
@@ -771,9 +772,9 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 
 						// Ridah, calculate ST's
 						for ( j = 0 ; j < ( returnedPoints - oldNumPoints ) ; j++ ) {
-							delta = (float *)pointBuffer + 5 * ( oldNumPoints + j ) - newCenter;
-							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 3 ) = 0.5 + ( delta ) * ( axis[1] ) * texScale;
-							*( (float *)pointBuffer + 5 * ( oldNumPoints + j ) + 4 ) = 0.5 + ( delta ) * ( axis[2] ) * texScale;
+							delta = pointBuffer[oldNumPoints + j].ToVec3() - newCenter;
+							pointBuffer[oldNumPoints + j][3] = 0.5 + ( delta ) * ( axis[1] ) * texScale;
+							pointBuffer[oldNumPoints + j][4] = 0.5 + ( delta ) * ( axis[2] ) * texScale;
 						}
 					}
 
@@ -792,8 +793,10 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 				indexes = ( int * )( (byte *)surf + surf->ofsIndices );
 				for ( k = 0 ; k < surf->numIndices ; k += 3 ) {
 					for ( j = 0 ; j < 3 ; j++ ) {
-						v = surf->points[0] + VERTEXSIZE * indexes[k + j];;
-						clipPoints[0][j] = v + surf->plane.normal * MARKER_OFFSET;
+						clipPoints[0][j].Set( surf->points[indexes[k + j]][0],
+											 surf->points[indexes[k + j]][1],
+											 surf->points[indexes[k + j]][2] );
+						clipPoints[0][j] += surf->plane.normal * MARKER_OFFSET;
 					}
 					// add the fragments of this face
 					R_AddMarkFragments( 3, clipPoints,
@@ -819,4 +822,3 @@ Com_Printf("bestnormal: %1.1f %1.1f %1.1f \n", bestnormal[0], bestnormal[1], bes
 	}
 	return returnedFragments;
 }
-

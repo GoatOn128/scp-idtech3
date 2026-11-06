@@ -37,10 +37,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "../../engine/qcommon/q_shared.h"
 #include "l_log.h"
-#include "l_memory.h"
 #include "l_utils.h"
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "l_libvar.h"
 #include "aasfile.h"
@@ -134,7 +131,7 @@ void BotFreeCharacterStrings( bot_character_t *ch ) {
 	for ( i = 0; i < MAX_CHARACTERISTICS; i++ )
 	{
 		if ( ch->c[i].type == CT_STRING ) {
-			FreeMemory( ch->c[i].value.string );
+			Mem_Free( ch->c[i].value.string );
 		} //end if
 	} //end for
 } //end of the function BotFreeCharacterStrings
@@ -154,7 +151,7 @@ void BotFreeCharacter2( int handle ) {
 		return;
 	} //end if
 	BotFreeCharacterStrings( botcharacters[handle] );
-	FreeMemory( botcharacters[handle] );
+	Mem_Free( botcharacters[handle] );
 	botcharacters[handle] = NULL;
 } //end of the function BotFreeCharacter2
 //========================================================================
@@ -194,7 +191,7 @@ void BotDefaultCharacteristics( bot_character_t *ch, bot_character_t *defaultch 
 		} //end else if
 		else if ( defaultch->c[i].type == CT_STRING ) {
 			ch->c[i].type = CT_STRING;
-			ch->c[i].value.string = (char *) GetMemory( strlen( defaultch->c[i].value.string ) + 1 );
+			ch->c[i].value.string = (char *) Mem_Alloc( strlen( defaultch->c[i].value.string ) + 1, TAG_BOTLIB );
 			strcpy( ch->c[i].value.string, defaultch->c[i].value.string );
 		} //end else if
 	} //end for
@@ -208,94 +205,95 @@ void BotDefaultCharacteristics( bot_character_t *ch, bot_character_t *defaultch 
 bot_character_t *BotLoadCharacterFromFile( char *charfile, int skill ) {
 	int indent, index, foundcharacter;
 	bot_character_t *ch;
-	source_t *source;
-	token_t token;
+	idParser *source;
+	idToken token;
 
 	foundcharacter = qfalse;
 	//a bot character is parsed in two phases
-	source = LoadSourceFile( charfile );
-	if ( !source ) {
+	source = new idParser( charfile );
+	if ( !source->IsLoaded() ) {
+		delete source;
 		botimport.Print( PRT_ERROR, "counldn't load %s\n", charfile );
 		return NULL;
 	} //end if
-	ch = (bot_character_t *) GetClearedMemory( sizeof( bot_character_t ) +
-											   MAX_CHARACTERISTICS * sizeof( bot_characteristic_t ) );
+	ch = (bot_character_t *) Mem_ClearedAlloc( sizeof( bot_character_t ) +
+											   MAX_CHARACTERISTICS * sizeof( bot_characteristic_t ), TAG_BOTLIB );
 	strcpy( ch->filename, charfile );
-	while ( PC_ReadToken( source, &token ) )
+	while ( source->ReadToken( &token ) )
 	{
-		if ( !strcmp( token.string, "skill" ) ) {
-			if ( !PC_ExpectTokenType( source, TT_NUMBER, 0, &token ) ) {
-				FreeSource( source );
+		if ( !strcmp( token.c_str(), "skill" ) ) {
+			if ( !source->ExpectTokenType( TT_NUMBER, 0, &token ) ) {
+				delete source;
 				BotFreeCharacterStrings( ch );
-				FreeMemory( ch );
+				Mem_Free( ch );
 				return NULL;
 			} //end if
-			if ( !PC_ExpectTokenString( source, "{" ) ) {
-				FreeSource( source );
+			if ( !source->ExpectTokenString( "{" ) ) {
+				delete source;
 				BotFreeCharacterStrings( ch );
-				FreeMemory( ch );
+				Mem_Free( ch );
 				return NULL;
 			} //end if
 			  //if it's the correct skill
-			if ( skill < 0 || (int)token.intvalue == skill ) {
+			if ( skill < 0 || (int)token.GetIntValue() == skill ) {
 				foundcharacter = qtrue;
-				ch->skill = token.intvalue;
-				while ( PC_ExpectAnyToken( source, &token ) )
+				ch->skill = token.GetIntValue();
+				while ( source->ExpectAnyToken( &token ) )
 				{
-					if ( !strcmp( token.string, "}" ) ) {
+					if ( !strcmp( token.c_str(), "}" ) ) {
 						break;
 					}
 					if ( token.type != TT_NUMBER || !( token.subtype & TT_INTEGER ) ) {
-						SourceError( source, "expected integer index, found %s\n", token.string );
-						FreeSource( source );
+						source->Error( "expected integer index, found %s\n", token.c_str() );
+						delete source;
 						BotFreeCharacterStrings( ch );
-						FreeMemory( ch );
+						Mem_Free( ch );
 						return NULL;
 					} //end if
-					index = token.intvalue;
+					index = token.GetIntValue();
 					if ( index < 0 || index > MAX_CHARACTERISTICS ) {
-						SourceError( source, "characteristic index out of range [0, %d]\n", MAX_CHARACTERISTICS );
-						FreeSource( source );
+						source->Error( "characteristic index out of range [0, %d]\n", MAX_CHARACTERISTICS );
+						delete source;
 						BotFreeCharacterStrings( ch );
-						FreeMemory( ch );
+						Mem_Free( ch );
 						return NULL;
 					} //end if
 					if ( ch->c[index].type ) {
-						SourceError( source, "characteristic %d already initialized\n", index );
-						FreeSource( source );
+						source->Error( "characteristic %d already initialized\n", index );
+						delete source;
 						BotFreeCharacterStrings( ch );
-						FreeMemory( ch );
+						Mem_Free( ch );
 						return NULL;
 					} //end if
-					if ( !PC_ExpectAnyToken( source, &token ) ) {
-						FreeSource( source );
+					if ( !source->ExpectAnyToken( &token ) ) {
+						delete source;
 						BotFreeCharacterStrings( ch );
-						FreeMemory( ch );
+						Mem_Free( ch );
 						return NULL;
 					} //end if
 					if ( token.type == TT_NUMBER ) {
 						if ( token.subtype & TT_FLOAT ) {
-							ch->c[index].value._float = token.floatvalue;
+							ch->c[index].value._float = token.GetFloatValue();
 							ch->c[index].type = CT_FLOAT;
 						} //end if
 						else
 						{
-							ch->c[index].value.integer = token.intvalue;
+							ch->c[index].value.integer = token.GetIntValue();
 							ch->c[index].type = CT_INTEGER;
 						} //end else
 					} //end if
 					else if ( token.type == TT_STRING ) {
-						StripDoubleQuotes( token.string );
-						ch->c[index].value.string = (char *) GetMemory( strlen( token.string ) + 1 );
-						strcpy( ch->c[index].value.string, token.string );
+						token.Strip( "\"" );
+						ch->c[index].value.string = (char *) Mem_Alloc( strlen( token.c_str() ) + 1, TAG_BOTLIB );
+						strcpy( ch->c[index].value.string, token.c_str() );
 						ch->c[index].type = CT_STRING;
 					} //end else if
 					else
 					{
-						SourceError( source, "expected integer, float or string, found %s\n", token.string );
-						FreeSource( source );
+						source->Error( "expected integer, float or string, found %s\n", token.c_str() );
+						delete source;
 						BotFreeCharacterStrings( ch );
-						FreeMemory( ch );
+						Mem_Free( ch );
 						return NULL;
 					} //end else
 				} //end if
@@ -306,15 +304,15 @@ bot_character_t *BotLoadCharacterFromFile( char *charfile, int skill ) {
 				indent = 1;
 				while ( indent )
 				{
-					if ( !PC_ExpectAnyToken( source, &token ) ) {
-						FreeSource( source );
+					if ( !source->ExpectAnyToken( &token ) ) {
+						delete source;
 						BotFreeCharacterStrings( ch );
-						FreeMemory( ch );
+						Mem_Free( ch );
 						return NULL;
 					} //end if
-					if ( !strcmp( token.string, "{" ) ) {
+					if ( !strcmp( token.c_str(), "{" ) ) {
 						indent++;
-					} else if ( !strcmp( token.string, "}" ) ) {
+					} else if ( !strcmp( token.c_str(), "}" ) ) {
 						indent--;
 					}
 				} //end while
@@ -322,18 +320,18 @@ bot_character_t *BotLoadCharacterFromFile( char *charfile, int skill ) {
 		} //end if
 		else
 		{
-			SourceError( source, "unknown definition %s\n", token.string );
-			FreeSource( source );
+			source->Error( "unknown definition %s\n", token.c_str() );
+			delete source;
 			BotFreeCharacterStrings( ch );
-			FreeMemory( ch );
+			Mem_Free( ch );
 			return NULL;
 		} //end else
 	} //end while
-	FreeSource( source );
+	delete source;
 	//
 	if ( !foundcharacter ) {
 		BotFreeCharacterStrings( ch );
-		FreeMemory( ch );
+		Mem_Free( ch );
 		return NULL;
 	} //end if
 	return ch;
@@ -504,8 +502,8 @@ int BotInterpolateCharacters( int handle1, int handle2, int desiredskill ) {
 	if ( handle > MAX_CLIENTS ) {
 		return 0;
 	}
-	out = (bot_character_t *) GetClearedMemory( sizeof( bot_character_t ) +
-												MAX_CHARACTERISTICS * sizeof( bot_characteristic_t ) );
+	out = (bot_character_t *) Mem_ClearedAlloc( sizeof( bot_character_t ) +
+												MAX_CHARACTERISTICS * sizeof( bot_characteristic_t ), TAG_BOTLIB );
 	out->skill = desiredskill;
 	strcpy( out->filename, ch1->filename );
 	botcharacters[handle] = out;
@@ -525,7 +523,7 @@ int BotInterpolateCharacters( int handle1, int handle2, int desiredskill ) {
 		} //end else if
 		else if ( ch1->c[i].type == CT_STRING ) {
 			out->c[i].type = CT_STRING;
-			out->c[i].value.string = (char *) GetMemory( strlen( ch1->c[i].value.string ) + 1 );
+			out->c[i].value.string = (char *) Mem_Alloc( strlen( ch1->c[i].value.string ) + 1, TAG_BOTLIB );
 			strcpy( out->c[i].value.string, ch1->c[i].value.string );
 		} //end else if
 	} //end for

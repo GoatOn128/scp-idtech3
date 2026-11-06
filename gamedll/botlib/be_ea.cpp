@@ -36,9 +36,6 @@ If you have questions concerning this license or the applicable additional terms
  *****************************************************************************/
 
 #include "../../engine/qcommon/q_shared.h"
-#include "l_memory.h"
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "../game/botlib.h"
 #include "be_interface.h"
@@ -351,12 +348,12 @@ void EA_MoveRight( int client ) {
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-void EA_Move( int client, vec3_t dir, float speed ) {
+void EA_Move( int client, const idVec3 &dir, float speed ) {
 	bot_input_t *bi;
 
 	bi = &botinputs[client];
 
-	VectorCopy( dir, bi->dir );
+	bi->dir = dir;
 	//cap speed
 	if ( speed > MAX_USERMOVE ) {
 		speed = MAX_USERMOVE;
@@ -371,12 +368,12 @@ void EA_Move( int client, vec3_t dir, float speed ) {
 // Returns:				-
 // Changes Globals:		-
 //===========================================================================
-void EA_View( int client, vec3_t viewangles ) {
+void EA_View( int client, const idVec3 &viewangles ) {
 	bot_input_t *bi;
 
 	bi = &botinputs[client];
 
-	VectorCopy( viewangles, bi->viewangles );
+	bi->viewangles = viewangles;
 } //end of the function EA_View
 //===========================================================================
 //
@@ -397,7 +394,7 @@ void EA_EndRegular( int client, float thinktime ) {
 	botimport.BotInput(client, bi);
 
 	bi->thinktime = 0;
-	VectorClear(bi->dir);
+	bi->dir.Zero();
 	bi->speed = 0;
 	jumped = bi->actionflags & ACTION_JUMP;
 	bi->actionflags = 0;
@@ -419,11 +416,11 @@ void EA_GetInput( int client, float thinktime, bot_input_t *input ) {
 //	bi->actionflags &= ~ACTION_JUMPEDLASTFRAME;
 
 	bi->thinktime = thinktime;
-	memcpy( input, bi, sizeof( bot_input_t ) );
+	*input = *bi;
 
 	/*
 	bi->thinktime = 0;
-	VectorClear(bi->dir);
+	bi->dir.Zero();
 	bi->speed = 0;
 	jumped = bi->actionflags & ACTION_JUMP;
 	bi->actionflags = 0;
@@ -444,7 +441,7 @@ void EA_ResetInput( int client, bot_input_t *init ) {
 	bi->actionflags &= ~ACTION_JUMPEDLASTFRAME;
 
 	bi->thinktime = 0;
-	VectorClear( bi->dir );
+	bi->dir.Zero();
 	bi->speed = 0;
 	jumped = bi->actionflags & ACTION_JUMP;
 	bi->actionflags = 0;
@@ -464,8 +461,8 @@ void EA_ResetInput( int client, bot_input_t *init ) {
 //===========================================================================
 int EA_Setup( void ) {
 	//initialize the bot inputs
-	botinputs = (bot_input_t *) GetClearedHunkMemory(
-		botlibglobals.maxclients * sizeof( bot_input_t ) );
+	botinputs = (bot_input_t *) Mem_ClearedAlloc(
+		botlibglobals.maxclients * sizeof( bot_input_t ), TAG_BOTLIB );
 	return BLERR_NOERROR;
 } //end of the function EA_Setup
 //===========================================================================
@@ -475,6 +472,6 @@ int EA_Setup( void ) {
 // Changes Globals:		-
 //===========================================================================
 void EA_Shutdown( void ) {
-	FreeMemory( botinputs );
+	Mem_Free( botinputs );
 	botinputs = NULL;
 } //end of the function EA_Shutdown

@@ -84,7 +84,7 @@ int CG_Text_Width( const char *text, int font, float scale, int limit ) {
 		}
 		count = 0;
 		while ( s && *s && count < len ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			} else {
@@ -129,7 +129,7 @@ int CG_Text_Height( const char *text, int font, float scale, int limit ) {
 		}
 		count = 0;
 		while ( s && *s && count < len ) {
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				s += 2;
 				continue;
 			} else {
@@ -192,7 +192,7 @@ void CG_Text_Paint( float x, float y, int font, float scale, const idVec4 &color
 			glyph = &fnt->glyphs[(int)*s];
 			//int yadj = Assets.textFont.glyphs[text[i]].bottom + Assets.textFont.glyphs[text[i]].top;
 			//float yadj = scale * (Assets.textFont.glyphs[text[i]].imageHeight - Assets.textFont.glyphs[text[i]].height);
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				newColor.Set( g_color_table[ColorIndex( *( s + 1 ) )][0],
 							  g_color_table[ColorIndex( *( s + 1 ) )][1],
 							  g_color_table[ColorIndex( *( s + 1 ) )][2],
@@ -325,7 +325,7 @@ void CG_Draw3DModel( float x, float y, float w, float h, qhandle_t model, qhandl
 	memset( &refdef, 0, sizeof( refdef ) );
 
 	memset( &ent, 0, sizeof( ent ) );
-	AnglesToAxis( angles, ent.axis );
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 	ent.origin = origin;
 	ent.hModel = model;
 	ent.customSkin = skin;
@@ -430,7 +430,7 @@ void CG_DrawFlagModel( float x, float y, float w, float h, int team ) {
 	len = 0.5 * ( maxs[2] - mins[2] );
 	origin[0] = len / 0.268;    // len / tan( fov/2 )
 
-	angles[YAW] = 60 * sin( cg.time / 2000.0 );;
+	angles[YAW] = 60 * idMath::Sin( cg.time / 2000.0 );;
 
 	CG_Draw3DModel( x, y, w, h,
 					team == TEAM_RED ? cgs.media.redFlagModel : cgs.media.blueFlagModel,
@@ -463,7 +463,7 @@ void CG_DrawKeyModel( int keynum, float x, float y, float w, float h, int fadeti
 	len = 0.75 * ( maxs[2] - mins[2] );
 	origin[0] = len / 0.268;    // len / tan( fov/2 )
 
-	angles[YAW] = 30 * sin( cg.time / 2000.0 );;
+	angles[YAW] = 30 * idMath::Sin( cg.time / 2000.0 );;
 
 	CG_Draw3DModel( x, y, w, h, cg_items[keynum].models[0], 0, origin, angles );
 }
@@ -492,8 +492,8 @@ static void CG_DrawStatusBarHead( float x ) {
 
 		cg.headStartYaw = 180 + cg.viewDamage[cg.damageIndex].damageX * 45;
 
-		cg.headEndYaw = 180 + 20 * cos( cgRandom.CRandomFloat() * idMath::PI );
-		cg.headEndPitch = 5 * cos( cgRandom.CRandomFloat() * idMath::PI );
+		cg.headEndYaw = 180 + 20 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
+		cg.headEndPitch = 5 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
 
 		cg.headStartTime = cg.time;
 		cg.headEndTime = cg.time + 100 + cgRandom.RandomFloat() * 2000;
@@ -505,8 +505,8 @@ static void CG_DrawStatusBarHead( float x ) {
 			cg.headStartTime = cg.headEndTime;
 			cg.headEndTime = cg.time + 100 + cgRandom.RandomFloat() * 2000;
 
-			cg.headEndYaw = 180 + 20 * cos( cgRandom.CRandomFloat() * idMath::PI );
-			cg.headEndPitch = 5 * cos( cgRandom.CRandomFloat() * idMath::PI );
+			cg.headEndYaw = 180 + 20 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
+			cg.headEndPitch = 5 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
 		}
 
 		size = ICON_SIZE * 1.25;
@@ -680,7 +680,7 @@ static void CG_DrawStatusBar( void ) {
 		origin[0] = 70;
 		origin[1] = 0;
 		origin[2] = 0;
-		angles[YAW] = 90 + 20 * sin( cg.time / 1000.0 );;
+		angles[YAW] = 90 + 20 * idMath::Sin( cg.time / 1000.0 );;
 //----(SA) Wolf statusbar change
 		CG_Draw3DModel( CHAR_WIDTH*3 + TEXT_ICON_SPACE, STATUSBARHEIGHT -20, ICON_SIZE, ICON_SIZE,
 					   cg_weapons[ cent->currentState.weapon ].ammoModel, 0, origin, angles );
@@ -918,7 +918,7 @@ static float CG_DrawAttacker( float y ) {
 	info = CG_ConfigString( CS_PLAYERS + clientNum );
 	name = Info_ValueForKey(  info, "n" );
 	y += size;
-	CG_DrawBigString( 640 - ( Q_PrintStrlen( name ) * BIGCHAR_WIDTH ), y, name, 0.5 );
+	CG_DrawBigString( 640 - ( idStr::LengthWithoutColors( name ) * BIGCHAR_WIDTH ), y, name, 0.5 );
 
 	return y + BIGCHAR_HEIGHT + 2;
 }
@@ -2947,7 +2947,7 @@ static void CG_DrawFlashDamage( void ) {
 	}
 
 	if ( cg.v_dmg_time > cg.time ) {
-		redFlash = fabs( cg.v_dmg_pitch * ( ( cg.v_dmg_time - cg.time ) / DAMAGE_TIME ) );
+		redFlash = idMath::Fabs( cg.v_dmg_pitch * ( ( cg.v_dmg_time - cg.time ) / DAMAGE_TIME ) );
 
 		// blend the entire screen red
 		if ( redFlash > 5 ) {
@@ -3000,7 +3000,7 @@ static void CG_DrawFlashFire( void ) {
 			alpha = f;
 		}
 
-		max = 0.5 + 0.5 * sin( (float)( ( cg.time / 10 ) % 1000 ) / 1000.0 );
+		max = 0.5 + 0.5 * idMath::Sin( (float)( ( cg.time / 10 ) % 1000 ) / 1000.0 );
 		if ( alpha > max ) {
 			alpha = max;
 		}
@@ -3498,17 +3498,17 @@ void CG_CalcShakeCamera() {
 	}
 
 	// up/down
-	val = sin( idMath::PI * 8 * sx + cg.cameraShakePhase ) * bx * 18.0f * scale;
+	val = idMath::Sin( idMath::PI * 8 * sx + cg.cameraShakePhase ) * bx * 18.0f * scale;
 	cg.cameraShakeAngles[0] = val;
 	//cg.refdefViewAngles[0] += val;
 
 	// left/right
-	val = sin( idMath::PI * 15 * sx + cg.cameraShakePhase ) * bx * 16.0f * scale;
+	val = idMath::Sin( idMath::PI * 15 * sx + cg.cameraShakePhase ) * bx * 16.0f * scale;
 	cg.cameraShakeAngles[1] = val;
 	//cg.refdefViewAngles[1] += val;
 
 	// roll
-	val = sin( idMath::PI * 12 * sx + cg.cameraShakePhase ) * bx * 10.0f * scale;
+	val = idMath::Sin( idMath::PI * 12 * sx + cg.cameraShakePhase ) * bx * 10.0f * scale;
 	cg.cameraShakeAngles[2] = val;
 	//cg.refdefViewAngles[2] += val;
 }
@@ -3520,7 +3520,7 @@ CG_ApplyShakeCamera
 */
 void CG_ApplyShakeCamera() {
 	cg.refdefViewAngles = cg.refdefViewAngles + cg.cameraShakeAngles;
-	AnglesToAxis( cg.refdefViewAngles, cg.refdef.viewaxis );
+	idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &cg.refdef.viewaxis[0], &cg.refdef.viewaxis[1], &cg.refdef.viewaxis[2] );
 }
 
 /*

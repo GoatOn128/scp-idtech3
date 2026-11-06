@@ -323,36 +323,6 @@ void BotImport_BSPModelMinsMaxsOrigin( int modelnum, vec3_t angles, vec3_t outmi
 
 /*
 ==================
-BotImport_GetMemory
-==================
-*/
-void *BotImport_GetMemory( int size ) {
-	return malloc( size );
-}
-
-/*
-==================
-BotImport_FreeMemory
-==================
-*/
-void BotImport_FreeMemory( void *ptr ) {
-	free( ptr );
-}
-
-/*
-=================
-BotImport_HunkAlloc
-=================
-*/
-void *BotImport_HunkAlloc( int size ) {
-	if ( Hunk_CheckMark() ) {
-		Com_Error( ERR_DROP, "SV_Bot_HunkAlloc: Alloc with marks already set\n" );
-	}
-	return Hunk_Alloc( size, h_high );
-}
-
-/*
-==================
 BotImport_DebugPolygonCreate
 ==================
 */
@@ -587,11 +557,6 @@ void SV_BotInitBotLib( void ) {
 	botlib_import.BSPEntityData = BotImport_BSPEntityData;
 	botlib_import.BSPModelMinsMaxsOrigin = BotImport_BSPModelMinsMaxsOrigin;
 	botlib_import.BotClientCommand = BotClientCommand;
-
-	//memory management
-	botlib_import.GetMemory = BotImport_GetMemory;
-	botlib_import.FreeMemory = BotImport_FreeMemory;
-	botlib_import.HunkAlloc = BotImport_HunkAlloc;
 
 	// file system acess
 	botlib_import.FS_FOpenFile = FS_FOpenFileByMode;

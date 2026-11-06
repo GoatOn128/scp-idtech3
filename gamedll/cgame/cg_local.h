@@ -2270,7 +2270,7 @@ void        trap_CM_TransformedCapsuleTrace( trace_t *results, const idVec3 &sta
 // Returns the projection of a polygon onto the solid brushes in the world
 int         trap_CM_MarkFragments( int numPoints, const idVec3 *points,
 								   const idVec3 &projection,
-								   int maxPoints, idVec3 *pointBuffer,
+								   int maxPoints, idVec5 *pointBuffer,
 								   int maxFragments, markFragment_t *fragmentBuffer );
 
 // normal sounds will have their volume dynamically changed as their entity

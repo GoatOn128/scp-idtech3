@@ -506,8 +506,8 @@ static gameImport_t SV_CreateGameImports() {
 	imports.BotLibVarGet = []( char *var_name, char *value, int size ) -> int {
 		return botlib_export->BotLibVarGet( var_name, value, size );
 	};
-	imports.PC_AddGlobalDefine = []( char *string ) -> int {
-		return botlib_export->PC_AddGlobalDefine( string );
+	imports.BotLibDefine = []( const char *string ) -> int {
+		return botlib_export->BotLibDefine( string );
 	};
 	imports.BotLibStartFrame = []( float time ) -> int {
 		return botlib_export->BotLibStartFrame( time );

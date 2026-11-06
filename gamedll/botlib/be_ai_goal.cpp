@@ -38,10 +38,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../../engine/qcommon/q_shared.h"
 #include "l_utils.h"
 #include "l_libvar.h"
-#include "l_memory.h"
 #include "l_log.h"
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "aasfile.h"
 #include "../game/botlib.h"
@@ -67,7 +64,7 @@ If you have questions concerning this license or the applicable additional terms
 //location in the map "target_location"
 typedef struct maplocation_s
 {
-	vec3_t origin;
+	idVec3 origin;
 	int areanum;
 	char name[MAX_EPAIRKEY];
 	struct maplocation_s *next;
@@ -76,7 +73,7 @@ typedef struct maplocation_s
 //camp spots "info_camp"
 typedef struct campspot_s
 {
-	vec3_t origin;
+	idVec3 origin;
 	int areanum;
 	char name[MAX_EPAIRKEY];
 	float range;
@@ -115,9 +112,9 @@ typedef struct levelitem_s
 	int notteam;                        //true if not in teamplay
 	int notfree;                        //true if not in ffa
 	int notsingle;                      //true if not in single
-	vec3_t origin;                      //origin of the item
+	idVec3 origin;                      //origin of the item
 	int goalareanum;                    //area the item is in
-	vec3_t goalorigin;                  //goal origin within the area
+	idVec3 goalorigin;                  //goal origin within the area
 	int entitynum;                      //entity number
 	float timeout;                      //item is removed after this time
 	struct levelitem_s *prev, *next;
@@ -132,8 +129,8 @@ typedef struct iteminfo_s
 	int type;                           //item type
 	int index;                          //index in the inventory
 	float respawntime;                  //respawn time
-	vec3_t mins;                        //mins of the item
-	vec3_t maxs;                        //maxs of the item
+	idVec3 mins;                        //mins of the item
+	idVec3 maxs;                        //maxs of the item
 	int number;                         //number of the item info
 } iteminfo_t;
 
@@ -265,9 +262,9 @@ void BotMutateGoalFuzzyLogic( int goalstate, float range ) {
 //===========================================================================
 itemconfig_t *LoadItemConfig( char *filename ) {
 	int max_iteminfo;
-	token_t token;
-	char path[MAX_PATH];
-	source_t *source;
+	idToken token;
+	char path[MAX_QPATH];
+	idParser *source;
 	itemconfig_t *ic;
 	iteminfo_t *ii;
 
@@ -278,39 +275,40 @@ itemconfig_t *LoadItemConfig( char *filename ) {
 		LibVarSet( "max_iteminfo", "128" );
 	}
 
-	strncpy( path, filename, MAX_PATH );
-	source = LoadSourceFile( path );
-	if ( !source ) {
+	strncpy( path, filename, MAX_QPATH );
+	source = new idParser( path );
+	if ( !source->IsLoaded() ) {
+		delete source;
 		botimport.Print( PRT_ERROR, "counldn't load %s\n", path );
 		return NULL;
 	} //end if
 	  //initialize item config
-	ic = (itemconfig_t *) GetClearedHunkMemory( sizeof( itemconfig_t ) +
-												max_iteminfo * sizeof( iteminfo_t ) );
+	ic = (itemconfig_t *) Mem_ClearedAlloc( sizeof( itemconfig_t ) +
+												max_iteminfo * sizeof( iteminfo_t ), TAG_BOTLIB );
 	ic->iteminfo = ( iteminfo_t * )( (char *) ic + sizeof( itemconfig_t ) );
 	ic->numiteminfo = 0;
 	//parse the item config file
-	while ( PC_ReadToken( source, &token ) )
+	while ( source->ReadToken( &token ) )
 	{
-		if ( !strcmp( token.string, "iteminfo" ) ) {
+		if ( !strcmp( token.c_str(), "iteminfo" ) ) {
 			if ( ic->numiteminfo >= max_iteminfo ) {
-				SourceError( source, "more than %d item info defined\n", max_iteminfo );
-				FreeMemory( ic );
-				FreeSource( source );
+				source->Error( "more than %d item info defined\n", max_iteminfo );
+				Mem_Free( ic );
+				delete source;
 				return NULL;
 			} //end if
 			ii = &ic->iteminfo[ic->numiteminfo];
 			memset( ii, 0, sizeof( iteminfo_t ) );
-			if ( !PC_ExpectTokenType( source, TT_STRING, 0, &token ) ) {
-				FreeMemory( ic );
-				FreeMemory( source );
+			if ( !source->ExpectTokenType( TT_STRING, 0, &token ) ) {
+				Mem_Free( ic );
+				delete source;
 				return NULL;
 			} //end if
-			StripDoubleQuotes( token.string );
-			strncpy( ii->classname, token.string, sizeof( ii->classname ) - 1 );
+			token.Strip( "\"" );
+			strncpy( ii->classname, token.c_str(), sizeof( ii->classname ) - 1 );
 			if ( !ReadStructure( source, &iteminfo_struct, (char *) ii ) ) {
-				FreeMemory( ic );
-				FreeSource( source );
+				Mem_Free( ic );
+				delete source;
 				return NULL;
 			} //end if
 			ii->number = ic->numiteminfo;
@@ -318,13 +316,13 @@ itemconfig_t *LoadItemConfig( char *filename ) {
 		} //end if
 		else
 		{
-			SourceError( source, "unknown definition %s\n", token.string );
-			FreeMemory( ic );
-			FreeSource( source );
+			source->Error( "unknown definition %s\n", token.c_str() );
+			Mem_Free( ic );
+			delete source;
 			return NULL;
 		} //end else
 	} //end while
-	FreeSource( source );
+	delete source;
 	//
 	if ( !ic->numiteminfo ) {
 		botimport.Print( PRT_WARNING, "no item info loaded\n" );
@@ -343,7 +341,7 @@ int *ItemWeightIndex( weightconfig_t *iwc, itemconfig_t *ic ) {
 	int *index, i;
 
 	//initialize item weight index
-	index = (int *) GetClearedMemory( sizeof( int ) * ic->numiteminfo );
+	index = (int *) Mem_ClearedAlloc( sizeof( int ) * ic->numiteminfo, TAG_BOTLIB );
 
 	for ( i = 0; i < ic->numiteminfo; i++ )
 	{
@@ -364,11 +362,11 @@ void InitLevelItemHeap( void ) {
 	int i, max_levelitems;
 
 	if ( levelitemheap ) {
-		FreeMemory( levelitemheap );
+		Mem_Free( levelitemheap );
 	}
 
 	max_levelitems = (int) LibVarValue( "max_levelitems", "256" );
-	levelitemheap = (levelitem_t *) GetMemory( max_levelitems * sizeof( levelitem_t ) );
+	levelitemheap = (levelitem_t *) Mem_Alloc( max_levelitems * sizeof( levelitem_t ), TAG_BOTLIB );
 
 	for ( i = 0; i < max_levelitems - 2; i++ )
 	{
@@ -448,13 +446,13 @@ void BotFreeInfoEntities( void ) {
 	for ( ml = maplocations; ml; ml = nextml )
 	{
 		nextml = ml->next;
-		FreeMemory( ml );
+		Mem_Free( ml );
 	} //end for
 	maplocations = NULL;
 	for ( cs = campspots; cs; cs = nextcs )
 	{
 		nextcs = cs->next;
-		FreeMemory( cs );
+		Mem_Free( cs );
 	} //end for
 	campspots = NULL;
 } //end of the function BotFreeInfoEntities
@@ -482,7 +480,7 @@ void BotInitInfoEntities( void ) {
 
 		//map locations
 		if ( !strcmp( classname, "target_location" ) ) {
-			ml = (maplocation_t *) GetClearedMemory( sizeof( maplocation_t ) );
+			ml = (maplocation_t *) Mem_ClearedAlloc( sizeof( maplocation_t ), TAG_BOTLIB );
 			AAS_VectorForBSPEpairKey( ent, "origin", ml->origin );
 			AAS_ValueForBSPEpairKey( ent, "message", ml->name, sizeof( ml->name ) );
 			ml->areanum = AAS_PointAreaNum( ml->origin );
@@ -492,7 +490,7 @@ void BotInitInfoEntities( void ) {
 		} //end if
 		  //camp spots
 		else if ( !strcmp( classname, "info_camp" ) ) {
-			cs = (campspot_t *) GetClearedMemory( sizeof( campspot_t ) );
+			cs = (campspot_t *) Mem_ClearedAlloc( sizeof( campspot_t ), TAG_BOTLIB );
 			AAS_VectorForBSPEpairKey( ent, "origin", cs->origin );
 			//cs->origin[2] += 16;
 			AAS_ValueForBSPEpairKey( ent, "message", cs->name, sizeof( cs->name ) );
@@ -503,7 +501,7 @@ void BotInitInfoEntities( void ) {
 			cs->areanum = AAS_PointAreaNum( cs->origin );
 			if ( !cs->areanum ) {
 				botimport.Print( PRT_MESSAGE, "camp spot at %1.1f %1.1f %1.1f in solid\n", cs->origin[0], cs->origin[1], cs->origin[2] );
-				FreeMemory( cs );
+				Mem_Free( cs );
 				continue;
 			} //end if
 			cs->next = campspots;
@@ -526,7 +524,7 @@ void BotInitInfoEntities( void ) {
 void BotInitLevelItems( void ) {
 	int i, spawnflags;
 	char classname[MAX_EPAIRKEY];
-	vec3_t origin;
+	idVec3 origin;
 	int ent;
 	itemconfig_t *ic;
 	levelitem_t *li;
@@ -599,7 +597,7 @@ void BotInitLevelItems( void ) {
 					  //item info of the level item
 					li->iteminfo = i;
 					//origin of the item
-					VectorCopy( origin, li->origin );
+					li->origin = origin;
 					//get the item goal area and goal origin
 					li->goalareanum = AAS_BestReachableArea( origin,
 															 ic->iteminfo[i].mins, ic->iteminfo[i].maxs,
@@ -781,12 +779,12 @@ int BotGetLevelItemGoal( int index, char *name, bot_goal_t *goal ) {
 			}
 		}
 		//
-		if ( !Q_stricmp( name, itemconfig->iteminfo[li->iteminfo].name ) ) {
+		if ( !idStr::Icmp( name, itemconfig->iteminfo[li->iteminfo].name ) ) {
 			goal->areanum = li->goalareanum;
-			VectorCopy( li->goalorigin, goal->origin );
+			goal->origin = li->goalorigin;
 			goal->entitynum = li->entitynum;
-			VectorCopy( itemconfig->iteminfo[li->iteminfo].mins, goal->mins );
-			VectorCopy( itemconfig->iteminfo[li->iteminfo].maxs, goal->maxs );
+			goal->mins = itemconfig->iteminfo[li->iteminfo].mins;
+			goal->maxs = itemconfig->iteminfo[li->iteminfo].maxs;
 			goal->number = li->number;
 			//botimport.Print(PRT_MESSAGE, "found li %s\n", itemconfig->iteminfo[li->iteminfo].name);
 			return li->number;
@@ -802,16 +800,16 @@ int BotGetLevelItemGoal( int index, char *name, bot_goal_t *goal ) {
 //===========================================================================
 int BotGetMapLocationGoal( char *name, bot_goal_t *goal ) {
 	maplocation_t *ml;
-	vec3_t mins = {-8, -8, -8}, maxs = {8, 8, 8};
+	idVec3 mins( -8, -8, -8 ), maxs( 8, 8, 8 );
 
 	for ( ml = maplocations; ml; ml = ml->next )
 	{
-		if ( !Q_stricmp( ml->name, name ) ) {
+		if ( !idStr::Icmp( ml->name, name ) ) {
 			goal->areanum = ml->areanum;
-			VectorCopy( ml->origin, goal->origin );
+			goal->origin = ml->origin;
 			goal->entitynum = 0;
-			VectorCopy( mins, goal->mins );
-			VectorCopy( maxs, goal->maxs );
+			goal->mins = mins;
+			goal->maxs = maxs;
 			return qtrue;
 		} //end if
 	} //end for
@@ -826,7 +824,7 @@ int BotGetMapLocationGoal( char *name, bot_goal_t *goal ) {
 int BotGetNextCampSpotGoal( int num, bot_goal_t *goal ) {
 	int i;
 	campspot_t *cs;
-	vec3_t mins = {-8, -8, -8}, maxs = {8, 8, 8};
+	idVec3 mins( -8, -8, -8 ), maxs( 8, 8, 8 );
 
 	if ( num < 0 ) {
 		num = 0;
@@ -836,10 +834,10 @@ int BotGetNextCampSpotGoal( int num, bot_goal_t *goal ) {
 	{
 		if ( --i < 0 ) {
 			goal->areanum = cs->areanum;
-			VectorCopy( cs->origin, goal->origin );
+			goal->origin = cs->origin;
 			goal->entitynum = 0;
-			VectorCopy( mins, goal->mins );
-			VectorCopy( maxs, goal->maxs );
+			goal->mins = mins;
+			goal->maxs = maxs;
 			return num + 1;
 		} //end if
 	} //end for
@@ -857,7 +855,7 @@ int BotGetNextCampSpotGoal( int num, bot_goal_t *goal ) {
 
 void BotUpdateEntityItems( void ) {
 	int ent, i, modelindex;
-	vec3_t dir;
+	idVec3 dir;
 	levelitem_t *li, *nextli;
 	aas_entityinfo_t entinfo;
 	itemconfig_t *ic;
@@ -915,19 +913,19 @@ void BotUpdateEntityItems( void ) {
 			//if the level item is linked to an entity
 			if ( li->entitynum ) {
 				if ( li->entitynum == ent ) {
-					VectorCopy( entinfo.origin, li->origin );
+					li->origin = entinfo.origin;
 					break;
 				} //end if
 			} //end if
 			else
 			{
 				//check if the entity is very close
-				VectorSubtract( li->origin, entinfo.origin, dir );
-				if ( VectorLength( dir ) < 30 ) {
+				dir = li->origin - entinfo.origin;
+				if ( dir.Length() < 30 ) {
 					//found an entity for this level item
 					li->entitynum = ent;
 					//keep updating the entity origin
-					VectorCopy( entinfo.origin, li->origin );
+					li->origin = entinfo.origin;
 					//also update the goal area number
 					li->goalareanum = AAS_BestReachableArea( li->origin,
 															 ic->iteminfo[li->iteminfo].mins, ic->iteminfo[li->iteminfo].maxs,
@@ -966,7 +964,7 @@ void BotUpdateEntityItems( void ) {
 		//set the item info index for the level item
 		li->iteminfo = i;
 		//origin of the item
-		VectorCopy( entinfo.origin, li->origin );
+		li->origin = entinfo.origin;
 		//get the item goal area and goal origin
 		li->goalareanum = AAS_BestReachableArea( li->origin,
 												 ic->iteminfo[i].mins, ic->iteminfo[i].maxs,
@@ -1103,7 +1101,7 @@ int BotGetSecondGoal( int goalstate, bot_goal_t *goal ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int BotChooseLTGItem( int goalstate, vec3_t origin, int *inventory, int travelflags ) {
+int BotChooseLTGItem( int goalstate, const idVec3 &origin, int *inventory, int travelflags ) {
 	int areanum, t, weightnum;
 	float weight, bestweight, avoidtime;
 	iteminfo_t *iteminfo;
@@ -1225,9 +1223,9 @@ int BotChooseLTGItem( int goalstate, vec3_t origin, int *inventory, int travelfl
 	} //end if
 	  //create a bot goal for this item
 	iteminfo = &ic->iteminfo[bestitem->iteminfo];
-	VectorCopy( bestitem->goalorigin, goal.origin );
-	VectorCopy( iteminfo->mins, goal.mins );
-	VectorCopy( iteminfo->maxs, goal.maxs );
+	goal.origin = bestitem->goalorigin;
+	goal.mins = iteminfo->mins;
+	goal.maxs = iteminfo->maxs;
 	goal.areanum = bestitem->goalareanum;
 	goal.entitynum = bestitem->entitynum;
 	goal.number = bestitem->number;
@@ -1261,7 +1259,7 @@ int BotChooseLTGItem( int goalstate, vec3_t origin, int *inventory, int travelfl
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int BotChooseNBGItem( int goalstate, vec3_t origin, int *inventory, int travelflags,
+int BotChooseNBGItem( int goalstate, const idVec3 &origin, int *inventory, int travelflags,
 					  bot_goal_t *ltg, float maxtime ) {
 	int areanum, t, weightnum, ltg_time;
 	float weight, bestweight, avoidtime;
@@ -1374,9 +1372,9 @@ int BotChooseNBGItem( int goalstate, vec3_t origin, int *inventory, int travelfl
 	}
 	//create a bot goal for this item
 	iteminfo = &ic->iteminfo[bestitem->iteminfo];
-	VectorCopy( bestitem->goalorigin, goal.origin );
-	VectorCopy( iteminfo->mins, goal.mins );
-	VectorCopy( iteminfo->maxs, goal.maxs );
+	goal.origin = bestitem->goalorigin;
+	goal.mins = iteminfo->mins;
+	goal.maxs = iteminfo->maxs;
 	goal.areanum = bestitem->goalareanum;
 	goal.entitynum = bestitem->entitynum;
 	goal.number = bestitem->number;
@@ -1410,21 +1408,21 @@ int BotChooseNBGItem( int goalstate, vec3_t origin, int *inventory, int travelfl
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int BotTouchingGoal( vec3_t origin, bot_goal_t *goal ) {
+int BotTouchingGoal( const idVec3 &origin, bot_goal_t *goal ) {
 	int i;
-	vec3_t boxmins, boxmaxs;
-	vec3_t absmins, absmaxs;
-	vec3_t safety_maxs = {0, 0, 0}; //{4, 4, 10};
-	vec3_t safety_mins = {0, 0, 0}; //{-4, -4, 0};
+	idVec3 boxmins, boxmaxs;
+	idVec3 absmins, absmaxs;
+	idVec3 safety_maxs( 0, 0, 0 );
+	idVec3 safety_mins( 0, 0, 0 );
 
 	AAS_PresenceTypeBoundingBox( PRESENCE_NORMAL, boxmins, boxmaxs );
-	VectorSubtract( goal->mins, boxmaxs, absmins );
-	VectorSubtract( goal->maxs, boxmins, absmaxs );
-	VectorAdd( absmins, goal->origin, absmins );
-	VectorAdd( absmaxs, goal->origin, absmaxs );
+	absmins = goal->mins - boxmaxs;
+	absmaxs = goal->maxs - boxmins;
+	absmins += goal->origin;
+	absmaxs += goal->origin;
 	//make the box a little smaller for safety
-	VectorSubtract( absmaxs, safety_maxs, absmaxs );
-	VectorSubtract( absmins, safety_mins, absmins );
+	absmaxs -= safety_maxs;
+	absmins -= safety_mins;
 
 	for ( i = 0; i < 3; i++ )
 	{
@@ -1440,20 +1438,20 @@ int BotTouchingGoal( vec3_t origin, bot_goal_t *goal ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int BotItemGoalInVisButNotVisible( int viewer, vec3_t eye, vec3_t viewangles, bot_goal_t *goal ) {
+int BotItemGoalInVisButNotVisible( int viewer, const idVec3 &eye, const idVec3 &viewangles, bot_goal_t *goal ) {
 	aas_entityinfo_t entinfo;
 	bsp_trace_t trace;
-	vec3_t middle;
+	idVec3 middle;
 
 	if ( !( goal->flags & GFL_ITEM ) ) {
 		return qfalse;
 	}
 	//
-	VectorAdd( goal->mins, goal->mins, middle );
-	VectorScale( middle, 0.5, middle );
-	VectorAdd( goal->origin, middle, middle );
+	middle = goal->mins + goal->mins;
+	middle *= 0.5f;
+	middle += goal->origin;
 	//
-	trace = AAS_Trace( eye, NULL, NULL, middle, viewer, CONTENTS_SOLID );
+	trace = AAS_Trace( eye, nullptr, nullptr, middle, viewer, CONTENTS_SOLID );
 	//if the goal middle point is visible
 	if ( trace.fraction >= 1 ) {
 		//the goal entity number doesn't have to be valid
@@ -1535,7 +1533,7 @@ void BotFreeItemWeights( int goalstate ) {
 		FreeWeightConfig( gs->itemweightconfig );
 	}
 	if ( gs->itemweightindex ) {
-		FreeMemory( gs->itemweightindex );
+		Mem_Free( gs->itemweightindex );
 	}
 } //end of the function BotFreeItemWeights
 //===========================================================================
@@ -1550,7 +1548,7 @@ int BotAllocGoalState( int client ) {
 	for ( i = 1; i <= MAX_CLIENTS; i++ )
 	{
 		if ( !botgoalstates[i] ) {
-			botgoalstates[i] = (bot_goalstate_t *) GetClearedMemory( sizeof( bot_goalstate_t ) );
+			botgoalstates[i] = (bot_goalstate_t *) Mem_ClearedAlloc( sizeof( bot_goalstate_t ), TAG_BOTLIB );
 			botgoalstates[i]->client = client;
 			return i;
 		} //end if
@@ -1573,7 +1571,7 @@ void BotFreeGoalState( int handle ) {
 		return;
 	} //end if
 	BotFreeItemWeights( handle );
-	FreeMemory( botgoalstates[handle] );
+	Mem_Free( botgoalstates[handle] );
 	botgoalstates[handle] = NULL;
 } //end of the function BotFreeGoalState
 //===========================================================================
@@ -1608,11 +1606,11 @@ void BotShutdownGoalAI( void ) {
 	int i;
 
 	if ( itemconfig ) {
-		FreeMemory( itemconfig );
+		Mem_Free( itemconfig );
 	}
 	itemconfig = NULL;
 	if ( levelitemheap ) {
-		FreeMemory( levelitemheap );
+		Mem_Free( levelitemheap );
 	}
 	levelitemheap = NULL;
 	freelevelitems = NULL;

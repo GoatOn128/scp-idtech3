@@ -143,7 +143,7 @@ void RB_CalcDeformVertexes( deformStage_t *ds ) {
 			worldUp = backEnd.currentEntity->e.fireRiseDir;
 		}
 		// don't go so far if sideways, since they must be moving
-		worldUp = worldUp * 0.4 + 0.6 * fabs( backEnd.currentEntity->e.fireRiseDir[2] );
+		worldUp = worldUp * 0.4f + idVec3( 0.6f * fabs( backEnd.currentEntity->e.fireRiseDir[2] ) );
 
 		ds->deformationWave.frequency *= -1;
 		if ( ds->deformationWave.frequency > 999 ) {  // hack for negative Z deformation (ack)
@@ -270,7 +270,7 @@ void RB_CalcBulgeVertexes( deformStage_t *ds ) {
 		int off;
 		float scale;
 
-		off = (float)( FUNCTABLE_SIZE / ( M_PI * 2 ) ) * ( st[0] * ds->bulgeWidth + now );
+		off = (float)( FUNCTABLE_SIZE / idMath::TWO_PI ) * ( st[0] * ds->bulgeWidth + now );
 
 		scale = tr.sinTable[ off & FUNCTABLE_MASK ] * ds->bulgeHeight;
 
@@ -492,7 +492,6 @@ int edgeVerts[6][2] = {
 static void Autosprite2Deform( void ) {
 	int i, j, k;
 	int indexes;
-	float   *xyz;
 	idVec3 forward;
 
 	if ( tess.numVertexes & 3 ) {
@@ -516,10 +515,7 @@ static void Autosprite2Deform( void ) {
 		int nums[2];
 		idVec3 mid[2];
 		idVec3 major, minor;
-		float   *v1, *v2;
-
-		// find the midpoint
-		xyz = tess.xyz[i].ToFloatPtr();
+		idVec3 v1, v2;
 
 		// identify the two shortest edges
 		nums[0] = nums[1] = 0;
@@ -529,12 +525,9 @@ static void Autosprite2Deform( void ) {
 			float l;
 			idVec3 temp;
 
-			v1 = xyz + 4 * edgeVerts[j][0];
-			v2 = xyz + 4 * edgeVerts[j][1];
-
-			temp[0] = v1[0] - v2[0];
-			temp[1] = v1[1] - v2[1];
-			temp[2] = v1[2] - v2[2];
+			v1 = tess.xyz[i + edgeVerts[j][0]].ToVec3();
+			v2 = tess.xyz[i + edgeVerts[j][1]].ToVec3();
+			temp = v1 - v2;
 
 			l = ( temp ) * ( temp );
 			if ( l < lengths[0] ) {
@@ -549,12 +542,9 @@ static void Autosprite2Deform( void ) {
 		}
 
 		for ( j = 0 ; j < 2 ; j++ ) {
-			v1 = xyz + 4 * edgeVerts[nums[j]][0];
-			v2 = xyz + 4 * edgeVerts[nums[j]][1];
-
-			mid[j][0] = 0.5f * ( v1[0] + v2[0] );
-			mid[j][1] = 0.5f * ( v1[1] + v2[1] );
-			mid[j][2] = 0.5f * ( v1[2] + v2[2] );
+			v1 = tess.xyz[i + edgeVerts[nums[j]][0]].ToVec3();
+			v2 = tess.xyz[i + edgeVerts[nums[j]][1]].ToVec3();
+			mid[j] = ( v1 + v2 ) * 0.5f;
 		}
 
 		// find the vector of the major axis
@@ -568,9 +558,6 @@ static void Autosprite2Deform( void ) {
 		for ( j = 0 ; j < 2 ; j++ ) {
 			float l;
 
-			v1 = xyz + 4 * edgeVerts[nums[j]][0];
-			v2 = xyz + 4 * edgeVerts[nums[j]][1];
-
 			l = 0.5f * sqrt( lengths[j] );
 
 			// we need to see which direction this edge
@@ -583,11 +570,11 @@ static void Autosprite2Deform( void ) {
 			}
 
 			if ( k == 5 ) {
-				v1 = mid[j] + minor * l;
-				v2 = mid[j] + minor * -l;
+				tess.xyz[i + edgeVerts[nums[j]][0]].ToVec3() = mid[j] + minor * l;
+				tess.xyz[i + edgeVerts[nums[j]][1]].ToVec3() = mid[j] + minor * -l;
 			} else {
-				v1 = mid[j] + minor * -l;
-				v2 = mid[j] + minor * l;
+				tess.xyz[i + edgeVerts[nums[j]][0]].ToVec3() = mid[j] + minor * -l;
+				tess.xyz[i + edgeVerts[nums[j]][1]].ToVec3() = mid[j] + minor * l;
 			}
 		}
 	}
@@ -1128,7 +1115,7 @@ void RB_CalcRotateTexCoords( float degsPerSecond, float *st ) {
 **
 ** Calculates specular coefficient and places it in the alpha channel
 */
-idVec3 lightOrigin = { -960, 1980, 96 };        // FIXME: track dynamically
+idVec3 lightOrigin( -960, 1980, 96 );        // FIXME: track dynamically
 
 void RB_CalcSpecularAlpha( unsigned char *alphas ) {
 	int i;
@@ -1239,4 +1226,3 @@ void RB_CalcDiffuseColor( unsigned char *colors ) {
 		colors[i * 4 + 3] = 255;
 	}
 }
-

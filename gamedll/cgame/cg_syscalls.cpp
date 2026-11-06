@@ -163,7 +163,7 @@ void    trap_CM_TransformedCapsuleTrace( trace_t *results, const idVec3 &start, 
 
 int     trap_CM_MarkFragments( int numPoints, const idVec3 *points,
 							   const idVec3 &projection,
-							   int maxPoints, idVec3 *pointBuffer,
+							   int maxPoints, idVec5 *pointBuffer,
 							   int maxFragments, markFragment_t *fragmentBuffer ) {
 	return cgImports->RE_MarkFragments( numPoints, points, projection, maxPoints, pointBuffer, maxFragments, fragmentBuffer );
 }

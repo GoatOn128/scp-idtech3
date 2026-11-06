@@ -84,7 +84,7 @@ void RB_DrawScreenParticles( void ) {
 			point = entity->origin + right * signs[corner][0] * entity->radius;
 			point = point + up * signs[corner][1] * entity->radius * aspect;
 			qglTexCoord2fv( st[corner] );
-			qglVertex3fv( point );
+			qglVertex3fv( point.ToFloatPtr() );
 		}
 		qglEnd();
 	}

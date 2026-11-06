@@ -107,7 +107,7 @@ typedef struct {
 	void ( QDECL *CM_TransformedBoxTrace )( trace_t *results, const idVec3 &start, const idVec3 &end, const idVec3 &mins, const idVec3 &maxs, clipHandle_t model, int brushmask, const idVec3 &origin, const idVec3 &angles );
 	void ( QDECL *CM_CapsuleTrace )( trace_t *results, const idVec3 &start, const idVec3 &end, const idVec3 &mins, const idVec3 &maxs, clipHandle_t model, int brushmask );
 	void ( QDECL *CM_TransformedCapsuleTrace )( trace_t *results, const idVec3 &start, const idVec3 &end, const idVec3 &mins, const idVec3 &maxs, clipHandle_t model, int brushmask, const idVec3 &origin, const idVec3 &angles );
-	int ( QDECL *RE_MarkFragments )( int numPoints, const idVec3 *points, const idVec3 &projection, int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+	int ( QDECL *RE_MarkFragments )( int numPoints, const idVec3 *points, const idVec3 &projection, int maxPoints, idVec5 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 	void ( QDECL *S_StartSound )( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfx );
 	void ( QDECL *S_StartSoundEx )( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfx, int flags );
 	void ( QDECL *S_StartLocalSound )( sfxHandle_t sfx, int channelNum );

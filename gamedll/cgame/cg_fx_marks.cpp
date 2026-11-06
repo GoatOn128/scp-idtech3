@@ -135,7 +135,7 @@ void CG_ImpactMark( qhandle_t markShader, const idVec3 &origin, const idVec3 &di
 	//VectorScale( dir, -20, projection );
 	projection = dir * ( radius * 2 );
 	numFragments = trap_CM_MarkFragments( (int)orientation, originalPoints,
-										  projection, MAX_MARK_POINTS, ( idVec3 * )markPoints,
+										  projection, MAX_MARK_POINTS, markPoints,
 										  MAX_MARK_FRAGMENTS * multMaxFragments, markFragments );
 
 	colors[0] = red * 255;

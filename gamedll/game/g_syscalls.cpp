@@ -255,8 +255,8 @@ int trap_BotLibVarGet( char *var_name, char *value, int size ) {
 	return gameImports->BotLibVarGet( var_name, value, size );
 }
 
-int trap_BotLibDefine( char *string ) {
-	return gameImports->PC_AddGlobalDefine( string );
+int trap_BotLibDefine( const char *string ) {
+	return gameImports->BotLibDefine( string );
 }
 
 int trap_BotLibStartFrame( float time ) {

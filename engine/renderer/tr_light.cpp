@@ -345,7 +345,7 @@ void R_SetupEntityLighting( const trRefdef_t *refdef, trRefEntity_t *ent ) {
 
 
 	if ( ent->e.entityNum < MAX_CLIENTS && ( refdef->rdflags & RDF_SNOOPERVIEW ) ) {
-		ent->ambientLight.Set( ent->ambientLight, 245, 245, 245 );    // allow a little room for flicker from directed light
+		ent->ambientLight.Set( 245, 245, 245 );    // allow a little room for flicker from directed light
 	}
 
 

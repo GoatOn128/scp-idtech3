@@ -101,7 +101,7 @@ typedef struct {
 
 
 	int ( *MarkFragments )( int numPoints, const idVec3 *points, const idVec3 &projection,
-						int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+						int maxPoints, idVec5 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
 	int ( *LerpTag )( orientation_t *tag,  const refEntity_t *refent, const char *tagName, int startIndex );
 	void ( *ModelBounds )( qhandle_t model, idVec3 &mins, idVec3 &maxs );

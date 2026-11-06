@@ -45,12 +45,12 @@ POLYGON TO BOX SIDE PROJECTION
 
 static idVec3 sky_clip[6] =
 {
-	{1,1,0},
-	{1,-1,0},
-	{0,-1,1},
-	{0,1,1},
-	{1,0,1},
-	{-1,0,1}
+	idVec3( 1, 1, 0 ),
+	idVec3( 1, -1, 0 ),
+	idVec3( 0, -1, 1 ),
+	idVec3( 0, 1, 1 ),
+	idVec3( 1, 0, 1 ),
+	idVec3( -1, 0, 1 )
 };
 
 static float sky_mins[2][6], sky_maxs[2][6];
@@ -61,12 +61,11 @@ static float sky_min, sky_max;
 AddSkyPolygon
 ================
 */
-static void AddSkyPolygon( int nump, idVec3 vecs ) {
+static void AddSkyPolygon( int nump, idVec3 *vecs ) {
 	int i,j;
 	idVec3 v, av;
 	float s, t, dv;
 	int axis;
-	float   *vp;
 	// s = [0]/[2], t = [1]/[2]
 	static int vec_to_st[6][3] =
 	{
@@ -85,9 +84,9 @@ static void AddSkyPolygon( int nump, idVec3 vecs ) {
 
 	// decide which face it maps to
 	v = vec3_origin;
-	for ( i = 0, vp = vecs ; i < nump ; i++, vp += 3 )
+	for ( i = 0 ; i < nump ; i++ )
 	{
-		v = vp + v;
+		v += vecs[i];
 	}
 	av[0] = fabs( v[0] );
 	av[1] = fabs( v[1] );
@@ -114,28 +113,29 @@ static void AddSkyPolygon( int nump, idVec3 vecs ) {
 	}
 
 	// project new texture coords
-	for ( i = 0 ; i < nump ; i++, vecs += 3 )
+	for ( i = 0 ; i < nump ; i++ )
 	{
+		const idVec3 &point = vecs[i];
 		j = vec_to_st[axis][2];
 		if ( j > 0 ) {
-			dv = vecs[j - 1];
+			dv = point[j - 1];
 		} else {
-			dv = -vecs[-j - 1];
+			dv = -point[-j - 1];
 		}
 		if ( dv < 0.001 ) {
 			continue;   // don't divide by zero
 		}
 		j = vec_to_st[axis][0];
 		if ( j < 0 ) {
-			s = -vecs[-j - 1] / dv;
+			s = -point[-j - 1] / dv;
 		} else {
-			s = vecs[j - 1] / dv;
+			s = point[j - 1] / dv;
 		}
 		j = vec_to_st[axis][1];
 		if ( j < 0 ) {
-			t = -vecs[-j - 1] / dv;
+			t = -point[-j - 1] / dv;
 		} else {
-			t = vecs[j - 1] / dv;
+			t = point[j - 1] / dv;
 		}
 
 		if ( s < sky_mins[0][axis] ) {
@@ -160,9 +160,9 @@ static void AddSkyPolygon( int nump, idVec3 vecs ) {
 ClipSkyPolygon
 ================
 */
-static void ClipSkyPolygon( int nump, idVec3 vecs, int stage ) {
-	float   *norm;
-	float   *v;
+static void ClipSkyPolygon( int nump, idVec3 *vecs, int stage ) {
+	const idVec3 *norm;
+	idVec3 *v;
 	qboolean front, back;
 	float d, e;
 	float dists[MAX_CLIP_VERTS];
@@ -179,11 +179,12 @@ static void ClipSkyPolygon( int nump, idVec3 vecs, int stage ) {
 		return;
 	}
 
+	norm = &sky_clip[stage];
 	front = back = qfalse;
-	norm = sky_clip[stage];
-	for ( i = 0, v = vecs ; i < nump ; i++, v += 3 )
+	for ( i = 0 ; i < nump ; i++ )
 	{
-		d = ( v ) * ( norm );
+		v = &vecs[i];
+		d = ( *v ) * ( *norm );
 		if ( d > ON_EPSILON ) {
 			front = qtrue;
 			sides[i] = SIDE_FRONT;
@@ -204,25 +205,25 @@ static void ClipSkyPolygon( int nump, idVec3 vecs, int stage ) {
 	// clip it
 	sides[i] = sides[0];
 	dists[i] = dists[0];
-	( vecs + ( i * 3 ) ) = vecs;
 	newc[0] = newc[1] = 0;
 
-	for ( i = 0, v = vecs ; i < nump ; i++, v += 3 )
+	for ( i = 0 ; i < nump ; i++ )
 	{
+		v = &vecs[i];
 		switch ( sides[i] )
 		{
 		case SIDE_FRONT:
-			newv[0][newc[0]] = v;
+			newv[0][newc[0]] = *v;
 			newc[0]++;
 			break;
 		case SIDE_BACK:
-			newv[1][newc[1]] = v;
+			newv[1][newc[1]] = *v;
 			newc[1]++;
 			break;
 		case SIDE_ON:
-			newv[0][newc[0]] = v;
+			newv[0][newc[0]] = *v;
 			newc[0]++;
-			newv[1][newc[1]] = v;
+			newv[1][newc[1]] = *v;
 			newc[1]++;
 			break;
 		}
@@ -234,7 +235,7 @@ static void ClipSkyPolygon( int nump, idVec3 vecs, int stage ) {
 		d = dists[i] / ( dists[i] - dists[i + 1] );
 		for ( j = 0 ; j < 3 ; j++ )
 		{
-			e = v[j] + d * ( v[j + 3] - v[j] );
+			e = ( *v )[j] + d * ( vecs[( i + 1 ) % nump][j] - ( *v )[j] );
 			newv[0][newc[0]][j] = e;
 			newv[1][newc[1]][j] = e;
 		}
@@ -243,8 +244,8 @@ static void ClipSkyPolygon( int nump, idVec3 vecs, int stage ) {
 	}
 
 	// continue
-	ClipSkyPolygon( newc[0], newv[0][0], stage + 1 );
-	ClipSkyPolygon( newc[1], newv[1][0], stage + 1 );
+	ClipSkyPolygon( newc[0], newv[0], stage + 1 );
+	ClipSkyPolygon( newc[1], newv[1], stage + 1 );
 }
 
 /*
@@ -276,9 +277,9 @@ void RB_ClipSkyPolygons( shaderCommands_t *input ) {
 	{
 		for ( j = 0 ; j < 3 ; j++ )
 		{
-			p[j] = input->xyz[input->indexes[i + j]] - backEnd.viewParms.orent.origin;
+			p[j] = input->xyz[input->indexes[i + j]].ToVec3() - backEnd.viewParms.orent.origin;
 		}
-		ClipSkyPolygon( 3, p[0], 0 );
+		ClipSkyPolygon( 3, p, 0 );
 	}
 }
 
@@ -382,10 +383,10 @@ static void DrawSkySide( struct image_s *image, const int mins[2], const int max
 		for ( s = mins[0] + HALF_SKY_SUBDIVISIONS; s <= maxs[0] + HALF_SKY_SUBDIVISIONS; s++ )
 		{
 			qglTexCoord2fv( s_skyTexCoords[t][s] );
-			qglVertex3fv( s_skyPoints[t][s] );
+			qglVertex3fv( s_skyPoints[t][s].ToFloatPtr() );
 
 			qglTexCoord2fv( s_skyTexCoords[t + 1][s] );
-			qglVertex3fv( s_skyPoints[t + 1][s] );
+			qglVertex3fv( s_skyPoints[t + 1][s].ToFloatPtr() );
 		}
 
 		qglEnd();
@@ -409,10 +410,10 @@ static void DrawSkySideInner( struct image_s *image, const int mins[2], const in
 		for ( s = mins[0] + HALF_SKY_SUBDIVISIONS; s <= maxs[0] + HALF_SKY_SUBDIVISIONS; s++ )
 		{
 			qglTexCoord2fv( s_skyTexCoords[t][s] );
-			qglVertex3fv( s_skyPoints[t][s] );
+			qglVertex3fv( s_skyPoints[t][s].ToFloatPtr() );
 
 			qglTexCoord2fv( s_skyTexCoords[t + 1][s] );
-			qglVertex3fv( s_skyPoints[t + 1][s] );
+			qglVertex3fv( s_skyPoints[t + 1][s].ToFloatPtr() );
 		}
 
 		qglEnd();
@@ -575,7 +576,8 @@ static void FillCloudySkySide( const int mins[2], const int maxs[2], qboolean ad
 	{
 		for ( s = mins[0] + HALF_SKY_SUBDIVISIONS; s <= maxs[0] + HALF_SKY_SUBDIVISIONS; s++ )
 		{
-			tess.xyz[tess.numVertexes] = s_skyPoints[t][s] + backEnd.viewParms.orent.origin;
+			tess.xyz[tess.numVertexes].ToVec3() = s_skyPoints[t][s] + backEnd.viewParms.orent.origin;
+			tess.xyz[tess.numVertexes][3] = 1.0f;
 			tess.texCoords[tess.numVertexes][0][0] = s_skyTexCoords[t][s][0];
 			tess.texCoords[tess.numVertexes][0][1] = s_skyTexCoords[t][s][1];
 
@@ -786,8 +788,8 @@ void R_InitSkyTexCoords( float heightCloud ) {
 				// compute vector from world origin to intersection point 'v'
 				v.Normalize();
 
-				sRad = Q_acos( v[0] );
-				tRad = Q_acos( v[1] );
+				sRad = idMath::ACos( v[0] );
+				tRad = idMath::ACos( v[1] );
 
 				s_cloudTexCoords[i][t][s][0] = sRad;
 				s_cloudTexCoords[i][t][s][1] = tRad;
@@ -1025,4 +1027,3 @@ void RB_StageIteratorSky( void ) {
 	// note that sky was drawn so we will draw a sun later
 	backEnd.skyRenderedThisView = qtrue;
 }
-

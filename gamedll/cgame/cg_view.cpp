@@ -105,7 +105,7 @@ void CG_TestModel_f( void ) {
 	angles[YAW] = 180 + cg.refdefViewAngles[1];
 	angles[ROLL] = 0;
 
-	AnglesToAxis( angles, cg.testModelEntity.axis );
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &cg.testModelEntity.axis[0], &cg.testModelEntity.axis[1], &cg.testModelEntity.axis[2] );
 	cg.testGun = qfalse;
 }
 
@@ -313,8 +313,8 @@ static void CG_OffsetThirdPersonView( void ) {
 
 	idAngles(cg.refdefViewAngles).ToVectors(&(forward), &(right), &(up));
 
-	forwardScale = cos( cg_thirdPersonAngle.value / 180 * idMath::PI );
-	sideScale = sin( cg_thirdPersonAngle.value / 180 * idMath::PI );
+	forwardScale = idMath::Cos( cg_thirdPersonAngle.value / 180 * idMath::PI );
+	sideScale = idMath::Sin( cg_thirdPersonAngle.value / 180 * idMath::PI );
 	view = view + forward * (-cg_thirdPersonRange.value * forwardScale);
 	view = view + right * (-cg_thirdPersonRange.value * sideScale);
 
@@ -338,11 +338,11 @@ static void CG_OffsetThirdPersonView( void ) {
 
 	// select pitch to look at focus point from vieword
 	focusPoint = focusPoint - cg.refdef.vieworg;
-	focusDist = sqrt( focusPoint[0] * focusPoint[0] + focusPoint[1] * focusPoint[1] );
+	focusDist = idMath::Sqrt( focusPoint[0] * focusPoint[0] + focusPoint[1] * focusPoint[1] );
 	if ( focusDist < 1 ) {
 		focusDist = 1;  // should never happen
 	}
-	cg.refdefViewAngles[PITCH] = -180 / idMath::PI * atan2( focusPoint[2], focusDist );
+	cg.refdefViewAngles[PITCH] = -180 / idMath::PI * idMath::ATan( focusPoint[2], focusDist );
 	cg.refdefViewAngles[YAW] -= cg_thirdPersonAngle.value;
 }
 
@@ -411,7 +411,7 @@ void CG_KickAngles( void ) {
 					cg.kickAngles[i] += kickChange;
 					if ( !cg.kickAngles[i] && frametime ) {
 						cg.kickAVel[i] = 0;
-					} else if ( fabs( cg.kickAngles[i] ) > maxKickAngles[i] ) {
+					} else if ( idMath::Fabs( cg.kickAngles[i] ) > maxKickAngles[i] ) {
 						cg.kickAngles[i] = maxKickAngles[i] * ( ( 2 * ( cg.kickAngles[i] > 0 ) ) - 1 );
 						cg.kickAVel[i] = 0; // force Avel to return us to center rather than keep going outside range
 					}
@@ -425,7 +425,7 @@ void CG_KickAngles( void ) {
 		// recoil is added to input viewangles per frame
 		if ( cg.recoilPitch ) {
 			// apply max recoil
-			if ( fabs( cg.recoilPitch ) > recoilMaxSpeed ) {
+			if ( idMath::Fabs( cg.recoilPitch ) > recoilMaxSpeed ) {
 				if ( cg.recoilPitch > 0 ) {
 					cg.recoilPitch = recoilMaxSpeed;
 				} else {
@@ -436,7 +436,7 @@ void CG_KickAngles( void ) {
 			if ( frametime ) {
 				idealCenterSpeed = -( 2.0 * ( cg.recoilPitch > 0 ) - 1.0 ) * recoilCenterSpeed * ft;
 				if ( idealCenterSpeed ) {
-					if ( fabs( idealCenterSpeed ) < fabs( cg.recoilPitch ) ) {
+					if ( idMath::Fabs( idealCenterSpeed ) < idMath::Fabs( cg.recoilPitch ) ) {
 						cg.recoilPitch += idealCenterSpeed;
 					} else {    // back zero out
 						cg.recoilPitch = 0;
@@ -444,7 +444,7 @@ void CG_KickAngles( void ) {
 				}
 			}
 		}
-		if ( fabs( cg.recoilPitch ) > recoilIgnoreCutoff ) {
+		if ( idMath::Fabs( cg.recoilPitch ) > recoilIgnoreCutoff ) {
 			cg.recoilPitchAngle += cg.recoilPitch * ft;
 		}
 	}
@@ -531,10 +531,10 @@ static void CG_ZoomSway( void ) {
 	spreadfrac = (float)cg.snap->ps.aimSpreadScale / 255.0;
 
 	phase = cg.time / 1000.0 * ZOOM_PITCH_FREQUENCY * idMath::PI * 2;
-	cg.refdefViewAngles[PITCH] += ZOOM_PITCH_AMPLITUDE * sin( phase ) * ( spreadfrac + ZOOM_PITCH_MIN_AMPLITUDE );
+	cg.refdefViewAngles[PITCH] += ZOOM_PITCH_AMPLITUDE * idMath::Sin( phase ) * ( spreadfrac + ZOOM_PITCH_MIN_AMPLITUDE );
 
 	phase = cg.time / 1000.0 * ZOOM_YAW_FREQUENCY * idMath::PI * 2;
-	cg.refdefViewAngles[YAW] += ZOOM_YAW_AMPLITUDE * sin( phase ) * ( spreadfrac + ZOOM_YAW_MIN_AMPLITUDE );
+	cg.refdefViewAngles[YAW] += ZOOM_YAW_AMPLITUDE * idMath::Sin( phase ) * ( spreadfrac + ZOOM_YAW_MIN_AMPLITUDE );
 
 }
 
@@ -894,14 +894,14 @@ static int CG_CalcFov( void ) {
 	}
 
 	x = cg.refdef.width / tan( fov_x / 360 * idMath::PI );
-	fov_y = atan2( cg.refdef.height, x );
+	fov_y = idMath::ATan( cg.refdef.height, x );
 	fov_y = fov_y * 360 / idMath::PI;
 
 	// warp if underwater
 	contents = CG_PointContents( cg.refdef.vieworg, -1 );
 	if ( contents & ( CONTENTS_WATER | CONTENTS_SLIME | CONTENTS_LAVA ) ) {
 		phase = cg.time / 1000.0 * WAVE_FREQUENCY * idMath::PI * 2;
-		v = WAVE_AMPLITUDE * sin( phase );
+		v = WAVE_AMPLITUDE * idMath::Sin( phase );
 		fov_x += v;
 		fov_y -= v;
 		inwater = qtrue;
@@ -1009,9 +1009,9 @@ static void CG_DamageBlendBlob( void ) {
 		ent.origin = ent.origin + cg.refdef.viewaxis[1] * (vd->damageX * -8);
 		ent.origin = ent.origin + cg.refdef.viewaxis[2] * (vd->damageY * 8);
 
-		ent.radius = vd->damageValue * 0.4 * ( 0.5 + 0.5 * (float)t / maxTime ) * ( 0.75 + 0.5 * fabs( sin( vd->damageTime ) ) );
+		ent.radius = vd->damageValue * 0.4 * ( 0.5 + 0.5 * (float)t / maxTime ) * ( 0.75 + 0.5 * idMath::Fabs( idMath::Sin( vd->damageTime ) ) );
 
-		ent.customShader = cgs.media.viewBloodAni[(int)( floor( ( (float)t / maxTime ) * 4.9 ) )]; //cgs.media.viewBloodShader;
+		ent.customShader = cgs.media.viewBloodAni[(int)( idMath::Floor( ( (float)t / maxTime ) * 4.9 ) )]; //cgs.media.viewBloodShader;
 		ent.shaderRGBA[0] = 255;
 		ent.shaderRGBA[1] = 255;
 		ent.shaderRGBA[2] = 255;
@@ -1023,7 +1023,7 @@ static void CG_DamageBlendBlob( void ) {
 
 	/* moved over to cg_draw.c
 	if (cg.v_dmg_time > cg.time) {
-		redFlash = fabs(cg.v_dmg_pitch * ((cg.v_dmg_time - cg.time) / DAMAGE_TIME));
+		redFlash = idMath::Fabs(cg.v_dmg_pitch * ((cg.v_dmg_time - cg.time) / DAMAGE_TIME));
 
 		// blend the entire screen red
 		if (redFlash > 5)
@@ -1033,7 +1033,7 @@ static void CG_DamageBlendBlob( void ) {
 		ent.reType = RT_SPRITE;
 		ent.renderfx = RF_FIRST_PERSON;
 
-		VectorMA( cg.refdef.vieworg, 8, cg.refdef.viewaxis[0], ent.origin );
+		ent.origin = cg.refdef.vieworg + cg.refdef.viewaxis[0] * 8;
 		ent.radius = 80;	// occupy entire screen
 		ent.customShader = cgs.media.viewFlashBlood;
 		ent.shaderRGBA[3] = (int)(180.0 * redFlash/5.0);
@@ -1075,10 +1075,10 @@ static int CG_CalcViewValues( void ) {
 			angles[ROLL] = 0;
 			angles[PITCH] = -angles[PITCH];     // (SA) compensate for reversed pitch (this makes the game match the editor, however I'm guessing the real fix is to be done there)
 			cg.refdefViewAngles = angles;
-			AnglesToAxis( cg.refdefViewAngles, cg.refdef.viewaxis );
+			idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &cg.refdef.viewaxis[0], &cg.refdef.viewaxis[1], &cg.refdef.viewaxis[2] );
 
 			x = cg.refdef.width / tan( fov / 360 * idMath::PI );
-			cg.refdef.fov_y = atan2( cg.refdef.height, x );
+			cg.refdef.fov_y = idMath::ATan( cg.refdef.height, x );
 			cg.refdef.fov_y = cg.refdef.fov_y * 360 / idMath::PI;
 			cg.refdef.fov_x = fov;
 
@@ -1107,13 +1107,13 @@ static int CG_CalcViewValues( void ) {
 	if ( ps->pm_type == PM_INTERMISSION ) {
 		cg.refdef.vieworg = ps->origin;
 		cg.refdefViewAngles = ps->viewangles;
-		AnglesToAxis( cg.refdefViewAngles, cg.refdef.viewaxis );
+		idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &cg.refdef.viewaxis[0], &cg.refdef.viewaxis[1], &cg.refdef.viewaxis[2] );
 		return CG_CalcFov();
 	}
 
 	cg.bobcycle = ( ps->bobCycle & 128 ) >> 7;
-	cg.bobfracsin = fabs( sin( ( ps->bobCycle & 127 ) / 127.0 * idMath::PI ) );
-	cg.xyspeed = sqrt( ps->velocity[0] * ps->velocity[0] +
+	cg.bobfracsin = idMath::Fabs( idMath::Sin( ( ps->bobCycle & 127 ) / 127.0 * idMath::PI ) );
+	cg.xyspeed = idMath::Sqrt( ps->velocity[0] * ps->velocity[0] +
 					   ps->velocity[1] * ps->velocity[1] );
 
 
@@ -1142,7 +1142,7 @@ static int CG_CalcViewValues( void ) {
 		{
 			centity_t *tent;
 			tent = &cg_entities[ps->viewlocked_entNum];
-			VectorCopy (tent->currentState.apos.trBase, cg.refdefViewAngles);
+			cg.refdefViewAngles = tent->currentState.apos.trBase;
 		}
 		else
 		*/
@@ -1180,7 +1180,7 @@ static int CG_CalcViewValues( void ) {
 	}
 
 	// position eye reletive to origin
-	AnglesToAxis( cg.refdefViewAngles, cg.refdef.viewaxis );
+	idAngles( cg.refdefViewAngles[0], cg.refdefViewAngles[1], cg.refdefViewAngles[2] ).ToVectors( &cg.refdef.viewaxis[0], &cg.refdef.viewaxis[1], &cg.refdef.viewaxis[2] );
 
 	if ( cg.hyperspace ) {
 		cg.refdef.rdflags |= RDF_NOWORLDMODEL | RDF_HYPERSPACE;
@@ -1397,7 +1397,7 @@ void CG_DrawSkyBoxPortal( void ) {
 		}
 
 		x = cg.refdef.width / tan( fov_x / 360 * idMath::PI );
-		fov_y = atan2( cg.refdef.height, x );
+		fov_y = idMath::ATan( cg.refdef.height, x );
 		fov_y = fov_y * 360 / idMath::PI;
 
 		cg.refdef.fov_x = fov_x;

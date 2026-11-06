@@ -542,18 +542,16 @@ void RB_BeginDrawingView( void ) {
 
 	// clip to the plane of the portal
 	if ( backEnd.viewParms.isPortal ) {
-		float plane[4];
+		idVec4 plane;
 		double plane2[4];
 
-		plane[0] = backEnd.viewParms.portalPlane.normal[0];
-		plane[1] = backEnd.viewParms.portalPlane.normal[1];
-		plane[2] = backEnd.viewParms.portalPlane.normal[2];
+		plane.ToVec3() = backEnd.viewParms.portalPlane.normal;
 		plane[3] = backEnd.viewParms.portalPlane.dist;
 
-		plane2[0] = ( backEnd.viewParms.orent.axis[0] ) * ( plane );
-		plane2[1] = ( backEnd.viewParms.orent.axis[1] ) * ( plane );
-		plane2[2] = ( backEnd.viewParms.orent.axis[2] ) * ( plane );
-		plane2[3] = ( plane ) * ( backEnd.viewParms.orent.origin ) - plane[3];
+		plane2[0] = backEnd.viewParms.orent.axis[0] * plane.ToVec3();
+		plane2[1] = backEnd.viewParms.orent.axis[1] * plane.ToVec3();
+		plane2[2] = backEnd.viewParms.orent.axis[2] * plane.ToVec3();
+		plane2[3] = plane.ToVec3() * backEnd.viewParms.orent.origin - plane[3];
 
 		qglLoadMatrixf( s_flipMatrix );
 		qglClipPlane( GL_CLIP_PLANE0, plane2 );
@@ -636,7 +634,7 @@ void RB_ZombieFXAddNewHit( int entityNum, const idVec3 &hitPos, const idVec3 &hi
 }
 
 void RB_ZombieFXProcessNewHits( trZombieFleshHitverts_t *fleshHitVerts, int oldNumVerts, int numSurfVerts ) {
-	float *xyzTrav, *normTrav;
+	idVec4 *xyzTrav, *normTrav;
 	idVec3 hitPos, hitDir, v, testDir;
 	float bestHitDist, thisDist;
 	qboolean foundHit;
@@ -667,20 +665,20 @@ void RB_ZombieFXProcessNewHits( trZombieFleshHitverts_t *fleshHitVerts, int oldN
 		foundHit = qfalse;
 
 		// for each vertex
-		for (   j = 0, bestHitDist = -1, xyzTrav = tess.xyz[oldNumVerts], normTrav = tess.normal[oldNumVerts];
+		for (   j = 0, bestHitDist = -1, xyzTrav = &tess.xyz[oldNumVerts], normTrav = &tess.normal[oldNumVerts];
 				j < numSurfVerts;
-				j++, xyzTrav += 4, normTrav += 4 ) {
+				j++, xyzTrav++, normTrav++ ) {
 
 			// if this vert has been hit enough times already
 			if ( hitCounts[j] > ZOMBIEFX_MAX_HITS_PER_VERT ) {
 				continue;
 			}
 			// if this normal faces the wrong way, reject it
-			if ( ( normTrav ) * ( hitDir ) > 0 ) {
+			if ( normTrav->ToVec3() * hitDir > 0 ) {
 				continue;
 			}
 			// get the diff vector
-			testDir = xyzTrav - hitPos;
+			testDir = xyzTrav->ToVec3() - hitPos;
 			// check for distance within range
 			thisDist = testDir.LengthSqr();
 			if ( thisDist < ZOMBIEFX_HIT_OKRANGE_SQR ) {
@@ -689,7 +687,7 @@ void RB_ZombieFXProcessNewHits( trZombieFleshHitverts_t *fleshHitVerts, int oldN
 			thisDist = sqrt( thisDist );
 			// check for the projection being inside range
 			v = hitPos + hitDir * thisDist;
-			testDir = xyzTrav - v;
+			testDir = xyzTrav->ToVec3() - v;
 			thisDist = testDir.LengthSqr();
 			if ( thisDist < ZOMBIEFX_HIT_OKRANGE_SQR ) {
 				goto hitCheckDone;
@@ -761,7 +759,7 @@ void RB_ZombieFXShowFleshHits( trZombieFleshHitverts_t *fleshHitVerts, int oldNu
 
 void RB_ZombieFXDecompose( int oldNumVerts, int numSurfVerts, float deltaTimeScale ) {
 	byte *vertColors;
-	float   *xyz, *norm;
+	idVec4 *xyz, *norm;
 	int i;
 	float alpha;
 
@@ -769,10 +767,10 @@ void RB_ZombieFXDecompose( int oldNumVerts, int numSurfVerts, float deltaTimeSca
 	return;
 
 	vertColors = tess.vertexColors[oldNumVerts];
-	xyz = tess.xyz[oldNumVerts];
-	norm = tess.normal[oldNumVerts];
+	xyz = &tess.xyz[oldNumVerts];
+	norm = &tess.normal[oldNumVerts];
 
-	for ( i = 0; i < numSurfVerts; i++, vertColors += 4, xyz += 4, norm += 4 ) {
+	for ( i = 0; i < numSurfVerts; i++, vertColors += 4, xyz++, norm++ ) {
 		alpha = 255.0 * ( (float)( 1 + i % 3 ) / 3.0 ) * deltaTimeScale * 2;
 		if ( alpha > 255.0 ) {
 			alpha = 255.0;
@@ -784,7 +782,7 @@ void RB_ZombieFXDecompose( int oldNumVerts, int numSurfVerts, float deltaTimeSca
 		}
 
 		// skin shrinks with age
-		xyz = xyz + norm * -2.0 * deltaTimeScale;
+		xyz->ToVec3() += norm->ToVec3() * -2.0f * deltaTimeScale;
 	}
 }
 
@@ -1660,4 +1658,3 @@ void RB_RenderThread( void ) {
 		renderThreadActive = qfalse;
 	}
 }
-

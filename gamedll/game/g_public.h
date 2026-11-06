@@ -180,7 +180,7 @@ typedef struct {
 	int ( QDECL *SV_BotLibShutdown )( void );
 	int ( QDECL *BotLibVarSet )( char *var_name, char *value );
 	int ( QDECL *BotLibVarGet )( char *var_name, char *value, int size );
-	int ( QDECL *PC_AddGlobalDefine )( char *string );
+	int ( QDECL *BotLibDefine )( const char *string );
 	int ( QDECL *BotLibStartFrame )( float time );
 	int ( QDECL *BotLibLoadMap )( const char *mapname );
 	int ( QDECL *BotLibUpdateEntity )( int ent, struct bot_entitystate_s *bue );

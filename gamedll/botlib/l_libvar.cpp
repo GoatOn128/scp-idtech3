@@ -36,7 +36,6 @@ If you have questions concerning this license or the applicable additional terms
  *****************************************************************************/
 
 #include "../../engine/qcommon/q_shared.h"
-#include "l_memory.h"
 #include "l_libvar.h"
 
 //list with library variables
@@ -85,7 +84,7 @@ float LibVarStringValue( char *string ) {
 libvar_t *LibVarAlloc( char *var_name ) {
 	libvar_t *v;
 
-	v = (libvar_t *) GetMemory( sizeof( libvar_t ) + strlen( var_name ) + 1 );
+	v = (libvar_t *) Mem_Alloc( sizeof( libvar_t ) + strlen( var_name ) + 1, TAG_BOTLIB );
 	memset( v, 0, sizeof( libvar_t ) );
 	v->name = (char *) v + sizeof( libvar_t );
 	strcpy( v->name, var_name );
@@ -102,9 +101,9 @@ libvar_t *LibVarAlloc( char *var_name ) {
 //===========================================================================
 void LibVarDeAlloc( libvar_t *v ) {
 	if ( v->string ) {
-		FreeMemory( v->string );
+		Mem_Free( v->string );
 	}
-	FreeMemory( v );
+	Mem_Free( v );
 } //end of the function LibVarDeAlloc
 //===========================================================================
 //
@@ -133,7 +132,7 @@ libvar_t *LibVarGet( char *var_name ) {
 
 	for ( v = libvarlist; v; v = v->next )
 	{
-		if ( !Q_stricmp( v->name, var_name ) ) {
+		if ( !idStr::Icmp( v->name, var_name ) ) {
 			return v;
 		} //end if
 	} //end for
@@ -190,7 +189,7 @@ libvar_t *LibVar( char *var_name, char *value ) {
 	//create new variable
 	v = LibVarAlloc( var_name );
 	//variable string
-	v->string = (char *) GetMemory( strlen( value ) + 1 );
+	v->string = (char *) Mem_Alloc( strlen( value ) + 1, TAG_BOTLIB );
 	strcpy( v->string, value );
 	//the value
 	v->value = LibVarStringValue( v->string );
@@ -234,14 +233,14 @@ void LibVarSet( char *var_name, char *value ) {
 
 	v = LibVarGet( var_name );
 	if ( v ) {
-		FreeMemory( v->string );
+		Mem_Free( v->string );
 	} //end if
 	else
 	{
 		v = LibVarAlloc( var_name );
 	} //end else
 	  //variable string
-	v->string = (char *) GetMemory( strlen( value ) + 1 );
+	v->string = (char *) Mem_Alloc( strlen( value ) + 1, TAG_BOTLIB );
 	strcpy( v->string, value );
 	//the value
 	v->value = LibVarStringValue( v->string );

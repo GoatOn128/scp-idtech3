@@ -682,7 +682,7 @@ extern int trap_BotLibTest ( int parm0 , char * parm1 , vec3_t parm2 , vec3_t pa
 extern int trap_BotLibUpdateEntity ( int ent , struct bot_entitystate_s * bue ) ;
 extern int trap_BotLibLoadMap ( const char * mapname ) ;
 extern int trap_BotLibStartFrame ( float time ) ;
-extern int trap_BotLibDefine ( char * string ) ;
+extern int trap_BotLibDefine ( const char * string ) ;
 extern int trap_BotLibVarGet ( char * var_name , char * value , int size ) ;
 extern int trap_BotLibVarSet ( char * var_name , char * value ) ;
 extern int trap_BotLibShutdown ( void ) ;

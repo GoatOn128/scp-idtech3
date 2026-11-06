@@ -63,8 +63,8 @@ void EA_MoveForward( int client );
 void EA_MoveBack( int client );
 void EA_MoveLeft( int client );
 void EA_MoveRight( int client );
-void EA_Move( int client, vec3_t dir, float speed );
-void EA_View( int client, vec3_t viewangles );
+void EA_Move( int client, const idVec3 &dir, float speed );
+void EA_View( int client, const idVec3 &viewangles );
 //send regular input to the server
 void EA_EndRegular( int client, float thinktime );
 void EA_GetInput( int client, float thinktime, bot_input_t *input );

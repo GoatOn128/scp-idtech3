@@ -31,6 +31,10 @@ If you have questions concerning this license or the applicable additional terms
 #define MAX_MAP_ENTITIES    2048
 #endif
 
+#include "../../idlib/precompiled.h"
+#include "../../idlib/Parser.h"
+#include "../../idlib/math/Vector.h"
+
 typedef struct epair_s
 {
 	struct epair_s  *next;
@@ -40,7 +44,7 @@ typedef struct epair_s
 
 typedef struct
 {
-	vec3_t origin;
+	idVec3 origin;
 	int firstbrush;
 	int numbrushes;
 	epair_t     *epairs;
@@ -58,8 +62,7 @@ void StripTrailing( char *e );
 void SetKeyValue( entity_t *ent, char *key, char *value );
 char *ValueForKey( entity_t *ent, char *key ); // will return "" if not present
 vec_t FloatForKey( entity_t *ent, char *key );
-void GetVectorForKey( entity_t *ent, char *key, vec3_t vec );
-qboolean ParseEntity( script_t *script );
-epair_t *ParseEpair( script_t *script );
+void GetVectorForKey( entity_t *ent, char *key, idVec3 &vec );
+qboolean ParseEntity( idParser *parser );
+epair_t *ParseEpair( idParser *parser );
 void PrintEntity( entity_t *ent );
-

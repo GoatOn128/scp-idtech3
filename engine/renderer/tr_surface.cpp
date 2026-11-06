@@ -258,8 +258,8 @@ static void RB_SurfaceSplash( void ) {
 	// calculate the xyz locations for the four corners
 	radius = backEnd.currentEntity->e.radius;
 
-	left.Set( left, -radius, 0, 0 );
-	up.Set( up, 0, radius, 0 );
+	left.Set( -radius, 0, 0 );
+	up.Set( 0, radius, 0 );
 	if ( backEnd.viewParms.isMirror ) {
 		left = vec3_origin - left;
 	}
@@ -285,7 +285,7 @@ static void RB_SurfaceSprite( void ) {
 		float s, c;
 		float ang;
 
-		ang = M_PI * backEnd.currentEntity->e.rotation / 180;
+		ang = idMath::PI * backEnd.currentEntity->e.rotation / 180;
 		s = sin( ang );
 		c = cos( ang );
 
@@ -317,7 +317,8 @@ void RB_SurfacePolychain( srfPoly_t *p ) {
 	// fan triangles into the tess array
 	numv = tess.numVertexes;
 	for ( i = 0; i < p->numVerts; i++ ) {
-		tess.xyz[numv] = p->verts[i].xyz;
+		tess.xyz[numv].ToVec3() = p->verts[i].xyz;
+		tess.xyz[numv][3] = 1.0f;
 		tess.texCoords[numv][0][0] = p->verts[i].st[0];
 		tess.texCoords[numv][0][1] = p->verts[i].st[1];
 		*(int *)&tess.vertexColors[numv] = *(int *)p->verts[ i ].modulate;
@@ -345,7 +346,8 @@ RB_SurfaceTriangles
 void RB_SurfaceTriangles( srfTriangles_t *srf ) {
 	int i;
 	drawVert_t  *dv;
-	float       *xyz, *normal, *texCoords;
+	idVec4 *xyz, *normal;
+	idVec2 ( *texCoords )[2];
 	byte        *color;
 	int dlightBits;
 	qboolean needsNormal;
@@ -363,28 +365,25 @@ void RB_SurfaceTriangles( srfTriangles_t *srf ) {
 	tess.numIndexes += srf->numIndexes;
 
 	dv = srf->verts;
-	xyz = tess.xyz[ tess.numVertexes ];
-	normal = tess.normal[ tess.numVertexes ];
-	texCoords = tess.texCoords[ tess.numVertexes ][0];
+	xyz = &tess.xyz[ tess.numVertexes ];
+	normal = &tess.normal[ tess.numVertexes ];
+	texCoords = &tess.texCoords[ tess.numVertexes ];
 	color = tess.vertexColors[ tess.numVertexes ];
 	needsNormal = tess.shader->needsNormal;
 
-	for ( i = 0 ; i < srf->numVerts ; i++, dv++, xyz += 4, normal += 4, texCoords += 4, color += 4 ) {
-		xyz[0] = dv->xyz[0];
-		xyz[1] = dv->xyz[1];
-		xyz[2] = dv->xyz[2];
+	for ( i = 0 ; i < srf->numVerts ; i++, dv++, xyz++, normal++, texCoords++, color += 4 ) {
+		xyz->ToVec3() = dv->xyz;
+		(*xyz)[3] = 1.0f;
 
 		if ( needsNormal ) {
-			normal[0] = dv->normal[0];
-			normal[1] = dv->normal[1];
-			normal[2] = dv->normal[2];
+			normal->ToVec3() = dv->normal;
 		}
 
-		texCoords[0] = dv->st[0];
-		texCoords[1] = dv->st[1];
+		(*texCoords)[0][0] = dv->st[0];
+		(*texCoords)[0][1] = dv->st[1];
 
-		texCoords[2] = dv->lightmap[0];
-		texCoords[3] = dv->lightmap[1];
+		(*texCoords)[1][0] = dv->lightmap[0];
+		(*texCoords)[1][1] = dv->lightmap[1];
 
 		*(int *)color = *(int *)dv->color;
 	}
@@ -449,8 +448,8 @@ void RB_SurfaceBeam( void ) {
 
 	qglBegin( GL_TRIANGLE_STRIP );
 	for ( i = 0; i <= NUM_BEAM_SEGS; i++ ) {
-		qglVertex3fv( start_points[ i % NUM_BEAM_SEGS] );
-		qglVertex3fv( end_points[ i % NUM_BEAM_SEGS] );
+		qglVertex3fv( start_points[i % NUM_BEAM_SEGS].ToFloatPtr() );
+		qglVertex3fv( end_points[i % NUM_BEAM_SEGS].ToFloatPtr() );
 	}
 	qglEnd();
 }
@@ -467,7 +466,8 @@ static void DoRailCore( const idVec3 start, const idVec3 end, const idVec3 up, f
 	spanWidth2 = -spanWidth;
 
 	// FIXME: use quad stamp?
-	tess.xyz[tess.numVertexes] = start + up * spanWidth;
+	tess.xyz[tess.numVertexes].ToVec3() = start + up * spanWidth;
+	tess.xyz[tess.numVertexes][3] = 1.0f;
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
 	tess.vertexColors[tess.numVertexes][0] = backEnd.currentEntity->e.shaderRGBA[0] * 0.25;
@@ -475,7 +475,8 @@ static void DoRailCore( const idVec3 start, const idVec3 end, const idVec3 up, f
 	tess.vertexColors[tess.numVertexes][2] = backEnd.currentEntity->e.shaderRGBA[2] * 0.25;
 	tess.numVertexes++;
 
-	tess.xyz[tess.numVertexes] = start + up * spanWidth2;
+	tess.xyz[tess.numVertexes].ToVec3() = start + up * spanWidth2;
+	tess.xyz[tess.numVertexes][3] = 1.0f;
 	tess.texCoords[tess.numVertexes][0][0] = 0;
 	tess.texCoords[tess.numVertexes][0][1] = 1;
 	tess.vertexColors[tess.numVertexes][0] = backEnd.currentEntity->e.shaderRGBA[0];
@@ -483,7 +484,8 @@ static void DoRailCore( const idVec3 start, const idVec3 end, const idVec3 up, f
 	tess.vertexColors[tess.numVertexes][2] = backEnd.currentEntity->e.shaderRGBA[2];
 	tess.numVertexes++;
 
-	tess.xyz[tess.numVertexes] = end + up * spanWidth;
+	tess.xyz[tess.numVertexes].ToVec3() = end + up * spanWidth;
+	tess.xyz[tess.numVertexes][3] = 1.0f;
 
 	tess.texCoords[tess.numVertexes][0][0] = t;
 	tess.texCoords[tess.numVertexes][0][1] = 0;
@@ -492,7 +494,8 @@ static void DoRailCore( const idVec3 start, const idVec3 end, const idVec3 up, f
 	tess.vertexColors[tess.numVertexes][2] = backEnd.currentEntity->e.shaderRGBA[2];
 	tess.numVertexes++;
 
-	tess.xyz[tess.numVertexes] = end + up * spanWidth2;
+	tess.xyz[tess.numVertexes].ToVec3() = end + up * spanWidth2;
+	tess.xyz[tess.numVertexes][3] = 1.0f;
 	tess.texCoords[tess.numVertexes][0][0] = t;
 	tess.texCoords[tess.numVertexes][0][1] = 1;
 	tess.vertexColors[tess.numVertexes][0] = backEnd.currentEntity->e.shaderRGBA[0];
@@ -549,7 +552,8 @@ static void DoRailDiscs( int numSegs, const idVec3 start, const idVec3 dir, cons
 
 		for ( j = 0; j < 4; j++ )
 		{
-			tess.xyz[tess.numVertexes] = pos[j];
+			tess.xyz[tess.numVertexes].ToVec3() = pos[j];
+			tess.xyz[tess.numVertexes][3] = 1.0f;
 			tess.texCoords[tess.numVertexes][0][0] = ( j < 2 );
 			tess.texCoords[tess.numVertexes][0][1] = ( j && j != 3 );
 			tess.vertexColors[tess.numVertexes][0] = backEnd.currentEntity->e.shaderRGBA[0];
@@ -695,15 +699,15 @@ static void VectorArrayNormalize( idVec4 *normals, unsigned int count ) {
 */
 static void LerpMeshVertexes( md3Surface_t *surf, float backlerp ) {
 	short   *oldXyz, *newXyz, *oldNormals, *newNormals;
-	float   *outXyz, *outNormal;
+	idVec4 *outXyz, *outNormal;
 	float oldXyzScale, newXyzScale;
 	float oldNormalScale, newNormalScale;
 	int vertNum;
 	unsigned lat, lng;
 	int numVerts;
 
-	outXyz = tess.xyz[tess.numVertexes];
-	outNormal = tess.normal[tess.numVertexes];
+	outXyz = &tess.xyz[tess.numVertexes];
+	outNormal = &tess.normal[tess.numVertexes];
 
 	newXyz = ( short * )( (byte *)surf + surf->ofsXyzNormals )
 			 + ( backEnd.currentEntity->e.frame * surf->numVerts * 4 );
@@ -720,12 +724,12 @@ static void LerpMeshVertexes( md3Surface_t *surf, float backlerp ) {
 		//
 		for ( vertNum = 0 ; vertNum < numVerts ; vertNum++,
 			  newXyz += 4, newNormals += 4,
-			  outXyz += 4, outNormal += 4 )
+			  outXyz++, outNormal++ )
 		{
 
-			outXyz[0] = newXyz[0] * newXyzScale;
-			outXyz[1] = newXyz[1] * newXyzScale;
-			outXyz[2] = newXyz[2] * newXyzScale;
+			outXyz->ToVec3()[0] = newXyz[0] * newXyzScale;
+			outXyz->ToVec3()[1] = newXyz[1] * newXyzScale;
+			outXyz->ToVec3()[2] = newXyz[2] * newXyzScale;
 
 			lat = ( newNormals[0] >> 8 ) & 0xff;
 			lng = ( newNormals[0] & 0xff );
@@ -736,9 +740,9 @@ static void LerpMeshVertexes( md3Surface_t *surf, float backlerp ) {
 			// decode Y as sin( lat ) * sin( long )
 			// decode Z as cos( long )
 
-			outNormal[0] = tr.sinTable[( lat + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK] * tr.sinTable[lng];
-			outNormal[1] = tr.sinTable[lat] * tr.sinTable[lng];
-			outNormal[2] = tr.sinTable[( lng + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK];
+			outNormal->ToVec3()[0] = tr.sinTable[( lat + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK] * tr.sinTable[lng];
+			outNormal->ToVec3()[1] = tr.sinTable[lat] * tr.sinTable[lng];
+			outNormal->ToVec3()[2] = tr.sinTable[( lng + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK];
 		}
 	} else {
 		//
@@ -753,14 +757,14 @@ static void LerpMeshVertexes( md3Surface_t *surf, float backlerp ) {
 
 		for ( vertNum = 0 ; vertNum < numVerts ; vertNum++,
 			  oldXyz += 4, newXyz += 4, oldNormals += 4, newNormals += 4,
-			  outXyz += 4, outNormal += 4 )
+			  outXyz++, outNormal++ )
 		{
 			idVec3 uncompressedOldNormal, uncompressedNewNormal;
 
 			// interpolate the xyz
-			outXyz[0] = oldXyz[0] * oldXyzScale + newXyz[0] * newXyzScale;
-			outXyz[1] = oldXyz[1] * oldXyzScale + newXyz[1] * newXyzScale;
-			outXyz[2] = oldXyz[2] * oldXyzScale + newXyz[2] * newXyzScale;
+			outXyz->ToVec3()[0] = oldXyz[0] * oldXyzScale + newXyz[0] * newXyzScale;
+			outXyz->ToVec3()[1] = oldXyz[1] * oldXyzScale + newXyz[1] * newXyzScale;
+			outXyz->ToVec3()[2] = oldXyz[2] * oldXyzScale + newXyz[2] * newXyzScale;
 
 			// FIXME: interpolate lat/long instead?
 			lat = ( newNormals[0] >> 8 ) & 0xff;
@@ -780,13 +784,13 @@ static void LerpMeshVertexes( md3Surface_t *surf, float backlerp ) {
 			uncompressedOldNormal[1] = tr.sinTable[lat] * tr.sinTable[lng];
 			uncompressedOldNormal[2] = tr.sinTable[( lng + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK];
 
-			outNormal[0] = uncompressedOldNormal[0] * oldNormalScale + uncompressedNewNormal[0] * newNormalScale;
-			outNormal[1] = uncompressedOldNormal[1] * oldNormalScale + uncompressedNewNormal[1] * newNormalScale;
-			outNormal[2] = uncompressedOldNormal[2] * oldNormalScale + uncompressedNewNormal[2] * newNormalScale;
+			outNormal->ToVec3()[0] = uncompressedOldNormal[0] * oldNormalScale + uncompressedNewNormal[0] * newNormalScale;
+			outNormal->ToVec3()[1] = uncompressedOldNormal[1] * oldNormalScale + uncompressedNewNormal[1] * newNormalScale;
+			outNormal->ToVec3()[2] = uncompressedOldNormal[2] * oldNormalScale + uncompressedNewNormal[2] * newNormalScale;
 
 //			outNormal.Normalize();
 		}
-		VectorArrayNormalize( (idVec4 *)tess.normal[tess.numVertexes], numVerts );
+		VectorArrayNormalize( &tess.normal[tess.numVertexes], numVerts );
 	}
 }
 
@@ -869,7 +873,7 @@ void R_LatLongToNormal( idVec3 outNormal, short latLong ) {
 */
 static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 	short   *oldXyz, *newXyz, *oldNormals, *newNormals;
-	float   *outXyz, *outNormal;
+	idVec4 *outXyz, *outNormal;
 	float oldXyzScale, newXyzScale;
 	float oldNormalScale, newNormalScale;
 	int vertNum;
@@ -883,8 +887,8 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 
 	qboolean hasComp;
 
-	outXyz = tess.xyz[tess.numVertexes];
-	outNormal = tess.normal[tess.numVertexes];
+	outXyz = &tess.xyz[tess.numVertexes];
+	outNormal = &tess.normal[tess.numVertexes];
 
 	newBase = (int)*( ( short * )( (byte *)surf + surf->ofsFrameBaseFrames ) + backEnd.currentEntity->e.frame );
 	newXyz = ( short * )( (byte *)surf + surf->ofsXyzNormals )
@@ -911,27 +915,27 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 		//
 		for ( vertNum = 0 ; vertNum < numVerts ; vertNum++,
 			  newXyz += 4, newNormals += 4,
-			  outXyz += 4, outNormal += 4 )
+			  outXyz++, outNormal++ )
 		{
 
-			outXyz[0] = newXyz[0] * newXyzScale;
-			outXyz[1] = newXyz[1] * newXyzScale;
-			outXyz[2] = newXyz[2] * newXyzScale;
+			outXyz->ToVec3()[0] = newXyz[0] * newXyzScale;
+			outXyz->ToVec3()[1] = newXyz[1] * newXyzScale;
+			outXyz->ToVec3()[2] = newXyz[2] * newXyzScale;
 
 			// add the compressed ofsVec
 			if ( hasComp && *newComp >= 0 ) {
-				R_MDC_DecodeXyzCompressed( newXyzComp->ofsVec, newOfsVec, outNormal );
+				R_MDC_DecodeXyzCompressed( newXyzComp->ofsVec, newOfsVec, outNormal->ToVec3() );
 				newXyzComp++;
-				outXyz = outXyz + newOfsVec;
+				outXyz->ToVec3() += newOfsVec;
 			} else {
 				lat = ( newNormals[0] >> 8 ) & 0xff;
 				lng = ( newNormals[0] & 0xff );
 				lat *= 4;
 				lng *= 4;
 
-				outNormal[0] = tr.sinTable[( lat + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK] * tr.sinTable[lng];
-				outNormal[1] = tr.sinTable[lat] * tr.sinTable[lng];
-				outNormal[2] = tr.sinTable[( lng + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK];
+				outNormal->ToVec3()[0] = tr.sinTable[( lat + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK] * tr.sinTable[lng];
+				outNormal->ToVec3()[1] = tr.sinTable[lat] * tr.sinTable[lng];
+				outNormal->ToVec3()[2] = tr.sinTable[( lng + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK];
 			}
 		}
 	} else {
@@ -956,20 +960,20 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 
 		for ( vertNum = 0 ; vertNum < numVerts ; vertNum++,
 			  oldXyz += 4, newXyz += 4, oldNormals += 4, newNormals += 4,
-			  outXyz += 4, outNormal += 4 )
+			  outXyz++, outNormal++ )
 		{
 			idVec3 uncompressedOldNormal, uncompressedNewNormal;
 
 			// interpolate the xyz
-			outXyz[0] = oldXyz[0] * oldXyzScale + newXyz[0] * newXyzScale;
-			outXyz[1] = oldXyz[1] * oldXyzScale + newXyz[1] * newXyzScale;
-			outXyz[2] = oldXyz[2] * oldXyzScale + newXyz[2] * newXyzScale;
+			outXyz->ToVec3()[0] = oldXyz[0] * oldXyzScale + newXyz[0] * newXyzScale;
+			outXyz->ToVec3()[1] = oldXyz[1] * oldXyzScale + newXyz[1] * newXyzScale;
+			outXyz->ToVec3()[2] = oldXyz[2] * oldXyzScale + newXyz[2] * newXyzScale;
 
 			// add the compressed ofsVec
 			if ( hasComp && *newComp >= 0 ) {
 				R_MDC_DecodeXyzCompressed( newXyzComp->ofsVec, newOfsVec, uncompressedNewNormal );
 				newXyzComp++;
-				outXyz = outXyz + newOfsVec * 1.0 - backlerp;
+				outXyz->ToVec3() += newOfsVec * ( 1.0f - backlerp );
 			} else {
 				lat = ( newNormals[0] >> 8 ) & 0xff;
 				lng = ( newNormals[0] & 0xff );
@@ -984,7 +988,7 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 			if ( hasComp && *oldComp >= 0 ) {
 				R_MDC_DecodeXyzCompressed( oldXyzComp->ofsVec, oldOfsVec, uncompressedOldNormal );
 				oldXyzComp++;
-				outXyz = outXyz + oldOfsVec * backlerp;
+				outXyz->ToVec3() += oldOfsVec * backlerp;
 			} else {
 				lat = ( oldNormals[0] >> 8 ) & 0xff;
 				lng = ( oldNormals[0] & 0xff );
@@ -996,11 +1000,11 @@ static void LerpCMeshVertexes( mdcSurface_t *surf, float backlerp ) {
 				uncompressedOldNormal[2] = tr.sinTable[( lng + ( FUNCTABLE_SIZE / 4 ) ) & FUNCTABLE_MASK];
 			}
 
-			outNormal[0] = uncompressedOldNormal[0] * oldNormalScale + uncompressedNewNormal[0] * newNormalScale;
-			outNormal[1] = uncompressedOldNormal[1] * oldNormalScale + uncompressedNewNormal[1] * newNormalScale;
-			outNormal[2] = uncompressedOldNormal[2] * oldNormalScale + uncompressedNewNormal[2] * newNormalScale;
+			outNormal->ToVec3()[0] = uncompressedOldNormal[0] * oldNormalScale + uncompressedNewNormal[0] * newNormalScale;
+			outNormal->ToVec3()[1] = uncompressedOldNormal[1] * oldNormalScale + uncompressedNewNormal[1] * newNormalScale;
+			outNormal->ToVec3()[2] = uncompressedOldNormal[2] * oldNormalScale + uncompressedNewNormal[2] * newNormalScale;
 
-			outNormal.Normalize();
+			outNormal->ToVec3().Normalize();
 		}
 	}
 }
@@ -1067,7 +1071,7 @@ void RB_SurfaceFace( srfSurfaceFace_t *surf ) {
 	int i;
 	unsigned    *indices, *tessIndexes;
 	float       *v;
-	float       *normal;
+	idVec3 normal;
 	int ndx;
 	int Bob;
 	int numPoints;
@@ -1097,12 +1101,13 @@ void RB_SurfaceFace( srfSurfaceFace_t *surf ) {
 	if ( tess.shader->needsNormal ) {
 		normal = surf->plane.normal;
 		for ( i = 0, ndx = tess.numVertexes; i < numPoints; i++, ndx++ ) {
-			tess.normal[ndx] = normal;
+			tess.normal[ndx].ToVec3() = normal;
 		}
 	}
 
 	for ( i = 0, v = surf->points[0], ndx = tess.numVertexes; i < numPoints; i++, v += VERTEXSIZE, ndx++ ) {
-		tess.xyz[ndx] = v;
+		tess.xyz[ndx].ToVec3().Set( v[0], v[1], v[2] );
+		tess.xyz[ndx][3] = 1.0f;
 		tess.texCoords[ndx][0][0] = v[3];
 		tess.texCoords[ndx][0][1] = v[4];
 		tess.texCoords[ndx][1][0] = v[5];
@@ -1155,9 +1160,9 @@ Just copy the grid of points and triangulate
 */
 void RB_SurfaceGrid( srfGridMesh_t *cv ) {
 	int i, j;
-	float   *xyz;
-	float   *texCoords;
-	float   *normal;
+	idVec4 *xyz;
+	idVec2 ( *texCoords )[2];
+	idVec4 *normal;
 	unsigned char *color;
 	drawVert_t  *dv;
 	int rows, irows, vrows;
@@ -1232,9 +1237,9 @@ void RB_SurfaceGrid( srfGridMesh_t *cv ) {
 
 		numVertexes = tess.numVertexes;
 
-		xyz = tess.xyz[numVertexes];
-		normal = tess.normal[numVertexes];
-		texCoords = tess.texCoords[numVertexes][0];
+		xyz = &tess.xyz[numVertexes];
+		normal = &tess.normal[numVertexes];
+		texCoords = &tess.texCoords[numVertexes];
 		color = ( unsigned char * ) &tess.vertexColors[numVertexes];
 		vDlightBits = &tess.vertexDlightBits[numVertexes];
 		needsNormal = tess.shader->needsNormal;
@@ -1244,23 +1249,20 @@ void RB_SurfaceGrid( srfGridMesh_t *cv ) {
 				dv = cv->verts + heightTable[ used + i ] * cv->width
 					 + widthTable[ j ];
 
-				xyz[0] = dv->xyz[0];
-				xyz[1] = dv->xyz[1];
-				xyz[2] = dv->xyz[2];
-				texCoords[0] = dv->st[0];
-				texCoords[1] = dv->st[1];
-				texCoords[2] = dv->lightmap[0];
-				texCoords[3] = dv->lightmap[1];
+				xyz->ToVec3() = dv->xyz;
+				(*xyz)[3] = 1.0f;
+				(*texCoords)[0][0] = dv->st[0];
+				(*texCoords)[0][1] = dv->st[1];
+				(*texCoords)[1][0] = dv->lightmap[0];
+				(*texCoords)[1][1] = dv->lightmap[1];
 				if ( needsNormal ) {
-					normal[0] = dv->normal[0];
-					normal[1] = dv->normal[1];
-					normal[2] = dv->normal[2];
+					normal->ToVec3() = dv->normal;
 				}
 				*( unsigned int * ) color = *( unsigned int * ) dv->color;
 				*vDlightBits++ = dlightBits;
-				xyz += 4;
-				normal += 4;
-				texCoords += 4;
+				xyz++;
+				normal++;
+				texCoords++;
 				color += 4;
 			}
 		}

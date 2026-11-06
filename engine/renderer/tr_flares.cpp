@@ -123,7 +123,7 @@ RB_AddFlare
 This is called at surface tesselation time
 ==================
 */
-void RB_AddFlare( void *surface, int fogNum, idVec3 point, idVec3 color, float scale, idVec3 normal, int id, int flags ) {  //----(SA)	added scale. added id.  added visible
+void RB_AddFlare( void *surface, int fogNum, idVec3 point, idVec3 color, float scale, const idVec3 *normal, int id, int flags ) {  //----(SA)	added scale. added id.  added visible
 	int i;
 	flare_t         *f, *oldest;
 	idVec3 local;
@@ -204,7 +204,7 @@ void RB_AddFlare( void *surface, int fogNum, idVec3 point, idVec3 color, float s
 	if ( normal ) {
 		local = backEnd.viewParms.orent.origin - point;
 		local.NormalizeFast();
-		d = ( local ) * ( normal );
+		d = ( local ) * ( *normal );
 		f->color = f->color * d;
 	}
 
@@ -540,4 +540,3 @@ void RB_RenderFlares( void ) {
 	qglMatrixMode( GL_MODELVIEW );
 	qglPopMatrix();
 }
-

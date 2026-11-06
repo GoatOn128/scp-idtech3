@@ -534,7 +534,7 @@ static void CG_EntityEffects( centity_t *cent ) {
 	// Ridah, flaming sounds
 	if ( CG_EntOnFire( cent ) ) {
 		// play a flame blow sound when moving
-		trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.flameBlowSound, (int)( 255.0 * ( 1.0 - fabs( cent->fireRiseDir[2] ) ) ) );
+		trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.flameBlowSound, (int)( 255.0 * ( 1.0 - idMath::Fabs( cent->fireRiseDir[2] ) ) ) );
 		// play a burning sound when not moving
 		trap_S_AddLoopingSound( cent->currentState.number, cent->lerpOrigin, vec3_origin, cgs.media.flameSound, (int)( 0.3 * 255.0 * ( pow( cent->fireRiseDir[2],2 ) ) ) );
 	}
@@ -588,7 +588,7 @@ static void CG_General( centity_t *cent ) {
 	}
 
 	// convert angles to axis
-	AnglesToAxis( cent->lerpAngles, ent.axis );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 
 	// scale gamemodels
 	if ( cent->currentState.eType == ET_GAMEMODEL ) {
@@ -1009,7 +1009,7 @@ static void CG_Item( centity_t *cent ) {
 				}
 			}
 
-			AnglesToAxis( cent->lerpAngles, stand.axis );
+			idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &stand.axis[0], &stand.axis[1], &stand.axis[2] );
 			stand.origin = cent->lerpOrigin;
 
 			// scale the stand to match the weapon scale ( the weapon will also be scaled inside CG_PositionEntityOnTag() )
@@ -1033,7 +1033,7 @@ static void CG_Item( centity_t *cent ) {
 				cent->lerpAngles[2] += 90;
 			}
 
-			AnglesToAxis( cent->lerpAngles, ent.axis );
+			idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 
 			// increase the size of the weapons when they are presented as items
 			ent.axis[0] = ent.axis[0] * (1.5);
@@ -1055,7 +1055,7 @@ static void CG_Item( centity_t *cent ) {
 		}
 
 	} else {
-		AnglesToAxis( cent->lerpAngles, ent.axis );
+		idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 		ent.origin = cent->lerpOrigin;
 		ent.oldorigin = cent->lerpOrigin;
 
@@ -1344,7 +1344,7 @@ static void CG_Bat( centity_t *cent ) {
 	refent.reType = RT_MODEL;
 	refent.shaderRGBA[3] = 255;
 	refent.origin = cent->lerpOrigin;
-	AnglesToAxis( cent->currentState.angles, refent.axis );
+	idAngles( cent->currentState.angles[0], cent->currentState.angles[1], cent->currentState.angles[2] ).ToVectors( &refent.axis[0], &refent.axis[1], &refent.axis[2] );
 	// draw it
 	trap_R_AddRefEntityToScene( &refent );
 	// emit a sound
@@ -1546,7 +1546,7 @@ static void CG_Trap( centity_t *cent ) {
 
 	ent.hModel = cgs.gameModels[cs->modelindex];
 
-	AnglesToAxis( cent->lerpAngles, ent.axis );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 
 	trap_R_AddRefEntityToScene( &ent );
 
@@ -1857,7 +1857,7 @@ static void CG_Explosive( centity_t *cent ) {
 	// TODO: need to set lightingOrigin?
 
 //	AnglesToAxis( cent->lerpAngles, ent.axis );
-	AnglesToAxis( cent->currentState.angles, ent.axis );
+	idAngles( cent->currentState.angles[0], cent->currentState.angles[1], cent->currentState.angles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 
 	ent.renderfx = RF_NOSHADOW;
 
@@ -1901,7 +1901,7 @@ static void CG_Mover( centity_t *cent ) {
 	ent.origin = cent->lerpOrigin;
 	ent.oldorigin = cent->lerpOrigin;
 
-	AnglesToAxis( cent->lerpAngles, ent.axis );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 
 	ent.renderfx = RF_NOSHADOW;
 
@@ -1970,7 +1970,7 @@ static void CG_Mover( centity_t *cent ) {
 
 		angles[PITCH] = cg.time % 16;
 
-		AnglesToAxis( angles, propeller.axis );
+		idAngles( angles[0], angles[1], angles[2] ).ToVectors( &propeller.axis[0], &propeller.axis[1], &propeller.axis[2] );
 
 		CG_PositionRotatedEntityOnTag( &propeller, &ent, "tag_prop" );
 
@@ -1988,7 +1988,7 @@ static void CG_Mover( centity_t *cent ) {
 			//flash.hModel = cgs.media.mg42muzzleflash;
 			flash.hModel = cgs.media.planemuzzleflash;
 
-			AnglesToAxis( flashAngles, flash.axis );
+			idAngles( flashAngles[0], flashAngles[1], flashAngles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 			CG_PositionRotatedEntityOnTag( &flash, &ent, "tag_gun1" );
 
 			trap_R_AddRefEntityToScene( &flash );
@@ -1999,7 +1999,7 @@ static void CG_Mover( centity_t *cent ) {
 			//flash.hModel = cgs.media.mg42muzzleflash;
 			flash.hModel = cgs.media.planemuzzleflash;
 
-			AnglesToAxis( flashAngles, flash.axis );
+			idAngles( flashAngles[0], flashAngles[1], flashAngles[2] ).ToVectors( &flash.axis[0], &flash.axis[1], &flash.axis[2] );
 			CG_PositionRotatedEntityOnTag( &flash, &ent, "tag_gun02" );
 
 			trap_R_AddRefEntityToScene( &flash );
@@ -2151,7 +2151,7 @@ static void CG_Prop( centity_t *cent ) {
 		}
 	}
 
-	AnglesToAxis( cent->lerpAngles, ent.axis );
+	idAngles( cent->lerpAngles[0], cent->lerpAngles[1], cent->lerpAngles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 
 	ent.renderfx |= RF_NOSHADOW;
 
@@ -2553,7 +2553,7 @@ static void CG_AddEntityToTag( centity_t *cent ) {
 	cent->processedFrame = cg.clientFrame;
 
 	// start with default axis
-	AnglesToAxis( vec3_origin, ent.axis );
+	idAngles( vec3_origin[0], vec3_origin[1], vec3_origin[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 	//AnglesToAxis( cent->lerpAngles, ent.axis );
 
 	// get the tag position from parent
@@ -2618,9 +2618,9 @@ void CG_AddPacketEntities( void ) {
 	cg.autoAnglesFast[1] = ( cg.time & 1023 ) * 360 / 1024.0f;
 	cg.autoAnglesFast[2] = 0;
 
-	AnglesToAxis( cg.autoAnglesSlow, cg.autoAxisSlow );
-	AnglesToAxis( cg.autoAngles, cg.autoAxis );
-	AnglesToAxis( cg.autoAnglesFast, cg.autoAxisFast );
+	idAngles( cg.autoAnglesSlow[0], cg.autoAnglesSlow[1], cg.autoAnglesSlow[2] ).ToVectors( &cg.autoAxisSlow[0], &cg.autoAxisSlow[1], &cg.autoAxisSlow[2] );
+	idAngles( cg.autoAngles[0], cg.autoAngles[1], cg.autoAngles[2] ).ToVectors( &cg.autoAxis[0], &cg.autoAxis[1], &cg.autoAxis[2] );
+	idAngles( cg.autoAnglesFast[0], cg.autoAnglesFast[1], cg.autoAnglesFast[2] ).ToVectors( &cg.autoAxisFast[0], &cg.autoAxisFast[1], &cg.autoAxisFast[2] );
 
 	// generate and add the entity from the playerstate
 	ps = &cg.predictedPlayerState;

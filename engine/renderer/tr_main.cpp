@@ -831,10 +831,10 @@ void R_SetupProjection( void ) {
 		zFar = tr.viewParms.zFar;
 	}
 
-	ymax = zNear * tan( tr.refdef.fov_y * M_PI / 360.0f );
+	ymax = zNear * tan( tr.refdef.fov_y * idMath::PI / 360.0f );
 	ymin = -ymax;
 
-	xmax = zNear * tan( tr.refdef.fov_x * M_PI / 360.0f );
+	xmax = zNear * tan( tr.refdef.fov_x * idMath::PI / 360.0f );
 	xmin = -xmax;
 
 	width = xmax - xmin;
@@ -874,7 +874,7 @@ void R_SetupFrustum( void ) {
 	float xs, xc;
 	float ang;
 
-	ang = tr.viewParms.fovX / 180 * M_PI * 0.5f;
+	ang = tr.viewParms.fovX / 180 * idMath::PI * 0.5f;
 	xs = sin( ang );
 	xc = cos( ang );
 
@@ -884,7 +884,7 @@ void R_SetupFrustum( void ) {
 	tr.viewParms.frustum[1].normal = tr.viewParms.orent.axis[0] * xs;
 	tr.viewParms.frustum[1].normal = tr.viewParms.frustum[1].normal + tr.viewParms.orent.axis[1] * -xc;
 
-	ang = tr.viewParms.fovY / 180 * M_PI * 0.5f;
+	ang = tr.viewParms.fovY / 180 * idMath::PI * 0.5f;
 	xs = sin( ang );
 	xc = cos( ang );
 
@@ -962,13 +962,13 @@ void R_PlaneForSurface( surfaceType_t *surfType, cplane_t *plane ) {
 		v2 = tri->verts + tri->indexes[1];
 		v3 = tri->verts + tri->indexes[2];
 		PlaneFromPoints( plane4, v1->xyz, v2->xyz, v3->xyz );
-		plane->normal = plane4;
+		plane->normal = plane4.ToVec3();
 		plane->dist = plane4[3];
 		return;
 	case SF_POLY:
 		poly = (srfPoly_t *)surfType;
 		PlaneFromPoints( plane4, poly->verts[0].xyz, poly->verts[1].xyz, poly->verts[2].xyz );
-		plane->normal = plane4;
+		plane->normal = plane4.ToVec3();
 		plane->dist = plane4[3];
 		return;
 	default:
@@ -1199,7 +1199,7 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, idVec4 clipDest[128
 		int j;
 		unsigned int pointFlags = 0;
 
-		R_TransformModelToClip( tess.xyz[i], tr.orent.modelMatrix, tr.viewParms.projectionMatrix, eye, clip );
+		R_TransformModelToClip( tess.xyz[i].ToVec3(), tr.orent.modelMatrix, tr.viewParms.projectionMatrix, eye, clip );
 
 		for ( j = 0; j < 3; j++ )
 		{
@@ -1231,14 +1231,14 @@ static qboolean SurfIsOffscreen( const drawSurf_t *drawSurf, idVec4 clipDest[128
 		float dot;
 		float len;
 
-		normal = tess.xyz[tess.indexes[i]] - tr.viewParms.orent.origin;
+		normal = tess.xyz[tess.indexes[i]].ToVec3() - tr.viewParms.orent.origin;
 
 		len = normal.LengthSqr();            // lose the sqrt
 		if ( len < shortest ) {
 			shortest = len;
 		}
 
-		if ( ( dot = ( normal ) * ( tess.normal[tess.indexes[i]] ) ) >= 0 ) {
+		if ( ( dot = ( normal ) * ( tess.normal[tess.indexes[i]].ToVec3() ) ) >= 0 ) {
 			numTriangles--;
 		}
 	}

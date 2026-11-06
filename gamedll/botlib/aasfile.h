@@ -126,7 +126,7 @@ typedef struct aas_bbox_s
 {
 	int presencetype;
 	int flags;
-	vec3_t mins, maxs;
+	idVec3 mins, maxs;
 } aas_bbox_t;
 
 //============ settings ===========
@@ -137,8 +137,8 @@ typedef struct aas_reachability_s
 	int areanum;                        //number of the reachable area
 	int facenum;                        //number of the face towards the other area
 	int edgenum;                        //number of the edge towards the other area
-	vec3_t start;                       //start point of inter area movement
-	vec3_t end;                         //end point of inter area movement
+	idVec3 start;                       //start point of inter area movement
+	idVec3 end;                         //end point of inter area movement
 	int traveltype;                 //type of travel required to get to the area
 	unsigned short int traveltime; //travel time of the inter area movement
 } aas_reachability_t;
@@ -181,12 +181,12 @@ typedef struct aas_cluster_s
 
 //============ 3d definition ============
 
-typedef vec3_t aas_vertex_t;
+typedef idVec3 aas_vertex_t;
 
 //just a plane in the third dimension
 typedef struct aas_plane_s
 {
-	vec3_t normal;                      //normal vector of the plane
+	idVec3 normal;                      //normal vector of the plane
 	float dist;                         //distance of the plane (normal vector * distance = point in plane)
 	int type;
 } aas_plane_t;
@@ -221,9 +221,9 @@ typedef struct aas_area_s
 	//3d definition
 	int numfaces;                       //number of faces used for the boundary of the convex area
 	int firstface;                      //first face in the face index used for the boundary of the convex area
-	vec3_t mins;                        //mins of the convex area
-	vec3_t maxs;                        //maxs of the convex area
-	vec3_t center;                      //'center' of the convex area
+	idVec3 mins;                        //mins of the convex area
+	idVec3 maxs;                        //maxs of the convex area
+	idVec3 center;                      //'center' of the convex area
 } aas_area_t;
 
 //nodes of the bsp tree

@@ -76,7 +76,7 @@ int         CM_LerpTag( orientation_t *tag, const refEntity_t *refent, const cha
 
 // cm_marks.c
 int CM_MarkFragments( int numPoints, const idVec3 *points, const idVec3 &projection,
-					  int maxPoints, idVec3 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
+					  int maxPoints, idVec5 *pointBuffer, int maxFragments, markFragment_t *fragmentBuffer );
 
 // cm_patch.c
 void CM_DrawDebugSurface( void ( *drawPoly )( int color, int numPoints, float *points ) );

@@ -50,7 +50,7 @@ static void APIENTRY R_ArrayElementDiscrete( GLint index ) {
 		qglMultiTexCoord2fARB( 0, tess.svars.texcoords[ 0 ][ index ][0], tess.svars.texcoords[ 0 ][ index ][1] );
 		qglMultiTexCoord2fARB( 1, tess.svars.texcoords[ 1 ][ index ][0], tess.svars.texcoords[ 1 ][ index ][1] );
 	} else {
-		qglTexCoord2fv( tess.svars.texcoords[ 0 ][ index ] );
+		qglTexCoord2fv( tess.svars.texcoords[ 0 ][ index ].ToFloatPtr() );
 	}
 	qglVertex3fv( tess.xyz[ index ].ToFloatPtr() );
 }
@@ -1436,7 +1436,7 @@ void RB_StageIteratorVertexLitTexture( void ) {
 	}
 
 	qglColorPointer( 4, GL_UNSIGNED_BYTE, 0, tess.svars.colors );
-	qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][0] );
+	qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][0].ToFloatPtr() );
 	qglVertexPointer( 3, GL_FLOAT, 16, input->xyz );
 
 
@@ -1539,7 +1539,7 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 
 	qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
 	R_BindAnimatedImage( &tess.xstages[0]->bundle[0] );
-	qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][0] );
+	qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][0].ToFloatPtr() );
 
 	//
 	// configure second stage
@@ -1560,7 +1560,7 @@ void RB_StageIteratorLightmappedMultitexture( void ) {
 	}
 
 	qglEnableClientState( GL_TEXTURE_COORD_ARRAY );
-	qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][1] );
+	qglTexCoordPointer( 2, GL_FLOAT, 16, tess.texCoords[0][1].ToFloatPtr() );
 
 	//
 	// lock arrays
@@ -1691,4 +1691,3 @@ void RB_EndSurface( void ) {
 
 	GLimp_LogComment( "----------\n" );
 }
-

@@ -38,8 +38,6 @@ If you have questions concerning this license or the applicable additional terms
 #ifdef BOTLIB
 #include "../../engine/qcommon/q_shared.h"
 #include "../game/botlib.h"              //for the include of be_interface.h
-#include "l_script.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 #include "l_utils.h"
 #include "be_interface.h"
@@ -50,12 +48,13 @@ If you have questions concerning this license or the applicable additional terms
 #include "../bspc/qbsp.h"
 #include "../bspc/l_log.h"
 #include "../bspc/l_mem.h"
-#include "l_precomp.h"
 #include "l_struct.h"
 
 #define qtrue   true
 #define qfalse  false
 #endif //BSPC
+
+#include <algorithm>
 
 //===========================================================================
 //
@@ -63,7 +62,7 @@ If you have questions concerning this license or the applicable additional terms
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-fielddef_t *FindField( fielddef_t *defs, char *name ) {
+fielddef_t *FindField( fielddef_t *defs, const char *name ) {
 	int i;
 
 	for ( i = 0; defs[i].name; i++ )
@@ -80,51 +79,51 @@ fielddef_t *FindField( fielddef_t *defs, char *name ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-qboolean ReadNumber( source_t *source, fielddef_t *fd, void *p ) {
-	token_t token;
+qboolean ReadNumber( idParser *source, fielddef_t *fd, void *p ) {
+	idToken token;
 	int negative = qfalse;
 	long int intval, intmin = 0, intmax = 0;
 	double floatval;
 
-	if ( !PC_ExpectAnyToken( source, &token ) ) {
+	if ( !source->ExpectAnyToken( &token ) ) {
 		return 0;
 	}
 
 	//check for minus sign
 	if ( token.type == TT_PUNCTUATION ) {
 		if ( fd->type & FT_UNSIGNED ) {
-			SourceError( source, "expected unsigned value, found %s", token.string );
+			source->Error( "expected unsigned value, found %s", token.c_str() );
 			return 0;
 		} //end if
 		  //if not a minus sign
-		if ( strcmp( token.string, "-" ) ) {
-			SourceError( source, "unexpected punctuation %s", token.string );
+		if ( strcmp( token.c_str(), "-" ) ) {
+			source->Error( "unexpected punctuation %s", token.c_str() );
 			return 0;
 		} //end if
 		negative = qtrue;
 		//read the number
-		if ( !PC_ExpectAnyToken( source, &token ) ) {
+		if ( !source->ExpectAnyToken( &token ) ) {
 			return 0;
 		}
 	} //end if
 	  //check if it is a number
 	if ( token.type != TT_NUMBER ) {
-		SourceError( source, "expected number, found %s", token.string );
+		source->Error( "expected number, found %s", token.c_str() );
 		return 0;
 	} //end if
 	  //check for a float value
 	if ( token.subtype & TT_FLOAT ) {
 		if ( ( fd->type & FT_TYPE ) != FT_FLOAT ) {
-			SourceError( source, "unexpected float" );
+			source->Error( "unexpected float" );
 			return 0;
 		} //end if
-		floatval = token.floatvalue;
+		floatval = token.GetFloatValue();
 		if ( negative ) {
 			floatval = -floatval;
 		}
 		if ( fd->type & FT_BOUNDED ) {
 			if ( floatval < fd->floatmin || floatval > fd->floatmax ) {
-				SourceError( source, "float out of range [%f, %f]", fd->floatmin, fd->floatmax );
+				source->Error( "float out of range [%f, %f]", fd->floatmin, fd->floatmax );
 				return 0;
 			} //end if
 		} //end if
@@ -132,7 +131,7 @@ qboolean ReadNumber( source_t *source, fielddef_t *fd, void *p ) {
 		return 1;
 	} //end if
 	  //
-	intval = token.intvalue;
+	intval = token.GetIntValue();
 	if ( negative ) {
 		intval = -intval;
 	}
@@ -149,18 +148,18 @@ qboolean ReadNumber( source_t *source, fielddef_t *fd, void *p ) {
 	} //end else if
 	if ( ( fd->type & FT_TYPE ) == FT_CHAR || ( fd->type & FT_TYPE ) == FT_INT ) {
 		if ( fd->type & FT_BOUNDED ) {
-			intmin = Maximum( intmin, fd->floatmin );
-			intmax = Minimum( intmax, fd->floatmax );
+			intmin = std::max( intmin, static_cast<long int>( fd->floatmin ) );
+			intmax = std::min( intmax, static_cast<long int>( fd->floatmax ) );
 		} //end if
 		if ( intval < intmin || intval > intmax ) {
-			SourceError( source, "value %d out of range [%d, %d]", intval, intmin, intmax );
+			source->Error( "value %d out of range [%d, %d]", intval, intmin, intmax );
 			return 0;
 		} //end if
 	} //end if
 	else if ( ( fd->type & FT_TYPE ) == FT_FLOAT ) {
 		if ( fd->type & FT_BOUNDED ) {
 			if ( intval < fd->floatmin || intval > fd->floatmax ) {
-				SourceError( source, "value %d out of range [%f, %f]", intval, fd->floatmin, fd->floatmax );
+				source->Error( "value %d out of range [%f, %f]", intval, fd->floatmin, fd->floatmax );
 				return 0;
 			} //end if
 		} //end if
@@ -187,21 +186,21 @@ qboolean ReadNumber( source_t *source, fielddef_t *fd, void *p ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-qboolean ReadChar( source_t *source, fielddef_t *fd, void *p ) {
-	token_t token;
+qboolean ReadChar( idParser *source, fielddef_t *fd, void *p ) {
+	idToken token;
 
-	if ( !PC_ExpectAnyToken( source, &token ) ) {
+	if ( !source->ExpectAnyToken( &token ) ) {
 		return 0;
 	}
 
 	//take literals into account
 	if ( token.type == TT_LITERAL ) {
-		StripSingleQuotes( token.string );
-		*(char *) p = token.string[0];
+		token.Strip( "'" );
+		*(char *) p = token[0];
 	} //end if
 	else
 	{
-		PC_UnreadLastToken( source );
+		source->UnreadToken( &token );
 		if ( !ReadNumber( source, fd, p ) ) {
 			return 0;
 		}
@@ -214,16 +213,16 @@ qboolean ReadChar( source_t *source, fielddef_t *fd, void *p ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int ReadString( source_t *source, fielddef_t *fd, void *p ) {
-	token_t token;
+int ReadString( idParser *source, fielddef_t *fd, void *p ) {
+	idToken token;
 
-	if ( !PC_ExpectTokenType( source, TT_STRING, 0, &token ) ) {
+	if ( !source->ExpectTokenType( TT_STRING, 0, &token ) ) {
 		return 0;
 	}
 	//remove the double quotes
-	StripDoubleQuotes( token.string );
+	token.Strip( "\"" );
 	//copy the string
-	strncpy( (char *) p, token.string, MAX_STRINGFIELD );
+	strncpy( (char *) p, token.c_str(), MAX_STRINGFIELD );
 	//make sure the string is closed with a zero
 	( (char *)p )[MAX_STRINGFIELD - 1] = '\0';
 	//
@@ -235,33 +234,33 @@ int ReadString( source_t *source, fielddef_t *fd, void *p ) {
 // Returns:					-
 // Changes Globals:		-
 //===========================================================================
-int ReadStructure( source_t *source, structdef_t *def, char *structure ) {
-	token_t token;
+int ReadStructure( idParser *source, structdef_t *def, char *structure ) {
+	idToken token;
 	fielddef_t *fd;
 	void *p;
 	int num;
 
-	if ( !PC_ExpectTokenString( source, "{" ) ) {
+	if ( !source->ExpectTokenString( "{" ) ) {
 		return 0;
 	}
 	while ( 1 )
 	{
-		if ( !PC_ExpectAnyToken( source, &token ) ) {
+		if ( !source->ExpectAnyToken( &token ) ) {
 			return qfalse;
 		}
 		//if end of structure
-		if ( !strcmp( token.string, "}" ) ) {
+		if ( !strcmp( token.c_str(), "}" ) ) {
 			break;
 		}
 		//find the field with the name
-		fd = FindField( def->fields, token.string );
+		fd = FindField( def->fields, token.c_str() );
 		if ( !fd ) {
-			SourceError( source, "unknown structure field %s", token.string );
+			source->Error( "unknown structure field %s", token.c_str() );
 			return qfalse;
 		} //end if
 		if ( fd->type & FT_ARRAY ) {
 			num = fd->maxarray;
-			if ( !PC_ExpectTokenString( source, "{" ) ) {
+			if ( !source->ExpectTokenString( "{" ) ) {
 				return qfalse;
 			}
 		} //end if
@@ -273,7 +272,7 @@ int ReadStructure( source_t *source, structdef_t *def, char *structure ) {
 		while ( num-- > 0 )
 		{
 			if ( fd->type & FT_ARRAY ) {
-				if ( PC_CheckTokenString( source, "}" ) ) {
+				if ( source->CheckTokenString( "}" ) ) {
 					break;
 				}
 			} //end if
@@ -314,7 +313,7 @@ int ReadStructure( source_t *source, structdef_t *def, char *structure ) {
 			case FT_STRUCT:
 			{
 				if ( !fd->substruct ) {
-					SourceError( source, "BUG: no sub structure defined" );
+					source->Error( "BUG: no sub structure defined" );
 					return qfalse;
 				}     //end if
 				ReadStructure( source, fd->substruct, (char *) p );
@@ -323,14 +322,14 @@ int ReadStructure( source_t *source, structdef_t *def, char *structure ) {
 			}     //end case
 			} //end switch
 			if ( fd->type & FT_ARRAY ) {
-				if ( !PC_ExpectAnyToken( source, &token ) ) {
+				if ( !source->ExpectAnyToken( &token ) ) {
 					return qfalse;
 				}
-				if ( !strcmp( token.string, "}" ) ) {
+				if ( !strcmp( token.c_str(), "}" ) ) {
 					break;
 				}
-				if ( strcmp( token.string, "," ) ) {
-					SourceError( source, "expected a comma, found %s", token.string );
+				if ( strcmp( token.c_str(), "," ) ) {
+					source->Error( "expected a comma, found %s", token.c_str() );
 					return qfalse;
 				} //end if
 			} //end if
@@ -504,4 +503,3 @@ int WriteStructWithIndent( FILE *fp, structdef_t *def, char *structure, int inde
 int WriteStructure( FILE *fp, structdef_t *def, char *structure ) {
 	return WriteStructWithIndent( fp, def, structure, 0 );
 } //end of the function WriteStructure
-

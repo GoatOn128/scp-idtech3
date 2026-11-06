@@ -86,7 +86,7 @@ static long generateHashValue( const char *fname ) {
 }
 
 void R_RemapShader( const char *shaderName, const char *newShaderName, const char *timeOffset ) {
-	char strippedName[MAX_QPATH];
+	idStr strippedName( shaderName );
 	int hash;
 	shader_t    *sh, *sh2;
 	qhandle_t h;
@@ -114,7 +114,7 @@ void R_RemapShader( const char *shaderName, const char *newShaderName, const cha
 
 	// remap all the shaders with the given name
 	// even tho they might have different lightmaps
-	COM_StripExtension( shaderName, strippedName );
+	strippedName.StripFileExtension();
 	hash = generateHashValue( strippedName );
 	for ( sh = hashTable[hash]; sh; sh = sh->next ) {
 		if ( idStr::Icmp( sh->name, strippedName ) == 0 ) {
@@ -136,7 +136,7 @@ ParseVector
 ===============
 */
 static qboolean ParseVector( idLexer *text, int count, float *v ) {
-	char    *token;
+	const char    *token;
 	idToken readToken;
 	int i;
 
@@ -274,7 +274,7 @@ ParseWaveForm
 ===================
 */
 static void ParseWaveForm( idLexer *text, waveForm_t *wave ) {
-	char *token;
+	const char *token;
 	idToken readToken;
 
 	text->ReadToken( &readToken ); token = readToken.c_str();
@@ -532,7 +532,7 @@ ParseStage
 ===================
 */
 static qboolean ParseStage( shaderStage_t *stage, idLexer *text ) {
-	char *token;
+	const char *token;
 	idToken readToken;
 	int depthMaskBits = GLS_DEPTHMASK_TRUE, blendSrcBits = 0, blendDstBits = 0, atestBits = 0, depthFuncBits = 0;
 	qboolean depthMaskExplicit = qfalse;
@@ -1022,7 +1022,7 @@ deformVertexes text[0-7]
 ===============
 */
 static void ParseDeform( idLexer *text ) {
-	char    *token;
+	const char    *token;
 	idToken readToken;
 	deformStage_t   *ds;
 
@@ -1160,7 +1160,7 @@ skyParms <outerbox> <cloudheight> <innerbox>
 ===============
 */
 static void ParseSkyParms( idLexer *text ) {
-	char        *token;
+	const char        *token;
 	idToken readToken;
 	static char *suf[6] = {"rt", "bk", "lf", "ft", "up", "dn"};
 	char pathname[MAX_QPATH];
@@ -1223,7 +1223,7 @@ ParseSort
 =================
 */
 void ParseSort( idLexer *text ) {
-	char    *token;
+	const char    *token;
 	idToken readToken;
 
 	text->ReadToken( &readToken ); token = readToken.c_str();
@@ -1353,7 +1353,7 @@ surfaceparm <name>
 ===============
 */
 static void ParseSurfaceParm( idLexer *text ) {
-	char    *token;
+	const char    *token;
 	idToken readToken;
 	int numInfoParms = sizeof( infoParms ) / sizeof( infoParms[0] );
 	int i;
@@ -1383,7 +1383,7 @@ will optimize it.
 =================
 */
 static qboolean ParseShader( idLexer *text ) {
-	char *token;
+	const char *token;
 	idToken readToken;
 	int s;
 
@@ -1440,11 +1440,11 @@ static qboolean ParseShader( idLexer *text ) {
 
 			text->ReadToken( &readToken ); token = readToken.c_str();
 			a = atof( token );
-			a = a / 180 * M_PI;
+			a = a / 180 * idMath::PI;
 
 			text->ReadToken( &readToken ); token = readToken.c_str();
 			b = atof( token );
-			b = b / 180 * M_PI;
+			b = b / 180 * idMath::PI;
 
 			tr.sunDirection[0] = cos( a ) * cos( b );
 			tr.sunDirection[1] = sin( a ) * cos( b );
@@ -2373,7 +2373,7 @@ default shader if the real one can't be found.
 ==================
 */
 shader_t *R_FindShaderByName( const char *name ) {
-	char strippedName[MAX_QPATH];
+	idStr strippedName( name );
 	int hash;
 	shader_t    *sh;
 
@@ -2381,7 +2381,7 @@ shader_t *R_FindShaderByName( const char *name ) {
 		return tr.defaultShader;
 	}
 
-	COM_StripExtension( name, strippedName );
+	strippedName.StripFileExtension();
 
 	hash = generateHashValue( strippedName );
 
@@ -2432,8 +2432,8 @@ most world construction surfaces.
 ===============
 */
 shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImage ) {
-	char strippedName[MAX_QPATH];
-	char fileName[MAX_QPATH];
+	idStr strippedName( name );
+	idStr fileName( name );
 	int i, hash;
 	char        *shaderText;
 	image_t     *image;
@@ -2449,7 +2449,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 		lightmapIndex = LIGHTMAP_BY_VERTEX;
 	}
 
-	COM_StripExtension( name, strippedName );
+	strippedName.StripFileExtension();
 
 	hash = generateHashValue( strippedName );
 
@@ -2530,8 +2530,7 @@ shader_t *R_FindShader( const char *name, int lightmapIndex, qboolean mipRawImag
 	// if not defined in the in-memory shader descriptions,
 	// look for a single TGA, BMP, or PCX
 	//
-	idStr::Copynz( fileName, name, sizeof( fileName ) );
-	COM_DefaultExtension( fileName, sizeof( fileName ), ".tga" );
+	fileName.DefaultFileExtension( ".tga" );
 	image = R_FindImageFile( fileName, mipRawImage, mipRawImage, mipRawImage ? GL_REPEAT : GL_CLAMP );
 	if ( !image ) {
 		ri.Printf( PRINT_DEVELOPER, "Couldn't find image for shader %s\n", name );

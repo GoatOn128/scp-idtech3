@@ -230,7 +230,7 @@ void CG_LaunchGib( centity_t *cent, idVec3 origin, idVec3 angles, idVec3 velocit
 
 	le->angles.trBase = angles;
 	re->origin = origin;
-	AnglesToAxis( angles, re->axis );
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &re->axis[0], &re->axis[1], &re->axis[2] );
 	if ( sizeScale != 1.0 ) {
 		for ( i = 0; i < 3; i++ ) re->axis[i] = re->axis[i] * (sizeScale);
 	}
@@ -868,7 +868,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, const idVec3 &start, const idVec
 			if ( startAlpha == 1.0 ) {
 				alpha = startAlpha * ( distLeft / length );
 			} else {
-				alpha = CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha" ) - CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_2" ) * fabs( ( CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_3" ) - ( distLeft / length ) ) - startAlpha );
+				alpha = CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha" ) - CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_2" ) * idMath::Fabs( ( CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_3" ) - ( distLeft / length ) ) - startAlpha );
 				if ( alpha < 0 ) {
 					alpha = CG_FxInt( "wolf/controller_dynamiclightningbolt", "alpha_4" );
 				}
@@ -917,7 +917,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, const idVec3 &start, const idVec
 				}
 				for ( j = 0; j < 3; j++ ) {
 					viewDist = lt_crandom( randseed * randseed,j * j + i * i + 3 );
-					if ( fabs( viewDist ) < 0.5 ) {
+					if ( idMath::Fabs( viewDist ) < 0.5 ) {
 						if ( viewDist > 0 ) {
 							viewDist = 0.5;
 						} else { viewDist = -0.5;}
@@ -935,7 +935,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, const idVec3 &start, const idVec
 				}
 				for ( j = 0; j < 3; j++ ) {
 					viewDist = lt_crandom( randseed,j * j + i * i + 3 );
-					if ( fabs( viewDist ) < 0.5 ) {
+					if ( idMath::Fabs( viewDist ) < 0.5 ) {
 						if ( viewDist > 0 ) {
 							viewDist = 0.5;
 						} else { viewDist = -0.5;}
@@ -949,7 +949,7 @@ void CG_DynamicLightningBolt( qhandle_t shader, const idVec3 &start, const idVec
 				if ( startAlpha == 1.0 ) {
 					alpha = startAlpha * ( distLeft / length );
 				} else {
-					alpha = CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_6" ) - CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_7" ) * fabs( ( CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_8" ) - ( distLeft / length ) ) - startAlpha );
+					alpha = CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_6" ) - CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_7" ) * idMath::Fabs( ( CG_FxValue( "wolf/controller_dynamiclightningbolt", "alpha_8" ) - ( distLeft / length ) ) - startAlpha );
 					if ( alpha < 0 ) {
 						alpha = CG_FxInt( "wolf/controller_dynamiclightningbolt", "alpha_9" );
 					}
@@ -1185,12 +1185,12 @@ void CG_Spotlight( centity_t *cent, const idVec4 &color, const idVec3 &realstart
 
 	vectoangles( lightDir, angles );
 	angles[ROLL] = CG_FxValue( "wolf/controller_spotlight", "angles_ROLL_" );        // clear out roll so it doesn't interfere
-	AnglesToAxis( angles, ent.axis );
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 	trap_R_AddRefEntityToScene( &ent );
 
 	ent.hModel = CG_FxModel( "wolf/controller_spotlight", "spotLightBaseModel" );
 	angles[PITCH] = 0.0f;       // flatten out pitch so it only yaws
-	AnglesToAxis( angles, ent.axis );
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &ent.axis[0], &ent.axis[1], &ent.axis[2] );
 	trap_R_AddRefEntityToScene( &ent );
 
 	// push start out a bit so the beam fits to the front of the base model
@@ -1382,7 +1382,7 @@ void CG_Spotlight( centity_t *cent, const idVec4 &color, const idVec3 &realstart
 
 		// it's facing the camera, find out how closely and trace to see if the source can be seen
 
-		deg = RAD2DEG( idMath::PI - acos( dot ) );
+		deg = RAD2DEG( idMath::PI - idMath::ACos( dot ) );
 		if ( deg <= CG_FxValue( "wolf/controller_spotlight", "flareAngle" ) ) { // start flare a bit before the camera gets inside the cylinder
 			lightInEyes = qtrue;
 			flarescale = 1 - ( deg / CG_FxValue( "wolf/controller_spotlight", "flareAngle" ) );

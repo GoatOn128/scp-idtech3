@@ -837,7 +837,7 @@ R_StitchPatches
 int R_StitchPatches( int grid1num, int grid2num ) {
 	int k, l, m, n, offset1, offset2, row, column;
 	srfGridMesh_t *grid1, *grid2;
-	float *v1, *v2;
+	idVec3 v1, v2;
 
 	grid1 = (srfGridMesh_t *) s_worldData.surfaces[grid1num].data;
 	grid2 = (srfGridMesh_t *) s_worldData.surfaces[grid2num].data;
@@ -2193,8 +2193,9 @@ void RE_LoadWorldMap( const char *name ) {
 	memset( &s_worldData, 0, sizeof( s_worldData ) );
 	idStr::Copynz( s_worldData.name, name, sizeof( s_worldData.name ) );
 
-	idStr::Copynz( s_worldData.baseName, COM_SkipPath( s_worldData.name ), sizeof( s_worldData.name ) );
-	COM_StripExtension( s_worldData.baseName, s_worldData.baseName );
+	idStr worldBaseName( s_worldData.name );
+	worldBaseName.StripPath().StripFileExtension();
+	idStr::Copynz( s_worldData.baseName, worldBaseName, sizeof( s_worldData.baseName ) );
 
 	startMarker = (byte *) Mem_ClearedAlloc( 0, TAG_IDLIB );
 	c_gridVerts = 0;
@@ -2256,4 +2257,3 @@ void RE_LoadWorldMap( const char *name ) {
 //----(SA)	end
 	ri.FS_FreeFile( buffer );
 }
-

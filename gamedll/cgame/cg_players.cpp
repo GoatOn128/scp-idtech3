@@ -251,7 +251,7 @@ void CG_CalcMoveSpeeds( clientInfo_t *ci ) {
 				} else {
 					low = 1;
 				}
-				totalSpeed += fabs( oldPos[low][2] - o[low].origin[2] );
+				totalSpeed += idMath::Fabs( oldPos[low][2] - o[low].origin[2] );
 			} else {
 				if ( o[0].origin[2] < o[1].origin[2] ) {
 					low = 0;
@@ -259,9 +259,9 @@ void CG_CalcMoveSpeeds( clientInfo_t *ci ) {
 					low = 1;
 				}
 				if ( !isStrafe ) {
-					totalSpeed += fabs( oldPos[low][0] - o[low].origin[0] );
+					totalSpeed += idMath::Fabs( oldPos[low][0] - o[low].origin[0] );
 				} else {
-					totalSpeed += fabs( oldPos[low][1] - o[low].origin[1] );
+					totalSpeed += idMath::Fabs( oldPos[low][1] - o[low].origin[1] );
 				}
 				//
 				// set the numSteps
@@ -1498,7 +1498,7 @@ void CG_NewClientInfo( int clientNum ) {
 		// to prevent load hitches
 
 		trap_Cvar_VariableStringBuffer( "head", modelStr, sizeof( modelStr ) );
-		Q_strncpyz( newInfo.hSkinName, modelStr, sizeof( newInfo.hSkinName ) );
+		idStr::Copynz( newInfo.hSkinName, modelStr, sizeof( newInfo.hSkinName ) );
 	}
 	else {
 */
@@ -1523,14 +1523,14 @@ void CG_NewClientInfo( int clientNum ) {
 			*skin++ = 0;
 		}
 
-		Q_strncpyz( newInfo.skinName, skin, sizeof( newInfo.skinName ) );
-		Q_strncpyz( newInfo.modelName, modelStr, sizeof( newInfo.modelName ) );
+		idStr::Copynz( newInfo.skinName, skin, sizeof( newInfo.skinName ) );
+		idStr::Copynz( newInfo.modelName, modelStr, sizeof( newInfo.modelName ) );
 
 		if ( cgs.gametype >= GT_TEAM ) {
 			// keep skin name
 			slash = strchr( v, '/' );
 			if ( slash ) {
-				Q_strncpyz( newInfo.skinName, slash + 1, sizeof( newInfo.skinName ) );
+				idStr::Copynz( newInfo.skinName, slash + 1, sizeof( newInfo.skinName ) );
 			}
 		}
 	} else {
@@ -2191,7 +2191,7 @@ static void CG_SwingAngles( float destination, float swingTolerance, float clamp
 	// modify the speed depending on the delta
 	// so it doesn't seem so linear
 	swing = AngleSubtract( destination, *angle );
-	scale = fabs( swing );
+	scale = idMath::Fabs( swing );
 	scale *= 0.05;
 	if ( scale < 0.5 ) {
 		scale = 0.5;
@@ -2302,11 +2302,11 @@ static void CG_AddPainTwitch( centity_t *cent, idVec3 torsoAngles ) {
 		f = (float)t / duration;
 		if ( f < FADEIN_RATIO ) {
 			torsoAngles[ROLL] += ( 0.5 * direction * ( f * ( 1.0 / FADEIN_RATIO ) ) );
-			torsoAngles[PITCH] -= ( fabs( direction ) * ( f * ( 1.0 / FADEIN_RATIO ) ) );
+			torsoAngles[PITCH] -= ( idMath::Fabs( direction ) * ( f * ( 1.0 / FADEIN_RATIO ) ) );
 			torsoAngles[YAW] += ( direction * ( f * ( 1.0 / FADEIN_RATIO ) ) );
 		} else {
 			torsoAngles[ROLL] += ( 0.5 * direction * ( 1.0 - ( f - FADEIN_RATIO ) ) * ( 1.0 / FADEOUT_RATIO ) );
-			torsoAngles[PITCH] -= ( fabs( direction ) * ( 1.0 - ( f - FADEIN_RATIO ) ) * ( 1.0 / FADEOUT_RATIO ) );
+			torsoAngles[PITCH] -= ( idMath::Fabs( direction ) * ( 1.0 - ( f - FADEIN_RATIO ) ) * ( 1.0 / FADEOUT_RATIO ) );
 			torsoAngles[YAW] += ( direction * ( 1.0 - ( f - FADEIN_RATIO ) ) * ( 1.0 / FADEOUT_RATIO ) );
 		}
 	} else {    // fast, Q3 style
@@ -2350,8 +2350,8 @@ static void CG_IdleHeadMovement( centity_t *cent, const idVec3 torsoAngles, idVe
 	// move towards ideal position
 	if ( cent->pe.headLookStopTime < cg.time && !(cent->pe.headLookIdeal == cent->pe.headLookOffset) ) {
 		// slow down as we get closer
-		if ( fabs( cent->pe.headLookOffset[YAW] - cent->pe.headLookIdeal[YAW] ) < angleSpeedMax * 1.2 ) {
-			cent->pe.headLookSpeedMax = angleSpeedMax * ( 0.1 + 0.9 * ( fabs( cent->pe.headLookOffset[YAW] - cent->pe.headLookIdeal[YAW] ) / ( angleSpeedMax * 1.2 ) ) );
+		if ( idMath::Fabs( cent->pe.headLookOffset[YAW] - cent->pe.headLookIdeal[YAW] ) < angleSpeedMax * 1.2 ) {
+			cent->pe.headLookSpeedMax = angleSpeedMax * ( 0.1 + 0.9 * ( idMath::Fabs( cent->pe.headLookOffset[YAW] - cent->pe.headLookIdeal[YAW] ) / ( angleSpeedMax * 1.2 ) ) );
 		}
 		// accelerate angle speed
 		if ( cent->pe.headLookSpeed < cent->pe.headLookSpeedMax ) {
@@ -2394,7 +2394,7 @@ static void CG_IdleHeadMovement( centity_t *cent, const idVec3 torsoAngles, idVe
 /*
 	// make sure these angles don't place us too far from the torso angles
 	for (i=0; i<3; i++) {
-		if (fabs(cent->pe.headLookOffset[i] + headAngles[i] - torsoAngles[i]) > diffThreshold) {
+		if (idMath::Fabs(cent->pe.headLookOffset[i] + headAngles[i] - torsoAngles[i]) > diffThreshold) {
 			if (cent->pe.headLookOffset[i] + headAngles[i] - torsoAngles[i] > 0)
 				cent->pe.headLookOffset[i] = diffThreshold - (headAngles[i] - torsoAngles[i]);
 			else
@@ -2435,9 +2435,9 @@ static void CG_PlayerAngles( centity_t *cent, idVec3 legs[3], idVec3 torso[3], i
 	if ( cent->currentState.eFlags & EF_FORCED_ANGLES ) {
 		// torso & legs parts should turn to face the given angles
 		legsAngles = cent->lerpAngles;
-		AnglesToAxis( legsAngles, legs );
-		AnglesToAxis( vec3_origin, torso );
-		AnglesToAxis( vec3_origin, head );
+		idAngles( legsAngles[0], legsAngles[1], legsAngles[2] ).ToVectors( &legs[0], &legs[1], &legs[2] );
+		idAngles( vec3_origin[0], vec3_origin[1], vec3_origin[2] ).ToVectors( &torso[0], &torso[1], &torso[2] );
+		idAngles( vec3_origin[0], vec3_origin[1], vec3_origin[2] ).ToVectors( &head[0], &head[1], &head[2] );
 		return;
 	}
 
@@ -2552,7 +2552,7 @@ static void CG_PlayerAngles( centity_t *cent, idVec3 legs[3], idVec3 torso[3], i
 
 		speed *= 0.05;
 
-		AnglesToAxis( legsAngles, axis );
+		idAngles( legsAngles[0], legsAngles[1], legsAngles[2] ).ToVectors( &axis[0], &axis[1], &axis[2] );
 		side = speed * ((velocity) * (axis[1]));
 		legsAngles[ROLL] -= side;
 
@@ -2569,9 +2569,9 @@ static void CG_PlayerAngles( centity_t *cent, idVec3 legs[3], idVec3 torso[3], i
 	// pull the angles back out of the hierarchial chain
 	headAngles -= torsoAngles;
 	torsoAngles -= legsAngles;
-	AnglesToAxis( legsAngles, legs );
-	AnglesToAxis( torsoAngles, torso );
-	AnglesToAxis( headAngles, head );
+	idAngles( legsAngles[0], legsAngles[1], legsAngles[2] ).ToVectors( &legs[0], &legs[1], &legs[2] );
+	idAngles( torsoAngles[0], torsoAngles[1], torsoAngles[2] ).ToVectors( &torso[0], &torso[1], &torso[2] );
+	idAngles( headAngles[0], headAngles[1], headAngles[2] ).ToVectors( &head[0], &head[1], &head[2] );
 }
 
 
@@ -2683,7 +2683,7 @@ static void CG_TrailItem( centity_t *cent, qhandle_t hModel ) {
 	angles = cent->lerpAngles;
 	angles[PITCH] = 0;
 	angles[ROLL] = 0;
-	AnglesToAxis( angles, axis );
+	idAngles( angles[0], angles[1], angles[2] ).ToVectors( &axis[0], &axis[1], &axis[2] );
 
 	memset( &ent, 0, sizeof( ent ) );
 	// DHM - Nerve :: adjusted values
@@ -2706,7 +2706,7 @@ static void CG_PlayerPowerups( centity_t *cent ) {
 	int powerups;
 
 	if ( cent->pe.teslaDamagedTime > cg.time - 400 ) {
-		trap_R_AddLightToScene( cent->lerpOrigin, 128 + 128 * sin( cg.time * cg.time ), 0.2, 0.6, 1, 0 );
+		trap_R_AddLightToScene( cent->lerpOrigin, 128 + 128 * idMath::Sin( cg.time * cg.time ), 0.2, 0.6, 1, 0 );
 	}
 
 	// RF, AI don't use these effects, they are generally added manually by the game
@@ -3262,12 +3262,12 @@ void CG_AddZombieSpiritEffect( centity_t *cent ) {
 				rotationTime = cent->pe.zombieSpiritRotationTimes[i];
 				radiusCycleTime = cent->pe.zombieSpiritRadiusCycleTimes[i];
 
-				radius = ( minDist + sin( idMath::PI * CG_FxInt( "wolf/controller_addzombiespiriteffect", "radius" ) * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+				radius = ( minDist + idMath::Sin( idMath::PI * CG_FxInt( "wolf/controller_addzombiespiriteffect", "radius" ) * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
 
 				// get the position
-				v[0] = ( 0.5 + 0.5 * fadeRatio ) * sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
-				v[1] = ( 0.5 + 0.5 * fadeRatio ) * cos( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
-				v[2] = CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z" ) + CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z_2" ) * ( 0.5 + 0.5 * fadeRatio ) * sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
+				v[0] = ( 0.5 + 0.5 * fadeRatio ) * idMath::Sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
+				v[1] = ( 0.5 + 0.5 * fadeRatio ) * idMath::Cos( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
+				v[2] = CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z" ) + CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z_2" ) * ( 0.5 + 0.5 * fadeRatio ) * idMath::Sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
 				v[2] -= ( 1.0 - fadeRatio ) * CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z_3" );
 
 				p[i] = cent->lerpOrigin + v;
@@ -3276,12 +3276,12 @@ void CG_AddZombieSpiritEffect( centity_t *cent ) {
 				rotationTime = cent->pe.zombieSpiritRotationTimes[i];
 				radiusCycleTime = cent->pe.zombieSpiritRadiusCycleTimes[i];
 
-				radius = pow( CG_FxValue( "wolf/controller_addzombiespiriteffect", "radius_2" ) - fadeRatio, CG_FxInt( "wolf/controller_addzombiespiriteffect", "radius_3" ) ) * fadeDist + ( CG_FxValue( "wolf/controller_addzombiespiriteffect", "radius_4" ) - pow( CG_FxValue( "wolf/controller_addzombiespiriteffect", "radius_5" ) - fadeRatio, CG_FxInt( "wolf/controller_addzombiespiriteffect", "radius_6" ) ) ) * ( minDist + sin( idMath::PI * CG_FxInt( "wolf/controller_addzombiespiriteffect", "radius_7" ) * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+				radius = idMath::Pow( CG_FxValue( "wolf/controller_addzombiespiriteffect", "radius_2" ) - fadeRatio, CG_FxInt( "wolf/controller_addzombiespiriteffect", "radius_3" ) ) * fadeDist + ( CG_FxValue( "wolf/controller_addzombiespiriteffect", "radius_4" ) - idMath::Pow( CG_FxValue( "wolf/controller_addzombiespiriteffect", "radius_5" ) - fadeRatio, CG_FxInt( "wolf/controller_addzombiespiriteffect", "radius_6" ) ) ) * ( minDist + idMath::Sin( idMath::PI * CG_FxInt( "wolf/controller_addzombiespiriteffect", "radius_7" ) * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
 
 				// get the position
-				v[0] = sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
-				v[1] = cos( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
-				v[2] = CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z_4" ) + CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z_5" ) * sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
+				v[0] = idMath::Sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
+				v[1] = idMath::Cos( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
+				v[2] = CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z_4" ) + CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z_5" ) * idMath::Sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
 				v[2] -= ( 1.0 - fadeRatio ) * CG_FxInt( "wolf/controller_addzombiespiriteffect", "v_z_6" );
 
 				p[i] = cent->lerpOrigin + v;
@@ -3348,7 +3348,7 @@ void CG_AddZombieSpiritEffect( centity_t *cent ) {
 		cent->pe.zombieSpiritDir[i] = 1.0f / (cent->pe.zombieSpiritDir[i]);
 		vectoangles( cent->pe.zombieSpiritDir[i], ang );
 		cent->pe.zombieSpiritDir[i] = 1.0f / (cent->pe.zombieSpiritDir[i]);
-		AnglesToAxis( ang, refent.axis );
+		idAngles( ang[0], ang[1], ang[2] ).ToVectors( &refent.axis[0], &refent.axis[1], &refent.axis[2] );
 		// create the non-normalized axis so we can size it
 		refent.nonNormalizedAxes = qtrue;
 		for ( t = 0; t < 3; t++ ) {
@@ -3640,7 +3640,7 @@ void CG_AddLoperLightningEffect( centity_t *cent ) {
 
 	// show a dlight
 	// color
-	colTake = 0.8 - fabs( sin( cg.time ) ) * 0.3;
+	colTake = 0.8 - idMath::Fabs( idMath::Sin( cg.time ) ) * 0.3;
 	c[0] = 1.0 - colTake;
 	c[1] = 1.0 - 0.7 * colTake;
 	c[2] = 1.0; //c[1] + 0.2;
@@ -3649,7 +3649,7 @@ void CG_AddLoperLightningEffect( centity_t *cent ) {
 	}
 	//VectorScale( c, alpha, c );
 	// add the light
-	trap_R_AddLightToScene( tagPos, LOPER_LIGHTNING_NORMAL_DIST * ( 2.5 + ( 1.0 + sin( cg.time ) ) / CG_FxValue( "wolf/controller_addloperlightningeffect", "tuning" ) ), c[0], c[1], c[2], 1 );
+	trap_R_AddLightToScene( tagPos, LOPER_LIGHTNING_NORMAL_DIST * ( 2.5 + ( 1.0 + idMath::Sin( cg.time ) ) / CG_FxValue( "wolf/controller_addloperlightningeffect", "tuning" ) ), c[0], c[1], c[2], 1 );
 
 	for ( i = 0; i < numPoints; i++ ) {
 		// if this point has timed out, find a new spot
@@ -3782,7 +3782,7 @@ void CG_AddLoperGroundEffect( centity_t *cent ) {
 
 	// show a dlight
 	// color
-	colTake = 0.8 - fabs( sin( cg.time ) ) * 0.3;
+	colTake = 0.8 - idMath::Fabs( idMath::Sin( cg.time ) ) * 0.3;
 	c[0] = 1.0 - colTake;
 	c[1] = 1.0 - 0.8 * colTake;
 	c[2] = 1.0; //c[1] + 0.2;
@@ -3791,7 +3791,7 @@ void CG_AddLoperGroundEffect( centity_t *cent ) {
 	}
 	c = c * (alpha);
 	// add the light
-	trap_R_AddLightToScene( cent->lerpOrigin, LOPER_GROUNDCHARGE_RADIUS * ( 3.0 + 2.0 * ( 1.0 + sin( 0.001 * ( ( cg.time ) % ( 1000 * ( 2 + cent->currentState.number ) ) ) ) ) / 2.0 ), c[0], c[1], c[2], 1 );
+	trap_R_AddLightToScene( cent->lerpOrigin, LOPER_GROUNDCHARGE_RADIUS * ( 3.0 + 2.0 * ( 1.0 + idMath::Sin( 0.001 * ( ( cg.time ) % ( 1000 * ( 2 + cent->currentState.number ) ) ) ) ) / 2.0 ), c[0], c[1], c[2], 1 );
 	//trap_R_AddLightToScene( cent->lerpOrigin, LOPER_GROUNDCHARGE_RADIUS*(2.0 + 1.0*(1.0+cos(0.001343*((cg.time)%(1000*(2+cent->currentState.number)))))/2.0), c[0], c[1], c[2], 0 );
 
 	if ( !alpha ) {
@@ -3983,12 +3983,12 @@ void CG_AddHelgaSpiritEffect( centity_t *cent ) {
 				rotationTime = cent->pe.zombieSpiritRotationTimes[i];
 				radiusCycleTime = cent->pe.zombieSpiritRadiusCycleTimes[i];
 
-				radius = ( minDist + sin( idMath::PI * CG_FxInt( "wolf/controller_addhelgaspiriteffect", "radius" ) * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+				radius = ( minDist + idMath::Sin( idMath::PI * CG_FxInt( "wolf/controller_addhelgaspiriteffect", "radius" ) * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
 
 				// get the position
-				v[0] = ( 0.5 + 0.5 * fadeRatio ) * sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
-				v[1] = ( 0.5 + 0.5 * fadeRatio ) * cos( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
-				v[2] = CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z" ) + CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z_2" ) * ( 0.5 + 0.5 * fadeRatio ) * sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
+				v[0] = ( 0.5 + 0.5 * fadeRatio ) * idMath::Sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
+				v[1] = ( 0.5 + 0.5 * fadeRatio ) * idMath::Cos( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
+				v[2] = CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z" ) + CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z_2" ) * ( 0.5 + 0.5 * fadeRatio ) * idMath::Sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
 				v[2] -= ( 1.0 - fadeRatio ) * CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z_3" );
 
 				p[i] = cent->lerpOrigin + v;
@@ -3997,12 +3997,12 @@ void CG_AddHelgaSpiritEffect( centity_t *cent ) {
 				rotationTime = cent->pe.zombieSpiritRotationTimes[i];
 				radiusCycleTime = cent->pe.zombieSpiritRadiusCycleTimes[i];
 
-				radius = pow( CG_FxValue( "wolf/controller_addhelgaspiriteffect", "radius_2" ) - fadeRatio, CG_FxInt( "wolf/controller_addhelgaspiriteffect", "radius_3" ) ) * fadeDist + ( CG_FxValue( "wolf/controller_addhelgaspiriteffect", "radius_4" ) - pow( CG_FxValue( "wolf/controller_addhelgaspiriteffect", "radius_5" ) - fadeRatio, CG_FxInt( "wolf/controller_addhelgaspiriteffect", "radius_6" ) ) ) * ( minDist + sin( idMath::PI * CG_FxInt( "wolf/controller_addhelgaspiriteffect", "radius_7" ) * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
+				radius = idMath::Pow( CG_FxValue( "wolf/controller_addhelgaspiriteffect", "radius_2" ) - fadeRatio, CG_FxInt( "wolf/controller_addhelgaspiriteffect", "radius_3" ) ) * fadeDist + ( CG_FxValue( "wolf/controller_addhelgaspiriteffect", "radius_4" ) - idMath::Pow( CG_FxValue( "wolf/controller_addhelgaspiriteffect", "radius_5" ) - fadeRatio, CG_FxInt( "wolf/controller_addhelgaspiriteffect", "radius_6" ) ) ) * ( minDist + idMath::Sin( idMath::PI * CG_FxInt( "wolf/controller_addhelgaspiriteffect", "radius_7" ) * (float)( (float)( (int)( t + ( (float)( radiusCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % radiusCycleTime ) / (float)radiusCycleTime ) ) * ( maxDist - minDist ) );
 
 				// get the position
-				v[0] = sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
-				v[1] = cos( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
-				v[2] = CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z_4" ) + CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z_5" ) * sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
+				v[0] = idMath::Sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
+				v[1] = idMath::Cos( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( rotationTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % rotationTime ) / (float)rotationTime ) ) * radius;
+				v[2] = CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z_4" ) + CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z_5" ) * idMath::Sin( idMath::PI * 2 * (float)( (float)( (int)( t + ( (float)( zCycleTime * i ) / MAX_ZOMBIE_SPIRITS ) ) % zCycleTime ) / (float)zCycleTime ) );
 				v[2] -= ( 1.0 - fadeRatio ) * CG_FxInt( "wolf/controller_addhelgaspiriteffect", "v_z_6" );
 
 				p[i] = cent->lerpOrigin + v;
@@ -4069,12 +4069,12 @@ void CG_AddHelgaSpiritEffect( centity_t *cent ) {
 		//VectorInverse(cent->pe.zombieSpiritDir[i]);
 		vectoangles( cent->pe.zombieSpiritDir[i], ang );
 		//VectorInverse(cent->pe.zombieSpiritDir[i]);
-		AnglesToAxis( ang, refent.axis );
+		idAngles( ang[0], ang[1], ang[2] ).ToVectors( &refent.axis[0], &refent.axis[1], &refent.axis[2] );
 /*		// create the non-normalized axis so we can size it
 		refent.nonNormalizedAxes = qtrue;
 		for (t=0; t<3; t++) {
-			VectorNormalize( refent.axis[t] );
-			VectorScale( refent.axis[t], 0.35, refent.axis[t] );
+			refent.axis[t].Normalize();
+			refent.axis[t] = refent.axis[t] * 0.35;
 						}
 */                                                                                                                                                                                                                           //
 		// add the sound
@@ -4322,7 +4322,7 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, int powerups, int team, enti
 				if (cent->pe.zombieDeathFadeStart > cg.time) {
 					ent->shaderRGBA[3] = 128;
 				} else {
-					ent->shaderRGBA[3] = 128 - (unsigned char)(128.0*pow(((float)(cg.time - cent->pe.zombieDeathFadeStart) / (float)(cent->pe.zombieDeathFadeEnd - cent->pe.zombieDeathFadeStart)), 2));
+					ent->shaderRGBA[3] = 128 - (unsigned char)(128.0*idMath::Pow(((float)(cg.time - cent->pe.zombieDeathFadeStart) / (float)(cent->pe.zombieDeathFadeEnd - cent->pe.zombieDeathFadeStart)), 2));
 				}
 				ent->shaderTime = 1.0;
 
@@ -4396,7 +4396,7 @@ void CG_AddRefEntityWithPowerups( refEntity_t *ent, int powerups, int team, enti
 		ent->customShader = cgs.media.dripWetShader;
 		trap_R_AddRefEntityToScene( ent );
 
-		VectorCopy( fireRiseDir, ent->fireRiseDir );
+		ent->fireRiseDir = fireRiseDir;
 */
 		ent->customShader = cgs.media.onFireShader;
 		trap_R_AddRefEntityToScene( ent );
@@ -4850,7 +4850,7 @@ void CG_Player( centity_t *cent ) {
 		int emotion = 0;  // this should default to the entity's current emotion
 
 		gumsflappin = (float)trap_S_GetVoiceAmplitude( clientNum );
-		talk_frame = (int)floor( ( HEAD_EMOTION_SUBTYPES - 1 ) * ( gumsflappin / 256.0 ) );
+		talk_frame = (int)idMath::Floor( ( HEAD_EMOTION_SUBTYPES - 1 ) * ( gumsflappin / 256.0 ) );
 
 		// add the current frame to the total, so when it comes to pick a new frame, we choose the average
 		// of those we missed over the last frame
@@ -5019,7 +5019,7 @@ void CG_Player( centity_t *cent ) {
 			acc.hModel = ci->partModels[8];
 			angles.Zero();
 			angles[YAW] = CG_SpinnerSpinAngle( cent );
-			AnglesToAxis( angles, acc.axis );
+			idAngles( angles[0], angles[1], angles[2] ).ToVectors( &acc.axis[0], &acc.axis[1], &acc.axis[2] );
 			CG_PositionRotatedEntityOnTag( &acc, &legs, "tag_spinner" );
 			CG_AddRefEntityWithPowerups( &acc, cent->currentState.powerups, ci->team, &cent->currentState, cent->fireRiseDir );
 		}

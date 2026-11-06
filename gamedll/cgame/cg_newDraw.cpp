@@ -408,7 +408,7 @@ static void CG_DrawPlayerAmmoIcon( rectDef_t *rect, qboolean draw2D ) {
 			origin[0] = 70;
 			origin[1] = 0;
 			origin[2] = 0;
-			angles[YAW] = 90 + 20 * sin( cg.time / 1000.0 );
+			angles[YAW] = 90 + 20 * idMath::Sin( cg.time / 1000.0 );
 			CG_Draw3DModel( rect->x, rect->y, rect->w, rect->h, cg_weapons[ cent->currentState.weapon ].ammoModel, 0, origin, angles );
 		}
 	}
@@ -502,7 +502,7 @@ static void CG_DrawCursorhint( rectDef_t *rect ) {
 	}
 
 	if ( cg_cursorHints.integer == 3 ) {
-		(*color)[3] *= 0.5 + 0.5 * sin( (float)cg.time / 150.0 );
+		(*color)[3] *= 0.5 + 0.5 * idMath::Sin( (float)cg.time / 150.0 );
 	}
 
 
@@ -513,7 +513,7 @@ static void CG_DrawCursorhint( rectDef_t *rect ) {
 		if ( cg_cursorHints.integer == 2 ) {
 			scale = (float)( ( cg.cursorHintTime ) % 1000 ) / 100.0f; // one way size pulse
 		} else {
-			scale = CURSORHINT_SCALE * ( 0.5 + 0.5 * sin( (float)cg.time / 150.0 ) ); // sin pulse
+			scale = CURSORHINT_SCALE * ( 0.5 + 0.5 * idMath::Sin( (float)cg.time / 150.0 ) ); // sin pulse
 
 		}
 		halfscale = scale * 0.5f;
@@ -673,8 +673,8 @@ static void CG_DrawPlayerHead( rectDef_t *rect, qboolean draw2D ) {
 
 		cg.headStartYaw = 180 + cg.damageX * 45;
 
-		cg.headEndYaw = 180 + 20 * cos( cgRandom.CRandomFloat() * idMath::PI );
-		cg.headEndPitch = 5 * cos( cgRandom.CRandomFloat() * idMath::PI );
+		cg.headEndYaw = 180 + 20 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
+		cg.headEndPitch = 5 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
 
 		cg.headStartTime = cg.time;
 		cg.headEndTime = cg.time + 100 + cgRandom.RandomFloat() * 2000;
@@ -686,8 +686,8 @@ static void CG_DrawPlayerHead( rectDef_t *rect, qboolean draw2D ) {
 			cg.headStartTime = cg.headEndTime;
 			cg.headEndTime = cg.time + 100 + cgRandom.RandomFloat() * 2000;
 
-			cg.headEndYaw = 180 + 20 * cos( cgRandom.CRandomFloat() * idMath::PI );
-			cg.headEndPitch = 5 * cos( cgRandom.CRandomFloat() * idMath::PI );
+			cg.headEndYaw = 180 + 20 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
+			cg.headEndPitch = 5 * idMath::Cos( cgRandom.CRandomFloat() * idMath::PI );
 		}
 
 		size = rect->w * 1.25;
@@ -1158,7 +1158,7 @@ static void CG_DrawBlueFlagHead( rectDef_t *rect ) {
 		if ( cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team == TEAM_RED  && cgs.clientinfo[i].powerups & ( 1 << PW_BLUEFLAG ) ) {
 			idVec3 angles;
 			angles.Zero();
-			angles[YAW] = 180 + 20 * sin( cg.time / 650.0 );;
+			angles[YAW] = 180 + 20 * idMath::Sin( cg.time / 650.0 );;
 			CG_DrawHead( rect->x, rect->y, rect->w, rect->h, 0,angles );
 			return;
 		}
@@ -1214,7 +1214,7 @@ static void CG_DrawRedFlagHead( rectDef_t *rect ) {
 		if ( cgs.clientinfo[i].infoValid && cgs.clientinfo[i].team == TEAM_BLUE  && cgs.clientinfo[i].powerups & ( 1 << PW_REDFLAG ) ) {
 			idVec3 angles;
 			angles.Zero();
-			angles[YAW] = 180 + 20 * sin( cg.time / 650.0 );;
+			angles[YAW] = 180 + 20 * idMath::Sin( cg.time / 650.0 );;
 			CG_DrawHead( rect->x, rect->y, rect->w, rect->h, 0,angles );
 			return;
 		}
@@ -1828,7 +1828,7 @@ static void CG_Text_Paint_Limit( float *maxX, float x, float y, int font, float 
 		count = 0;
 		while ( s && *s && count < len ) {
 			glyph = &fnt->glyphs[*s];
-			if ( Q_IsColorString( s ) ) {
+			if ( idStr::IsColor( s ) ) {
 				newColor = idVec4(
 					g_color_table[ColorIndex( *( s + 1 ) )][0],
 					g_color_table[ColorIndex( *( s + 1 ) )][1],
