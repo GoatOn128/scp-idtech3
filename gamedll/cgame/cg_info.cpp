@@ -76,7 +76,7 @@ CG_LoadingString
 ======================
 */
 void CG_LoadingString( const char *s ) {
-	Q_strncpyz( (char *)cg.infoScreenText, s, sizeof( cg.infoScreenText ) );
+	idStr::Copynz( (char *)cg.infoScreenText, s, sizeof( cg.infoScreenText ) );
 
 	if ( s && s[0] != 0 ) {
 		CG_Printf( va( "LOADING... %s\n",s ) );   //----(SA)	added so you can see from the console what's going on
@@ -129,8 +129,8 @@ void CG_LoadingClient( int clientNum ) {
 
 	info = CG_ConfigString( CS_PLAYERS + clientNum );
 
-	Q_strncpyz( model, Info_ValueForKey( info, "model" ), sizeof( model ) );
-	skin = Q_strrchr( model, '/' );
+	idStr::Copynz( model, Info_ValueForKey( info, "model" ), sizeof( model ) );
+	skin = strrchr( model, '/' );
 	if ( skin ) {
 		*skin++ = '\0';
 	} else {
@@ -146,7 +146,7 @@ void CG_LoadingClient( int clientNum ) {
 //		}
 	}
 
-	Q_strncpyz( personality, Info_ValueForKey( info, "n" ), sizeof( personality ) );
+	idStr::Copynz( personality, Info_ValueForKey( info, "n" ), sizeof( personality ) );
 	Q_CleanStr( personality );
 
 	if ( cgs.gametype == GT_SINGLE_PLAYER ) {
@@ -167,12 +167,12 @@ typedef struct {
 	int YOfs;
 	int labelX;
 	int labelFlags;
-	vec4_t labelColor;
+	idVec4 labelColor;
 
 	char    *format;
 	int formatX;
 	int formatFlags;
-	vec4_t formatColor;
+	idVec4 formatColor;
 
 	int numVars;
 } statsItem_t;
@@ -206,15 +206,17 @@ void CG_DrawStats( char *stats ) {
 	int i, y, v, j;
 	#define MAX_STATS_VARS  64
 	int vars[MAX_STATS_VARS];
-	char *str, *token;
+	char *str;
 	char *formatStr;
 	int varIndex;
 	char string[MAX_QPATH];
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
 	UI_DrawProportionalString( 320, 120, "MISSION STATS",
 							   UI_CENTER | UI_SMALLFONT | UI_DROPSHADOW, colorWhite );
 
-	Q_strncpyz( string, stats, sizeof( string ) );
+	idStr::Copynz( string, stats, sizeof( string ) );
 	str = string;
 	// convert commas to spaces
 	for ( i = 0; str[i]; i++ ) {
@@ -222,6 +224,7 @@ void CG_DrawStats( char *stats ) {
 			str[i] = ' ';
 		}
 	}
+	lexer.LoadMemory( string, strlen( string ), "mission_stats" );
 
 	for ( i = 0, y = 0, v = 0; statsItems[i].label; i++ ) {
 		y += statsItems[i].YOfs;
@@ -232,13 +235,12 @@ void CG_DrawStats( char *stats ) {
 		if ( statsItems[i].numVars ) {
 			varIndex = v;
 			for ( j = 0; j < statsItems[i].numVars; j++ ) {
-				token = COM_Parse( &str );
-				if ( !token || !token[0] ) {
+				if ( !lexer.ReadToken( &token ) || !token[0] ) {
 					CG_Error( "error parsing mission stats\n" );
 					return;
 				}
 
-				vars[v++] = atoi( token );
+				vars[v++] = atoi( token.c_str() );
 			}
 
 			// build the formatStr
@@ -275,14 +277,17 @@ CG_DrawExitStats
 void CG_DrawExitStats( void ) {
 	int i, y, v, j;
 	float *color;   // faded color based on cursor hint drawing
-	float color2[4] = {0, 0, 0, 1};
-	const char *str;
-	char *mstats, *token;
+	idVec4 color2( 0, 0, 0, 1 );
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
 	#define MAX_STATS_VARS  64
 	int vars[MAX_STATS_VARS];
 	char *formatStr = NULL; // TTimo: init
 	int varIndex = 0;     // TTimo: init
+
+	char *mstats;
+	const char *str;
 
 	if ( cg_paused.integer ) {
 		// no draw if any menu's are up	 (or otherwise paused)
@@ -305,7 +310,6 @@ void CG_DrawExitStats( void ) {
 
 // parse it
 	str = CG_ConfigString( CS_MISSIONSTATS );
-
 	if ( !str || !str[0] ) {
 		return;
 	}
@@ -364,10 +368,11 @@ void CG_DrawExitStats( void ) {
 			mstats[i] = ' ';
 		}
 	}
+	lexer.LoadMemory( mstats, strlen( mstats ), "mission_stats" );
 	for ( i = 0, y = 0, v = 0; statsItems[i].label; i++ ) {
 		y += statsItems[i].YOfs;
 
-		VectorCopy4( statsItems[i].labelColor, color2 );
+		color2 = statsItems[i].labelColor;
 //		statsItems[i].labelColor[3] = statsItems[i].formatColor[3] = color[3];	// set proper alpha
 		color2[3] = statsItems[i].formatColor[3] = color[3];    // set proper alpha
 
@@ -375,13 +380,12 @@ void CG_DrawExitStats( void ) {
 		if ( statsItems[i].numVars ) {
 			varIndex = v;
 			for ( j = 0; j < statsItems[i].numVars; j++ ) {
-				token = COM_Parse( &mstats );
-				if ( !token || !token[0] ) {
+				if ( !lexer.ReadToken( &token ) || !token[0] ) {
 					CG_Error( "error parsing mission stats\n" );
 					return;
 				}
 
-				vars[v++] = atoi( token );
+				vars[v++] = atoi( token.c_str() );
 			}
 
 			// build the formatStr
@@ -423,7 +427,7 @@ void CG_DrawExitStats( void ) {
 		CG_Text_Paint( statsItems[i].labelX, y, 2, 0.3, color2, va( "%s:", CG_translateString( statsItems[i].label ) ), 0, 0, statsItems[i].labelFlags );
 
 	}
-	token = COM_Parse( &mstats );
+	lexer.ReadToken( &token );
 
 // end (parse it)
 }
@@ -453,7 +457,7 @@ void CG_DrawInformation( void ) {
 	int expectedHunk;
 	char hunkBuf[MAX_QPATH];
 
-	vec4_t color;
+	idVec4 color;
 
 	if ( cg.snap && ( strlen( cg_missionStats.string ) <= 1 ) ) {
 		return;     // we are in the world, no need to draw information
@@ -502,12 +506,12 @@ void CG_DrawInformation( void ) {
 //	UI_DrawProportionalString( 320, 16, va( "Loading %s", Info_ValueForKey( info, "mapname" ) ), UI_SMALLFONT|UI_CENTER|UI_DROPSHADOW, colorWhite );
 
 	// show the loading progress
-	VectorSet( color, 0.8, 0.8, 0.8 );
+	color.Set( 0.8, 0.8, 0.8, 0.8 );
 	color[3] = 0.8;
 
 	if ( strlen( cg_missionStats.string ) > 1 && cg_missionStats.string[0] == 's' ) {
-		vec2_t xy = { 190, 470 };
-		vec2_t wh = { 260, 10 };
+		idVec2 xy( 190, 470 );
+		idVec2 wh( 260, 10 );
 
 		// draw the mission stats while loading
 
@@ -531,8 +535,8 @@ void CG_DrawInformation( void ) {
 	if ( cgs.gametype == GT_SINGLE_PLAYER ) {
 
 		if ( 0 ) { // bar drawn in menu now
-			vec2_t xy = { 200, 468 };
-			vec2_t wh = { 240, 10 };
+			idVec2 xy( 200, 468 );
+			idVec2 wh( 240, 10 );
 
 			// show the percent complete bar
 			if ( expectedHunk > 0 ) {

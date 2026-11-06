@@ -271,7 +271,7 @@ void CG_StartCamera( const char *name, qboolean startBlack ) {
 	//if ( cg.predictedPlayerState.stats[STAT_HEALTH] <= 0 )	// don't allow camera to start if you're dead
 	//	return;
 
-	COM_StripExtension( name, lname );    //----(SA)	added
+	{ idStr lnameStr( name ); lnameStr.StripFileExtension(); idStr::Copynz( lname, lnameStr.c_str(), sizeof( lname ) ); };    //----(SA)	added
 	strcat( lname, ".camera" );
 
 	if ( trap_loadCamera( CAM_PRIMARY, va( "cameras/%s", lname ) ) ) {
@@ -405,9 +405,9 @@ static void CG_LimboMessage_f( void ) {
 		return;
 	}
 
-	Q_strncpyz( teamStr, CG_Argv( 1 ), 80 );
-	Q_strncpyz( classStr, CG_Argv( 2 ), 80 );
-	Q_strncpyz( weapStr, CG_Argv( 3 ), 80 );
+	idStr::Copynz( teamStr, CG_Argv( 1 ), 80 );
+	idStr::Copynz( classStr, CG_Argv( 2 ), 80 );
+	idStr::Copynz( weapStr, CG_Argv( 3 ), 80 );
 
 	CG_CenterPrint( va( "You will spawn as a %s \n%s with a %s.", teamStr, classStr, weapStr ),
 					SCREEN_HEIGHT - ( SCREEN_HEIGHT * 0.25 ), SMALLCHAR_WIDTH );
@@ -481,7 +481,7 @@ qboolean CG_ConsoleCommand( void ) {
 	cmd = CG_Argv( 0 );
 
 	for ( i = 0 ; i < sizeof( commands ) / sizeof( commands[0] ) ; i++ ) {
-		if ( !Q_stricmp( cmd, commands[i].cmd ) ) {
+		if ( !idStr::Icmp( cmd, commands[i].cmd ) ) {
 			commands[i].function();
 			return qtrue;
 		}

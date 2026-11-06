@@ -89,7 +89,7 @@ int CG_SoundScriptPrecache( const char *name ) {
 	s = (char *)name;
 	sound = hashTable[hash];
 	while ( sound ) {
-		if ( !Q_strcasecmp( s, sound->name ) ) {
+		if ( !idStr::Icmp( s, sound->name ) ) {
 			// found a match, precache these sounds
 			scriptSound = sound->soundList;
 			if ( !sound->streaming ) {
@@ -121,11 +121,11 @@ int CG_SoundScriptPrecache( const char *name ) {
 CG_SoundPickOldestRandomSound
 ==============
 */
-void CG_SoundPickOldestRandomSound( soundScript_t *sound, vec3_t org, int entnum ) {
+void CG_SoundPickOldestRandomSound( soundScript_t *sound, const idVec3 *org, int entnum ) {
 	int oldestTime = 0; // TTimo: init
 	soundScriptSound_t *oldestSound;
 	soundScriptSound_t *scriptSound;
-	vec3_t eOrg;
+	idVec3 eOrg;
 
 	oldestSound = NULL;
 	scriptSound = sound->soundList;
@@ -157,9 +157,9 @@ void CG_SoundPickOldestRandomSound( soundScript_t *sound, vec3_t org, int entnum
 		if ( sound->shakeScale ) {
 			// get the origin
 			if ( org ) {
-				VectorCopy( org, eOrg );
+				eOrg = *org;
 			} else {
-				VectorCopy( cg_entities[entnum].lerpOrigin, eOrg );
+				eOrg = cg_entities[entnum].lerpOrigin;
 			}
 			//
 			// start the shaker
@@ -177,7 +177,7 @@ CG_SoundPlaySoundScript
   returns qtrue is a script is found
 ==============
 */
-qboolean CG_SoundPlaySoundScript( const char *name, vec3_t org, int entnum ) {
+qboolean CG_SoundPlaySoundScript( const char *name, const idVec3 *org, int entnum ) {
 	long hash;
 	char *s;
 	soundScript_t   *sound;
@@ -191,7 +191,7 @@ qboolean CG_SoundPlaySoundScript( const char *name, vec3_t org, int entnum ) {
 	s = (char *)name;
 	sound = hashTable[hash];
 	while ( sound ) {
-		if ( !Q_strcasecmp( s, sound->name ) ) {
+		if ( !idStr::Icmp( s, sound->name ) ) {
 			// found a match, pick the oldest sound
 			CG_SoundPickOldestRandomSound( sound, org, entnum );
 			return qtrue;
@@ -212,7 +212,7 @@ CG_SoundPlayIndexedScript
   returns qtrue is a script is found
 ==============
 */
-void CG_SoundPlayIndexedScript( int index, vec3_t org, int entnum ) {
+void CG_SoundPlayIndexedScript( int index, const idVec3 *org, int entnum ) {
 	soundScript_t   *sound;
 
 	if ( !index ) {
@@ -234,27 +234,27 @@ CG_SoundParseSounds
 ===============
 */
 static void CG_SoundParseSounds( char *filename, char *buffer ) {
-	char *token, **text;
 	int s;
 	long hash;
 	soundScript_t sound = {};          // the current sound being read
 	soundScriptSound_t  *scriptSound;
 	qboolean inSound, wantSoundName;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
 	s = 0;
 	inSound = qfalse;
 	wantSoundName = qtrue;
-	text = &buffer;
+	lexer.LoadMemory( buffer, strlen( buffer ), filename );
 
 	while ( 1 ) {
-		token = COM_ParseExt( text, qtrue );
-		if ( !token[0] ) {
+		if ( !lexer.ReadToken( &token ) || !token[0] ) {
 			if ( inSound ) {
 				CG_Error( "no concluding '}' in sound %s, file %s\n", sound.name, filename );
 			}
 			return;
 		}
-		if ( !Q_strcasecmp( token, "{" ) ) {
+		if ( !idStr::Icmp( token, "{" ) ) {
 			if ( inSound ) {
 				CG_Error( "no concluding '}' in sound %s, file %s\n", sound.name, filename );
 			}
@@ -264,7 +264,7 @@ static void CG_SoundParseSounds( char *filename, char *buffer ) {
 			inSound = qtrue;
 			continue;
 		}
-		if ( !Q_strcasecmp( token, "}" ) ) {
+		if ( !idStr::Icmp( token, "}" ) ) {
 			if ( !inSound ) {
 				CG_Error( "'}' unexpected after sound %s, file %s\n", sound.name, filename );
 			}
@@ -289,7 +289,7 @@ static void CG_SoundParseSounds( char *filename, char *buffer ) {
 				CG_Error( "'%s' unexpected after sound %s, file %s\n", token, sound.name, filename );
 			}
 			memset( &sound, 0, sizeof( sound ) );
-			Q_strncpyz( sound.name, token, sizeof( sound.name ) );
+			idStr::Copynz( sound.name, token, sizeof( sound.name ) );
 			wantSoundName = qfalse;
 			sound.index = numSoundScripts;
 			// setup the new sound defaults
@@ -301,57 +301,60 @@ static void CG_SoundParseSounds( char *filename, char *buffer ) {
 
 		// we are inside a sound script
 
-		if ( !Q_strcasecmp( token, "channel" ) ) {
+		if ( !idStr::Icmp( token, "channel" ) ) {
 			// ignore this now, just look for the channel identifiers explicitly
 			continue;
 		}
-		if ( !Q_strcasecmp( token, "local" ) ) {
+		if ( !idStr::Icmp( token, "local" ) ) {
 			sound.channel = CHAN_LOCAL;
 			continue;
-		} else if ( !Q_strcasecmp( token, "announcer" ) ) {
+		} else if ( !idStr::Icmp( token, "announcer" ) ) {
 			sound.channel = CHAN_ANNOUNCER;
 			continue;
-		} else if ( !Q_strcasecmp( token, "body" ) ) {
+		} else if ( !idStr::Icmp( token, "body" ) ) {
 			sound.channel = CHAN_BODY;
 			continue;
-		} else if ( !Q_strcasecmp( token, "voice" ) ) {
+		} else if ( !idStr::Icmp( token, "voice" ) ) {
 			sound.channel = CHAN_VOICE;
 			continue;
-		} else if ( !Q_strcasecmp( token, "weapon" ) ) {
+		} else if ( !idStr::Icmp( token, "weapon" ) ) {
 			sound.channel = CHAN_WEAPON;
 			continue;
-		} else if ( !Q_strcasecmp( token, "item" ) ) {
+		} else if ( !idStr::Icmp( token, "item" ) ) {
 			sound.channel = CHAN_ITEM;
 			continue;
-		} else if ( !Q_strcasecmp( token, "auto" ) ) {
+		} else if ( !idStr::Icmp( token, "auto" ) ) {
 			sound.channel = CHAN_AUTO;
 			continue;
 		}
-		if ( !Q_strcasecmp( token, "global" ) ) {
+		if ( !idStr::Icmp( token, "global" ) ) {
 			sound.attenuation = 0;
 			continue;
 		}
-		if ( !Q_strcasecmp( token, "streaming" ) ) {
+		if ( !idStr::Icmp( token, "streaming" ) ) {
 			sound.streaming = qtrue;
 			continue;
 		}
-		if ( !Q_strcasecmp( token, "looping" ) ) {
+		if ( !idStr::Icmp( token, "looping" ) ) {
 			sound.looping = qtrue;
 			continue;
 		}
-		if ( !Q_strcasecmp( token, "shake" ) ) {
-			token = COM_ParseExt( text, qfalse );
+		if ( !idStr::Icmp( token, "shake" ) ) {
+			if ( !lexer.ReadTokenOnLine( &token ) ) {
+				token = "";
+			}
 			sound.shakeScale = atof( token );
-			token = COM_ParseExt( text, qfalse );
+			if ( !lexer.ReadTokenOnLine( &token ) ) {
+				token = "";
+			}
 			sound.shakeRadius = atof( token );
-			token = COM_ParseExt( text, qfalse );
-			if ( !token || !token[0] ) {
+			if ( !lexer.ReadTokenOnLine( &token ) || !token[0] ) {
 				sound.shakeDuration = 350 + 900 * ( sound.shakeScale * sound.shakeScale );
 			} else {
 				sound.shakeDuration = atoi( token );
 			}
 		}
-		if ( !Q_strcasecmp( token, "sound" ) ) {
+		if ( !idStr::Icmp( token, "sound" ) ) {
 			// grab a free scriptSound
 			scriptSound = &soundScriptSounds[numSoundScriptSounds++];
 
@@ -359,8 +362,8 @@ static void CG_SoundParseSounds( char *filename, char *buffer ) {
 				CG_Error( "MAX_SOUND_SCRIPT_SOUNDS exceeded.\nReduce number of sound scripts.\n" );
 			}
 
-			token = COM_ParseExt( text, qtrue );
-			Q_strncpyz( scriptSound->filename, token, sizeof( scriptSound->filename ) );
+			lexer.ReadToken( &token );
+			idStr::Copynz( scriptSound->filename, token, sizeof( scriptSound->filename ) );
 			scriptSound->lastPlayed = 0;
 			scriptSound->sfxHandle = 0;
 			scriptSound->next = sound.soundList;
@@ -380,12 +383,12 @@ CG_SoundLoadSoundFiles
 static void CG_SoundLoadSoundFiles( void ) {
 	char soundFiles[MAX_SOUND_FILES][MAX_QPATH];
 	char buffer[MAX_BUFFER];
-	char *text;
 	char filename[MAX_QPATH];
 	fileHandle_t f;
 	int numSounds;
 	int i, len;
-	char *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 
 	// scan for sound files
 	Com_sprintf( filename, MAX_QPATH, "sound/scripts/filelist.txt" );
@@ -402,11 +405,10 @@ static void CG_SoundLoadSoundFiles( void ) {
 	buffer[len] = 0;
 	trap_FS_FCloseFile( f );
 	// parse the list
-	text = buffer;
 	numSounds = 0;
+	lexer.LoadMemory( buffer, strlen( buffer ), filename );
 	while ( 1 ) {
-		token = COM_ParseExt( &text, qtrue );
-		if ( !token[0] ) {
+		if ( !lexer.ReadToken( &token ) || !token[0] ) {
 			break;
 		}
 		Com_sprintf( soundFiles[numSounds++], MAX_QPATH, token );
