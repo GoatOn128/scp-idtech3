@@ -28,7 +28,7 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 #include "ai_actor.h"
 
 void AICast_Sight( gentity_t *ent, gentity_t *other, int lastSight );
-void AICast_Pain( gentity_t *targ, gentity_t *attacker, int damage, const idVec3 &point );
+void AICast_Pain( gentity_t *targ, gentity_t *attacker, int damage, idVec3 &point );
 void AICast_Die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int meansOfDeath );
 void AICast_EndChase( cast_state_t *cs );
 void AICast_AIDoor_Touch( gentity_t *ent, gentity_t *aidoor_trigger, gentity_t *door );

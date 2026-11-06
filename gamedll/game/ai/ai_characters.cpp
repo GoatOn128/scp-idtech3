@@ -889,8 +889,8 @@ AICharacterDefaults_t aiDefaults[NUM_CHARACTERS] = {
 
 //---------------------------------------------------------------------------
 // Bounding boxes
-static vec3_t bbmins[2] = { { -18, -18, -24 }, { -32, -32, -24 } };
-static vec3_t bbmaxs[2] = { { 18, 18, 48 }, { 32, 32, 68 } };
+static idVec3 bbmins[2] = { idVec3( -18, -18, -24 ), idVec3( -32, -32, -24 ) };
+static idVec3 bbmaxs[2] = { idVec3( 18, 18, 48 ), idVec3( 32, 32, 68 ) };
 //static float crouchMaxZ[2] = {32,48};	// same as player, will head be ok? // TTimo: unused
 //---------------------------------------------------------------------------
 
@@ -908,16 +908,16 @@ AIChar_SetBBox
 ============
 */
 void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
-	vec3_t bbox[2];
+	idVec3 bbox[2];
 	trace_t tr;
 	orientation_t orent ;
 
 	if ( !useHeadTag ) {
-		VectorCopy( bbmins[cs->aasWorldIndex], ent->client->ps.mins );
-		VectorCopy( bbmaxs[cs->aasWorldIndex], ent->client->ps.maxs );
+		ent->client->ps.mins = bbmins[cs->aasWorldIndex];
+		ent->client->ps.maxs = bbmaxs[cs->aasWorldIndex];
 		ent->client->ps.maxs[2] = aiDefaults[cs->aiCharacter].crouchstandZ[1];
-		VectorCopy( ent->client->ps.mins, ent->r.mins );
-		VectorCopy( ent->client->ps.maxs, ent->r.maxs );
+		ent->r.mins = ent->client->ps.mins;
+		ent->r.maxs = ent->client->ps.maxs;
 		ent->client->ps.crouchMaxZ = aiDefaults[cs->aiCharacter].crouchstandZ[0];
 		ent->s.density = cs->aasWorldIndex;
 	} else if ( trap_GetTag( ent->s.number, "tag_head", &orent ) ) { // if not found, then just leave it
@@ -933,8 +933,8 @@ void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
 		memset( &tr, 0, sizeof( tr ) );
 
 		// check that the new height is ok first, otherwise leave it alone
-		VectorCopy( bbmins[cs->aasWorldIndex], bbox[0] );
-		VectorCopy( bbmaxs[cs->aasWorldIndex], bbox[1] );
+		bbox[0] = bbmins[cs->aasWorldIndex];
+		bbox[1] = bbmaxs[cs->aasWorldIndex];
 		// set the head tag height
 		bbox[1][2] = orent.origin[2];
 
@@ -945,10 +945,10 @@ void AIChar_SetBBox( gentity_t *ent, cast_state_t *cs, qboolean useHeadTag ) {
 		}
 
 		if ( !tr.startsolid && !tr.allsolid ) {
-			VectorCopy( bbox[0], ent->client->ps.mins );
-			VectorCopy( bbox[1], ent->client->ps.maxs );
-			VectorCopy( ent->client->ps.mins, ent->r.mins );
-			VectorCopy( ent->client->ps.maxs, ent->r.maxs );
+			ent->client->ps.mins = bbox[0];
+			ent->client->ps.maxs = bbox[1];
+			ent->r.mins = ent->client->ps.mins;
+			ent->r.maxs = ent->client->ps.maxs;
 			ent->client->ps.crouchMaxZ = aiDefaults[cs->aiCharacter].crouchstandZ[0];
 			ent->s.density = cs->aasWorldIndex;
 		}
@@ -999,7 +999,7 @@ void AIChar_Death( gentity_t *ent, gentity_t *attacker, int damage, int mod ) { 
 AIChar_GetPainLocation
 =============
 */
-int AIChar_GetPainLocation( gentity_t *ent, vec3_t point ) {
+int AIChar_GetPainLocation( gentity_t *ent, const idVec3 &point ) {
 	static char *painTagNames[] = {
 		"tag_head",	   "tag_chest",	   "tag_torso",	  "tag_groin", "tag_armright",
 		"tag_armleft", "tag_legright", "tag_legleft", NULL,
@@ -1038,7 +1038,7 @@ int AIChar_GetPainLocation( gentity_t *ent, vec3_t point ) {
 AIChar_Pain
 ============
 */
-void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point ) {
+void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, const idVec3 &point ) {
 #define PAIN_THRESHOLD 25
 #define STUNNED_THRESHOLD 30
 	cast_state_t *cs;
@@ -1085,7 +1085,7 @@ void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point 
 	//	return;
 	//}
 
-	if ( !Q_stricmp( attacker->classname, "props_statue" ) ) {
+	if ( !idStr::Icmp( attacker->classname, "props_statue" ) ) {
 		damage = 99999; // try and force a stun
 		forceStun = qtrue;
 	}
@@ -1149,7 +1149,7 @@ void AIChar_Pain( gentity_t *ent, gentity_t *attacker, int damage, vec3_t point 
 		if ( attacker->client ) {
 			BG_UpdateConditionValue( ent->s.number, ANIM_COND_ENEMY_WEAPON, attacker->s.weapon, qtrue );
 		}
-		if ( point ) {
+		if ( point != vec3_origin ) {
 			// location
 			BG_UpdateConditionValue( ent->s.number, ANIM_COND_IMPACT_POINT, AIChar_GetPainLocation( ent, point ),
 									 qtrue );

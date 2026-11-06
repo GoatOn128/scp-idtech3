@@ -115,7 +115,7 @@ void AICast_SpecialFunc( cast_state_t *cs ) {
 						continue;
 					}
 					// blow it up, set some delay
-					G_Damage( trav, ent, ent, NULL, NULL, 99999, 0, MOD_CRUSH );
+					G_Damage( trav, ent, ent, vec3_origin, vec3_origin, 99999, 0, MOD_CRUSH );
 					if ( ent->takedamage ) {
 						ent->count2 = level.time + 200 + rand() % 1500;
 					}
@@ -144,7 +144,7 @@ void AICast_PredictMovement( cast_state_t *cs, int numframes, float frametime, a
 	playerState_t ps;
 	pmove_t pm = {};
 	trace_t tr;
-	vec3_t end, startHitVec, thisHitVec, lastOrg, projPoint;
+	idVec3 end, startHitVec, thisHitVec, lastOrg, projPoint;
 	qboolean checkReachMarker;
 	gentity_t *ent = &g_entities[cs->entityNum];
 	bot_input_t bi;
@@ -164,16 +164,16 @@ void AICast_PredictMovement( cast_state_t *cs, int numframes, float frametime, a
 	memset( move, 0, sizeof( *move ) );
 	move->stopevent = PREDICTSTOP_NONE;
 	if ( numframes <= 0 || frametime <= 0 ) {
-		VectorCopy( ps.origin, move->endpos );
-		VectorCopy( ps.velocity, move->velocity );
+		move->endpos = ps.origin;
+		move->velocity = ps.velocity;
 		move->groundEntityNum = ps.groundEntityNum;
 		return;
 	}
 
-	if ( checkHitEnt >= 0 && !Q_stricmp( g_entities[checkHitEnt].classname, "ai_marker" ) ) {
+	if ( checkHitEnt >= 0 && !idStr::Icmp( g_entities[checkHitEnt].classname, "ai_marker" ) ) {
 		checkReachMarker = qtrue;
-		VectorSubtract( g_entities[checkHitEnt].r.currentOrigin, ps.origin, startHitVec );
-		VectorCopy( ps.origin, lastOrg );
+		startHitVec = g_entities[checkHitEnt].r.currentOrigin - ps.origin;
+		lastOrg = ps.origin;
 	} else {
 		checkReachMarker = qfalse;
 	}
@@ -206,8 +206,8 @@ void AICast_PredictMovement( cast_state_t *cs, int numframes, float frametime, a
 		if ( checkHitEnt >= 0 ) {
 			// if we've hit the checkent, abort
 			if ( checkReachMarker ) {
-				VectorSubtract( g_entities[checkHitEnt].r.currentOrigin, pm.ps->origin, thisHitVec );
-				if ( DotProduct( startHitVec, thisHitVec ) < 0 ) {
+				thisHitVec = g_entities[checkHitEnt].r.currentOrigin - pm.ps->origin;
+				if ( ( startHitVec * thisHitVec ) < 0 ) {
 					// project the marker onto the movement vec, and check distance
 					ProjectPointOntoVector( g_entities[checkHitEnt].r.currentOrigin, lastOrg, pm.ps->origin,
 											projPoint );
@@ -217,8 +217,8 @@ void AICast_PredictMovement( cast_state_t *cs, int numframes, float frametime, a
 					}
 				}
 				// use this position as the base for the next test
-				//VectorCopy( thisHitVec, startHitVec );
-				VectorCopy( pm.ps->origin, lastOrg );
+				//startHitVec = thisHitVec;
+				lastOrg = pm.ps->origin;
 			}
 			// if we didnt reach the marker, then check for something that blocked us
 			for ( i = 0; i < pm.numtouch; i++ ) {
@@ -235,7 +235,7 @@ void AICast_PredictMovement( cast_state_t *cs, int numframes, float frametime, a
 					// we have hit another entity, so abort
 					move->stopevent = PREDICTSTOP_HITCLIENT;
 					goto done;
-				} else if ( !Q_stricmp( g_entities[pm.touchents[i]].classname, "script_mover" ) ) {
+				} else if ( !idStr::Icmp( g_entities[pm.touchents[i]].classname, "script_mover" ) ) {
 					// avoid script_mover's
 					move->stopevent = PREDICTSTOP_HITCLIENT;
 					goto done;
@@ -244,11 +244,11 @@ void AICast_PredictMovement( cast_state_t *cs, int numframes, float frametime, a
 			// if we are trying to get to something, we should keep adjusting our input to head towards them
 			if ( cs->clientState && checkHitEnt >= 0 ) {
 				// keep walking straight to them
-				VectorSubtract( g_entities[checkHitEnt].r.currentOrigin, pm.ps->origin, bi.dir );
+				bi.dir = g_entities[checkHitEnt].r.currentOrigin - pm.ps->origin;
 				if ( !ent->waterlevel ) {
 					bi.dir[2] = 0;
 				}
-				VectorNormalize( bi.dir );
+				bi.dir.Normalize();
 				bi.actionflags = 0;
 				bi.speed = 400;
 				AICast_InputToUserCommand( cs, &bi, ucmd, ps.delta_angles );
@@ -261,19 +261,19 @@ done:
 	// hack, if we are above ground, chances are it's because we only did one frame, and gravity isn't applied until
 	// after the frame, so try and drop us down some
 	if ( pm.ps->groundEntityNum == ENTITYNUM_NONE ) {
-		VectorCopy( pm.ps->origin, end );
+		end = pm.ps->origin;
 		end[2] -= 32;
 		trap_Trace( &tr, pm.ps->origin, pm.mins, pm.maxs, end, pm.ps->clientNum, pm.tracemask );
 		if ( !tr.startsolid && !tr.allsolid && tr.fraction < 1 ) {
-			VectorCopy( tr.endpos, pm.ps->origin );
+			pm.ps->origin = tr.endpos;
 			pm.ps->groundEntityNum = tr.entityNum;
 		}
 	}
 
 	// copy off the results
-	VectorCopy( pm.ps->origin, move->endpos );
+	move->endpos = pm.ps->origin;
 	move->frames = frame;
-	VectorCopy( pm.ps->velocity, move->velocity );
+	move->velocity = pm.ps->velocity;
 	move->numtouch = pm.numtouch;
 	memcpy( move->touchents, pm.touchents, sizeof( pm.touchents ) );
 	move->groundEntityNum = pm.ps->groundEntityNum;
@@ -286,9 +286,9 @@ done:
 AICast_GetAvoid
 ============
 */
-qboolean AICast_GetAvoid( cast_state_t *cs, bot_goal_t *goal, vec3_t outpos, qboolean reverse, int blockEnt ) {
+qboolean AICast_GetAvoid( cast_state_t *cs, bot_goal_t *goal, idVec3 &outpos, qboolean reverse, int blockEnt ) {
 	float yaw, oldyaw, distmoved, bestmoved, bestyaw;
-	vec3_t bestpos;
+	idVec3 bestpos;
 	aicast_predictmove_t castmove;
 	usercmd_t ucmd;
 	qboolean enemyVisible;
@@ -389,7 +389,7 @@ qboolean AICast_GetAvoid( cast_state_t *cs, bot_goal_t *goal, vec3_t outpos, qbo
 					bestyaw = yaw;
 					bestmoved = distmoved;
 					besttraveltime = traveltime;
-					VectorCopy( castmove.endpos, bestpos );
+					bestpos = castmove.endpos;
 				}
 			}
 		}
@@ -398,7 +398,7 @@ qboolean AICast_GetAvoid( cast_state_t *cs, bot_goal_t *goal, vec3_t outpos, qbo
 	}
 	//
 	if ( bestmoved > 0 ) {
-		VectorCopy( bestpos, outpos );
+		outpos = bestpos;
 		return qtrue;
 	} else {
 		return qfalse;
@@ -413,7 +413,7 @@ AICast_Blocked
 ============
 */
 void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activate, bot_goal_t *goal ) {
-	vec3_t pos, dir;
+	idVec3 pos, dir;
 	aicast_predictmove_t move;
 	usercmd_t ucmd;
 	bot_input_t bi;
@@ -423,7 +423,7 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 
 	if ( cs->navigation.blockedAvoidTime < level.time ) {
 		if ( cs->navigation.blockedAvoidTime < level.time - 300 ) {
-			if ( VectorCompare( cs->clientState->cur_ps.velocity, vec3_origin ) && !cs->lastucmd.forwardmove &&
+			if ( cs->clientState->cur_ps.velocity.Compare( vec3_origin ) && !cs->lastucmd.forwardmove &&
 				 !cs->lastucmd.rightmove ) {
 				// not moving, don't bother checking
 				cs->navigation.blockedAvoidTime = level.time - 1;
@@ -446,12 +446,12 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 			if ( goal ) {
 				if ( VectorDistance( cs->clientState->origin, goal->origin ) <
 					 VectorDistance( cs->clientState->origin, move.endpos ) ) {
-					vec3_t v1, v2;
-					VectorSubtract( goal->origin, cs->clientState->origin, v1 );
-					VectorSubtract( goal->origin, move.endpos, v2 );
-					VectorNormalize( v1 );
-					VectorNormalize( v2 );
-					if ( DotProduct( v1, v2 ) < 0 ) {
+					idVec3 v1, v2;
+					v1 = goal->origin - cs->clientState->origin;
+					v2 = goal->origin - move.endpos;
+					v1.Normalize();
+					v2.Normalize();
+					if ( ( v1 * v2 ) < 0 ) {
 						// we went passed the goal, so assume we can reach it
 						cs->navigation.blockedAvoidTime = level.time - 1;
 						return;
@@ -463,7 +463,7 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 			blockEnt = -1;
 			for ( i = 0; i < move.numtouch; i++ ) {
 				if ( move.touchents[i] >= MAX_CLIENTS ) {
-					if ( !Q_stricmp( g_entities[move.touchents[i]].classname, "script_mover" ) ) {
+					if ( !idStr::Icmp( g_entities[move.touchents[i]].classname, "script_mover" ) ) {
 						// avoid script_mover's
 						blockEnt = move.touchents[i];
 					}
@@ -482,14 +482,14 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 				// reject this blocker if we are following or going to them
 				else if ( cs->navigation.followEntity != ocs->entityNum ) {
 					// if they are moving away from us already, let them go
-					if ( VectorLength( ocs->clientState->cur_ps.velocity ) > 10 ) {
-						vec3_t v1, v2;
+					if ( ocs->clientState->cur_ps.velocity.Length() > 10 ) {
+						idVec3 v1, v2;
 
-						VectorSubtract( ocs->clientState->origin, cs->clientState->origin, v2 );
-						VectorNormalize( v2 );
-						VectorNormalize2( ocs->clientState->cur_ps.velocity, v1 );
+						v2 = ocs->clientState->origin - cs->clientState->origin;
+						v2.Normalize();
+						v1 = ocs->clientState->cur_ps.velocity; v1.Normalize();
 
-						if ( DotProduct( v1, v2 ) > 0.0 ) {
+						if ( ( v1 * v2 ) > 0.0 ) {
 							continue;
 						}
 					}
@@ -507,7 +507,7 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 					// they should avoid us
 					if ( ocs->leaderNum >= 0 ) {
 						ogoal.entitynum = ocs->leaderNum;
-						VectorCopy( g_entities[ocs->leaderNum].r.currentOrigin, ogoal.origin );
+						ogoal.origin = g_entities[ocs->leaderNum].r.currentOrigin;
 						if ( AICast_GetAvoid( ocs, &ogoal, ocs->navigation.obstructingPos, qfalse, cs->entityNum ) ) {
 							// give them time to move somewhere else
 							ocs->navigation.obstructingTime = level.time + 1000;
@@ -552,8 +552,8 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 
 		// avoid geometry and props, but assume clients will get out the way
 		if ( /*blockEnt > MAX_CLIENTS &&*/ AICast_GetAvoid( cs, goal, pos, qfalse, blockEnt ) ) {
-			VectorSubtract( pos, cs->clientState->cur_ps.origin, dir );
-			VectorNormalize( dir );
+			dir = pos - cs->clientState->cur_ps.origin;
+			dir.Normalize();
 			cs->navigation.blockedAvoidYaw = vectoyaw( dir );
 			if ( blockEnt >= MAX_CLIENTS ) {
 				cs->navigation.blockedAvoidTime = level.time + 100 + rand() % 200;
@@ -566,9 +566,9 @@ void AICast_Blocked( cast_state_t *cs, bot_moveresult_t *moveresult, int activat
 		}
 	}
 
-	VectorClear( pos );
+	pos.Zero();
 	pos[YAW] = cs->navigation.blockedAvoidYaw;
-	AngleVectors( pos, dir, NULL, NULL );
+	idAngles( pos ).ToVectors( &dir, NULL, NULL );
 
 	if ( moveresult->flags & MOVERESULT_ONTOPOFOBSTACLE ) {
 		trap_EA_Jump( cs->clientState->entitynum );
@@ -592,7 +592,7 @@ void AICast_EvaluatePmove( int clientnum, pmove_t *pm ) {
 	int i, ent;
 	bot_goal_t ogoal;
 
-	//vec3_t pos, dir;
+	//idVec3 pos, dir;
 	cs = AICast_GetCastState( clientnum );
 	// make sure we are using the right AAS data for this entity (one's that don't get set will default to the player's AAS data)
 	trap_AAS_SetCurrentWorld( cs->aasWorldIndex );
@@ -628,22 +628,22 @@ void AICast_EvaluatePmove( int clientnum, pmove_t *pm ) {
 			ocs = AICast_GetCastState( pm->touchents[i] );
 			if ( ( ocs->clientState ) && ( AICast_SameTeam( cs, ocs->entityNum ) ) &&
 				 ( !( ocs->aiFlags & AIFL_NOAVOID ) ) &&
-				 ( ( ocs->leaderNum == cs->entityNum ) || ( VectorLength( ocs->clientState->velocity ) < 5 ) ) &&
+				 ( ( ocs->leaderNum == cs->entityNum ) || ( ocs->clientState->velocity.Length() < 5 ) ) &&
 				 ( ocs->navigation.obstructingTime < ( level.time + 100 ) ) ) {
 				// if they are moving away from us already, let them go
-				if ( VectorLength( ocs->clientState->cur_ps.velocity ) > 10 ) {
-					vec3_t v1, v2;
+				if ( ocs->clientState->cur_ps.velocity.Length() > 10 ) {
+					idVec3 v1, v2;
 
-					VectorSubtract( ocs->clientState->origin, g_entities[clientnum].client->ps.velocity, v2 );
-					VectorNormalize( v2 );
-					VectorNormalize2( ocs->clientState->cur_ps.velocity, v1 );
+					v2 = ocs->clientState->origin - g_entities[clientnum].client->ps.velocity;
+					v2.Normalize();
+					v1 = ocs->clientState->cur_ps.velocity; v1.Normalize();
 
-					if ( DotProduct( v1, v2 ) > 0.0 ) {
+					if ( ( v1 * v2 ) > 0.0 ) {
 						continue;
 					}
 				}
 				if ( ocs->leaderNum >= 0 ) {
-					VectorCopy( g_entities[ocs->leaderNum].r.currentOrigin, ogoal.origin );
+					ogoal.origin = g_entities[ocs->leaderNum].r.currentOrigin;
 					ogoal.areanum = AI_PointAreaNum( ogoal.origin );
 					ogoal.entitynum = ocs->leaderNum;
 					if ( ocs->clientState &&
@@ -666,9 +666,9 @@ void AICast_EvaluatePmove( int clientnum, pmove_t *pm ) {
 				//find the bsp entity which should be activated in order to remove
 				//the blocking entity
 
-				if ( !g_entities[ent].isProp && Q_stricmp( g_entities[ent].classname, "func_static" ) &&
-					 Q_stricmp( g_entities[ent].classname, "func_button" ) &&
-					 Q_stricmp( g_entities[ent].classname, "func_tram" ) ) {
+				if ( !g_entities[ent].isProp && idStr::Icmp( g_entities[ent].classname, "func_static" ) &&
+					 idStr::Icmp( g_entities[ent].classname, "func_button" ) &&
+					 idStr::Icmp( g_entities[ent].classname, "func_tram" ) ) {
 					G_Activate( &g_entities[ent], &g_entities[cs->entityNum] );
 				}
 			}
@@ -681,7 +681,7 @@ void AICast_EvaluatePmove( int clientnum, pmove_t *pm ) {
 AICast_RequestCrouchAttack
 ==============
 */
-qboolean AICast_RequestCrouchAttack( cast_state_t *cs, vec3_t org, float time ) {
+qboolean AICast_RequestCrouchAttack( cast_state_t *cs, const idVec3 &org, float time ) {
 	if ( cs->attributes[ATTACK_CROUCH] > 0 &&
 		 AICast_CheckAttackAtPos( cs->entityNum, cs->enemyNum, org, qtrue, qfalse ) ) {
 		if ( time ) {
@@ -702,7 +702,7 @@ void AICast_DeadClipWalls( cast_state_t *cs ) {
 	/*
 	//animation_t *anim;
 	orientation_t or;
-	vec3_t	src, vel;
+	idVec3	src, vel;
 	trace_t	tr;
 
 	// get the death animation we are currently playing
@@ -714,15 +714,15 @@ void AICast_DeadClipWalls( cast_state_t *cs ) {
 	or.origin[2] += 3;
 
 	// trace from the base of our bounding box, to the head
-	VectorCopy( cs->clientState->origin, src );
+	src = cs->clientState->origin;
 	src[2] -= cs->clientState->cur_ps.mins[2] + 3;
 	trap_Trace( &tr, src, vec3_origin, vec3_origin, or.origin, cs->entityNum, MASK_SOLID );
 
 	// if we hit something, move away from it
 	if (!tr.startsolid && !tr.allsolid && tr.fraction < 1.0) {
-		VectorScale( tr.plane.normal, 80, vel );
+		vel = tr.plane.normal * 80;
 		vel[2] = 0;
-		VectorAdd( g_entities[cs->entityNum].client->ps.velocity, vel, g_entities[cs->entityNum].client->ps.velocity );
+		g_entities[cs->entityNum].client->ps.velocity = g_entities[cs->entityNum].client->ps.velocity + vel;
 	}
 */
 }

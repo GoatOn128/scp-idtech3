@@ -31,14 +31,14 @@ AICast_GetRandomViewAngle()
 */
 float AICast_GetRandomViewAngle( cast_state_t *cs, float tracedist ) {
 	int cnt, passent, contents_mask;
-	vec3_t vec, dir, start, end;
+	idVec3 vec, dir, start, end;
 	trace_t trace;
 	float bestdist, bestyaw;
 
 	cnt = 0;
-	VectorClear( vec );
+	vec.Zero();
 	//
-	VectorCopy( cs->clientState->origin, start );
+	start = cs->clientState->origin;
 	start[2] += cs->clientState->cur_ps.viewheight;
 	//
 	passent = cs->entityNum;
@@ -50,10 +50,10 @@ float AICast_GetRandomViewAngle( cast_state_t *cs, float tracedist ) {
 	while ( cnt++ < 4 ) {
 		vec[YAW] = random() * 360.0;
 		//
-		AngleVectors( vec, dir, NULL, NULL );
-		VectorMA( start, tracedist, dir, end );
+		idAngles( vec ).ToVectors( &dir, NULL, NULL );
+		end = start + dir * tracedist;
 		//
-		trap_Trace( &trace, start, NULL, NULL, end, passent, contents_mask );
+		trap_Trace( &trace, start, vec3_origin, vec3_origin, end, passent, contents_mask );
 		//
 		if ( trace.fraction >= 1 ) {
 			return vec[YAW];
@@ -78,10 +78,10 @@ AICast_MoveToPos()
   outside of this function
 ============
 */
-bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, vec3_t pos, int entnum ) {
+bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, const idVec3 &pos, int entnum ) {
 	bot_moveresult_t *moveresult;
 	bot_goal_t goal;
-	vec3_t /*target,*/ dir;
+	idVec3 /*target,*/ dir;
 	bot_moveresult_t &lmoveresult = cs->navigation.lastMoveResult;
 	int tfl;
 	ai_client_state_t *bs;
@@ -123,9 +123,9 @@ bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, vec3_t pos, int entnum ) {
 			}
 		}
 	}
-	VectorCopy( pos, goal.origin );
-	VectorSet( goal.mins, -8, -8, -8 );
-	VectorSet( goal.maxs, 8, 8, 8 );
+	goal.origin = pos;
+	goal.mins.Set( -8, -8, -8 );
+	goal.maxs.Set( 8, 8, 8 );
 	if ( entnum > -1 && entnum == cs->navigation.followEntity && !cs->navigation.followSlowApproach ) {
 		goal.flags |= GFL_NOSLOWAPPROACH; // just speed right passed it
 	}
@@ -142,14 +142,14 @@ bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, vec3_t pos, int entnum ) {
 	if ( cs->attributes[RUNNING_SPEED] < 100 ) {
 		//reset the avoid reach, otherwise bot is stuck in current area
 		trap_BotResetAvoidReach( bs->ms );
-	} else if ( !VectorCompare( cs->navigation.lastMoveToPosGoalOrg, pos ) ) {
+	} else if ( !cs->navigation.lastMoveToPosGoalOrg.Compare( pos ) ) {
 		//reset the avoid reach, otherwise bot is stuck in current area
 		trap_BotResetAvoidReach( bs->ms );
-		VectorCopy( pos, cs->navigation.lastMoveToPosGoalOrg );
+		cs->navigation.lastMoveToPosGoalOrg = pos;
 	}
 	//move towards the goal
 	if ( !( cs->aiFlags & AIFL_EXPLICIT_ROUTING ) || ( entnum < 0 ) ||
-		 Q_strcasecmp( g_entities[entnum].classname, "ai_marker" ) ) {
+		 idStr::Icmp( g_entities[entnum].classname, "ai_marker" ) ) {
 		// use AAS routing
 		trap_BotMoveToGoal( &lmoveresult, bs->ms, &goal, tfl );
 		//if the movement failed
@@ -171,19 +171,20 @@ bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, vec3_t pos, int entnum ) {
 			}
 
 			if ( lmoveresult.flags & ( MOVERESULT_MOVEMENTVIEW | MOVERESULT_SWIMVIEW ) ) {
-				VectorCopy( lmoveresult.ideal_viewangles, cs->ideal_viewangles );
-				VectorCopy( cs->ideal_viewangles, cs->viewlock_viewangles );
+				cs->ideal_viewangles = lmoveresult.ideal_viewangles;
+				cs->viewlock_viewangles = cs->ideal_viewangles;
 				cs->aiFlags |= AIFL_VIEWLOCKED;
 			} else if ( !( cs->bFlags & AI_FRAME_ATTACKED ) ) { // if we are attacking, don't change angles
 				bot_input_t bi;
 
 				trap_EA_GetInput( bs->client, 0.1, &bi );
-				if ( VectorLength( lmoveresult.movedir ) < 0.5 ) {
-					VectorSubtract( goal.origin, bs->origin, dir );
+				if ( lmoveresult.movedir.Length() < 0.5 ) {
+					dir = goal.origin - bs->origin;
 					vectoangles( dir, cs->ideal_viewangles );
 				} else {
 					// use our velocity if we are moving
-					if ( VectorNormalize2( cs->clientState->cur_ps.velocity, dir ) > 1 ) {
+					dir = cs->clientState->cur_ps.velocity;
+					if ( dir.Normalize() > 1 ) {
 						vectoangles( dir, cs->ideal_viewangles );
 					} else {
 						vectoangles( lmoveresult.movedir, cs->ideal_viewangles );
@@ -208,8 +209,8 @@ bot_moveresult_t *AICast_MoveToPos( cast_state_t *cs, vec3_t pos, int entnum ) {
 
 	} else { // manual routing towards markers
 
-		VectorSubtract( pos, cs->clientState->origin, dir );
-		if ( ( dist = VectorNormalize( dir ) ) < 64 ) {
+		dir = pos - cs->clientState->origin;
+		if ( ( dist = dir.Normalize() ) < 64 ) {
 			trap_EA_Move( cs->entityNum, dir, 100.0 + 300.0 * ( dist / 64.0 ) );
 		} else {
 			trap_EA_Move( cs->entityNum, dir, 400 );
@@ -289,7 +290,7 @@ AICast_CombatMove
 bot_moveresult_t AICast_CombatMove( cast_state_t *cs, int tfl ) {
 	ai_client_state_t *bs;
 	float attack_skill, croucher, dist;
-	vec3_t forward, backward; //, up = {0, 0, 1};
+	idVec3 forward, backward; //, up = {0, 0, 1};
 	bot_moveresult_t moveresult;
 	bot_goal_t goal;
 
@@ -304,17 +305,17 @@ bot_moveresult_t AICast_CombatMove( cast_state_t *cs, int tfl ) {
 	//initialize the movement state
 	AI_SetupMovement( cs );
 	//direction towards the enemy
-	VectorSubtract( cs->perception.vislist[cs->enemyNum].visible_pos, bs->origin, forward );
+	forward = cs->perception.vislist[cs->enemyNum].visible_pos - bs->origin;
 	//the distance towards the enemy
-	dist = VectorNormalize( forward );
-	VectorNegate( forward, backward );
+	dist = forward.Normalize();
+	backward = -forward;
 	//
 	// do we have somewhere we are trying to get to?
 	if ( cs->navigation.combatGoalTime > level.time ) {
-		if ( VectorLength( cs->navigation.combatGoalOrigin ) > 1 ) {
+		if ( cs->navigation.combatGoalOrigin.Length() > 1 ) {
 			//create the chase goal
 			goal.areanum = AI_PointAreaNum( cs->navigation.combatGoalOrigin );
-			VectorCopy( cs->navigation.combatGoalOrigin, goal.origin );
+			goal.origin = cs->navigation.combatGoalOrigin;
 
 			// if we are really close, stop going for it
 			// FIXME: a better way of doing this, so we don't stop short of the goal?
@@ -323,7 +324,7 @@ bot_moveresult_t AICast_CombatMove( cast_state_t *cs, int tfl ) {
 					cs->navigation.combatGoalTime = level.time + 2000 + rand() % 1000;
 					cs->combat.combatSpotDelayTime = level.time + 4000 + rand() % 3000;
 				}
-				VectorClear( cs->navigation.combatGoalOrigin );
+				cs->navigation.combatGoalOrigin.Zero();
 			} else {
 				aicast_predictmove_t move;
 				//
@@ -377,7 +378,7 @@ bot_moveresult_t AICast_CombatMove( cast_state_t *cs, int tfl ) {
 AICast_GetTakeCoverPos
 ==============
 */
-qboolean AICast_GetTakeCoverPos( cast_state_t *cs, int enemyNum, vec3_t enemyPos, vec3_t returnPos ) {
+qboolean AICast_GetTakeCoverPos( cast_state_t *cs, int enemyNum, const idVec3 &enemyPos, idVec3 &returnPos ) {
 	cs->crouchHideFlag = qfalse;
 	//
 	if ( cs->script.castScriptStatus.scriptNoMoveTime > level.time ) {
@@ -392,12 +393,12 @@ qboolean AICast_GetTakeCoverPos( cast_state_t *cs, int enemyNum, vec3_t enemyPos
 		 !AICast_CheckAttackAtPos( cs->entityNum, enemyNum, cs->clientState->origin, qtrue, qfalse ) ) {
 
 		// do a more thorough check to see if the enemy can see us if we crouch
-		vec3_t omaxs;
+		idVec3 omaxs;
 		gentity_t *ent;
 		qboolean visible;
 
 		ent = &g_entities[cs->entityNum];
-		VectorCopy( ent->r.maxs, omaxs );
+		omaxs = ent->r.maxs;
 		ent->r.maxs[2] = ent->client->ps.crouchMaxZ + 4; // + 4 to be safe
 
 		visible = AICast_VisibleFromPos( g_entities[enemyNum].r.currentOrigin, enemyNum, cs->clientState->origin,
@@ -406,8 +407,8 @@ qboolean AICast_GetTakeCoverPos( cast_state_t *cs, int enemyNum, vec3_t enemyPos
 		ent->r.maxs[2] = omaxs[2];
 
 		if ( !visible ) {
-			VectorCopy( enemyPos, cs->combat.takeCoverEnemyPos );
-			VectorCopy( cs->clientState->origin, returnPos );
+			cs->combat.takeCoverEnemyPos = enemyPos;
+			returnPos = cs->clientState->origin;
 			cs->crouchHideFlag = qtrue;
 			return qtrue;
 		}
@@ -432,16 +433,16 @@ qboolean AICast_GetTakeCoverPos( cast_state_t *cs, int enemyNum, vec3_t enemyPos
 	return qfalse;
 }
 
-int AI_PointAreaNum( vec3_t origin ) {
+int AI_PointAreaNum( const idVec3 &origin ) {
 	int areanum, numareas, areas[1];
-	vec3_t end, ofs;
+	idVec3 end, ofs;
 #define BOTAREA_JIGGLE_DIST 32
 
 	areanum = trap_AAS_PointAreaNum( origin );
 	if ( areanum ) {
 		return areanum;
 	}
-	VectorCopy( origin, end );
+	end = origin;
 	end[2] += 10;
 	numareas = trap_AAS_TraceAreas( origin, end, areas, NULL, 1 );
 	if ( numareas > 0 ) {
@@ -452,7 +453,7 @@ int AI_PointAreaNum( vec3_t origin ) {
 	ofs[2] = 10;
 	for ( ofs[0] = -BOTAREA_JIGGLE_DIST; ofs[0] <= BOTAREA_JIGGLE_DIST; ofs[0] += BOTAREA_JIGGLE_DIST * 2 ) {
 		for ( ofs[1] = -BOTAREA_JIGGLE_DIST; ofs[1] <= BOTAREA_JIGGLE_DIST; ofs[1] += BOTAREA_JIGGLE_DIST * 2 ) {
-			VectorAdd( origin, ofs, end );
+			end = origin + ofs;
 			numareas = trap_AAS_TraceAreas( origin, end, areas, NULL, 1 );
 			if ( numareas > 0 ) {
 				return areas[0];
@@ -472,9 +473,9 @@ void AI_SetupMovement( cast_state_t *cs ) {
 	bot_initmove_t initmove;
 
 	memset( &initmove, 0, sizeof( bot_initmove_t ) );
-	VectorCopy( bs->cur_ps.origin, initmove.origin );
-	VectorCopy( bs->cur_ps.velocity, initmove.velocity );
-	VectorCopy( bs->cur_ps.origin, initmove.viewoffset );
+	initmove.origin = bs->cur_ps.origin;
+	initmove.velocity = bs->cur_ps.velocity;
+	initmove.viewoffset = bs->cur_ps.origin;
 	initmove.viewoffset[2] += bs->cur_ps.viewheight;
 	initmove.entitynum = bs->entitynum;
 	initmove.client = bs->client;
@@ -502,23 +503,23 @@ void AI_SetupMovement( cast_state_t *cs ) {
 		initmove.or_moveflags |= MFL_WALK;
 	}
 	//
-	VectorCopy( cs->viewangles, initmove.viewangles );
+	initmove.viewangles = cs->viewangles;
 	//
 	trap_BotInitMoveState( bs->ms, &initmove );
 }
 
 qboolean AI_InLava( ai_client_state_t *bs ) {
-	vec3_t feet;
+	idVec3 feet;
 
-	VectorCopy( bs->origin, feet );
+	feet = bs->origin;
 	feet[2] -= 23;
 	return ( trap_AAS_PointContents( feet ) & CONTENTS_LAVA );
 }
 
 qboolean AI_InSlime( ai_client_state_t *bs ) {
-	vec3_t feet;
+	idVec3 feet;
 
-	VectorCopy( bs->origin, feet );
+	feet = bs->origin;
 	feet[2] -= 23;
 	return ( trap_AAS_PointContents( feet ) & CONTENTS_SLIME );
 }

@@ -1943,6 +1943,12 @@ ID_INLINE float Q_crandom( int *seed ) {
 	return 2.0 * ( Q_random( seed ) - 0.5 );
 }
 
+// ported from the old q3 mathlib
+ID_INLINE void ProjectPointOntoVector( const idVec3 &point, const idVec3 &lineStart, const idVec3 &lineEnd, idVec3 &dst ) {
+	idVec3 dir = lineEnd - lineStart;
+	dst = lineStart + dir * ( ( point - lineStart ) * dir / ( dir * dir ) );
+}
+
 ID_INLINE void SnapVector( idVec3 &v ) {
 	v.Snap();
 }
