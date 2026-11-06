@@ -99,7 +99,6 @@ char *AIFunc_ZombieFlameAttack( cast_state_t *cs ) {
 		ent->client->ps.eFlags |= EF_MONSTER_EFFECT3;
 
 		// inform the client of our enemies position
-		//VectorCopy( g_entities[cs->enemyNum].client->ps.origin, ent->s.origin2 );
 		//ent->s.origin2[2] += g_entities[cs->enemyNum].client->ps.viewheight;
 
 		// keep facing them
@@ -197,7 +196,7 @@ char *AIFunc_ZombieSpirit( cast_state_t *cs ) {
 		ent->client->ps.eFlags |= EF_MONSTER_EFFECT;
 
 		// inform the client of our enemies position
-		VectorCopy( g_entities[cs->enemyNum].client->ps.origin, ent->s.origin2 );
+		ent->s.origin2 = g_entities[cs->enemyNum].client->ps.origin;
 		ent->s.origin2[2] += g_entities[cs->enemyNum].client->ps.viewheight;
 	}
 	//
