@@ -33,7 +33,7 @@ char *AIFunc_DoorMarker( cast_state_t *cs ) {
 	bot_moveresult_t *moveresult;
 	gentity_t *followent, *door;
 	ai_client_state_t *bs;
-	vec3_t destorg;
+	idVec3 destorg;
 	float dist;
 	//
 	// do we need to avoid a danger?

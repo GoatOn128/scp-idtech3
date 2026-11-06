@@ -37,7 +37,7 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 char *AIFunc_BlackGuardKick( cast_state_t *cs ) {
 	gentity_t *ent = &g_entities[cs->entityNum];
 	trace_t *tr;
-	vec3_t fwd;
+	idVec3 fwd;
 
 	if ( !ent->client->ps.legsTimer ) {
 		return AIFunc_DefaultStart( cs );
@@ -57,13 +57,12 @@ char *AIFunc_BlackGuardKick( cast_state_t *cs ) {
 			tr = CheckMeleeAttack( ent, BLACKGUARD_KICK_RANGE, qfalse );
 			// do melee damage?
 			if ( tr && ( tr->entityNum == cs->enemyNum ) ) {
-				AngleVectors( cs->viewangles, fwd, NULL, NULL );
+				idAngles( cs->viewangles ).ToVectors( &fwd, NULL, NULL );
 				G_Damage( &g_entities[tr->entityNum], ent, ent, fwd, tr->endpos, BLACKGUARD_KICK_DAMAGE, 0,
 						  MOD_GAUNTLET );
 				// throw them in direction of impact
 				fwd[2] = 0.5;
-				VectorMA( g_entities[cs->enemyNum].client->ps.velocity, 300, fwd,
-						  g_entities[cs->enemyNum].client->ps.velocity );
+				g_entities[cs->enemyNum].client->ps.velocity = g_entities[cs->enemyNum].client->ps.velocity + fwd * 300;
 			}
 		}
 	}
