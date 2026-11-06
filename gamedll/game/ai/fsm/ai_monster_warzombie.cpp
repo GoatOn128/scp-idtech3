@@ -199,7 +199,7 @@ AIFunc_WarriorZombieDefense
 */
 char *AIFunc_WarriorZombieDefense( cast_state_t *cs ) {
 	gentity_t *ent, *enemy;
-	vec3_t enemyDir, vec;
+	idVec3 enemyDir, vec;
 	float dist;
 
 	ent = &g_entities[cs->entityNum];
@@ -238,13 +238,13 @@ char *AIFunc_WarriorZombieDefense( cast_state_t *cs ) {
 		}
 
 		// if our enemy isn't looking right at us, abort
-		VectorSubtract( ent->client->ps.origin, enemy->client->ps.origin, vec );
-		dist = VectorNormalize( vec );
+		vec = ent->client->ps.origin - enemy->client->ps.origin;
+		dist = vec.Normalize();
 		if ( dist > 512 ) {
 			dist = 512;
 		}
-		AngleVectors( enemy->client->ps.viewangles, enemyDir, NULL, NULL );
-		if ( DotProduct( vec, enemyDir ) < ( 0.98 - 0.2 * ( dist / 512 ) ) ) {
+		idAngles( enemy->client->ps.viewangles ).ToVectors( &enemyDir, NULL, NULL );
+		if ( ( vec * enemyDir ) < ( 0.98 - 0.2 * ( dist / 512 ) ) ) {
 			ent->flags &= ~FL_DEFENSE_GUARD;
 			ent->client->ps.torsoTimer = 0;
 			ent->client->ps.legsTimer = 0;
@@ -276,7 +276,7 @@ AIFunc_WarriorZombieDefenseStart
 */
 char *AIFunc_WarriorZombieDefenseStart( cast_state_t *cs ) {
 	gentity_t *ent, *enemy;
-	vec3_t enemyDir, vec;
+	idVec3 enemyDir, vec;
 	float dist;
 	static int lastWarriorDefense;
 
@@ -299,16 +299,16 @@ char *AIFunc_WarriorZombieDefenseStart( cast_state_t *cs ) {
 	}
 
 	// if our enemy isn't looking right at us, abort
-	VectorSubtract( ent->client->ps.origin, enemy->client->ps.origin, vec );
-	dist = VectorNormalize( vec );
+	vec = ent->client->ps.origin - enemy->client->ps.origin;
+	dist = vec.Normalize();
 	if ( dist > 512 ) {
 		dist = 512;
 	}
 	if ( dist < 128 ) {
 		return NULL;
 	}
-	AngleVectors( enemy->client->ps.viewangles, enemyDir, NULL, NULL );
-	if ( DotProduct( vec, enemyDir ) < ( 0.98 - 0.2 * ( dist / 512 ) ) ) {
+	idAngles( enemy->client->ps.viewangles ).ToVectors( &enemyDir, NULL, NULL );
+	if ( ( vec * enemyDir ) < ( 0.98 - 0.2 * ( dist / 512 ) ) ) {
 		return NULL;
 	}
 
