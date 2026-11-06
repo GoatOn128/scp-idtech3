@@ -378,7 +378,7 @@ LerpColor
 	lerp and clamp each component of <a> and <b> into <c> by the fraction <t>
 =================
 */
-void LerpColor( vec4_t a, vec4_t b, vec4_t c, float t ) {
+void LerpColor( const idVec4 &a, const idVec4 &b, const idVec4 &c, float t ) {
 	int i;
 	for ( i = 0; i < 4; i++ )
 	{
@@ -396,11 +396,10 @@ void LerpColor( vec4_t a, vec4_t b, vec4_t c, float t ) {
 Float_Parse
 =================
 */
-qboolean Float_Parse( char **p, float *f ) {
-	char    *token;
-	token = COM_ParseExt( p, qfalse );
-	if ( token && token[0] != 0 ) {
-		*f = atof( token );
+qboolean Float_Parse( idLexer *p, float *f ) {
+	idToken token;
+	if ( p->ReadTokenOnLine( &token ) && token[0] ) {
+		*f = atof( token.c_str() );
 		return qtrue;
 	} else {
 		return qfalse;
@@ -442,7 +441,7 @@ qboolean PC_Float_Parse( int handle, float *f ) {
 Color_Parse
 =================
 */
-qboolean Color_Parse( char **p, vec4_t *c ) {
+qboolean Color_Parse( idLexer *p, idVec4 *c ) {
 	int i;
 	float f;
 
@@ -460,7 +459,7 @@ qboolean Color_Parse( char **p, vec4_t *c ) {
 PC_Color_Parse
 =================
 */
-qboolean PC_Color_Parse( int handle, vec4_t *c ) {
+qboolean PC_Color_Parse( int handle, idVec4 *c ) {
 	int i;
 	float f;
 
@@ -478,12 +477,10 @@ qboolean PC_Color_Parse( int handle, vec4_t *c ) {
 Int_Parse
 =================
 */
-qboolean Int_Parse( char **p, int *i ) {
-	char    *token;
-	token = COM_ParseExt( p, qfalse );
-
-	if ( token && token[0] != 0 ) {
-		*i = atoi( token );
+qboolean Int_Parse( idLexer *p, int *i ) {
+	idToken token;
+	if ( p->ReadTokenOnLine( &token ) && token[0] ) {
+		*i = atoi( token.c_str() );
 		return qtrue;
 	} else {
 		return qfalse;
@@ -524,7 +521,7 @@ qboolean PC_Int_Parse( int handle, int *i ) {
 Rect_Parse
 =================
 */
-qboolean Rect_Parse( char **p, rectDef_t *r ) {
+qboolean Rect_Parse( idLexer *p, rectDef_t *r ) {
 	if ( Float_Parse( p, &r->x ) ) {
 		if ( Float_Parse( p, &r->y ) ) {
 			if ( Float_Parse( p, &r->w ) ) {
@@ -560,12 +557,10 @@ qboolean PC_Rect_Parse( int handle, rectDef_t *r ) {
 String_Parse
 =================
 */
-qboolean String_Parse( char **p, const char **out ) {
-	char *token;
-
-	token = COM_ParseExt( p, qfalse );
-	if ( token && token[0] != 0 ) {
-		*( out ) = String_Alloc( token );
+qboolean String_Parse( idLexer *p, const char **out ) {
+	idToken token;
+	if ( p->ReadTokenOnLine( &token ) && token[0] ) {
+		*( out ) = String_Alloc( token.c_str() );
 		return qtrue;
 	}
 	return qfalse;
@@ -621,7 +616,7 @@ qboolean PC_Script_Parse( int handle, const char **out ) {
 	if ( !trap_PC_ReadToken( handle, &token ) ) {
 		return qfalse;
 	}
-	if ( Q_stricmp( token.string, "{" ) != 0 ) {
+	if ( idStr::Icmp( token.string, "{" ) != 0 ) {
 		return qfalse;
 	}
 
@@ -630,17 +625,17 @@ qboolean PC_Script_Parse( int handle, const char **out ) {
 			return qfalse;
 		}
 
-		if ( Q_stricmp( token.string, "}" ) == 0 ) {
+		if ( idStr::Icmp( token.string, "}" ) == 0 ) {
 			*out = String_Alloc( script );
 			return qtrue;
 		}
 
 		if ( token.string[1] != '\0' ) {
-			Q_strcat( script, 1024, va( "\"%s\"", token.string ) );
+			idStr::Append( script, 1024, va( "\"%s\"", token.string ) );
 		} else {
-			Q_strcat( script, 1024, token.string );
+			idStr::Append( script, 1024, token.string );
 		}
-		Q_strcat( script, 1024, " " );
+		idStr::Append( script, 1024, " " );
 	}
 	//return qfalse;
 }
@@ -663,7 +658,7 @@ void Init_Display( displayContextDef_t *dc ) {
 
 // type and style painting
 
-void GradientBar_Paint( rectDef_t *rect, vec4_t color ) {
+void GradientBar_Paint( rectDef_t *rect, idVec4 color ) {
 	// gradient bar takes two paints
 	DC->setColor( color );
 	DC->drawHandlePic( rect->x, rect->y, rect->w, rect->h, DC->Assets.gradientBar );
@@ -712,7 +707,7 @@ void Fade( int *flags, float *f, float clamp, int *nextTime, int offsetTime, qbo
 
 void Window_Paint( Window *w, float fadeAmount, float fadeClamp, float fadeCycle ) {
 	//float bordersize = 0;
-	vec4_t color;
+	idVec4 color;
 	rectDef_t fillRect = w->rect;
 
 	if ( debugMode ) {
@@ -934,11 +929,11 @@ int Menu_ItemsMatchingGroup( menuDef_t *menu, const char *name ) {
 
 	for ( i = 0; i < menu->itemCount; i++ ) {
 		if ( wildcard != -1 ) {
-			if ( Q_strncmp( menu->items[i]->window.name, name, wildcard ) == 0 || ( menu->items[i]->window.group && Q_strncmp( menu->items[i]->window.group, name, wildcard ) == 0 ) ) {
+			if ( idStr::Cmpn( menu->items[i]->window.name, name, wildcard ) == 0 || ( menu->items[i]->window.group && idStr::Cmpn( menu->items[i]->window.group, name, wildcard ) == 0 ) ) {
 				count++;
 			}
 		} else {
-			if ( Q_stricmp( menu->items[i]->window.name, name ) == 0 || ( menu->items[i]->window.group && Q_stricmp( menu->items[i]->window.group, name ) == 0 ) ) {
+			if ( idStr::Icmp( menu->items[i]->window.name, name ) == 0 || ( menu->items[i]->window.group && idStr::Icmp( menu->items[i]->window.group, name ) == 0 ) ) {
 				count++;
 			}
 		}
@@ -960,14 +955,14 @@ itemDef_t *Menu_GetMatchingItemByNumber( menuDef_t *menu, int index, const char 
 
 	for ( i = 0; i < menu->itemCount; i++ ) {
 		if ( wildcard != -1 ) {
-			if ( Q_strncmp( menu->items[i]->window.name, name, wildcard ) == 0 || ( menu->items[i]->window.group && Q_strncmp( menu->items[i]->window.group, name, wildcard ) == 0 ) ) {
+			if ( idStr::Cmpn( menu->items[i]->window.name, name, wildcard ) == 0 || ( menu->items[i]->window.group && idStr::Cmpn( menu->items[i]->window.group, name, wildcard ) == 0 ) ) {
 				if ( count == index ) {
 					return menu->items[i];
 				}
 				count++;
 			}
 		} else {
-			if ( Q_stricmp( menu->items[i]->window.name, name ) == 0 || ( menu->items[i]->window.group && Q_stricmp( menu->items[i]->window.group, name ) == 0 ) ) {
+			if ( idStr::Icmp( menu->items[i]->window.name, name ) == 0 || ( menu->items[i]->window.group && idStr::Icmp( menu->items[i]->window.group, name ) == 0 ) ) {
 				if ( count == index ) {
 					return menu->items[i];
 				}
@@ -980,21 +975,21 @@ itemDef_t *Menu_GetMatchingItemByNumber( menuDef_t *menu, int index, const char 
 
 
 
-void Script_SetColor( itemDef_t *item, char **args ) {
+void Script_SetColor( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	int i;
 	float f;
-	vec4_t *out;
+	idVec4 *out;
 	// expecting type of color to set and 4 args for the color
 	if ( String_Parse( args, &name ) ) {
 		out = NULL;
-		if ( Q_stricmp( name, "backcolor" ) == 0 ) {
+		if ( idStr::Icmp( name, "backcolor" ) == 0 ) {
 			out = &item->window.backColor;
 			item->window.flags |= WINDOW_BACKCOLORSET;
-		} else if ( Q_stricmp( name, "forecolor" ) == 0 ) {
+		} else if ( idStr::Icmp( name, "forecolor" ) == 0 ) {
 			out = &item->window.foreColor;
 			item->window.flags |= WINDOW_FORECOLORSET;
-		} else if ( Q_stricmp( name, "bordercolor" ) == 0 ) {
+		} else if ( idStr::Icmp( name, "bordercolor" ) == 0 ) {
 			out = &item->window.borderColor;
 		}
 
@@ -1009,7 +1004,7 @@ void Script_SetColor( itemDef_t *item, char **args ) {
 	}
 }
 
-void Script_SetAsset( itemDef_t *item, char **args ) {
+void Script_SetAsset( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	// expecting name to set asset to
 	if ( String_Parse( args, &name ) ) {
@@ -1019,7 +1014,7 @@ void Script_SetAsset( itemDef_t *item, char **args ) {
 	}
 }
 
-void Script_SetBackground( itemDef_t *item, char **args ) {
+void Script_SetBackground( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	// expecting name to set asset to
 	if ( String_Parse( args, &name ) ) {
@@ -1038,7 +1033,7 @@ itemDef_t *Menu_FindItemByName( menuDef_t *menu, const char *p ) {
 	}
 
 	for ( i = 0; i < menu->itemCount; i++ ) {
-		if ( Q_stricmp( p, menu->items[i]->window.name ) == 0 ) {
+		if ( idStr::Icmp( p, menu->items[i]->window.name ) == 0 ) {
 			return menu->items[i];
 		}
 	}
@@ -1046,10 +1041,10 @@ itemDef_t *Menu_FindItemByName( menuDef_t *menu, const char *p ) {
 	return NULL;
 }
 
-void Script_SetTeamColor( itemDef_t *item, char **args ) {
+void Script_SetTeamColor( itemDef_t *item, idLexer *args ) {
 	if ( DC->getTeamColor ) {
 		int i;
-		vec4_t color;
+		idVec4 color;
 		DC->getTeamColor( &color );
 		for ( i = 0; i < 4; i++ ) {
 			item->window.backColor[i] = color[i];
@@ -1057,12 +1052,12 @@ void Script_SetTeamColor( itemDef_t *item, char **args ) {
 	}
 }
 
-void Script_SetItemColor( itemDef_t *item, char **args ) {
+void Script_SetItemColor( itemDef_t *item, idLexer *args ) {
 	const char *itemname;
 	const char *name;
-	vec4_t color;
+	idVec4 color;
 	int i;
-	vec4_t *out;
+	idVec4 *out;
 	// expecting type of color to set and 4 args for the color
 	if ( String_Parse( args, &itemname ) && String_Parse( args, &name ) ) {
 		itemDef_t *item2;
@@ -1077,12 +1072,12 @@ void Script_SetItemColor( itemDef_t *item, char **args ) {
 			item2 = Menu_GetMatchingItemByNumber( item->parent, j, itemname );
 			if ( item2 != NULL ) {
 				out = NULL;
-				if ( Q_stricmp( name, "backcolor" ) == 0 ) {
+				if ( idStr::Icmp( name, "backcolor" ) == 0 ) {
 					out = &item2->window.backColor;
-				} else if ( Q_stricmp( name, "forecolor" ) == 0 ) {
+				} else if ( idStr::Icmp( name, "forecolor" ) == 0 ) {
 					out = &item2->window.foreColor;
 					item2->window.flags |= WINDOW_FORECOLORSET;
-				} else if ( Q_stricmp( name, "bordercolor" ) == 0 ) {
+				} else if ( idStr::Icmp( name, "bordercolor" ) == 0 ) {
 					out = &item2->window.borderColor;
 				}
 
@@ -1139,7 +1134,7 @@ void Menu_FadeItemByName( menuDef_t *menu, const char *p, qboolean fadeOut ) {
 menuDef_t *Menus_FindByName( const char *p ) {
 	int i;
 	for ( i = 0; i < menuCount; i++ ) {
-		if ( Q_stricmp( Menus[i].window.name, p ) == 0 ) {
+		if ( idStr::Icmp( Menus[i].window.name, p ) == 0 ) {
 			return &Menus[i];
 		}
 	}
@@ -1182,28 +1177,28 @@ void Menus_CloseAll() {
 }
 
 
-void Script_Show( itemDef_t *item, char **args ) {
+void Script_Show( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	if ( String_Parse( args, &name ) ) {
 		Menu_ShowItemByName( item->parent, name, qtrue );
 	}
 }
 
-void Script_Hide( itemDef_t *item, char **args ) {
+void Script_Hide( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	if ( String_Parse( args, &name ) ) {
 		Menu_ShowItemByName( item->parent, name, qfalse );
 	}
 }
 
-void Script_FadeIn( itemDef_t *item, char **args ) {
+void Script_FadeIn( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	if ( String_Parse( args, &name ) ) {
 		Menu_FadeItemByName( item->parent, name, qfalse );
 	}
 }
 
-void Script_FadeOut( itemDef_t *item, char **args ) {
+void Script_FadeOut( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	if ( String_Parse( args, &name ) ) {
 		Menu_FadeItemByName( item->parent, name, qtrue );
@@ -1212,14 +1207,14 @@ void Script_FadeOut( itemDef_t *item, char **args ) {
 
 
 
-void Script_Open( itemDef_t *item, char **args ) {
+void Script_Open( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	if ( String_Parse( args, &name ) ) {
 		Menus_OpenByName( name );
 	}
 }
 
-void Script_Close( itemDef_t *item, char **args ) {
+void Script_Close( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	if ( String_Parse( args, &name ) ) {
 		Menus_CloseByName( name );
@@ -1234,7 +1229,7 @@ void Script_Close( itemDef_t *item, char **args ) {
 Script_Clipboard
 ==============
 */
-void Script_Clipboard( itemDef_t *item, char **args ) {
+void Script_Clipboard( itemDef_t *item, idLexer *args ) {
 	char curscript[64];
 	DC->getCVarString( "cg_clipboardName", curscript, sizeof( curscript ) ); // grab the string the client set
 	Menu_ShowItemByName( item->parent, curscript, qtrue );
@@ -1256,7 +1251,7 @@ Script_NotebookShowpage
 	inc == 999	- key number.  +999 is jump to last page, -999 is jump to cover page
 ==============
 */
-void Script_NotebookShowpage( itemDef_t *item, char **args ) {
+void Script_NotebookShowpage( itemDef_t *item, idLexer *args ) {
 	int i, inc, curpage, newpage = 0, pages;
 
 	pages = DC->getCVarValue( "cg_notebookpages" );
@@ -1372,7 +1367,7 @@ void Menu_TransitionItemByName( menuDef_t *menu, const char *p, rectDef_t rectFr
 }
 
 
-void Script_Transition( itemDef_t *item, char **args ) {
+void Script_Transition( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	rectDef_t rectFrom, rectTo;
 	int time;
@@ -1405,7 +1400,7 @@ void Menu_OrbitItemByName( menuDef_t *menu, const char *p, float x, float y, flo
 }
 
 
-void Script_Orbit( itemDef_t *item, char **args ) {
+void Script_Orbit( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	float cx, cy, x, y;
 	int time;
@@ -1419,7 +1414,7 @@ void Script_Orbit( itemDef_t *item, char **args ) {
 
 
 
-void Script_SetFocus( itemDef_t *item, char **args ) {
+void Script_SetFocus( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	itemDef_t *focusItem;
 
@@ -1438,21 +1433,21 @@ void Script_SetFocus( itemDef_t *item, char **args ) {
 	}
 }
 
-void Script_SetPlayerModel( itemDef_t *item, char **args ) {
+void Script_SetPlayerModel( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	if ( String_Parse( args, &name ) ) {
 		DC->setCVar( "team_model", name );
 	}
 }
 
-void Script_SetPlayerHead( itemDef_t *item, char **args ) {
+void Script_SetPlayerHead( itemDef_t *item, idLexer *args ) {
 	const char *name;
 	if ( String_Parse( args, &name ) ) {
 		DC->setCVar( "team_headmodel", name );
 	}
 }
 
-void Script_SetCvar( itemDef_t *item, char **args ) {
+void Script_SetCvar( itemDef_t *item, idLexer *args ) {
 	const char *cvar, *val;
 	if ( String_Parse( args, &cvar ) && String_Parse( args, &val ) ) {
 		DC->setCVar( cvar, val );
@@ -1460,21 +1455,21 @@ void Script_SetCvar( itemDef_t *item, char **args ) {
 
 }
 
-void Script_Exec( itemDef_t *item, char **args ) {
+void Script_Exec( itemDef_t *item, idLexer *args ) {
 	const char *val;
 	if ( String_Parse( args, &val ) ) {
 		DC->executeText( EXEC_APPEND, va( "%s ; ", val ) );
 	}
 }
 
-void Script_Play( itemDef_t *item, char **args ) {
+void Script_Play( itemDef_t *item, idLexer *args ) {
 	const char *val;
 	if ( String_Parse( args, &val ) ) {
 		DC->startLocalSound( DC->registerSound( val ), CHAN_LOCAL_SOUND );      // all sounds are not 3d
 	}
 }
 
-void Script_playLooped( itemDef_t *item, char **args ) {
+void Script_playLooped( itemDef_t *item, idLexer *args ) {
 	const char *val;
 	if ( String_Parse( args, &val ) ) {
 		// (SA) don't think this should happen...
@@ -1484,7 +1479,7 @@ void Script_playLooped( itemDef_t *item, char **args ) {
 }
 
 // NERVE - SMF
-void Script_AddListItem( itemDef_t *item, char **args ) {
+void Script_AddListItem( itemDef_t *item, idLexer *args ) {
 	const char *itemname, *val, *name;
 	itemDef_t *t;
 
@@ -1528,17 +1523,16 @@ int scriptCommandCount = sizeof( commandList ) / sizeof( commandDef_t );
 
 
 void Item_RunScript( itemDef_t *item, const char *s ) {
-	char script[1024], *p;
 	int i;
 	qboolean bRan;
-	memset( script, 0, sizeof( script ) );
 	if ( item && s && s[0] ) {
-		Q_strcat( script, 1024, s );
-		p = script;
+		idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+		idLexer *p = &lexer;
+		p->LoadMemory( s, strlen( s ), "Item_RunScript" );
 		while ( 1 ) {
 			const char *command;
 			// expect command then arguments, ; ends command, NULL ends script
-			if ( !String_Parse( &p, &command ) ) {
+			if ( !String_Parse( p, &command ) ) {
 				return;
 			}
 
@@ -1548,15 +1542,15 @@ void Item_RunScript( itemDef_t *item, const char *s ) {
 
 			bRan = qfalse;
 			for ( i = 0; i < scriptCommandCount; i++ ) {
-				if ( Q_stricmp( command, commandList[i].name ) == 0 ) {
-					( commandList[i].handler( item, &p ) );
+				if ( idStr::Icmp( command, commandList[i].name ) == 0 ) {
+					( commandList[i].handler( item, p ) );
 					bRan = qtrue;
 					break;
 				}
 			}
 			// not in our auto list, pass to handler
 			if ( !bRan ) {
-				DC->runScript( &p );
+				DC->runScript( p );
 			}
 		}
 	}
@@ -1564,18 +1558,17 @@ void Item_RunScript( itemDef_t *item, const char *s ) {
 
 
 qboolean Item_EnableShowViaCvar( itemDef_t *item, int flag ) {
-	char script[1024], *p;
-	memset( script, 0, sizeof( script ) );
 	if ( item && item->enableCvar && *item->enableCvar && item->cvarTest && *item->cvarTest ) {
 		char buff[1024];
 		DC->getCVarString( item->cvarTest, buff, sizeof( buff ) );
 
-		Q_strcat( script, 1024, item->enableCvar );
-		p = script;
+		idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+		idLexer *p = &lexer;
+		p->LoadMemory( item->enableCvar, strlen( item->enableCvar ), "Item_EnableShowViaCvar" );
 		while ( 1 ) {
 			const char *val;
 			// expect value then ; or NULL, NULL ends list
-			if ( !String_Parse( &p, &val ) ) {
+			if ( !String_Parse( p, &val ) ) {
 				return ( item->cvarFlags & flag ) ? qfalse : qtrue;
 			}
 
@@ -1585,12 +1578,12 @@ qboolean Item_EnableShowViaCvar( itemDef_t *item, int flag ) {
 
 			// enable it if any of the values are true
 			if ( item->cvarFlags & flag ) {
-				if ( Q_stricmp( buff, val ) == 0 ) {
+				if ( idStr::Icmp( buff, val ) == 0 ) {
 					return qtrue;
 				}
 			} else {
 				// disable it if any of the values are true
-				if ( Q_stricmp( buff, val ) == 0 ) {
+				if ( idStr::Icmp( buff, val ) == 0 ) {
 					return qfalse;
 				}
 			}
@@ -2212,7 +2205,7 @@ int Item_Multi_FindCvarByValue( itemDef_t *item ) {
 		}
 		for ( i = 0; i < multiPtr->count; i++ ) {
 			if ( multiPtr->strDef ) {
-				if ( Q_stricmp( buff, multiPtr->cvarStr[i] ) == 0 ) {
+				if ( idStr::Icmp( buff, multiPtr->cvarStr[i] ) == 0 ) {
 					return i;
 				}
 			} else {
@@ -2238,7 +2231,7 @@ const char *Item_Multi_Setting( itemDef_t *item ) {
 		}
 		for ( i = 0; i < multiPtr->count; i++ ) {
 			if ( multiPtr->strDef ) {
-				if ( Q_stricmp( buff, multiPtr->cvarStr[i] ) == 0 ) {
+				if ( idStr::Icmp( buff, multiPtr->cvarStr[i] ) == 0 ) {
 					return multiPtr->cvarList[i];
 				}
 			} else {
@@ -3094,8 +3087,8 @@ void Item_SetTextExtents( itemDef_t *item, int *width, int *height, const char *
 	}
 }
 
-void Item_TextColor( itemDef_t *item, vec4_t *newColor ) {
-	vec4_t lowLight;
+void Item_TextColor( itemDef_t *item, idVec4 *newColor ) {
+	idVec4 lowLight;
 	menuDef_t *parent = (menuDef_t*)item->parent;
 
 	Fade( &item->window.flags, &item->window.foreColor[3], parent->fadeClamp, &item->window.nextTime, parent->fadeCycle, qtrue, parent->fadeAmount );
@@ -3113,13 +3106,13 @@ void Item_TextColor( itemDef_t *item, vec4_t *newColor ) {
 		lowLight[3] = 0.8 * item->window.foreColor[3];
 		LerpColor( item->window.foreColor,lowLight,*newColor,0.5 + 0.5 * sin( DC->realTime / PULSE_DIVISOR ) );
 	} else {
-		memcpy( newColor, &item->window.foreColor, sizeof( vec4_t ) );
+		memcpy( newColor, &item->window.foreColor, sizeof( idVec4 ) );
 		// items can be enabled and disabled based on cvars
 	}
 
 	if ( item->enableCvar && *item->enableCvar && item->cvarTest && *item->cvarTest ) {
 		if ( item->cvarFlags & ( CVAR_ENABLE | CVAR_DISABLE ) && !Item_EnableShowViaCvar( item, CVAR_ENABLE ) ) {
-			memcpy( newColor, &parent->disableColor, sizeof( vec4_t ) );
+			memcpy( newColor, &parent->disableColor, sizeof( idVec4 ) );
 		}
 	}
 }
@@ -3130,7 +3123,7 @@ void Item_Text_AutoWrapped_Paint( itemDef_t *item ) {
 	char buff[1024];
 	int width, height, len, textWidth, newLine, newLineWidth;
 	float y;
-	vec4_t color;
+	idVec4 color;
 
 	textWidth = 0;
 	newLinePtr = NULL;
@@ -3206,7 +3199,7 @@ void Item_Text_Wrapped_Paint( itemDef_t *item ) {
 	char buff[1024];
 	int width, height;
 	float x, y;
-	vec4_t color;
+	idVec4 color;
 
 	// now paint the text and/or any optional images
 	// default to left
@@ -3248,7 +3241,7 @@ void Item_Text_Paint( itemDef_t *item ) {
 	char infostring[SAVE_INFOSTRING_LENGTH];
 	const char *textPtr;
 	int height, width;
-	vec4_t color;
+	idVec4 color;
 
 
 //----(SA)	added
@@ -3330,7 +3323,7 @@ void Item_Text_Paint( itemDef_t *item ) {
 
 void Item_TextField_Paint( itemDef_t *item ) {
 	char buff[1024];
-	vec4_t newColor, lowLight;
+	idVec4 newColor, lowLight;
 	int offset;
 	menuDef_t *parent = (menuDef_t*)item->parent;
 	editFieldDef_t *editPtr = (editFieldDef_t*)item->typeData;
@@ -3352,7 +3345,7 @@ void Item_TextField_Paint( itemDef_t *item ) {
 		lowLight[3] = 0.8 * parent->focusColor[3];
 		LerpColor( parent->focusColor,lowLight,newColor,0.5 + 0.5 * sin( DC->realTime / PULSE_DIVISOR ) );
 	} else {
-		memcpy( &newColor, &item->window.foreColor, sizeof( vec4_t ) );
+		memcpy( &newColor, &item->window.foreColor, sizeof( idVec4 ) );
 	}
 
 	offset = ( item->text && *item->text ) ? 8 : 0;
@@ -3366,7 +3359,7 @@ void Item_TextField_Paint( itemDef_t *item ) {
 }
 
 void Item_YesNo_Paint( itemDef_t *item ) {
-	vec4_t newColor, lowLight;
+	idVec4 newColor, lowLight;
 	float value;
 	menuDef_t *parent = (menuDef_t*)item->parent;
 	const char *yes_str = "yes", *no_str = "no";
@@ -3380,7 +3373,7 @@ void Item_YesNo_Paint( itemDef_t *item ) {
 		lowLight[3] = 0.8 * parent->focusColor[3];
 		LerpColor( parent->focusColor,lowLight,newColor,0.5 + 0.5 * sin( DC->realTime / PULSE_DIVISOR ) );
 	} else {
-		memcpy( &newColor, &item->window.foreColor, sizeof( vec4_t ) );
+		memcpy( &newColor, &item->window.foreColor, sizeof( idVec4 ) );
 	}
 
 	yes_str = DC->getTranslatedString( yes_str );
@@ -3395,7 +3388,7 @@ void Item_YesNo_Paint( itemDef_t *item ) {
 }
 
 void Item_Multi_Paint( itemDef_t *item ) {
-	vec4_t newColor, lowLight;
+	idVec4 newColor, lowLight;
 	const char *text = "";
 	menuDef_t *parent = (menuDef_t*)item->parent;
 
@@ -3406,7 +3399,7 @@ void Item_Multi_Paint( itemDef_t *item ) {
 		lowLight[3] = 0.8 * parent->focusColor[3];
 		LerpColor( parent->focusColor,lowLight,newColor,0.5 + 0.5 * sin( DC->realTime / PULSE_DIVISOR ) );
 	} else {
-		memcpy( &newColor, &item->window.foreColor, sizeof( vec4_t ) );
+		memcpy( &newColor, &item->window.foreColor, sizeof( idVec4 ) );
 	}
 
 	text = Item_Multi_Setting( item );
@@ -3574,7 +3567,7 @@ static void Controls_GetKeyAssignment( char *command, int *twokeys ) {
 		if ( *b == 0 ) {
 			continue;
 		}
-		if ( !Q_stricmp( b, command ) ) {
+		if ( !idStr::Icmp( b, command ) ) {
 			twokeys[count] = j;
 			count++;
 			if ( count == 2 ) {
@@ -3670,7 +3663,7 @@ int BindingIDFromName( const char *name ) {
 	int i;
 	for ( i = 0; i < g_bindCount; i++ )
 	{
-		if ( Q_stricmp( name, g_bindings[i].command ) == 0 ) {
+		if ( idStr::Icmp( name, g_bindings[i].command ) == 0 ) {
 			return i;
 		}
 	}
@@ -3686,18 +3679,18 @@ void BindingFromName( const char *cvar ) {
 	// iterate each command, set its default binding
 	for ( i = 0; i < g_bindCount; i++ )
 	{
-		if ( Q_stricmp( cvar, g_bindings[i].command ) == 0 ) {
+		if ( idStr::Icmp( cvar, g_bindings[i].command ) == 0 ) {
 			b1 = g_bindings[i].bind1;
 			if ( b1 == -1 ) {
 				break;
 			}
 			DC->keynumToStringBuf( b1, g_nameBind1, 32 );
-			Q_strupr( g_nameBind1 );
+			idStr::Copynz( g_nameBind1, idStr( g_nameBind1 ).ToUpper().c_str(), sizeof( g_nameBind1 ) );
 
 			b2 = g_bindings[i].bind2;
 			if ( b2 != -1 ) {
 				DC->keynumToStringBuf( b2, g_nameBind2, 32 );
-				Q_strupr( g_nameBind2 );
+				idStr::Copynz( g_nameBind2, idStr( g_nameBind2 ).ToUpper().c_str(), sizeof( g_nameBind2 ) );
 				strcat( g_nameBind1, va( " %s ", DC->getTranslatedString( "or" ) ) );
 				strcat( g_nameBind1, g_nameBind2 );
 			}
@@ -3708,7 +3701,7 @@ void BindingFromName( const char *cvar ) {
 }
 
 void Item_Slider_Paint( itemDef_t *item ) {
-	vec4_t newColor, lowLight;
+	idVec4 newColor, lowLight;
 	float x, y, value;
 	menuDef_t *parent = (menuDef_t*)item->parent;
 
@@ -3721,7 +3714,7 @@ void Item_Slider_Paint( itemDef_t *item ) {
 		lowLight[3] = 0.8 * parent->focusColor[3];
 		LerpColor( parent->focusColor,lowLight,newColor,0.5 + 0.5 * sin( DC->realTime / PULSE_DIVISOR ) );
 	} else {
-		memcpy( &newColor, &item->window.foreColor, sizeof( vec4_t ) );
+		memcpy( &newColor, &item->window.foreColor, sizeof( idVec4 ) );
 	}
 
 	y = item->window.rect.y;
@@ -3739,7 +3732,7 @@ void Item_Slider_Paint( itemDef_t *item ) {
 }
 
 void Item_Bind_Paint( itemDef_t *item ) {
-	vec4_t newColor, lowLight;
+	idVec4 newColor, lowLight;
 	float value;
 	int maxChars = 0;
 	menuDef_t *parent = (menuDef_t*)item->parent;
@@ -3764,7 +3757,7 @@ void Item_Bind_Paint( itemDef_t *item ) {
 		}
 		LerpColor( parent->focusColor,lowLight,newColor,0.5 + 0.5 * sin( DC->realTime / PULSE_DIVISOR ) );
 	} else {
-		memcpy( &newColor, &item->window.foreColor, sizeof( vec4_t ) );
+		memcpy( &newColor, &item->window.foreColor, sizeof( idVec4 ) );
 	}
 
 	if ( item->text ) {
@@ -3892,8 +3885,8 @@ void Item_Model_Paint( itemDef_t *item ) {
 	refdef_t refdef;
 	qhandle_t hModel;
 	refEntity_t ent;
-	vec3_t mins, maxs, origin;
-	vec3_t angles;
+	idVec3 mins, maxs, origin;
+	idVec3 angles;
 	modelDef_t *modelPtr = (modelDef_t*)item->typeData;
 	int backLerpWhole;
 
@@ -3966,7 +3959,7 @@ void Item_Model_Paint( itemDef_t *item ) {
 			modelPtr->angle = (int)( modelPtr->angle + 1 ) % 360;
 		}
 	}
-	VectorSet( angles, 0, modelPtr->angle, 0 );
+	angles.Set( 0, modelPtr->angle, 0 );
 	AnglesToAxis( angles, ent.axis );
 
 	ent.hModel = hModel;
@@ -3998,10 +3991,10 @@ void Item_Model_Paint( itemDef_t *item ) {
 	ent.oldframe    = modelPtr->oldframe;
 	ent.backlerp    = 1.0f - modelPtr->backlerp;
 
-	VectorCopy( origin, ent.origin );
-	VectorCopy( origin, ent.lightingOrigin );
+	ent.origin = origin;
+	ent.lightingOrigin = origin;
 	ent.renderfx = RF_LIGHTING_ORIGIN | RF_NOSHADOW;
-	VectorCopy( ent.origin, ent.oldorigin );
+	ent.oldorigin = ent.origin;
 
 	DC->addRefEntityToScene( &ent );
 	DC->renderScene( &refdef );
@@ -4179,7 +4172,7 @@ void Item_OwnerDraw_Paint( itemDef_t *item ) {
 	parent = (menuDef_t*)item->parent;
 
 	if ( DC->ownerDrawItem ) {
-		vec4_t color, lowLight;
+		idVec4 color, lowLight;
 		Fade( &item->window.flags, &item->window.foreColor[3], parent->fadeClamp, &item->window.nextTime, parent->fadeCycle, qtrue, parent->fadeAmount );
 		memcpy( &color, &item->window.foreColor, sizeof( color ) );
 		if ( item->numColors > 0 && DC->getValue ) {
@@ -4215,7 +4208,7 @@ void Item_OwnerDraw_Paint( itemDef_t *item ) {
 		}
 
 		if ( item->cvarFlags & ( CVAR_ENABLE | CVAR_DISABLE ) && !Item_EnableShowViaCvar( item, CVAR_ENABLE ) ) {
-			memcpy( color, parent->disableColor, sizeof( vec4_t ) );
+			memcpy( color, parent->disableColor, sizeof( idVec4 ) );
 		}
 
 		if ( item->text ) {
@@ -4234,7 +4227,7 @@ void Item_OwnerDraw_Paint( itemDef_t *item ) {
 
 
 void Item_Paint( itemDef_t *item ) {
-	vec4_t red;
+	idVec4 red;
 	menuDef_t *parent = (menuDef_t*)item->parent;
 	red[0] = red[3] = 1;
 	red[1] = red[2] = 0;
@@ -4372,7 +4365,7 @@ void Item_Paint( itemDef_t *item ) {
 	Window_Paint( &item->window, parent->fadeAmount, parent->fadeClamp, parent->fadeCycle );
 
 	if ( debugMode ) {
-		vec4_t color;
+		idVec4 color;
 		rectDef_t *r = Item_CorrectedTextRect( item );
 		color[1] = color[3] = 1;
 		color[0] = color[2] = 0;
@@ -4515,7 +4508,7 @@ menuDef_t *Menus_ActivateByName( const char *p ) {
 	menuDef_t *m = NULL;
 	menuDef_t *focus = Menu_GetFocused();
 	for ( i = 0; i < menuCount; i++ ) {
-		if ( Q_stricmp( Menus[i].window.name, p ) == 0 ) {
+		if ( idStr::Icmp( Menus[i].window.name, p ) == 0 ) {
 			m = &Menus[i];
 			Menus_Activate( m );
 			if ( openMenuCount < MAX_OPEN_MENUS && focus != NULL ) {
@@ -4646,7 +4639,7 @@ void Menu_Paint( menuDef_t *menu, qboolean forcePaint ) {
 	}
 
 	if ( debugMode ) {
-		vec4_t color;
+		idVec4 color;
 		color[0] = color[2] = color[3] = 1;
 		color[1] = 0;
 		DC->drawRect( menu->window.rect.x, menu->window.rect.y, menu->window.rect.w, menu->window.rect.h, 1, color );
@@ -4732,7 +4725,7 @@ keywordHash_t *KeywordHash_Find( keywordHash_t *table[], char *keyword ) {
 
 	hash = KeywordHash_Key( keyword );
 	for ( key = table[hash]; key; key = key->next ) {
-		if ( !Q_stricmp( key->keyword, keyword ) ) {
+		if ( !idStr::Icmp( key->keyword, keyword ) ) {
 			return key;
 		}
 	}
@@ -5726,7 +5719,7 @@ qboolean MenuParse_name( itemDef_t *item, int handle ) {
 	if ( !PC_String_Parse( handle, &menu->window.name ) ) {
 		return qfalse;
 	}
-	if ( Q_stricmp( menu->window.name, "main" ) == 0 ) {
+	if ( idStr::Icmp( menu->window.name, "main" ) == 0 ) {
 		// default main as having focus
 		//menu->window.flags |= WINDOW_HASFOCUS;
 	}
@@ -6165,7 +6158,7 @@ void Menu_PaintAll() {
 	}
 
 	if ( debugMode ) {
-		vec4_t v = {1, 1, 1, 1};
+		idVec4 v( 1, 1, 1, 1 );
 		DC->drawText( 5, 25, 0, .5, v, va( "fps: %f", DC->FPS ), 0, 0, 0 );
 	}
 }
