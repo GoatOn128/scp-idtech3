@@ -151,14 +151,14 @@ float AICast_GetWeaponSoundRange( int weapon ) {
 AICast_ProcessBullet
 =============
 */
-void AICast_ProcessBullet( gentity_t *attacker, vec3_t start, vec3_t end ) {
+void AICast_ProcessBullet( gentity_t *attacker, const idVec3 &start, const idVec3 &end ) {
 	gentity_t *tent;
 	int i;
 	float dist;
-	vec3_t vProj, vDir, dir;
+	idVec3 vProj, vDir, dir;
 	cast_state_t *cs;
 
-	VectorSubtract( end, start, dir );
+	dir = end - start;
 
 	// RF, AI should hear this pass by them really closely, or hitting a wall close by
 	for ( cs = caststates, tent = g_entities, i = 0; i < level.maxclients; i++, tent++, cs++ ) {
@@ -198,8 +198,8 @@ void AICast_ProcessBullet( gentity_t *attacker, vec3_t start, vec3_t end ) {
 		}
 		// are they within radius of the bullet path to hear it travel through the air?
 		ProjectPointOntoVector( tent->client->ps.origin, start, end, vProj );
-		VectorSubtract( vProj, start, vDir );
-		if ( DotProduct( vDir, dir ) < 0 ) { // they are behind the path of the bullet
+		vDir = vProj - start;
+		if ( ( vDir * dir ) < 0 ) { // they are behind the path of the bullet
 			continue;
 		}
 		if ( Distance( vProj, tent->client->ps.origin ) > 0.5 * cs->attributes[INNER_DETECTION_RADIUS] ) {
@@ -213,8 +213,8 @@ void AICast_ProcessBullet( gentity_t *attacker, vec3_t start, vec3_t end ) {
 		}
 		//
 		cs->perception.bulletImpactTime = level.time + 100 + rand() % 200; // random reaction delay;
-		VectorCopy( start, cs->perception.bulletImpactStart );
-		VectorCopy( end, cs->perception.bulletImpactEnd );
+		cs->perception.bulletImpactStart = start;
+		cs->perception.bulletImpactEnd = end;
 		cs->perception.bulletImpactEntity = attacker->s.number;
 	}
 }
@@ -224,7 +224,7 @@ void AICast_ProcessBullet( gentity_t *attacker, vec3_t start, vec3_t end ) {
 AICast_AudibleEvent
 ================
 */
-void AICast_AudibleEvent( int srcnum, vec3_t pos, float range ) {
+void AICast_AudibleEvent( int srcnum, const idVec3 &pos, float range ) {
 	int i;
 	cast_state_t *cs, *scs = 0;
 	gentity_t *ent, *sent;
@@ -291,7 +291,7 @@ void AICast_AudibleEvent( int srcnum, vec3_t pos, float range ) {
 		}
 
 		cs->perception.audibleEventTime = level.time + 200 + rand() % 300; // random reaction delay
-		VectorCopy( pos, cs->perception.audibleEventOrg );
+		cs->perception.audibleEventOrg = pos;
 		cs->perception.audibleEventEnt = ent->s.number;
 	}
 }
@@ -315,15 +315,15 @@ int clientHeadTagTimes[MAX_CLIENTS];
 AICast_InFieldOfVision
 ==============
 */
-qboolean AICast_InFieldOfVision( vec3_t viewangles, float fov, vec3_t angles ) {
+qboolean AICast_InFieldOfVision( const idVec3 &viewangles, float fov, const idVec3 &angles ) {
 	int i;
-	float diff, angle;
+	float diff, angle, normAngle;
 
 	for ( i = 0; i < 2; i++ ) {
 		angle = AngleMod( viewangles[i] );
-		angles[i] = AngleMod( angles[i] );
-		diff = angles[i] - angle;
-		if ( angles[i] > angle ) {
+		normAngle = AngleMod( angles[i] );
+		diff = normAngle - angle;
+		if ( normAngle > angle ) {
 			if ( diff > 180.0 ) {
 				diff -= 360.0;
 			}
@@ -350,14 +350,14 @@ qboolean AICast_InFieldOfVision( vec3_t viewangles, float fov, vec3_t angles ) {
 AICast_VisibleFromPos
 ==============
 */
-qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum, vec3_t destpos, int destnum, qboolean updateVisPos ) {
+qboolean AICast_VisibleFromPos( const idVec3 &srcpos, int srcnum, const idVec3 &destpos, int destnum, qboolean updateVisPos ) {
 	int i, contents_mask, passent, hitent;
 	trace_t trace;
-	vec3_t start, end, middle, eye;
+	idVec3 start, end, middle, eye;
 	cast_state_t *cs = NULL;
 	int srcviewheight;
-	vec3_t destmins, destmaxs;
-	vec3_t right, vec;
+	idVec3 destmins, destmaxs;
+	idVec3 right, vec;
 	qboolean inPVS;
 
 	if ( g_entities[destnum].flags & FL_NOTARGET ) {
@@ -376,20 +376,20 @@ qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum, vec3_t destpos, int d
 		srcviewheight = 0;
 	}
 	//
-	VectorCopy( g_entities[destnum].r.mins, destmins );
-	VectorCopy( g_entities[destnum].r.maxs, destmaxs );
+	destmins = g_entities[destnum].r.mins;
+	destmaxs = g_entities[destnum].r.maxs;
 	//
 	//calculate middle of bounding box
-	VectorAdd( destmins, destmaxs, middle );
-	VectorScale( middle, 0.5, middle );
-	VectorAdd( destpos, middle, middle );
+	middle = destmins + destmaxs;
+	middle = middle * 0.5;
+	middle = destpos + middle;
 	// calculate eye position
-	VectorCopy( srcpos, eye );
+	eye = srcpos;
 	eye[2] += srcviewheight;
 	//
 	// set the right vector
-	VectorSubtract( middle, eye, vec );
-	VectorNormalize( vec );
+	vec = middle - eye;
+	vec.Normalize();
 	right[0] = vec[1];
 	right[1] = vec[0];
 	right[2] = 0;
@@ -414,8 +414,8 @@ qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum, vec3_t destpos, int d
 			MASK_AISIGHT; //(MASK_SHOT | CONTENTS_AI_NOSIGHT) & ~(CONTENTS_BODY);	// we can see anything that a bullet can pass through
 		passent = srcnum;
 		hitent = destnum;
-		VectorCopy( eye, start );
-		VectorCopy( middle, end );
+		start = eye;
+		end = middle;
 		//if the entity is in water, lava or slime
 		if ( trap_PointContents( middle, destnum ) & ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER ) ) {
 			contents_mask |= ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER );
@@ -425,13 +425,13 @@ qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum, vec3_t destpos, int d
 			if ( !( contents_mask & ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER ) ) ) {
 				passent = destnum;
 				hitent = srcnum;
-				VectorCopy( middle, start );
-				VectorCopy( eye, end );
+				start = middle;
+				end = eye;
 			} //end if
 			contents_mask ^= ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER );
 		} //end if
 		//trace from start to end
-		trap_Trace( &trace, start, NULL, NULL, end, ENTITYNUM_NONE /*passent*/, contents_mask );
+		trap_Trace( &trace, start, vec3_origin, vec3_origin, end, ENTITYNUM_NONE /*passent*/, contents_mask );
 		//if water was hit
 		if ( trace.contents & ( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER ) ) {
 			//if the water surface is translucent
@@ -439,7 +439,7 @@ qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum, vec3_t destpos, int d
 			{
 				//trace through the water
 				contents_mask &= ~( CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER );
-				trap_Trace( &trace, trace.endpos, NULL, NULL, end, passent, contents_mask );
+				trap_Trace( &trace, trace.endpos, vec3_origin, vec3_origin, end, passent, contents_mask );
 			} //end if
 		} //end if
 		//if a full trace or the hitent was hit
@@ -453,9 +453,9 @@ qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum, vec3_t destpos, int d
 			middle[2] += destmaxs[2] - destmins[2];
 		} else if ( i == 2 ) { // right side
 			middle[2] -= ( destmaxs[2] - destmins[2] ) / 2.0;
-			VectorMA( eye, destmaxs[0] - 0.5, right, eye );
+			eye = eye + right * ( destmaxs[0] - 0.5 );
 		} else if ( i == 3 ) { // left side
-			VectorMA( eye, -2.0 * ( destmaxs[0] - 0.5 ), right, eye );
+			eye = eye + right * ( -2.0 * ( destmaxs[0] - 0.5 ) );
 		}
 	} //end for
 
@@ -468,7 +468,7 @@ AICast_CheckVisibility
 ==============
 */
 qboolean AICast_CheckVisibility( gentity_t *srcent, gentity_t *destent ) {
-	vec3_t dir, entangles, middle, eye, viewangles;
+	idVec3 dir, entangles, middle, eye, viewangles;
 	cast_state_t *cs, *ocs;
 	float fov, dist;
 	int viewer, ent;
@@ -521,44 +521,44 @@ qboolean AICast_CheckVisibility( gentity_t *srcent, gentity_t *destent ) {
 		fov = 360;
 	}
 	//calculate middle of bounding box
-	VectorAdd( destent->r.mins, destent->r.maxs, middle );
-	VectorScale( middle, 0.5, middle );
-	VectorAdd( destent->client->ps.origin, middle, middle );
+	middle = destent->r.mins + destent->r.maxs;
+	middle = middle * 0.5;
+	middle = destent->client->ps.origin + middle;
 	// calculate eye position
 	if ( ( level.lastLoadTime < level.time - 4000 ) && ( srcent->r.svFlags & SVF_CASTAI ) ) {
 		if ( clientHeadTagTimes[srcent->s.number] == level.time ) {
 			// use the actual direction the head is facing
 			vectoangles( clientHeadTags[srcent->s.number].axis[0], viewangles );
 			// and the actual position of the head
-			VectorCopy( clientHeadTags[srcent->s.number].origin, eye );
+			eye = clientHeadTags[srcent->s.number].origin;
 		} else if ( trap_GetTag( srcent->s.number, "tag_head", &orent ) ) {
 			// use the actual direction the head is facing
 			vectoangles( orent.axis[0], viewangles );
 			// and the actual position of the head
-			VectorCopy( orent.origin, eye );
-			VectorMA( eye, 12, orent.axis[2], eye );
+			eye = orent.origin;
+			eye = eye + orent.axis[2] * 12;
 			// save orientation data
 			memcpy( &clientHeadTags[srcent->s.number], &orent, sizeof( orientation_t ) );
 			clientHeadTagTimes[srcent->s.number] = level.time;
 		} else {
-			VectorCopy( srcent->client->ps.origin, eye );
+			eye = srcent->client->ps.origin;
 			eye[2] += srcent->client->ps.viewheight;
-			VectorCopy( srcent->client->ps.viewangles, viewangles );
+			viewangles = srcent->client->ps.viewangles;
 			// save orientation data (so we dont keep checking for a tag when it doesn't exist)
-			VectorCopy( eye, clientHeadTags[srcent->s.number].origin );
+			clientHeadTags[srcent->s.number].origin = eye;
 			AnglesToAxis( viewangles, clientHeadTags[srcent->s.number].axis );
 			clientHeadTagTimes[srcent->s.number] = level.time;
 		}
 	} else {
-		VectorCopy( srcent->client->ps.origin, eye );
+		eye = srcent->client->ps.origin;
 		eye[2] += srcent->client->ps.viewheight;
-		VectorCopy( srcent->client->ps.viewangles, viewangles );
+		viewangles = srcent->client->ps.viewangles;
 	}
 	//check if entity is within field of vision
-	VectorSubtract( middle, eye, dir );
+	dir = middle - eye;
 	vectoangles( dir, entangles );
 	//
-	dist = VectorLength( dir );
+	dist = dir.Length();
 	//
 	// alertness is visible range
 	if ( cs->clientState && dist > cs->attributes[ALERTNESS] ) {
@@ -620,8 +620,8 @@ void AICast_UpdateVisibility( gentity_t *srcent, gentity_t *destent, qboolean sh
 	// update the values
 	vis->lastcheck_timestamp = level.time;
 	vis->visible_timestamp = level.time;
-	VectorCopy( destent->client->ps.origin, vis->visible_pos );
-	VectorCopy( destent->client->ps.velocity, vis->visible_vel );
+	vis->visible_pos = destent->client->ps.origin;
+	vis->visible_vel = destent->client->ps.velocity;
 	vis->lastcheck_health = destent->health - 1;
 
 	// we may need to process this visibility at some point, even after they become not visible again
@@ -629,7 +629,7 @@ void AICast_UpdateVisibility( gentity_t *srcent, gentity_t *destent, qboolean sh
 
 	if ( directview ) {
 		vis->real_visible_timestamp = level.time;
-		VectorCopy( destent->client->ps.origin, vis->real_visible_pos );
+		vis->real_visible_pos = destent->client->ps.origin;
 		vis->real_update_timestamp = level.time;
 	}
 
@@ -638,7 +638,7 @@ void AICast_UpdateVisibility( gentity_t *srcent, gentity_t *destent, qboolean sh
 		 ( !destent->s.number || cs->dangerEntityValidTime < level.time + 2000 ) &&
 		 !( cs->aiFlags & AIFL_NO_FLAME_DAMAGE ) ) {
 		cs->dangerEntity = destent->s.number;
-		VectorCopy( destent->r.currentOrigin, cs->dangerEntityPos );
+		cs->dangerEntityPos = destent->r.currentOrigin;
 		cs->dangerEntityValidTime = level.time + 5000;
 		cs->dangerDist = 99999;
 		cs->dangerEntityTimestamp = level.time;
@@ -810,7 +810,7 @@ void AICast_UpdateNonVisibility( gentity_t *srcent, gentity_t *destent, qboolean
 	// if enough time has passed, and still within chase period, drop a marker
 	if ( vis->chase_marker_count < MAX_CHASE_MARKERS ) {
 		if ( ( level.time - vis->visible_timestamp ) > ( vis->chase_marker_count + 1 ) * CHASE_MARKER_INTERVAL ) {
-			VectorCopy( destent->client->ps.origin, vis->chase_marker[vis->chase_marker_count] );
+			vis->chase_marker[vis->chase_marker_count] = destent->client->ps.origin;
 			vis->chase_marker_count++;
 		}
 	}

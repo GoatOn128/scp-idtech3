@@ -137,7 +137,7 @@ void AICast_StartFrame( int time ) {
 				// if they're moving/firing think every frame
 				if ( ( elapsed && cs->script.scriptAnimTime && cs->script.scriptAnimTime >= ( level.time - 1000 ) ) ||
 					 (   ( elapsed >= 50 ) &&
-						 (   (   (   ( !VectorCompare( ent->client->ps.velocity, vec3_origin ) ) ||
+						 (   (   (   ( !ent->client->ps.velocity.Compare( vec3_origin ) ) ||
 									 ( cs->enemyNum >= 0 ) ||
 									 ( cs->aiState >= AISTATE_COMBAT ) ||
 									 ( cs->perception.vislist[0].visible_timestamp && cs->perception.vislist[0].visible_timestamp > level.time - 4000 ) ||
@@ -191,11 +191,11 @@ int AI_UpdateNavigationEntities( int time ) {
 			continue;
 		}
 		bot_entitystate_t state = {};
-		VectorCopy( ent->r.currentOrigin, state.origin );
-		VectorCopy( ent->r.currentAngles, state.angles );
-		VectorCopy( ent->s.origin2, state.old_origin );
-		VectorCopy( ent->r.mins, state.mins );
-		VectorCopy( ent->r.maxs, state.maxs );
+		state.origin = ent->r.currentOrigin;
+		state.angles = ent->r.currentAngles;
+		state.old_origin = ent->s.origin2;
+		state.mins = ent->r.mins;
+		state.maxs = ent->r.maxs;
 		state.type = ent->s.eType;
 		state.flags = ent->s.eFlags;
 		state.solid = ent->r.bmodel ? SOLID_BSP : SOLID_BBOX;

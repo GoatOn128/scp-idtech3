@@ -38,7 +38,7 @@ void AICast_ChangeViewAngles( cast_state_t *cs, float thinktime ) {
 	//
 	// restore locked viewangles if required
 	if ( cs->aiFlags & AIFL_VIEWLOCKED ) {
-		VectorCopy( cs->viewlock_viewangles, cs->ideal_viewangles );
+		cs->ideal_viewangles = cs->viewlock_viewangles;
 	} else {
 		// check for playanim angles
 		if ( cs->script.castScriptStatus.playAnimViewlockTime >= level.time ) {
@@ -46,7 +46,7 @@ void AICast_ChangeViewAngles( cast_state_t *cs, float thinktime ) {
 			if ( !g_entities[cs->entityNum].client->ps.legsTimer ) {
 				cs->script.castScriptStatus.playAnimViewlockTime = 0;
 			} else {
-				VectorCopy( cs->script.castScriptStatus.playanim_viewangles, cs->ideal_viewangles );
+				cs->ideal_viewangles = cs->script.castScriptStatus.playanim_viewangles;
 			}
 		}
 	}
@@ -97,7 +97,7 @@ AICast_InputToUserCommand
 */
 static int serverTime;
 void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *ucmd, int delta_angles[3] ) {
-	vec3_t angles, forward, right, up;
+	idVec3 angles, forward, right, up;
 	short temp;
 	int j;
 	signed char movechar;
@@ -127,7 +127,7 @@ void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *uc
 	}
 	//set the buttons
 	if ( bi->actionflags & ACTION_ATTACK ) {
-		vec3_t ofs;
+		idVec3 ofs;
 		// don't fire if we are not facing the right direction yet
 		if ( ( cs->combat.triggerReleaseTime < level.time ) &&
 			 ( ( cs->lockViewAnglesTime >= level.time ) ||
@@ -139,7 +139,7 @@ void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *uc
 			ucmd->buttons |= BUTTON_ATTACK;
 			// do some swaying around for some weapons
 			AICast_WeaponSway( cs, ofs );
-			VectorAdd( bi->viewangles, ofs, bi->viewangles );
+			bi->viewangles = bi->viewangles + ofs;
 		}
 	}
 	//
@@ -212,16 +212,16 @@ void AICast_InputToUserCommand( cast_state_t *cs, bot_input_t *bi, usercmd_t *uc
 			}
 			angles[YAW] = bi->viewangles[YAW];
 			angles[ROLL] = 0;
-			AngleVectors( angles, forward, right, up );
+			idAngles( angles ).ToVectors( &forward, &right, &up );
 			//bot input speed is in the range [0, 400]
 			bi->speed = bi->speed * 127 / 400;
 			//set the view independent movement
-			ucmd->forwardmove = DotProduct( forward, bi->dir ) * bi->speed;
-			ucmd->rightmove = DotProduct( right, bi->dir ) * bi->speed;
+			ucmd->forwardmove = ( forward * bi->dir ) * bi->speed;
+			ucmd->rightmove = ( right * bi->dir ) * bi->speed;
 
 			// RF, changed this to fix stim soldier flying attack
 			if ( !ucmd->upmove ) { // only change it if we don't already have an upmove set
-				ucmd->upmove = DotProduct( up, bi->dir ) * bi->speed;
+				ucmd->upmove = ( up * bi->dir ) * bi->speed;
 			}
 			//if (!ucmd->upmove)	// only change it if we don't already have an upmove set
 			//	ucmd->upmove = abs(forward[2]) * bi->dir[2] * bi->speed;
@@ -483,7 +483,7 @@ void AICast_StartServerFrame( int time ) {
 											cs->perception.vislist[0].lastcheck_timestamp ) ) ||
 						( highPriority && ( pcs->perception.vislist[cs->entityNum].visible_timestamp ==
 											pcs->perception.vislist[cs->entityNum].lastcheck_timestamp ) ) ||
-						( VectorLength( ent->client->ps.velocity ) > 0 ) ||
+						( ent->client->ps.velocity.Length() > 0 ) ||
 						( highPriority && ( cs->lastucmd.forwardmove || cs->lastucmd.rightmove ||
 											cs->lastucmd.upmove > 0 || cs->lastucmd.buttons || cs->lastucmd.wbuttons ) )
 						// !!NOTE: always allow thinking if in PVS, otherwise bosses won't gib, and dead guys might not push away from clipped walls
