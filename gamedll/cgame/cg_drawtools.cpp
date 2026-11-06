@@ -216,7 +216,7 @@ CG_HorizontalPercentBar
 */
 void CG_HorizontalPercentBar( float x, float y, float width, float height, float percent ) {
 	idVec4 bgcolor( 0.5f, 0.5f, 0.5f, 0.3f ),
-		   color = {1.0f, 1.0f, 1.0f, 0.3f};
+		   color = idVec4( 1.0f, 1.0f, 1.0f, 0.3f );
 	CG_FilledBar( x, y, width, height, color, NULL, bgcolor, percent, BAR_BG | BAR_NOHUDALPHA );
 }
 

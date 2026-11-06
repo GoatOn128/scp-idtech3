@@ -77,14 +77,14 @@ void SFxHelper::CloseFile( fileHandle_t fh )
 }
 
 //------------------------------------------------------
-void SFxHelper::PlaySound( idVec3 &org, int entityNum, int entchannel, int sfxHandle )
+void SFxHelper::PlaySound( const idVec3 *org, int entityNum, int entchannel, int sfxHandle )
 {
-	trap_S_StartSound( &org, entityNum, entchannel, sfxHandle );
+	trap_S_StartSound( org, entityNum, entchannel, sfxHandle );
 }
 
 //------------------------------------------------------
-void SFxHelper::Trace( trace_t *tr, idVec3 &start, idVec3 &min, idVec3 &max, 
-						idVec3 &end, int skipEntNum, int flags )
+void SFxHelper::Trace( trace_t *tr, const idVec3 &start, const idVec3 &min, const idVec3 &max, 
+						const idVec3 &end, int skipEntNum, int flags )
 {
 	CG_Trace( tr, start, min, max, end, skipEntNum, flags );
 }

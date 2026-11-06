@@ -35,11 +35,11 @@ struct SFxHelper
 	void	CloseFile( fileHandle_t fh );
 
 	// Sound
-	void	PlaySound( idVec3 &origin, int entityNum, int entchannel, sfxHandle_t sfx );
+	void	PlaySound( const idVec3 *origin, int entityNum, int entchannel, sfxHandle_t sfx );
 	int		RegisterSound( const char *sound );
 
 	// Physics/collision
-	void	Trace( trace_t *tr, idVec3 &start, idVec3 &min, idVec3 &max, idVec3 &end, int skipEntNum, int flags );
+	void	Trace( trace_t *tr, const idVec3 &start, const idVec3 &min, const idVec3 &max, const idVec3 &end, int skipEntNum, int flags );
 
 	void	AddFxToScene( FxRefEntity *ent );
 	void	AddLightToScene( idVec3 &org, float radius, float red, float green, float blue );
