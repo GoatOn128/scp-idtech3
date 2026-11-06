@@ -36,6 +36,10 @@ idVec5 vec5_origin( 0.0f, 0.0f, 0.0f, 0.0f, 0.0f );
 idVec6 vec6_origin( 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f );
 idVec6 vec6_infinity( idMath::INFINITY, idMath::INFINITY, idMath::INFINITY, idMath::INFINITY, idMath::INFINITY, idMath::INFINITY );
 
+void AnglesToAxis( const idVec3 &angles, idVec3 axis[3] ) {
+	idAngles( angles ).ToVectors( &axis[0], &axis[1], &axis[2] );
+}
+
 
 //===============================================================
 //

@@ -1731,7 +1731,7 @@ int BG_AnimScriptAnimation( playerState_t *ps, aistateEnum_t state, scriptAnimMo
 int BG_AnimScriptCannedAnimation( playerState_t *ps, aistateEnum_t state );
 int BG_AnimScriptStateChange( playerState_t *ps, aistateEnum_t newState, aistateEnum_t oldState );
 int BG_AnimScriptEvent( playerState_t *ps, scriptAnimEventTypes_t event, qboolean isContinue, qboolean force );
-int BG_IndexForString( char *token, animStringItem_t *strings, qboolean allowFail );
+int BG_IndexForString( const char *token, animStringItem_t *strings, qboolean allowFail );
 int BG_PlayAnimName( playerState_t *ps, char *animName, animBodyPart_t bodyPart, qboolean setTimer, qboolean isContinue, qboolean force );
 qboolean BG_ValidAnimScript( int clientNum );
 char *BG_GetAnimString( int client, int anim );
@@ -1739,7 +1739,7 @@ void BG_UpdateConditionValue( int client, int condition, int value, qboolean che
 int BG_GetConditionValue( int client, int condition, qboolean checkConversion );
 int BG_GetAnimScriptAnimation( int client, aistateEnum_t state, scriptAnimMoveTypes_t movetype );
 void BG_AnimUpdatePlayerStateConditions( pmove_t *pmove );
-int BG_AnimationIndexForString( char *string, int client );
+int BG_AnimationIndexForString( const char *string, int client );
 animation_t *BG_AnimationForString( char *string, animModelInfo_t *modelInfo );
 animation_t *BG_GetAnimationForIndex( int client, int index );
 int BG_GetAnimScriptEvent( playerState_t *ps, scriptAnimEventTypes_t event );

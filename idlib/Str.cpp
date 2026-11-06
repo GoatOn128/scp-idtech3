@@ -2078,13 +2078,3 @@ idStr idStr::FormatNumber( int number ) {
 
 	return string;
 }
-
-CONSOLE_COMMAND( testStrId, "prints a localized string", 0 ) {
-	if ( args.Argc() != 2 ) {
-		idLib::Printf( "need a str id like 'STR_SWF_ACCEPT' without the hash, it gets parsed as a separate argument\n" );
-		return;
-	}
-
-	idStrId str( va( "#%s", args.Argv( 1 ) ) );
-	idLib::Printf( "%s = %s\n", args.Argv( 1 ), str.GetLocalizedString() );
-}

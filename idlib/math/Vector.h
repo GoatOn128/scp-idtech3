@@ -1723,7 +1723,7 @@ ID_INLINE void vectoangles( const idVec3 &value1, idVec3 &angles ) {
 		}
 	} else {
 		if ( value1[0] ) {
-			yaw = ( atan2( value1[1], value1[0] ) * 180 / idMath::M_PI );
+			yaw = ( atan2( value1[1], value1[0] ) * 180 / idMath::PI );
 		} else if ( value1[1] > 0 ) {
 			yaw = 90;
 		} else {
@@ -1734,7 +1734,7 @@ ID_INLINE void vectoangles( const idVec3 &value1, idVec3 &angles ) {
 		}
 
 		forward = sqrt( value1[0] * value1[0] + value1[1] * value1[1] );
-		pitch = ( atan2( value1[2], forward ) * 180 / idMath::M_PI );
+		pitch = ( atan2( value1[2], forward ) * 180 / idMath::PI );
 		if ( pitch < 0 ) {
 			pitch += 360;
 		}
@@ -1878,9 +1878,7 @@ AnglesToAxis
 ported from the old q3 mathlib
 ================
 */
-ID_INLINE void AnglesToAxis( const idVec3 &angles, idVec3 axis[3] ) {
-	idAngles( angles ).ToVectors( &axis[0], &axis[1], &axis[2] );
-}
+void AnglesToAxis( const idVec3 &angles, idVec3 axis[3] );
 /*
 ================
 SnapVector
@@ -1897,7 +1895,7 @@ ID_INLINE float vectoyaw( const idVec3 &vec ) {
 		yaw = 0;
 	} else {
 		if ( vec[0] ) {
-			yaw = ( atan2( vec[1], vec[0] ) * 180 / idMath::M_PI );
+			yaw = ( atan2( vec[1], vec[0] ) * 180 / idMath::PI );
 		} else if ( vec[1] > 0 ) {
 			yaw = 90;
 		} else {

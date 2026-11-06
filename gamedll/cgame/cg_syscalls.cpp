@@ -440,8 +440,8 @@ int trap_RealTime( qtime_t *qtime ) {
 	return cgImports->Com_RealTime( qtime );
 }
 
-void trap_SnapVector( float *v ) {
-	cgImports->Sys_SnapVector( v );
+void trap_SnapVector( idVec3 &v ) {
+	cgImports->Sys_SnapVector( v.ToFloatPtr() );
 }
 
 void trap_SendMoveSpeedsToGame( int entnum, char *movespeeds ) {

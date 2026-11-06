@@ -532,9 +532,9 @@ static void CG_DrawCursorhint( rectDef_t *rect ) {
 	// draw status bar under the cursor hint
 	if ( cg.cursorHintValue && ( !( cg.time - cg.cursorHintTime ) ) ) {    // don't fade bar out w/ hint icon
 		if ( redbar ) {
-			color.Set(1, 0, 0, 0.5f);
+			color->Set(1, 0, 0, 0.5f);
 		} else {
-			color.Set(0, 0, 1, 0.5f);
+			color->Set(0, 0, 1, 0.5f);
 		}
 		CG_FilledBar( rect->x, rect->y + rect->h + 4, rect->w, 8, *color, NULL, NULL, (float)cg.cursorHintValue / 255.0f, 0 );
 	}

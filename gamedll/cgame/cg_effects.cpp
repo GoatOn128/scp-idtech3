@@ -40,7 +40,7 @@ CG_BubbleTrail
 Bullets shot underwater
 ==================
 */
-void CG_BubbleTrail( idVec3 start, idVec3 end, float size, float spacing ) {}
+void CG_BubbleTrail( const idVec3 &start, const idVec3 &end, float size, float spacing ) {}
 
 /*
 ==================
@@ -49,7 +49,7 @@ CG_SpawnEffect
 Player teleporting in or out
 ==================
 */
-void CG_SpawnEffect( idVec3 origin ) {}
+void CG_SpawnEffect( const idVec3 &origin ) {}
 
 
 
@@ -140,7 +140,7 @@ CG_Bleed
 This is the spurt of blood when a character gets hit
 =================
 */
-void CG_Bleed( idVec3 origin, int entityNum ) {
+void CG_Bleed( const idVec3 &origin, int entityNum ) {
 
 //	fxEntity_t *ex;
 	centity_t *cent;
@@ -386,7 +386,7 @@ CG_GibHead
   from the model TAG's
 ==============
 */
-void CG_GibHead( idVec3 headOrigin ) {
+void CG_GibHead( const idVec3 &headOrigin ) {
 	idVec3 origin, velocity;
 
 	origin = headOrigin;
@@ -447,7 +447,7 @@ Generated a bunch of gibs launching out from the bodies location
 */
 #define MAXJUNCTIONS 8
 
-void CG_GibPlayer( centity_t *cent, idVec3 playerOrigin, idVec3 gdir ) {
+void CG_GibPlayer( centity_t *cent, const idVec3 &playerOrigin, const idVec3 &gdir ) {
 	idVec3 origin, velocity, dir;
 	int i, count, tagIndex, gibIndex;
 	trace_t trace;

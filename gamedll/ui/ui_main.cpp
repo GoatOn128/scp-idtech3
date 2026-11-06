@@ -5636,7 +5636,7 @@ static void UI_FeederAddItem( float feederID, const char *name, int index ) {
 UI_FileText
 ==============
 */
-static const char *UI_FileText( char *fileName ) {
+static const char *UI_FileText( const char *fileName ) {
 	int len;
 	fileHandle_t f;
 	static char buf[MAX_MENUDEFFILE];

@@ -31,8 +31,6 @@ If you have questions concerning this license or the applicable additional terms
 // This is the default language dict that the entire system uses, but you can instantiate your own idLangDict classes to manipulate a language dictionary in a tool
 idLangDict	idLocalization::languageDict;
 
-idCVar lang_maskLocalizedStrings( "lang_maskLocalizedStrings", "0", CVAR_BOOL, "Masks all localized strings to help debugging.  When set will replace strings with an equal length of W's and ending in an X.  Note: The masking occurs at string table load time." );
-
 /*
 ========================
 idLocalization::ClearDictionary
@@ -254,7 +252,8 @@ bool idLangDict::Load( const byte * buffer, const int bufferLen, const char *nam
 			if ( valEnd < valStart ) {
 				idLib::FatalError( "%s File ended while reading value at line %d", name, line );
 			}
-			if ( lang_maskLocalizedStrings.GetBool() && tempVal.Length() > 0 && tempKey.Find( "#font_" ) == -1 ) {
+			const char *maskLocalizedStrings = idLib::cvarSystem->GetCVarString( "lang_maskLocalizedStrings" );
+			if ( maskLocalizedStrings && atoi( maskLocalizedStrings ) && tempVal.Length() > 0 && tempKey.Find( "#font_" ) == -1 ) {
 				int len = tempVal.Length();
 				if ( len > 0 ) {
 					tempVal.Fill( 'W', len - 1 );
@@ -284,7 +283,7 @@ idLangDict::Save
 ========================
 */
 bool idLangDict::Save( const char * fileName ) {
-	idFile * outFile = fileSystem->OpenFileWrite( fileName );
+	idFile * outFile = idLib::fileSystem->OpenFileWrite( fileName );
 	if ( outFile == NULL ) {
 		idLib::Warning( "Error saving: %s", fileName );
 		return false;
@@ -315,7 +314,7 @@ bool idLangDict::Save( const char * fileName ) {
 		outFile->WriteFloatString( "\"\n" );
 	}
 	outFile->WriteFloatString( "\n}\n" );
-	delete outFile;
+	idLib::fileSystem->CloseFile( outFile );
 	return true;
 }
 
@@ -498,7 +497,7 @@ idLangDict::AddString
 ========================
 */
 const char * idLangDict::AddString( const char * val ) {
-	int i = Sys_Milliseconds();
+	int i = idLib::sys->Milliseconds();
 	idStr key;
 	sprintf( key, "#str_%06d", ( i++ % 1000000 ) );
 	while ( FindStringIndex( key ) > 0 ) {
@@ -597,4 +596,3 @@ idStrId::GetLocalizedString
 const char * idStrId::GetLocalizedString() const {
 	return idLocalization::languageDict.GetLocalizedString( *this );
 }
-

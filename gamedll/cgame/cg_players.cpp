@@ -5376,7 +5376,7 @@ void CG_ResetPlayerEntity( centity_t *cent ) {
 
 }
 
-void CG_GetBleedOrigin( idVec3 head_origin, idVec3 torso_origin, idVec3 legs_origin, int fleshEntityNum ) {
+void CG_GetBleedOrigin( idVec3 &head_origin, idVec3 &torso_origin, idVec3 &legs_origin, int fleshEntityNum ) {
 	clientInfo_t    *ci;
 	refEntity_t legs;
 	refEntity_t torso;

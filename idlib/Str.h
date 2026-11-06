@@ -113,7 +113,7 @@ const int C_COLOR_BLACK				= '9';
 #define S_COLOR_GRAY				"^8"
 #define S_COLOR_BLACK				"^9"
 
-extern idVec4 g_color_table[8];
+extern idVec4 g_color_table[16];
 
 // make idStr a multiple of 16 bytes long
 // don't make too large to keep memory requirements to a minimum

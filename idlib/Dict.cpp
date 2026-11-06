@@ -116,7 +116,7 @@ void idDict::TransferKeyValues( idDict &other ) {
 	}
 
 	if ( other.args.Num() && other.args[0].key->GetPool() != &globalKeys ) {
-		common->FatalError( "idDict::TransferKeyValues: can't transfer values across a DLL boundary" );
+		idLib::common->FatalError( "idDict::TransferKeyValues: can't transfer values across a DLL boundary" );
 		return;
 	}
 
@@ -668,36 +668,6 @@ void idDict::ReadFromFileHandle( idFile *f ) {
 }
 
 /*
-========================
-idDict::Serialize
-========================
-*/
-void idDict::Serialize( idSerializer & ser ) {
-	if ( ser.IsReading() ) {
-		Clear();
-	}
-
-	int num = args.Num();
-	ser.SerializePacked( num );
-	for ( int i = 0; i < num; i++ ) {
-		idStr key;
-		idStr val; 
-
-		if ( ser.IsWriting() ) {
-			key = args[i].GetKey();
-			val = args[i].GetValue();
-		}
-
-		ser.SerializeString( key );
-		ser.SerializeString( val );
-
-		if ( ser.IsReading() ) {
-			Set( key.c_str(), val.c_str() );
-		}
-	}
-}
-
-/*
 ================
 idDict::WriteToIniFile
 ================
@@ -825,51 +795,6 @@ bool idDict::ReadFromIniFile( idFile * f ) {
 	}
 
 	return success;
-}
-
-CONSOLE_COMMAND( TestDictIniFile, "Tests the writing/reading of various items in a dict to/from an ini file", 0 ) {
-	// Write to the file
-	idFile * file = fileSystem->OpenFileWrite( "idDict_ini_test.ini" );
-	if ( file == NULL ) {
-		idLib::Printf( "[^1FAILED^0] Couldn't open file for writing.\n" );
-		return;
-	}
-
-	idDict vars;
-	vars.SetInt( "section1/section3/a", -1 );
-	vars.SetInt( "section1/section3/b", 0 );
-	vars.SetInt( "section1/section3/c", 3 );
-	vars.SetFloat( "section2/d", 4.0f );
-	vars.SetFloat( "section2/e", -5.0f );
-	vars.SetBool( "section2/f", true );
-	vars.SetBool( "section1/g", false );
-	vars.Set( "section1/h", "test1" );
-	vars.Set( "i", "1234" );
-	vars.SetInt( "j", 9 );
-	vars.WriteToIniFile( file );
-	delete file;
-
-	// Read from the file
-	file = fileSystem->OpenFileRead( "idDict_ini_test.ini" );
-	if ( file == NULL ) {
-		idLib::Printf( "[^1FAILED^0] Couldn't open file for reading.\n" );
-	}
-
-	idDict readVars;
-	readVars.ReadFromIniFile( file );
-	delete file;
-
-	if ( vars.Checksum() != readVars.Checksum() ) {
-		idLib::Printf( "[^1FAILED^0] Dictionaries do not match.\n" );
-	} else {
-		idLib::Printf( "[^2PASSED^0] Dictionaries match.\n" );
-	}
-
-	// Output results
-	for ( int i = 0; i < readVars.GetNumKeyVals(); i++ ) {
-		const idKeyValue * kv = readVars.GetKeyVal( i );
-		idLib::Printf( "%s=%s\n", kv->GetKey().c_str(), kv->GetValue().c_str() );
-	}
 }
 
 /*

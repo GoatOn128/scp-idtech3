@@ -362,7 +362,7 @@ CG_DrawHead
 Used for both the status bar and the scoreboard
 ================
 */
-void CG_DrawHead( float x, float y, float w, float h, int clientNum, idVec3 headAngles ) {
+void CG_DrawHead( float x, float y, float w, float h, int clientNum, const idVec3 &headAngles ) {
 	clipHandle_t cm;
 	clientInfo_t    *ci;
 	float len;

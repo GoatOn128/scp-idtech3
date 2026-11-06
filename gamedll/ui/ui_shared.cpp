@@ -3129,7 +3129,9 @@ void Item_Text_Paint( itemDef_t *item ) {
 		} else {
 			DC->getCVarString( item->cvar, text, sizeof( text ) );
 			if ( item->window.flags & CG_SHOW_TEXTASINT ) {
-				COM_StripExtension( text, text );
+				idStr strippedText( text );
+				strippedText.StripFileExtension();
+				idStr::Copynz( text, strippedText.c_str(), sizeof( text ) );
 			}
 			textPtr = text;
 		}
@@ -3548,12 +3550,12 @@ void BindingFromName( const char *cvar ) {
 				break;
 			}
 			DC->keynumToStringBuf( b1, g_nameBind1, 32 );
-			idStr::Copynz( g_nameBind1, idStr( g_nameBind1 ).ToUpper().c_str(), sizeof( g_nameBind1 ) );
+			idStr::ToUpper( g_nameBind1 );
 
 			b2 = g_bindings[i].bind2;
 			if ( b2 != -1 ) {
 				DC->keynumToStringBuf( b2, g_nameBind2, 32 );
-				idStr::Copynz( g_nameBind2, idStr( g_nameBind2 ).ToUpper().c_str(), sizeof( g_nameBind2 ) );
+				idStr::ToUpper( g_nameBind2 );
 				strcat( g_nameBind1, va( " %s ", DC->getTranslatedString( "or" ) ) );
 				strcat( g_nameBind1, g_nameBind2 );
 			}
@@ -4071,7 +4073,7 @@ void Item_OwnerDraw_Paint( itemDef_t *item ) {
 		}
 
 		if ( item->cvarFlags & ( CVAR_ENABLE | CVAR_DISABLE ) && !Item_EnableShowViaCvar( item, CVAR_ENABLE ) ) {
-			memcpy( color, parent->disableColor, sizeof( idVec4 ) );
+			color = parent->disableColor;
 		}
 
 		if ( item->text ) {
@@ -4109,7 +4111,7 @@ void Item_Paint( itemDef_t *item ) {
 			h = item->window.rectClient.h / 2;
 			rx = item->window.rectClient.x + w - item->window.rectEffects.x;
 			ry = item->window.rectClient.y + h - item->window.rectEffects.y;
-			a = 3 * M_PI / 180;
+			a = 3 * idMath::PI / 180;
 			c = cos( a );
 			s = sin( a );
 			item->window.rectClient.x = ( rx * c - ry * s ) + item->window.rectEffects.x - w;
@@ -4554,7 +4556,7 @@ typedef struct keywordHash_s
 	struct keywordHash_s *next;
 } keywordHash_t;
 
-int KeywordHash_Key( char *keyword ) {
+int KeywordHash_Key( const char *keyword ) {
 	int register hash, i;
 
 	hash = 0;
@@ -4582,7 +4584,7 @@ void KeywordHash_Add( keywordHash_t *table[], keywordHash_t *key ) {
 	table[hash] = key;
 }
 
-keywordHash_t *KeywordHash_Find( keywordHash_t *table[], char *keyword ) {
+keywordHash_t *KeywordHash_Find( keywordHash_t *table[], const char *keyword ) {
 	keywordHash_t *key;
 	int hash;
 

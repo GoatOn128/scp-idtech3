@@ -151,7 +151,6 @@ public:
 	void			WriteDir( const idVec3 &dir, int numBits );
 	void			WriteString( const char *s, int maxLength = -1, bool make7Bit = true );
 	void			WriteData( const void *data, int length );
-	void			WriteNetadr( const netadr_t adr );
 
 	void			WriteUNorm8( float f ) { WriteByte( idMath::Ftob( f * 255.0f ) ); }
 	void			WriteUNorm16( float f ) { WriteUShort( idMath::Ftoi( f * 65535.0f ) ); }
@@ -209,7 +208,6 @@ public:
 	int				ReadString( char *buffer, int bufferSize ) const;
 	int				ReadString( idStr & str ) const;
 	int				ReadData( void *data, int length ) const;
-	void			ReadNetadr( netadr_t *adr ) const;
 
 	float			ReadUNorm8() const { return ReadByte() / 255.0f; }
 	float			ReadUNorm16() const { return ReadUShort() / 65535.0f; }

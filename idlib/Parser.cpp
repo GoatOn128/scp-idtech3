@@ -701,11 +701,6 @@ static idStr PreProcessorTime() {
 	return str;
 }
 
-CONSOLE_COMMAND( TestPreprocessorMacros, "check analyze warning", 0 ) {
-	idLib::Printf( "%s : %s\n", __DATE__, PreProcessorDate().c_str() );
-	idLib::Printf( "%s : %s\n", __TIME__, PreProcessorTime().c_str() );
-}
-
 /*
 ================
 idParser::ExpandBuiltinDefine
@@ -3285,4 +3280,3 @@ bool idParser::EndOfFile() {
 	}
 	return true;
 }
-

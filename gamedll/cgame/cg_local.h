@@ -2077,7 +2077,7 @@ void CG_Particle_OilParticle( qhandle_t pshader, idVec3 &origin, idVec3 &origin2
 void CG_Particle_OilSlick( qhandle_t pshader, centity_t *cent );
 void CG_OilSlickRemove( centity_t *cent );
 void CG_BloodPool( fxEntity_t *le, qhandle_t pshader, trace_t *tr );
-void CG_ParticleBloodCloudZombie( centity_t *cent, idVec3 &origin, idVec3 &dir );
+void CG_ParticleBloodCloudZombie( centity_t *cent, const idVec3 &origin, const idVec3 &dir );
 void CG_ParticleBloodCloud( centity_t *cent, idVec3 &origin, idVec3 &dir );
 // done
 
@@ -2411,7 +2411,7 @@ e_status trap_CIN_RunCinematic( int handle );
 void trap_CIN_DrawCinematic( int handle );
 void trap_CIN_SetExtents( int handle, int x, int y, int w, int h );
 
-void trap_SnapVector( float *v );
+void trap_SnapVector( idVec3 &v );
 
 qboolean    trap_GetEntityToken( char *buffer, int bufferSize );
 

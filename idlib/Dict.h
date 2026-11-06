@@ -29,7 +29,6 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __DICT_H__
 #define __DICT_H__
 
-class idSerializer;
 
 /*
 ===============================================================================
@@ -162,7 +161,6 @@ public:
 	void				WriteToIniFile( idFile * f ) const;
 	bool				ReadFromIniFile( idFile * f );
 
-	void				Serialize( idSerializer & ser );
 
 						// returns a unique checksum for this dictionary's content
 	int					Checksum() const;

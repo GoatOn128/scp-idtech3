@@ -90,9 +90,12 @@ If you have questions concerning this license or the applicable additional terms
 
 #ifdef ID_PC_WIN
 
-#define	CPUSTRING						"x86"
+#define	IDLIB_CPUSTRING					"x86"
+#ifndef CPUSTRING
+#define	CPUSTRING						IDLIB_CPUSTRING
+#endif
 
-#define	BUILD_STRING					"win-" CPUSTRING
+#define	BUILD_STRING					"win-" IDLIB_CPUSTRING
 #define BUILD_OS_ID						0
 
 #define ALIGN16( x )					__declspec(align(16)) x

@@ -664,7 +664,7 @@ CG_RailTrail
 	SA: re-inserted this as a debug mechanism for bullets
 ==========================
 */
-void CG_RailTrail2( clientInfo_t *ci, idVec3 start, idVec3 end ) {
+void CG_RailTrail2( clientInfo_t *ci, const idVec3 &start, const idVec3 &end ) {
 	fxEntity_t   *le;
 	refEntity_t     *re;
 
@@ -705,7 +705,7 @@ CG_RailTrail
 	modified so we could draw boxes for debugging as well
 ==============
 */
-void CG_RailTrail( clientInfo_t *ci, idVec3 start, idVec3 end, int type ) {  //----(SA)	added 'type'
+void CG_RailTrail( clientInfo_t *ci, const idVec3 &start, const idVec3 &end, int type ) {  //----(SA)	added 'type'
 	idVec3 diff, v1, v2, v3, v4, v5, v6;
 
 	if ( !type ) { // just a line
@@ -5561,7 +5561,7 @@ void CG_MissileHitWallSmall( int weapon, int clientNum, const idVec3 &origin, co
 CG_MissileHitPlayer
 =================
 */
-void CG_MissileHitPlayer( centity_t *cent, int weapon, idVec3 origin, idVec3 dir, int entityNum ) {
+void CG_MissileHitPlayer( centity_t *cent, int weapon, const idVec3 &origin, const idVec3 &dir, int entityNum ) {
 	int i;
 
 	CG_Bleed( origin, entityNum );
@@ -5889,7 +5889,7 @@ CG_Bullet
 Renders bullet effects.
 ======================
 */
-void CG_Bullet( idVec3 end, int sourceEntityNum, idVec3 normal, qboolean flesh, int fleshEntityNum, qboolean wolfkick, int otherEntNum2 ) {
+void CG_Bullet( const idVec3 &end, int sourceEntityNum, const idVec3 &normal, qboolean flesh, int fleshEntityNum, qboolean wolfkick, int otherEntNum2 ) {
 	trace_t trace;
 	int sourceContentType = 0, destContentType = 0; // TTimo: init
 	idVec3 dir;

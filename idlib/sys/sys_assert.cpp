@@ -34,8 +34,6 @@ Contains the AssertMacro implementation.
 ================================================================================================
 */
 
-idCVar com_assertOutOfDebugger( "com_assertOutOfDebugger", "0", CVAR_BOOL, "by default, do not assert while not running under the debugger" );
-
 struct skippedAssertion_t {
 					skippedAssertion_t() :
 						file( NULL ),
@@ -75,7 +73,7 @@ bool AssertFailed( const char * file, int line, const char * expression ) {
 
 	idLib::Warning( "ASSERTION FAILED! %s(%d): '%s'", file, line, expression );
 
-	if ( IsDebuggerPresent() || com_assertOutOfDebugger.GetBool() ) {
+	if ( IsDebuggerPresent() ) {
 			__debugbreak();
 	}
 
@@ -87,4 +85,3 @@ bool AssertFailed( const char * file, int line, const char * expression ) {
 
 	return true;
 }
-

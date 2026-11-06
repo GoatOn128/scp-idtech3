@@ -43,7 +43,7 @@ idSIMD::Init
 */
 void idSIMD::Init() {
 	generic = new (TAG_MATH) idSIMD_Generic;
-	generic->cpuid = CPUID_GENERIC;
+	generic->cpuid = ID_CPUID_GENERIC;
 	processor = NULL;
 	SIMDProcessor = generic;
 }
@@ -66,7 +66,7 @@ void idSIMD::InitProcessor( const char *module, bool forceGeneric ) {
 	} else {
 
 		if ( processor == NULL ) {
-			if ( ( cpuid & CPUID_MMX ) && ( cpuid & CPUID_SSE ) ) {
+			if ( ( cpuid & ID_CPUID_MMX ) && ( cpuid & ID_CPUID_SSE ) ) {
 				processor = new (TAG_MATH) idSIMD_SSE;
 			} else {
 				processor = generic;
@@ -82,12 +82,12 @@ void idSIMD::InitProcessor( const char *module, bool forceGeneric ) {
 		idLib::common->Printf( "%s using %s for SIMD processing\n", module, SIMDProcessor->GetName() );
 	}
 
-	if ( cpuid & CPUID_FTZ ) {
+	if ( cpuid & ID_CPUID_FTZ ) {
 		idLib::sys->FPU_SetFTZ( true );
 		idLib::common->Printf( "enabled Flush-To-Zero mode\n" );
 	}
 
-	if ( cpuid & CPUID_DAZ ) {
+	if ( cpuid & ID_CPUID_DAZ ) {
 		idLib::sys->FPU_SetDAZ( true );
 		idLib::common->Printf( "enabled Denormals-Are-Zero mode\n" );
 	}
@@ -1227,13 +1227,13 @@ void idSIMD::Test_f( const idCmdArgs &args ) {
 		argString.Replace( " ", "" );
 
 		if ( idStr::Icmp( argString, "SSE" ) == 0 ) {
-			if ( !( cpuid & CPUID_MMX ) || !( cpuid & CPUID_SSE ) ) {
-				common->Printf( "CPU does not support MMX & SSE\n" );
+			if ( !( cpuid & ID_CPUID_MMX ) || !( cpuid & ID_CPUID_SSE ) ) {
+				idLib::common->Printf( "CPU does not support MMX & SSE\n" );
 				return;
 			}
 			p_simd = new (TAG_MATH) idSIMD_SSE;
 		} else {
-			common->Printf( "invalid argument, use: MMX, 3DNow, SSE, SSE2, SSE3, AltiVec\n" );
+			idLib::common->Printf( "invalid argument, use: MMX, 3DNow, SSE, SSE2, SSE3, AltiVec\n" );
 			return;
 		}
 	}

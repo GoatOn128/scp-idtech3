@@ -166,7 +166,7 @@ void CG_ParticleBloodCloud( centity_t *cent, idVec3 &origin, idVec3 &direction )
     Com_sprintf( effect, sizeof(effect), "%s%s", name, cent->currentState.density ? "_large" : "" );
     CG_PlayParticle( effect, origin, p );
 }
-void CG_ParticleBloodCloudZombie( centity_t *cent, idVec3 &origin, idVec3 &direction ) {
+void CG_ParticleBloodCloudZombie( centity_t *cent, const idVec3 &origin, const idVec3 &direction ) {
     if ( !cg_blood.integer ) { return; }
     FxParameters p;
     p.pathLength = direction.Length();
@@ -262,5 +262,4 @@ int CG_NewParticleArea( int num ) {
 
 	return ( 1 );
 }
-
 

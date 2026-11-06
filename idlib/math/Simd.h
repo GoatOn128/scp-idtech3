@@ -79,7 +79,7 @@ struct dominantTri_t;
 
 class idSIMDProcessor {
 public:
-									idSIMDProcessor() { cpuid = CPUID_NONE; }
+									idSIMDProcessor() { cpuid = ID_CPUID_NONE; }
 
 	cpuid_t							cpuid;
 

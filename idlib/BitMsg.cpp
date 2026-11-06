@@ -207,17 +207,6 @@ void idBitMsg::WriteData( const void *data, int length ) {
 
 /*
 ========================
-idBitMsg::WriteNetadr
-========================
-*/
-void idBitMsg::WriteNetadr( const netadr_t adr ) {
-	WriteData( adr.ip, 4 );
-	WriteUShort( adr.port );
-	WriteByte( adr.type );
-}
-
-/*
-========================
 idBitMsg::WriteDeltaDict
 ========================
 */
@@ -412,17 +401,6 @@ int idBitMsg::ReadData( void *data, int length ) const {
 	}
 
 	return ( readCount - cnt );
-}
-
-/*
-========================
-idBitMsg::ReadNetadr
-========================
-*/
-void idBitMsg::ReadNetadr( netadr_t *adr ) const {
-	ReadData( adr->ip, 4 );
-	adr->port = ReadUShort();
-	adr->type = ( netadrtype_t ) ReadByte();
 }
 
 /*
