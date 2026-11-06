@@ -32,7 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 
 qboolean CG_ParticleLODCheck( void );
 
-static void CG_PlayParticle( const char *name, const vec3_t origin, const FxParameters &p ) {
+static void CG_PlayParticle( const char *name, const idVec3 &origin, const FxParameters &p ) {
     if ( !CG_ParticleLODCheck() ) { return; }
     CG_FxPlayParameters( name, origin, vec3_origin, p );
 }
@@ -44,11 +44,11 @@ qboolean CG_ParticleLODCheck( void ) {
 void CG_ParticleSnowFlurry( qhandle_t shader, centity_t *cent ) {
     FxParameters p;
     p.shader = shader; p.life = cent->currentState.time; p.fadeTime = cent->currentState.time2;
-    VectorCopy( cent->currentState.angles, p.velocity );
+    p.velocity = cent->currentState.angles;
     CG_PlayParticle( "wolf/snow_flurry", cent->currentState.origin, p );
 }
 
-static void CG_FxWeather( const char *name, qhandle_t shader, vec3_t origin, vec3_t end, float spread, int group ) {
+static void CG_FxWeather( const char *name, qhandle_t shader, idVec3 &origin, idVec3 &end, float spread, int group ) {
     FxParameters p;
     p.shader = shader; p.group = group; p.spread = spread;
     p.heightMin = origin[2] < end[2] ? origin[2] : end[2];
@@ -56,14 +56,14 @@ static void CG_FxWeather( const char *name, qhandle_t shader, vec3_t origin, vec
     CG_PlayParticle( name, origin, p );
 }
 
-void CG_ParticleSnow( qhandle_t shader, vec3_t origin, vec3_t end, int turbulent, float spread, int group ) {
+void CG_ParticleSnow( qhandle_t shader, idVec3 &origin, idVec3 &end, int turbulent, float spread, int group ) {
     CG_FxWeather( turbulent ? "wolf/snow_turbulent" : "wolf/snow", shader, origin, end, spread, group );
 }
-void CG_ParticleBubble( qhandle_t shader, vec3_t origin, vec3_t end, int turbulent, float spread, int group ) {
+void CG_ParticleBubble( qhandle_t shader, idVec3 &origin, idVec3 &end, int turbulent, float spread, int group ) {
     CG_FxWeather( turbulent ? "wolf/bubbles_turbulent" : "wolf/bubbles", shader, origin, end, spread, group );
 }
 void CG_SnowLink( centity_t *cent, qboolean visible ) {
-    vec3_t value = { static_cast<float>(visible), 0, 0 };
+    idVec3 value( static_cast<float>(visible), 0, 0 );
     FX_GroupMessage( cent->currentState.frame, 0, value );
 }
 
@@ -72,7 +72,7 @@ void CG_ParticleSmoke( qhandle_t shader, centity_t *cent ) {
     p.shader = shader; p.life = cent->currentState.time; p.fadeTime = cent->currentState.time2;
     p.size = cent->currentState.angles2[0]; p.sizeEnd = cent->currentState.angles2[1];
     p.speed = cent->currentState.angles2[2];
-    VectorCopy( cent->currentState.origin2, p.velocity );
+    p.velocity = cent->currentState.origin2;
     const char *effect = "wolf/smoke_black";
     switch ( cent->currentState.density ) {
         case 1: effect = "wolf/smoke_small"; break;
@@ -85,25 +85,25 @@ void CG_ParticleSmoke( qhandle_t shader, centity_t *cent ) {
     CG_PlayParticle( effect, cent->currentState.origin, p );
 }
 
-void CG_ParticleBulletDebris( vec3_t origin, vec3_t velocity, int duration ) {
-    FxParameters p; p.life = duration; VectorCopy( velocity, p.velocity );
+void CG_ParticleBulletDebris( idVec3 &origin, idVec3 &velocity, int duration ) {
+    FxParameters p; p.life = duration; p.velocity = velocity;
     CG_PlayParticle( "wolf/bullet_debris", origin, p );
 }
-void CG_ParticleDirtBulletDebris( vec3_t origin, vec3_t velocity, int duration ) {
-    FxParameters p; p.life = duration; VectorCopy( velocity, p.velocity );
+void CG_ParticleDirtBulletDebris( idVec3 &origin, idVec3 &velocity, int duration ) {
+    FxParameters p; p.life = duration; p.velocity = velocity;
     CG_PlayParticle( "wolf/dirt_debris", origin, p );
 }
-void CG_ParticleDirtBulletDebris_Core( vec3_t origin, vec3_t velocity, int duration,
+void CG_ParticleDirtBulletDebris_Core( idVec3 &origin, idVec3 &velocity, int duration,
         float width, float height, float alpha, char *shader ) {
     FxParameters p; p.life = duration; p.size = width; p.aspect = width > 0 ? height / width : 1; p.alpha = alpha;
-    p.shader = trap_R_RegisterShader( shader ); VectorCopy( velocity, p.velocity );
+    p.shader = trap_R_RegisterShader( shader ); p.velocity = velocity;
     CG_PlayParticle( "wolf/dirt_core", origin, p );
 }
-void CG_ParticleExplosion( char *animation, vec3_t origin, vec3_t velocity, int duration, int size, int sizeEnd ) {
+void CG_ParticleExplosion( char *animation, idVec3 &origin, idVec3 &velocity, int duration, int size, int sizeEnd ) {
     if ( !animation || strstr(animation, "..") || strchr(animation, '/') || strchr(animation, '\\') ) { return; }
     char effect[MAX_QPATH]; Com_sprintf( effect, sizeof(effect), "wolf/%s", animation );
     FxParameters p; p.life = abs(duration); p.size = size; p.sizeEnd = sizeEnd;
-    VectorCopy( velocity, p.velocity ); CG_PlayParticle( effect, origin, p );
+    p.velocity = velocity; CG_PlayParticle( effect, origin, p );
 }
 void CG_AddParticleShrapnel( fxEntity_t *entity ) {}
 
@@ -113,33 +113,33 @@ void CG_ParticleBat( centity_t *cent ) {
 }
 void CG_ParticleBats( qhandle_t shader, centity_t *cent ) {
     FxParameters p; p.shader = shader; p.group = cent->currentState.frame;
-    VectorScale( cent->currentState.angles, cent->currentState.time, p.velocity );
+    p.velocity = cent->currentState.angles * cent->currentState.time;
     CG_PlayParticle( "wolf/bats", cent->currentState.origin, p );
 }
 void CG_BatsUpdatePosition( centity_t *cent ) {
-    vec3_t velocity; VectorScale( cent->currentState.angles, cent->currentState.time, velocity );
+    idVec3 velocity; velocity = cent->currentState.angles * cent->currentState.time;
     FX_GroupMessage( cent->currentState.frame, 1, velocity );
 }
 
-void CG_ParticleImpactSmokePuffExtended( qhandle_t shader, vec3_t origin, vec3_t direction, int size,
+void CG_ParticleImpactSmokePuffExtended( qhandle_t shader, idVec3 &origin, idVec3 &direction, int size,
         int life, int velocity, int acceleration, int maxroll, float alpha ) {
     FxParameters p; p.shader = shader; p.life = life; p.size = size; p.alpha = alpha;
     p.speed = velocity; p.acceleration = acceleration;
     CG_FxPlayParameters( "wolf/impact_smoke", origin, direction, p );
 }
-void CG_ParticleImpactSmokePuff( qhandle_t shader, vec3_t origin ) {
+void CG_ParticleImpactSmokePuff( qhandle_t shader, idVec3 &origin ) {
     FxParameters p; p.shader = shader;
     CG_PlayParticle( "wolf/impact_smoke_default", origin, p );
 }
-void CG_Particle_Bleed( qhandle_t shader, vec3_t origin, vec3_t direction, int flesh, int duration ) {
+void CG_Particle_Bleed( qhandle_t shader, idVec3 &origin, idVec3 &direction, int flesh, int duration ) {
 	if ( !cg_blood.integer ) { return; }
     FxParameters p; p.shader = shader; p.life = duration;
     CG_PlayParticle( flesh ? "wolf/bleed_undead" : "wolf/bleed", origin, p );
 }
-void CG_Particle_OilParticle( qhandle_t shader, vec3_t origin, vec3_t direction, int time, int group ) {
+void CG_Particle_OilParticle( qhandle_t shader, idVec3 &origin, idVec3 &direction, int time, int group ) {
     FxParameters p; p.shader = shader; p.group = group;
     float ratio = cg.time + time > 0 ? static_cast<float>(time) / (cg.time + time) : 0;
-    VectorScale( direction, ratio, p.velocity ); CG_PlayParticle( "wolf/oil_drop", origin, p );
+    p.velocity = direction * ratio; CG_PlayParticle( "wolf/oil_drop", origin, p );
 }
 void CG_Particle_OilSlick( qhandle_t shader, centity_t *cent ) {
     FxParameters p; p.shader = shader; p.group = cent->currentState.density;
@@ -156,58 +156,60 @@ void CG_BloodPool( fxEntity_t *entity, qhandle_t shader, trace_t *trace ) {
     FxParameters p; p.shader = shader;
     CG_FxPlayParameters( "wolf/blood_pool", trace->endpos, trace->plane.normal, p );
 }
-void CG_ParticleBloodCloud( centity_t *cent, vec3_t origin, vec3_t direction ) {
+void CG_ParticleBloodCloud( centity_t *cent, idVec3 &origin, idVec3 &direction ) {
     if ( !cg_blood.integer ) { return; }
     FxParameters p;
     const char *name = cent->currentState.aiChar == AICHAR_ZOMBIE ? "wolf/blood_cloud_undead" : "wolf/blood_cloud";
     if ( cent->currentState.aiChar == AICHAR_HELGA || cent->currentState.aiChar == AICHAR_HEINRICH ) { name = "wolf/blood_cloud_boss"; }
-    p.pathLength = VectorLength( direction );
+    p.pathLength = direction.Length();
     char effect[MAX_QPATH];
     Com_sprintf( effect, sizeof(effect), "%s%s", name, cent->currentState.density ? "_large" : "" );
     CG_PlayParticle( effect, origin, p );
 }
-void CG_ParticleBloodCloudZombie( centity_t *cent, vec3_t origin, vec3_t direction ) {
+void CG_ParticleBloodCloudZombie( centity_t *cent, idVec3 &origin, idVec3 &direction ) {
     if ( !cg_blood.integer ) { return; }
     FxParameters p;
-    p.pathLength = VectorLength( direction );
+    p.pathLength = direction.Length();
     const char *name = p.pathLength > 0 ? "wolf/blood_zombie" : "wolf/blood_zombie_small";
     char effect[MAX_QPATH];
     Com_sprintf( effect, sizeof(effect), "%s%s", name, cent->currentState.density ? "_large" : "" );
     CG_PlayParticle( effect, origin, p );
 }
-void CG_ParticleSparks( vec3_t origin, vec3_t velocity, int duration, float x, float y, float speed ) {
-    FxParameters p; p.life = duration; p.speed = speed; p.spreadAxes[0] = x; p.spreadAxes[1] = y; VectorCopy( velocity, p.velocity );
+void CG_ParticleSparks( idVec3 &origin, idVec3 &velocity, int duration, float x, float y, float speed ) {
+    FxParameters p; p.life = duration; p.speed = speed; p.spreadAxes[0] = x; p.spreadAxes[1] = y; p.velocity = velocity;
     CG_PlayParticle( "wolf/sparks", origin, p );
 }
-void CG_ParticleDust( centity_t *cent, vec3_t origin, vec3_t direction ) {
+void CG_ParticleDust( centity_t *cent, idVec3 &origin, idVec3 &direction ) {
     FxParameters p;
     CG_FxPlayParameters( cent->currentState.density ? "wolf/dust_large" : "wolf/dust", origin, direction, p );
 }
-void CG_ParticleMisc( qhandle_t shader, vec3_t origin, int size, int duration, float alpha ) {
+void CG_ParticleMisc( qhandle_t shader, idVec3 &origin, int size, int duration, float alpha ) {
     FxParameters p; p.shader = shader; p.size = size; p.alpha = alpha; p.life = duration > 0 ? duration : 1;
     CG_PlayParticle( "wolf/misc", origin, p );
 }
 
 int CG_NewParticleArea( int num ) {
 	// const char *str;
-	char *str;
-	char *token;
 	int type;
-	vec3_t origin, origin2;
+	idVec3 origin, origin2;
 	int i;
 	float range = 0;
 	int turb;
 	int numparticles;
 	int snum;
 
-	str = (char *) CG_ConfigString( num );
+	const char *str = CG_ConfigString( num );
 	if ( !str[0] ) {
 		return ( 0 );
 	}
 
+	idLexer lexer;
+	lexer.LoadMemory( str, strlen( str ), "particle area" );
+	idToken token;
+
 	// returns type 128 64 or 32
-	token = COM_Parse( &str );
-	type = atoi( token );
+	lexer.ReadToken( &token );
+	type = atoi( token.c_str() );
 
 	if ( type == 1 ) {
 		range = 128;
@@ -230,24 +232,24 @@ int CG_NewParticleArea( int num ) {
 
 	for ( i = 0; i < 3; i++ )
 	{
-		token = COM_Parse( &str );
-		origin[i] = atof( token );
+		lexer.ReadToken( &token );
+		origin[i] = atof( token.c_str() );
 	}
 
 	for ( i = 0; i < 3; i++ )
 	{
-		token = COM_Parse( &str );
-		origin2[i] = atof( token );
+		lexer.ReadToken( &token );
+		origin2[i] = atof( token.c_str() );
 	}
 
-	token = COM_Parse( &str );
-	numparticles = atoi( token );
+	lexer.ReadToken( &token );
+	numparticles = atoi( token.c_str() );
 
-	token = COM_Parse( &str );
-	turb = atoi( token );
+	lexer.ReadToken( &token );
+	turb = atoi( token.c_str() );
 
-	token = COM_Parse( &str );
-	snum = atoi( token );
+	lexer.ReadToken( &token );
+	snum = atoi( token.c_str() );
 
 	for ( i = 0; i < numparticles; i++ )
 	{

@@ -81,18 +81,18 @@ public:
 //#define	MARK_TOTAL_TIME		20000	// (SA) made this a cvar: cg_markTime  (we could cap the time or remove marks quicker if too long a time starts to cause new marks to not appear)
 #define MARK_FADE_TIME      10000
 
-void CG_ImpactMark( qhandle_t markShader, const vec3_t origin, const vec3_t dir,
+void CG_ImpactMark( qhandle_t markShader, const idVec3 &origin, const idVec3 &dir,
 					float orientation, float red, float green, float blue, float alpha,
 					qboolean alphaFade, float radius, qboolean temporary, int duration ) {
-	vec3_t axis[3];
+	idVec3 axis[3];
 	float texCoordScale;
-	vec3_t originalPoints[4];
+	idVec3 originalPoints[4];
 	byte colors[4];
 	int i, j;
 	int numFragments;
 	markFragment_t markFragments[MAX_MARK_FRAGMENTS], *mf;
-	vec5_t markPoints[MAX_MARK_POINTS];             // Ridah, made it vec5_t so it includes S/T
-	vec3_t projection;
+	idVec5 markPoints[MAX_MARK_POINTS];             // Ridah, made it vec5_t so it includes S/T
+	idVec3 projection;
 	int multMaxFragments = 1;
 
 	if ( !cg_markTime.integer ) {
@@ -116,10 +116,10 @@ void CG_ImpactMark( qhandle_t markShader, const vec3_t origin, const vec3_t dir,
 	}
 
 	// create the texture axis
-	VectorNormalize2( dir, axis[0] );
-	PerpendicularVector( axis[1], axis[0] );
-	RotatePointAroundVector( axis[2], axis[0], axis[1], orientation );
-	CrossProduct( axis[0], axis[2], axis[1] );
+	( axis[0] = dir ).Normalize();
+	axis[1].PerpendicularVector( axis[0] );
+	axis[2].RotatePointAroundVector( axis[0], axis[1], orientation );
+	axis[1] = axis[0].Cross( axis[2] );
 
 	texCoordScale = 0.5 * 1.0 / radius;
 
@@ -133,9 +133,9 @@ void CG_ImpactMark( qhandle_t markShader, const vec3_t origin, const vec3_t dir,
 
 	// get the fragments
 	//VectorScale( dir, -20, projection );
-	VectorScale( dir, radius * 2, projection );
+	projection = dir * ( radius * 2 );
 	numFragments = trap_CM_MarkFragments( (int)orientation, originalPoints,
-										  projection, MAX_MARK_POINTS, (float *)&markPoints[0],
+										  projection, MAX_MARK_POINTS, ( idVec3 * )markPoints,
 										  MAX_MARK_FRAGMENTS * multMaxFragments, markFragments );
 
 	colors[0] = red * 255;
@@ -156,14 +156,14 @@ void CG_ImpactMark( qhandle_t markShader, const vec3_t origin, const vec3_t dir,
         if ( mf->numPoints > MAX_VERTS_ON_POLY ) { mf->numPoints = MAX_VERTS_ON_POLY; }
         if ( mf->numPoints < 3 || mf->firstPoint < 0 || mf->firstPoint + mf->numPoints > MAX_MARK_POINTS ) { continue; }
 		for ( j = 0, v = verts ; j < mf->numPoints ; j++, v++ ) {
-			vec3_t delta;
+			idVec3 delta;
 
-			VectorCopy( markPoints[mf->firstPoint + j], v->xyz );
+			v->xyz = markPoints[mf->firstPoint + j].ToVec3();
 
 			if ( !hasST ) {
-				VectorSubtract( v->xyz, origin, delta );
-				v->st[0] = 0.5 + DotProduct( delta, axis[1] ) * texCoordScale;
-				v->st[1] = 0.5 + DotProduct( delta, axis[2] ) * texCoordScale;
+				delta = v->xyz - origin;
+				v->st[0] = 0.5 + ( delta * axis[1] ) * texCoordScale;
+				v->st[1] = 0.5 + ( delta * axis[2] ) * texCoordScale;
 			} else {
 				v->st[0] = markPoints[mf->firstPoint + j][3];
 				v->st[1] = markPoints[mf->firstPoint + j][4];

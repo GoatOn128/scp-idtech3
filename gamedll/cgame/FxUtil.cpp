@@ -6,7 +6,7 @@
 	#include "FxScheduler.h"
 #endif
 
-vec3_t	WHITE = {1.0f, 1.0f, 1.0f};
+idVec3 WHITE( 1.0f, 1.0f, 1.0f );
 
 
 struct SEffectList
@@ -399,11 +399,11 @@ void FX_AddPrimitive( CEffect **pEffect, int killTime )
 //-------------------------
 //  FX_AddParticle
 //-------------------------
-CParticle *FX_AddParticle( const vec3_t org, const vec3_t vel, const vec3_t accel, float size1, float size2, float sizeParm, 
+CParticle *FX_AddParticle( const idVec3 &org, const idVec3 &vel, const idVec3 &accel, float size1, float size2, float sizeParm, 
 							float alpha1, float alpha2, float alphaParm, 
-							const vec3_t sRGB, const vec3_t eRGB, float rgbParm,
+							const idVec3 &sRGB, const idVec3 &eRGB, float rgbParm,
 							float rotation, float rotationDelta,
-							const vec3_t min, const vec3_t max, float elasticity,
+							const idVec3 &min, const idVec3 &max, float elasticity,
 							int deathID, int impactID,
 							int killTime, qhandle_t shader, int flags = 0 )
 {
@@ -480,10 +480,10 @@ CParticle *FX_AddParticle( const vec3_t org, const vec3_t vel, const vec3_t acce
 //-------------------------
 //  FX_AddParticle
 //-------------------------
-CParticle *FX_AddParticle( int clientID, const vec3_t org, const vec3_t vel, const vec3_t accel, float gravity,
+CParticle *FX_AddParticle( int clientID, const idVec3 &org, const idVec3 &vel, const idVec3 &accel, float gravity,
 							float size1, float size2, float sizeParm,
 							float alpha1, float alpha2, float alphaParm,
-							const vec3_t rgb1, const vec3_t rgb2, float rgbParm,
+							const idVec3 &rgb1, const idVec3 &rgb2, float rgbParm,
 							float rotation, float rotationDelta,
 							int killTime, qhandle_t shader, int flags = 0 )
 {
@@ -560,9 +560,9 @@ CParticle *FX_AddParticle( int clientID, const vec3_t org, const vec3_t vel, con
 //-------------------------
 //  FX_AddLine
 //-------------------------
-CLine *FX_AddLine( vec3_t start, vec3_t end, float size1, float size2, float sizeParm,
+CLine *FX_AddLine( idVec3 &start, idVec3 &end, float size1, float size2, float sizeParm,
 									float alpha1, float alpha2, float alphaParm,
-									vec3_t sRGB, vec3_t eRGB, float rgbParm,
+									idVec3 &sRGB, idVec3 &eRGB, float rgbParm,
 									int killTime, qhandle_t shader, int flags = 0 )
 {
 	if ( theFxHelper.mTimeFrozen )
@@ -633,9 +633,9 @@ CLine *FX_AddLine( vec3_t start, vec3_t end, float size1, float size2, float siz
 //-------------------------
 //  FX_AddLine
 //-------------------------
-CLine *FX_AddLine( int clientID, vec3_t start, float size1, float size2, float sizeParm,
+CLine *FX_AddLine( int clientID, idVec3 &start, float size1, float size2, float sizeParm,
 									float alpha1, float alpha2, float alphaParm,
-									vec3_t sRGB, vec3_t eRGB, float rgbParm,
+									idVec3 &sRGB, idVec3 &eRGB, float rgbParm,
 									int killTime, qhandle_t shader, int impactFX_id, int flags = 0 )
 {
 	if ( theFxHelper.mTimeFrozen )
@@ -707,9 +707,9 @@ CLine *FX_AddLine( int clientID, vec3_t start, float size1, float size2, float s
 //-------------------------
 //  FX_AddElectricity
 //-------------------------
-CElectricity *FX_AddElectricity( vec3_t start, vec3_t end, float size1, float size2, float sizeParm,
+CElectricity *FX_AddElectricity( idVec3 &start, idVec3 &end, float size1, float size2, float sizeParm,
 									float alpha1, float alpha2, float alphaParm,
-									vec3_t sRGB, vec3_t eRGB, float rgbParm,
+									idVec3 &sRGB, idVec3 &eRGB, float rgbParm,
 									float chaos, int killTime, qhandle_t shader, int flags = 0 )
 {
 	if ( theFxHelper.mTimeFrozen )
@@ -785,12 +785,12 @@ CElectricity *FX_AddElectricity( vec3_t start, vec3_t end, float size1, float si
 //-------------------------
 //  FX_AddTail
 //-------------------------
-CTail *FX_AddTail( vec3_t org, vec3_t vel, vec3_t accel, 
+CTail *FX_AddTail( idVec3 &org, idVec3 &vel, idVec3 &accel, 
 							float size1, float size2, float sizeParm, 
 							float length1, float length2, float lengthParm,
 							float alpha1, float alpha2, float alphaParm,
-							vec3_t sRGB, vec3_t eRGB, float rgbParm,
-							vec3_t min, vec3_t max, float elasticity, 
+							idVec3 &sRGB, idVec3 &eRGB, float rgbParm,
+							idVec3 &min, idVec3 &max, float elasticity, 
 							int deathID, int impactID,
 							int killTime, qhandle_t shader, int flags = 0 )
 {
@@ -879,12 +879,12 @@ CTail *FX_AddTail( vec3_t org, vec3_t vel, vec3_t accel,
 //-------------------------
 //  FX_AddTail
 //-------------------------
-CTail *FX_AddTail( int clientID, vec3_t org, vec3_t vel, vec3_t accel, 
+CTail *FX_AddTail( int clientID, idVec3 &org, idVec3 &vel, idVec3 &accel, 
 							float size1, float size2, float sizeParm, 
 							float length1, float length2, float lengthParm,
 							float alpha1, float alpha2, float alphaParm,
-							vec3_t sRGB, vec3_t eRGB, float rgbParm,
-							vec3_t min, vec3_t max, float elasticity, 
+							idVec3 &sRGB, idVec3 &eRGB, float rgbParm,
+							idVec3 &min, idVec3 &max, float elasticity, 
 							int deathID, int impactID,
 							int killTime, qhandle_t shader, int flags = 0 )
 {
@@ -975,12 +975,12 @@ CTail *FX_AddTail( int clientID, vec3_t org, vec3_t vel, vec3_t accel,
 //-------------------------
 //  FX_AddCylinder
 //-------------------------
-CCylinder *FX_AddCylinder( vec3_t start, vec3_t normal, 
+CCylinder *FX_AddCylinder( idVec3 &start, idVec3 &normal, 
 							float size1s, float size1e, float sizeParm,
 							float size2s, float size2e, float size2Parm,
 							float length1, float length2, float lengthParm,
 							float alpha1, float alpha2, float alphaParm,
-							vec3_t rgb1, vec3_t rgb2, float rgbParm,
+							idVec3 &rgb1, idVec3 &rgb2, float rgbParm,
 							int killTime, qhandle_t shader, int flags )
 {
 	if ( theFxHelper.mTimeFrozen )
@@ -1073,12 +1073,12 @@ CCylinder *FX_AddCylinder( vec3_t start, vec3_t normal,
 //-------------------------
 //  FX_AddEmitter
 //-------------------------
-CEmitter *FX_AddEmitter( vec3_t org, vec3_t vel, vec3_t accel, 
+CEmitter *FX_AddEmitter( idVec3 &org, idVec3 &vel, idVec3 &accel, 
 								float size1, float size2, float sizeParm,
 								float alpha1, float alpha2, float alphaParm,
-								vec3_t rgb1, vec3_t rgb2, float rgbParm,
-								vec3_t angs, vec3_t deltaAngs,
-								vec3_t min, vec3_t max, float elasticity, 
+								idVec3 &rgb1, idVec3 &rgb2, float rgbParm,
+								idVec3 &angs, idVec3 &deltaAngs,
+								idVec3 &min, idVec3 &max, float elasticity, 
 								int deathID, int impactID, int emitterID,
 								float density, float variance,
 								int killTime, qhandle_t model, int flags = 0 )
@@ -1163,8 +1163,8 @@ CEmitter *FX_AddEmitter( vec3_t org, vec3_t vel, vec3_t accel,
 //-------------------------
 //  FX_AddLight
 //-------------------------
-CLight *FX_AddLight( vec3_t org, float size1, float size2, float sizeParm,
-							vec3_t rgb1, vec3_t rgb2, float rgbParm,
+CLight *FX_AddLight( idVec3 &org, float size1, float size2, float sizeParm,
+							idVec3 &rgb1, idVec3 &rgb2, float rgbParm,
 							int killTime, int flags = 0 )
 {
 	if ( theFxHelper.mTimeFrozen )
@@ -1219,12 +1219,12 @@ CLight *FX_AddLight( vec3_t org, float size1, float size2, float sizeParm,
 //-------------------------
 //  FX_AddOrientedParticle
 //-------------------------
-COrientedParticle *FX_AddOrientedParticle( vec3_t org, vec3_t norm, vec3_t vel, vec3_t accel,
+COrientedParticle *FX_AddOrientedParticle( idVec3 &org, idVec3 &norm, idVec3 &vel, idVec3 &accel,
 						float size1, float size2, float sizeParm,
 						float alpha1, float alpha2, float alphaParm,
-						vec3_t rgb1, vec3_t rgb2, float rgbParm,
+						idVec3 &rgb1, idVec3 &rgb2, float rgbParm,
 						float rotation, float rotationDelta,
-						vec3_t min, vec3_t max, float bounce,
+						idVec3 &min, idVec3 &max, float bounce,
 						int deathID, int impactID,
 						int killTime, qhandle_t shader, int flags = 0 )
 {
@@ -1303,11 +1303,11 @@ COrientedParticle *FX_AddOrientedParticle( vec3_t org, vec3_t norm, vec3_t vel, 
 //-------------------------
 //  FX_AddPoly
 //-------------------------
-CPoly *FX_AddPoly( vec3_t *verts, vec2_t *st, int numVerts, 
-							vec3_t vel, vec3_t accel,
+CPoly *FX_AddPoly( idVec3 *verts, idVec2 *st, int numVerts, 
+							idVec3 &vel, idVec3 &accel,
 							float alpha1, float alpha2, float alphaParm,
-							vec3_t rgb1, vec3_t rgb2, float rgbParm,
-							vec3_t rotationDelta, float bounce, int motionDelay,
+							idVec3 &rgb1, idVec3 &rgb2, float rgbParm,
+							idVec3 &rotationDelta, float bounce, int motionDelay,
 							int killTime, qhandle_t shader, int flags )
 {
 	if ( theFxHelper.mTimeFrozen || !verts )
@@ -1322,8 +1322,8 @@ CPoly *FX_AddPoly( vec3_t *verts, vec2_t *st, int numVerts,
 		// Do a cheesy copy of the verts and texture coords into our own structure
 		for ( int i = 0; i < numVerts; i++ )
 		{
-			VectorCopy( verts[i], fx->mOrg[i] );
-			Vector2Copy( st[i], fx->mST[i] );
+			fx->mOrg[i] = verts[i];
+			fx->mST[i] = st[i];
 		}
 
 		fx->SetVel( vel );
@@ -1377,12 +1377,12 @@ CPoly *FX_AddPoly( vec3_t *verts, vec2_t *st, int numVerts,
 //-------------------------
 //  FX_AddBezier
 //-------------------------
-CBezier *FX_AddBezier( const vec3_t start, const vec3_t end, 
-						const vec3_t control1, const vec3_t control1Vel,
-						const vec3_t control2, const vec3_t control2Vel,
+CBezier *FX_AddBezier( const idVec3 &start, const idVec3 &end, 
+						const idVec3 &control1, const idVec3 &control1Vel,
+						const idVec3 &control2, const idVec3 &control2Vel,
 						float size1, float size2, float sizeParm,
 						float alpha1, float alpha2, float alphaParm,
-						const vec3_t sRGB, const vec3_t eRGB, const float rgbParm,
+						const idVec3 &sRGB, const idVec3 &eRGB, const float rgbParm,
 						int killTime, qhandle_t shader, int flags )
 {
 	if ( theFxHelper.mTimeFrozen )
@@ -1454,7 +1454,7 @@ CBezier *FX_AddBezier( const vec3_t start, const vec3_t end,
 //-------------------------
 //  FX_AddFlash
 //-------------------------
-CFlash *FX_AddFlash( vec3_t origin, vec3_t sRGB, vec3_t eRGB, float rgbParm,
+CFlash *FX_AddFlash( idVec3 &origin, idVec3 &sRGB, idVec3 &eRGB, float rgbParm,
 						int killTime, qhandle_t shader, int flags = 0 )
 {
 	if ( theFxHelper.mTimeFrozen )
@@ -1531,7 +1531,7 @@ CFlash *FX_AddFlash( vec3_t origin, vec3_t sRGB, vec3_t eRGB, float rgbParm,
 //-------------------------------------------------------
 
 //---------------------------------------------------
-void FX_AddSprite( vec3_t origin, vec3_t vel, vec3_t accel, 
+void FX_AddSprite( idVec3 &origin, idVec3 &vel, idVec3 &accel, 
 							float scale, float dscale, 
 							float sAlpha, float eAlpha, 
 							float rotation, float bounce,  
@@ -1547,10 +1547,10 @@ void FX_AddSprite( vec3_t origin, vec3_t vel, vec3_t accel,
 }
 
 //---------------------------------------------------
-void FX_AddSprite( vec3_t origin, vec3_t vel, vec3_t accel, 
+void FX_AddSprite( idVec3 &origin, idVec3 &vel, idVec3 &accel, 
 							float scale, float dscale, 
 							float sAlpha, float eAlpha, 
-							vec3_t sRGB, vec3_t eRGB, 
+							idVec3 &sRGB, idVec3 &eRGB, 
 							float rotation, float bounce, 
 							int life, qhandle_t shader, int flags )
 {
@@ -1564,7 +1564,7 @@ void FX_AddSprite( vec3_t origin, vec3_t vel, vec3_t accel,
 }
 
 //---------------------------------------------------
-void FX_AddLine( vec3_t start, vec3_t end, float stScale, 
+void FX_AddLine( idVec3 &start, idVec3 &end, float stScale, 
 							float width, float dwidth, 
 							float sAlpha, float eAlpha, 
 							int life, qhandle_t shader, int flags )
@@ -1576,10 +1576,10 @@ void FX_AddLine( vec3_t start, vec3_t end, float stScale,
 }
 
 //---------------------------------------------------
-void FX_AddLine( vec3_t start, vec3_t end, float stScale, 
+void FX_AddLine( idVec3 &start, idVec3 &end, float stScale, 
 							float width, float dwidth, 
 							float sAlpha, float eAlpha, 
-							vec3_t sRGB, vec3_t eRGB, 
+							idVec3 &sRGB, idVec3 &eRGB, 
 							int life, qhandle_t shader, int flags )
 {
 	FX_AddLine( start, end, width, width, 0,
@@ -1589,11 +1589,11 @@ void FX_AddLine( vec3_t start, vec3_t end, float stScale,
 }
 
 //---------------------------------------------------
-void FX_AddQuad( vec3_t origin, vec3_t normal, 
-							vec3_t vel, vec3_t accel, 
+void FX_AddQuad( idVec3 &origin, idVec3 &normal, 
+							idVec3 &vel, idVec3 &accel, 
 							float sradius, float eradius, 
 							float salpha, float ealpha, 
-							vec3_t sRGB, vec3_t eRGB, 
+							idVec3 &sRGB, idVec3 &eRGB, 
 							float rotation, int life, qhandle_t shader, int flags )
 {
 	FX_AddOrientedParticle( origin, normal, vel, accel, 
@@ -1605,7 +1605,7 @@ void FX_AddQuad( vec3_t origin, vec3_t normal,
 							shader, 0 );
 }
 
-void FX_GroupMessage( int group, int action, const vec3_t value ) {
+void FX_GroupMessage( int group, int action, const idVec3 &value ) {
     for ( int i = 0; i < MAX_EFFECTS; i++ ) {
         if ( effectList[i].mEffect ) { effectList[i].mEffect->GroupMessage(group, action, value); }
     }

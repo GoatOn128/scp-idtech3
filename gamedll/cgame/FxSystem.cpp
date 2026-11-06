@@ -8,7 +8,7 @@
 vmCvar_t fx_debug;
 vmCvar_t fx_freeze;
 
-extern void CG_StartShakeCamera( float intensity, int time, vec3_t origin, float radius );
+extern void CG_StartShakeCamera( float intensity, int time, idVec3 &origin, float radius );
 
 static void FX_RenderPrimitive(FxRefEntity *ent);
 
@@ -77,14 +77,14 @@ void SFxHelper::CloseFile( fileHandle_t fh )
 }
 
 //------------------------------------------------------
-void SFxHelper::PlaySound( vec3_t org, int entityNum, int entchannel, int sfxHandle )
+void SFxHelper::PlaySound( idVec3 &org, int entityNum, int entchannel, int sfxHandle )
 {
-	trap_S_StartSound( org, entityNum, entchannel, sfxHandle );
+	trap_S_StartSound( &org, entityNum, entchannel, sfxHandle );
 }
 
 //------------------------------------------------------
-void SFxHelper::Trace( trace_t *tr, vec3_t start, vec3_t min, vec3_t max, 
-						vec3_t end, int skipEntNum, int flags )
+void SFxHelper::Trace( trace_t *tr, idVec3 &start, idVec3 &min, idVec3 &max, 
+						idVec3 &end, int skipEntNum, int flags )
 {
 	CG_Trace( tr, start, min, max, end, skipEntNum, flags );
 }
@@ -114,7 +114,7 @@ int SFxHelper::RegisterModel( const char *model )
 }
 
 //------------------------------------------------------
-void SFxHelper::AddLightToScene( vec3_t org, float radius, float red, float green, float blue )
+void SFxHelper::AddLightToScene( idVec3 &org, float radius, float red, float green, float blue )
 {
 	trap_R_AddLightToScene( org, radius, red, green, blue, 0 );
 }
@@ -126,18 +126,18 @@ void SFxHelper::AddPolyToScene( int shader, int count, polyVert_t *verts )
 }
 
 //------------------------------------------------------
-void SFxHelper::CameraShake( vec3_t origin, float intensity, int radius, int time )
+void SFxHelper::CameraShake( idVec3 &origin, float intensity, int radius, int time )
 {
 	CG_StartShakeCamera( intensity, time, origin, radius );
 }
 
-static void FX_Quad( const FxRefEntity *ent, const vec3_t a, const vec3_t b,
-					 const vec3_t c, const vec3_t d ) {
+static void FX_Quad( const FxRefEntity *ent, const idVec3 &a, const idVec3 &b,
+					 const idVec3 &c, const idVec3 &d ) {
 	polyVert_t verts[4];
 	const float *points[4] = { a, b, c, d };
 	const float st[4][2] = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
 	for ( int i = 0; i < 4; i++ ) {
-		VectorCopy( points[i], verts[i].xyz );
+		verts[i].xyz = points[i];
 		verts[i].st[0] = st[i][0];
 		verts[i].st[1] = st[i][1];
 		memcpy( verts[i].modulate, ent->shaderRGBA, 4 );
@@ -145,22 +145,22 @@ static void FX_Quad( const FxRefEntity *ent, const vec3_t a, const vec3_t b,
 	trap_R_AddPolyToScene( ent->customShader, 4, verts );
 }
 
-static void FX_Line( const FxRefEntity *ent, const vec3_t start, const vec3_t end,
+static void FX_Line( const FxRefEntity *ent, const idVec3 &start, const idVec3 &end,
 					 float startWidth, float endWidth ) {
-	vec3_t direction, view, side, a, b, c, d;
-	VectorSubtract( end, start, direction );
-	if ( VectorNormalize( direction ) == 0 ) {
+	idVec3 direction, view, side, a, b, c, d;
+	direction = end - start;
+	if ( direction.Normalize() == 0 ) {
 		return;
 	}
-	VectorSubtract( cg.refdef.vieworg, start, view );
-	CrossProduct( direction, view, side );
-	if ( VectorNormalize( side ) == 0 ) {
-		PerpendicularVector( side, direction );
+	view = cg.refdef.vieworg - start;
+	side = direction.Cross( view );
+	if ( side.Normalize() == 0 ) {
+		side.PerpendicularVector( direction );
 	}
-	VectorMA( start, startWidth, side, a );
-	VectorMA( start, -startWidth, side, b );
-	VectorMA( end, -endWidth, side, c );
-	VectorMA( end, endWidth, side, d );
+	a = start + side * startWidth;
+	b = start + side * ( -startWidth );
+	c = end + side * ( -endWidth );
+	d = end + side * endWidth;
 	FX_Quad( ent, a, b, c, d );
 }
 
@@ -168,81 +168,81 @@ static void FX_RenderPrimitive( FxRefEntity *ent ) {
 	if ( ent->reType == RT_LINE ) {
 		FX_Line( ent, ent->origin, ent->oldorigin, ent->radius, ent->radius );
 	} else if ( ent->reType == RT_ELECTRICITY ) {
-		vec3_t previous, point, direction, side, up, end;
-		VectorCopy( ent->oldorigin, end );
+		idVec3 previous, point, direction, side, up, end;
+		end = ent->oldorigin;
 		if ( ent->renderfx & RF_GROW ) {
 			float life = ent->angles[1];
 			float fraction = life > 0 ? 1.0f - ( ent->endTime - cg.time ) / life : 1.0f;
 			fraction = fraction < 0 ? 0 : ( fraction > 1 ? 1 : fraction );
-			VectorSubtract( end, ent->origin, direction );
-			VectorMA( ent->origin, fraction, direction, end );
+			direction = end - ent->origin;
+			end = ent->origin + direction * fraction;
 		}
-		VectorSubtract( end, ent->origin, direction );
-		float length = VectorNormalize( direction );
+		direction = end - ent->origin;
+		float length = direction.Normalize();
 		if ( length == 0 ) {
 			return;
 		}
-		PerpendicularVector( side, direction );
-		CrossProduct( direction, side, up );
-		VectorCopy( ent->origin, previous );
+		side.PerpendicularVector( direction );
+		up = direction.Cross( side );
+		previous = ent->origin;
 		int seed = ent->frame + theFxHelper.mTime / 50;
 		for ( int i = 1; i <= 16; i++ ) {
 			float fraction = i / 16.0f;
-			VectorMA( ent->origin, length * fraction, direction, point );
+			point = ent->origin + direction * ( length * fraction );
 			if ( i < 16 ) {
 				float chaos = ent->angles[0] * length * 0.05f;
-				VectorMA( point, Q_crandom( &seed ) * chaos, side, point );
-				VectorMA( point, Q_crandom( &seed ) * chaos, up, point );
+				point = point + side * ( Q_crandom( &seed ) * chaos );
+				point = point + up * ( Q_crandom( &seed ) * chaos );
 			}
 			float width = ent->radius * ( ( ent->renderfx & RF_TAPERED ) ? 1.0f - fraction : 1.0f );
 			FX_Line( ent, previous, point, width, width );
 			if ( ( ent->renderfx & RF_FORKED ) && i == 8 ) {
-				vec3_t branch;
-				VectorMA( point, length * 0.2f, side, branch );
-				VectorMA( branch, length * 0.2f, direction, branch );
+				idVec3 branch;
+				branch = point + side * ( length * 0.2f );
+				branch = branch + direction * ( length * 0.2f );
 				FX_Line( ent, point, branch, width * 0.5f, 0 );
 			}
-			VectorCopy( point, previous );
+			previous = point;
 		}
 	} else if ( ent->reType == RT_ORIENTED_QUAD ) {
-		vec3_t right, up, a, b, c, d;
-		PerpendicularVector( up, ent->axis[0] );
-		RotatePointAroundVector( right, ent->axis[0], up, ent->rotation );
-		CrossProduct( ent->axis[0], right, up );
-		VectorMA( ent->origin, ent->radius, right, a );
-		VectorMA( a, ent->radius, up, a );
-		VectorMA( ent->origin, -ent->radius, right, b );
-		VectorMA( b, ent->radius, up, b );
-		VectorMA( ent->origin, -ent->radius, right, c );
-		VectorMA( c, -ent->radius, up, c );
-		VectorMA( ent->origin, ent->radius, right, d );
-		VectorMA( d, -ent->radius, up, d );
+		idVec3 right, up, a, b, c, d;
+		up.PerpendicularVector( ent->axis[0] );
+		right.RotatePointAroundVector( ent->axis[0], up, ent->rotation );
+		up = ent->axis[0].Cross( right );
+		a = ent->origin + right * ent->radius;
+		a = a + up * ent->radius;
+		b = ent->origin + right * ( -ent->radius );
+		b = b + up * ent->radius;
+		c = ent->origin + right * ( -ent->radius );
+		c = c + up * ( -ent->radius );
+		d = ent->origin + right * ent->radius;
+		d = d + up * ( -ent->radius );
 		FX_Quad( ent, a, b, c, d );
 	} else if ( ent->reType == RT_CYLINDER ) {
-		vec3_t side, up, radial[2], a, b, c, d;
-		PerpendicularVector( side, ent->axis[0] );
-		CrossProduct( ent->axis[0], side, up );
+		idVec3 side, up, radial[2], a, b, c, d;
+		side.PerpendicularVector( ent->axis[0] );
+		up = ent->axis[0].Cross( side );
 		for ( int i = 0; i < 16; i++ ) {
 			for ( int j = 0; j < 2; j++ ) {
 				float angle = ( i + j ) * 2.0f * M_PI / 16;
-				VectorScale( side, cosf( angle ), radial[j] );
-				VectorMA( radial[j], sinf( angle ), up, radial[j] );
+				radial[j] = side * ( cosf( angle ) );
+				radial[j] = radial[j] + up * ( sinf( angle ) );
 			}
-			VectorMA( ent->origin, ent->radius, radial[0], a );
-			VectorMA( ent->origin, ent->radius, radial[1], b );
-			VectorMA( ent->oldorigin, ent->backlerp, radial[1], c );
-			VectorMA( ent->oldorigin, ent->backlerp, radial[0], d );
+			a = ent->origin + radial[0] * ent->radius;
+			b = ent->origin + radial[1] * ent->radius;
+			c = ent->oldorigin + radial[1] * ent->backlerp;
+			d = ent->oldorigin + radial[0] * ent->backlerp;
 			FX_Quad( ent, a, b, c, d );
 		}
 	} else if ( ent->reType == RT_SPRITE && ent->aspectRatio > 0 && ent->aspectRatio != 1 ) {
-        vec3_t right, up, a, b, c, d;
-        RotatePointAroundVector( right, cg.refdef.viewaxis[0], cg.refdef.viewaxis[1], ent->rotation );
-        CrossProduct( cg.refdef.viewaxis[0], right, up );
+        idVec3 right, up, a, b, c, d;
+        right.RotatePointAroundVector( cg.refdef.viewaxis[0], cg.refdef.viewaxis[1], ent->rotation );
+        up = cg.refdef.viewaxis[0].Cross( right );
         float height = ent->radius * ent->aspectRatio;
-        VectorMA( ent->origin, ent->radius, right, a ); VectorMA( a, height, up, a );
-        VectorMA( ent->origin, -ent->radius, right, b ); VectorMA( b, height, up, b );
-        VectorMA( ent->origin, -ent->radius, right, c ); VectorMA( c, -height, up, c );
-        VectorMA( ent->origin, ent->radius, right, d ); VectorMA( d, -height, up, d );
+        a = ent->origin + right * ent->radius; a = a + up * height;
+        b = ent->origin + right * ( -ent->radius ); b = b + up * height;
+        c = ent->origin + right * ( -ent->radius ); c = c + up * ( -height );
+        d = ent->origin + right * ent->radius; d = d + up * ( -height );
         FX_Quad( ent, a, b, c, d );
     } else {
         refEntity_t renderEntity = *ent;

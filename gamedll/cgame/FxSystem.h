@@ -11,24 +11,6 @@
 extern vmCvar_t	fx_debug;
 extern vmCvar_t	fx_freeze;
 
-inline void Vector2Clear(vec2_t a)
-{
-	a[0] = 0.0f;
-	a[1] = 0.0f;
-}
-
-inline void Vector2Set(vec2_t a,float b,float c)
-{
-	a[0] = b;
-	a[1] = c;
-}
-
-inline void Vector2Copy(vec2_t src,vec2_t dst)
-{
-	dst[0] = src[0];
-	dst[1] = src[1];
-}
-
 
 extern void	CG_CalcEntityLerpPositions( centity_t * );	
 
@@ -53,21 +35,21 @@ struct SFxHelper
 	void	CloseFile( fileHandle_t fh );
 
 	// Sound
-	void	PlaySound( vec3_t origin, int entityNum, int entchannel, sfxHandle_t sfx );
+	void	PlaySound( idVec3 &origin, int entityNum, int entchannel, sfxHandle_t sfx );
 	int		RegisterSound( const char *sound );
 
 	// Physics/collision
-	void	Trace( trace_t *tr, vec3_t start, vec3_t min, vec3_t max, vec3_t end, int skipEntNum, int flags );
+	void	Trace( trace_t *tr, idVec3 &start, idVec3 &min, idVec3 &max, idVec3 &end, int skipEntNum, int flags );
 
 	void	AddFxToScene( FxRefEntity *ent );
-	void	AddLightToScene( vec3_t org, float radius, float red, float green, float blue );
+	void	AddLightToScene( idVec3 &org, float radius, float red, float green, float blue );
 
 	int		RegisterShader( const char *shader );
 	int		RegisterModel( const char *model );
 
 	void	AddPolyToScene( int shader, int count, polyVert_t *verts );
 
-	void	CameraShake( vec3_t origin, float intensity, int radius, int time );
+	void	CameraShake( idVec3 &origin, float intensity, int radius, int time );
 };
 
 extern SFxHelper	theFxHelper;

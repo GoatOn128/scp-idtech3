@@ -5,7 +5,7 @@
 #include <algorithm>
 
 struct FxTrailPoint {
-	vec3_t origin, rgbStart, rgbEnd;
+	idVec3 origin, rgbStart, rgbEnd;
 	float widthStart, widthEnd, alphaStart, alphaEnd, s;
 	int start, life;
 };
@@ -41,7 +41,7 @@ public:
 		fxTrails[handle] = this;
 		return handle;
 	}
-	void VertexPair( const FxTrailPoint &point, const vec3_t side, float s, polyVert_t *verts ) {
+	void VertexPair( const FxTrailPoint &point, const idVec3 &side, float s, polyVert_t *verts ) {
 		float fraction = ( theFxHelper.mTime - point.start ) / static_cast<float>( point.life );
 		fraction = fraction < 0 ? 0 : ( fraction > 1 ? 1 : fraction );
 		float width = point.widthStart + fraction * ( point.widthEnd - point.widthStart );
@@ -53,7 +53,7 @@ public:
 		}
 		alpha = alpha < 0 ? 0 : ( alpha > 1 ? 1 : alpha );
 		for ( int i = 0; i < 2; i++ ) {
-			VectorMA( point.origin, ( i ? -0.5f : 0.5f ) * width, side, verts[i].xyz );
+			verts[i].xyz = point.origin + side * ( ( i ? -0.5f : 0.5f ) * width );
 			verts[i].st[0] = s;
 			verts[i].st[1] = static_cast<float>( i );
 			for ( int j = 0; j < 3; j++ ) {
@@ -69,12 +69,12 @@ public:
 		}
 		if ( points.empty() ) { return false; }
 		for ( size_t i = 1; i < points.size(); i++ ) {
-			vec3_t direction, view, side;
-			VectorSubtract( points[i].origin, points[i - 1].origin, direction );
-			if ( VectorNormalize( direction ) == 0 ) { continue; }
-			VectorSubtract( cg.refdef.vieworg, points[i].origin, view );
-			CrossProduct( direction, view, side );
-			if ( VectorNormalize( side ) == 0 ) { PerpendicularVector( side, direction ); }
+			idVec3 direction, view, side;
+			direction = points[i].origin - ( points[i - 1].origin );
+			if ( direction.Normalize() == 0 ) { continue; }
+			view = cg.refdef.vieworg - points[i].origin;
+			side = direction.Cross( view );
+			if ( side.Normalize() == 0 ) { side.PerpendicularVector( direction ); }
 			int planes = ( flags & TJFL_CROSSOVER ) ? 2 : 1;
 			for ( int plane = 0; plane < planes; plane++ ) {
 				polyVert_t ends[4], polygon[4];
@@ -87,7 +87,7 @@ public:
 					polyVert_t middle = {};
 					float color[4] = {};
 					for ( int corner = 0; corner < 4; corner++ ) {
-						VectorMA(middle.xyz, 0.25f, polygon[corner].xyz, middle.xyz);
+						middle.xyz = middle.xyz + polygon[corner].xyz * 0.25f;
 						for ( int axis = 0; axis < 2; axis++ ) { middle.st[axis] += polygon[corner].st[axis] * 0.25f; }
 						for ( int channel = 0; channel < 4; channel++ ) { color[channel] += polygon[corner].modulate[channel] * 0.25f; }
 					}
@@ -99,9 +99,9 @@ public:
 				} else {
 					theFxHelper.AddPolyToScene( shader, 4, polygon );
 				}
-				vec3_t perpendicular;
-				CrossProduct( direction, side, perpendicular );
-				VectorCopy( perpendicular, side );
+				idVec3 perpendicular;
+				perpendicular = direction.Cross( side );
+				side = perpendicular;
 			}
 		}
 		return true;
@@ -113,7 +113,7 @@ static bool TrailBinds( const CPrimitiveTemplate &definition, const char *field 
 	return (" " + definition.mBindings + " ").find(" " + std::string(field) + " ") != std::string::npos;
 }
 
-int CG_FxTrail( const char *name, int head, const vec3_t position, const FxTrailInputs &input ) {
+int CG_FxTrail( const char *name, int head, const idVec3 &position, const FxTrailInputs &input ) {
 	if ( theFxHelper.mTimeFrozen ) { return head; }
 	const CPrimitiveTemplate *definition = theFxScheduler.Definition( name );
 	if ( !definition || definition->mType != Ribbon ) { return head; }
@@ -126,11 +126,11 @@ int CG_FxTrail( const char *name, int head, const vec3_t position, const FxTrail
 	float ratio = TrailBinds(d, "ratio") && input.ratio >= 0 ? input.ratio : CG_FxValue(name, "ratio");
 	float speed = TrailBinds(d, "speed") && input.speed >= 0 ? input.speed : CG_FxValue(name, "speed");
 	FxTrailPoint point;
-	VectorCopy( position, point.origin );
-	VectorSet( point.rgbStart, d.mRedStart.GetVal(), d.mGreenStart.GetVal(), d.mBlueStart.GetVal() );
-	VectorSet( point.rgbEnd, d.mRedEnd.GetVal(), d.mGreenEnd.GetVal(), d.mBlueEnd.GetVal() );
-	if ( TrailBinds(d, "color") && input.color[0] >= 0 ) { VectorCopy(input.color, point.rgbStart); }
-	if ( TrailBinds(d, "colorEnd") && input.colorEnd[0] >= 0 ) { VectorCopy(input.colorEnd, point.rgbEnd); }
+	point.origin = position;
+	point.rgbStart.Set( d.mRedStart.GetVal(), d.mGreenStart.GetVal(), d.mBlueStart.GetVal() );
+	point.rgbEnd.Set( d.mRedEnd.GetVal(), d.mGreenEnd.GetVal(), d.mBlueEnd.GetVal() );
+	if ( TrailBinds(d, "color") && input.color[0] >= 0 ) { point.rgbStart = input.color; }
+	if ( TrailBinds(d, "colorEnd") && input.colorEnd[0] >= 0 ) { point.rgbEnd = input.colorEnd; }
 	point.start = theFxHelper.mTime - ( input.time < 0 ? 0 : cg.time - input.time );
 	point.life = life;
 	point.widthStart = TrailBinds(d, "width") && input.width >= 0 ? input.width : d.mSizeStart.GetVal();

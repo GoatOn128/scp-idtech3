@@ -11,9 +11,11 @@ void CG_FxInit( void ) {
     if ( length > 0 && length < 16384 ) {
         std::vector<char> buffer( length + 1, 0 );
         theFxHelper.ReadFile( buffer.data(), length, file );
-        char *cursor = buffer.data();
-        for ( char *name = COM_Parse( &cursor ); name[0]; name = COM_Parse( &cursor ) ) {
-            theFxScheduler.RegisterEffect( name );
+        idLexer lexer;
+        lexer.LoadMemory( buffer.data(), length, "effects/wolf/manifest.txt" );
+        idToken token;
+        while ( lexer.ReadToken( &token ) ) {
+            theFxScheduler.RegisterEffect( token.c_str() );
         }
     } else {
         CG_Printf( "FX: missing or invalid effects/wolf/manifest.txt\n" );
@@ -49,14 +51,14 @@ void CG_FxDraw( void ) {
 	CG_UpdateFlamethrowerSounds();
 }
 
-void CG_FxPlay( const char *name, const vec3_t origin, const vec3_t direction ) {
+void CG_FxPlay( const char *name, const idVec3 &origin, const idVec3 &direction ) {
 	int handle = theFxScheduler.RegisterEffect( name );
 	if ( handle ) {
-		vec3_t position, forward;
-		VectorCopy( origin, position );
-		VectorCopy( direction, forward );
-		if ( VectorNormalize( forward ) == 0 ) {
-			VectorSet( forward, 0, 0, 1 );
+		idVec3 position, forward;
+		position = origin;
+		forward = direction;
+		if ( forward.Normalize() == 0 ) {
+			forward.Set( 0, 0, 1 );
 		}
 		theFxScheduler.PlayEffect( handle, position, forward );
 	}
@@ -67,23 +69,23 @@ void CG_FxTest_f( void ) {
 		CG_Printf( "usage: fxplay <effect name under effects/> [surface]\n" );
 		return;
 	}
-	vec3_t origin, direction;
-	VectorCopy( cg.refdef.viewaxis[0], direction );
-	VectorMA( cg.refdef.vieworg, 96, direction, origin );
+	idVec3 origin, direction;
+	direction = cg.refdef.viewaxis[0];
+	origin = cg.refdef.vieworg + direction * 96;
 	if ( trap_Argc() == 3 ) {
-		if ( Q_stricmp( CG_Argv( 2 ), "surface" ) ) {
+		if ( idStr::Icmp( CG_Argv( 2 ), "surface" ) ) {
 			CG_Printf( "usage: fxplay <effect name under effects/> [surface]\n" );
 			return;
 		}
 		trace_t trace;
-		VectorMA( cg.refdef.vieworg, 8192, direction, origin );
+		origin = cg.refdef.vieworg + direction * 8192;
 		CG_Trace( &trace, cg.refdef.vieworg, NULL, NULL, origin, cg.snap->ps.clientNum, MASK_SOLID );
 		if ( trace.fraction == 1 || trace.startsolid || trace.allsolid || ( trace.surfaceFlags & SURF_SKY ) ) {
 			CG_Printf( "FX: aim at a solid surface\n" );
 			return;
 		}
-		VectorCopy( trace.endpos, origin );
-		VectorCopy( trace.plane.normal, direction );
+		origin = trace.endpos;
+		direction = trace.plane.normal;
 	}
 	CG_FxPlay( CG_Argv( 1 ), origin, direction );
 }
@@ -102,7 +104,7 @@ static void FX_ScaleRange( CFxRange &range, float scale ) {
 	range.SetRange( first < last ? first : last, first < last ? last : first );
 }
 
-void CG_FxPlayParameters( const char *name, const vec3_t origin, const vec3_t direction, const FxParameters &p ) {
+void CG_FxPlayParameters( const char *name, const idVec3 &origin, const idVec3 &direction, const FxParameters &p ) {
 	if ( theFxHelper.mTimeFrozen ) { return; }
 	int registered = theFxScheduler.RegisterEffect( name );
 	if ( !registered ) { return; }
@@ -166,10 +168,10 @@ void CG_FxPlayParameters( const char *name, const vec3_t origin, const vec3_t di
 		if ( FX_Binds( bindings, "verticalSign" ) ) { FX_ScaleRange( primitive.mVelZ, p.verticalSign ); }
 		primitive.mGroup = p.group;
 	}
-	vec3_t position, forward;
-	VectorCopy( origin, position );
-	VectorCopy( direction, forward );
-	if ( VectorNormalize( forward ) == 0 ) { VectorSet( forward, 0, 0, 1 ); }
+	idVec3 position, forward;
+	position = origin;
+	forward = direction;
+	if ( forward.Normalize() == 0 ) { forward.Set( 0, 0, 1 ); }
 	theFxScheduler.PlayEffect( handle, position, forward );
 }
 
