@@ -29,6 +29,9 @@ If you have questions concerning this license or the applicable additional terms
 // cg_drawtools.c -- helper functions called by cg_draw, cg_scoreboard, cg_info, etc
 #include "cg_local.h"
 
+idVec4 colorWhite( 1, 1, 1, 1 );
+idVec4 colorBlack( 0, 0, 0, 1 );
+
 /*
 ================
 CG_AdjustFrom640
@@ -127,7 +130,7 @@ flags:
 
 #define BAR_BORDERSIZE 2
 
-void CG_FilledBar( float x, float y, float w, float h, const idVec4 &startColorIn, idVec4 &endColor, const idVec4 &bgColor, float frac, int flags ) {
+void CG_FilledBar( float x, float y, float w, float h, const idVec4 &startColorIn, idVec4 *endColor, const idVec4 *bgColor, float frac, int flags ) {
 	idVec4 backgroundcolor( 1, 1, 1, 0.25f ), colorAtPos;  // colorAtPos is the lerped color if necessary
 	idVec4 startColor;
 
@@ -135,19 +138,21 @@ void CG_FilledBar( float x, float y, float w, float h, const idVec4 &startColorI
 
 	startColor = startColorIn;
 
-	if ( flags & BAR_BG ) { // BAR_BG set, use the specified bg color
-		backgroundcolor = bgColor;
+	if ( ( flags & BAR_BG ) && bgColor ) { // BAR_BG set, use the specified bg color
+		backgroundcolor = *bgColor;
 	}
 
 	// hud alpha
 	if ( !( flags & BAR_NOHUDALPHA ) ) {
 		startColor[3] *= cg_hudAlpha.value;
-		endColor[3] *= cg_hudAlpha.value;
+		if ( endColor ) {
+			endColor[3] *= cg_hudAlpha.value;
+		}
 		backgroundcolor[3] *= cg_hudAlpha.value;
 	}
 
 	if ( flags & BAR_LERP_COLOR ) {
-		colorAtPos = Lerp( startColor, endColor, frac );
+		colorAtPos = Lerp( startColor, *endColor, frac );
 	}
 
 	// background

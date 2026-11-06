@@ -59,8 +59,8 @@ static void CG_ResetEntity( centity_t *cent ) {
 	//cent->previousEventSequence = 0;
 	// done.
 
-	VectorCopy( cent->currentState.origin, cent->lerpOrigin );
-	VectorCopy( cent->currentState.angles, cent->lerpAngles );
+	cent->lerpOrigin = cent->currentState.origin;
+	cent->lerpAngles = cent->currentState.angles;
 	if ( cent->currentState.eType == ET_PLAYER ) {
 		CG_ResetPlayerEntity( cent );
 	}
@@ -79,24 +79,24 @@ static void CG_TransitionEntity( centity_t *cent ) {
 
 	// Ridah, update the fireDir if it's on fire
 	if ( CG_EntOnFire( cent ) ) {
-		vec3_t newDir, newPos, oldPos;
+		idVec3 newDir, newPos, oldPos;
 		float adjust;
 		//
 		BG_EvaluateTrajectory( &cent->nextState.pos, cg.snap->serverTime, newPos );
 		BG_EvaluateTrajectory( &cent->currentState.pos, cg.snap->serverTime, oldPos );
 		// update the fireRiseDir
-		VectorSubtract( oldPos, newPos, newDir );
+		newDir = oldPos - newPos;
 		// fire should go upwards if travelling slow
 		newDir[2] += 2;
-		if ( VectorNormalize( newDir ) < 1 ) {
-			VectorClear( newDir );
+		if ( newDir.Normalize() < 1 ) {
+			newDir.Zero();
 			newDir[2] = 1;
 		}
 		// now move towards the newDir
 		adjust = 0.3;
-		VectorMA( cent->fireRiseDir, adjust, newDir, cent->fireRiseDir );
-		if ( VectorNormalize( cent->fireRiseDir ) <= 0.1 ) {
-			VectorCopy( newDir, cent->fireRiseDir );
+		cent->fireRiseDir = cent->fireRiseDir + newDir * adjust;
+		if ( cent->fireRiseDir.Normalize() <= 0.1 ) {
+			cent->fireRiseDir = newDir;
 		}
 	}
 
@@ -154,7 +154,7 @@ void CG_SetInitialSnapshot( snapshot_t *snap ) {
 	trap_Cvar_VariableStringBuffer( "r_savegameFogColor", buf, sizeof( buf ) );
 	trap_Cvar_Set( "r_savegameFogColor", "0" );
 	if ( strlen( buf ) > 1 ) {
-		if ( !Q_stricmp( buf, "none" ) ) {
+		if ( !idStr::Icmp( buf, "none" ) ) {
 			trap_SendClientCommand( "fogswitch 0" );   // 'off'
 		} else {
 			trap_SendClientCommand( va( "fogswitch %s", buf ) );
@@ -193,7 +193,7 @@ void CG_SetInitialSnapshot( snapshot_t *snap ) {
 
 		trap_Cvar_VariableStringBuffer( "mapname", curmap, 64 );
 
-		if ( cgs.gametype == GT_WOLF && Q_stricmp( curmap, prevmap ) ) {
+		if ( cgs.gametype == GT_WOLF && idStr::Icmp( curmap, prevmap ) ) {
 			strcpy( prevmap, curmap );
 			trap_SendConsoleCommand( "openLimboMenu\n" );
 		}
