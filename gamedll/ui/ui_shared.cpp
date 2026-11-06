@@ -378,7 +378,7 @@ LerpColor
 	lerp and clamp each component of <a> and <b> into <c> by the fraction <t>
 =================
 */
-void LerpColor( const idVec4 &a, const idVec4 &b, const idVec4 &c, float t ) {
+void LerpColor( const idVec4 &a, const idVec4 &b, idVec4 &c, float t ) {
 	int i;
 	for ( i = 0; i < 4; i++ )
 	{
@@ -660,7 +660,7 @@ void Init_Display( displayContextDef_t *dc ) {
 
 void GradientBar_Paint( rectDef_t *rect, idVec4 color ) {
 	// gradient bar takes two paints
-	DC->setColor( color );
+	DC->setColor( color.ToFloatPtr() );
 	DC->drawHandlePic( rect->x, rect->y, rect->w, rect->h, DC->Assets.gradientBar );
 	DC->setColor( NULL );
 }
@@ -730,7 +730,7 @@ void Window_Paint( Window *w, float fadeAmount, float fadeClamp, float fadeCycle
 		// box, but possible a shader that needs filled
 		if ( w->background ) {
 			Fade( &w->flags, &w->backColor[3], fadeClamp, &w->nextTime, fadeCycle, qtrue, fadeAmount );
-			DC->setColor( w->backColor );
+			DC->setColor( w->backColor.ToFloatPtr() );
 			DC->drawHandlePic( fillRect.x, fillRect.y, fillRect.w, fillRect.h, w->background );
 			DC->setColor( NULL );
 		} else {
@@ -741,7 +741,7 @@ void Window_Paint( Window *w, float fadeAmount, float fadeClamp, float fadeCycle
 		// gradient bar
 	} else if ( w->style == WINDOW_STYLE_SHADER ) {
 		if ( w->flags & WINDOW_FORECOLORSET ) {
-			DC->setColor( w->foreColor );
+			DC->setColor( w->foreColor.ToFloatPtr() );
 		}
 		DC->drawHandlePic( fillRect.x, fillRect.y, fillRect.w, fillRect.h, w->background );
 		DC->setColor( NULL );
@@ -783,12 +783,12 @@ void Window_Paint( Window *w, float fadeAmount, float fadeClamp, float fadeCycle
 		}
 	} else if ( w->border == WINDOW_BORDER_HORZ ) {
 		// top/bottom
-		DC->setColor( w->borderColor );
+		DC->setColor( w->borderColor.ToFloatPtr() );
 		DC->drawTopBottom( w->rect.x, w->rect.y, w->rect.w, w->rect.h, w->borderSize );
 		DC->setColor( NULL );
 	} else if ( w->border == WINDOW_BORDER_VERT ) {
 		// left right
-		DC->setColor( w->borderColor );
+		DC->setColor( w->borderColor.ToFloatPtr() );
 		DC->drawSides( w->rect.x, w->rect.y, w->rect.w, w->rect.h, w->borderSize );
 		DC->setColor( NULL );
 	} else if ( w->border == WINDOW_BORDER_KCGRADIENT ) {
@@ -3724,7 +3724,7 @@ void Item_Slider_Paint( itemDef_t *item ) {
 	} else {
 		x = item->window.rect.x;
 	}
-	DC->setColor( newColor );
+	DC->setColor( newColor.ToFloatPtr() );
 	DC->drawHandlePic( x, y, SLIDER_WIDTH, SLIDER_HEIGHT, DC->Assets.sliderBar );
 
 	x = Item_Slider_ThumbPosition( item );

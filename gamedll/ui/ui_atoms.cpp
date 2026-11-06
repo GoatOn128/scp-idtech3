@@ -469,8 +469,8 @@ UI_FillRect
 Coordinates are 640*480 virtual values
 =================
 */
-void UI_FillRect( float x, float y, float width, float height, const float *color ) {
-	trap_R_SetColor( color );
+void UI_FillRect( float x, float y, float width, float height, const idVec4 &color ) {
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	UI_AdjustFrom640( &x, &y, &width, &height );
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 0, 0, uiInfo.uiDC.whiteShader );
@@ -496,8 +496,8 @@ UI_DrawRect
 Coordinates are 640*480 virtual values
 =================
 */
-void UI_DrawRect( float x, float y, float width, float height, const float *color ) {
-	trap_R_SetColor( color );
+void UI_DrawRect( float x, float y, float width, float height, const idVec4 &color ) {
+	trap_R_SetColor( color.ToFloatPtr() );
 
 	UI_DrawTopBottom( x, y, width, height );
 	UI_DrawSides( x, y, width, height );

@@ -96,7 +96,9 @@ tryagain:
 	}
 
 	strcpy( path, item->world_model[0] );
-	COM_StripExtension( path, path );
+	idStr stripped( path );
+	stripped.StripFileExtension();
+	idStr::Copynz( path, stripped.c_str(), sizeof( path ) );
 	strcat( path, "_flash.md3" );
 	pi->flashModel = trap_R_RegisterModel( path );
 
@@ -811,7 +813,7 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 
 	refdef.time = dp_realtime;
 
-	trap_R_SetColor( hcolor );
+	trap_R_SetColor( hcolor.ToFloatPtr() );
 	trap_R_ClearScene();
 	trap_R_SetColor( NULL );
 
