@@ -134,10 +134,10 @@ void SFxHelper::CameraShake( idVec3 &origin, float intensity, int radius, int ti
 static void FX_Quad( const FxRefEntity *ent, const idVec3 &a, const idVec3 &b,
 					 const idVec3 &c, const idVec3 &d ) {
 	polyVert_t verts[4];
-	const float *points[4] = { a, b, c, d };
+	const idVec3 *points[4] = { &a, &b, &c, &d };
 	const float st[4][2] = { {0, 0}, {1, 0}, {1, 1}, {0, 1} };
 	for ( int i = 0; i < 4; i++ ) {
-		verts[i].xyz = points[i];
+		verts[i].xyz = *points[i];
 		verts[i].st[0] = st[i][0];
 		verts[i].st[1] = st[i][1];
 		memcpy( verts[i].modulate, ent->shaderRGBA, 4 );

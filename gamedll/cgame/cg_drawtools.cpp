@@ -133,21 +133,17 @@ void CG_FilledBar( float x, float y, float w, float h, const idVec4 &startColorI
 
 	int indent = BAR_BORDERSIZE;
 
-	VectorCopy4( startColorIn, startColor );
+	startColor = startColorIn;
 
-	if ( ( flags & BAR_BG ) && bgColor ) { // BAR_BG set, and color specified, use specified bg color
+	if ( flags & BAR_BG ) { // BAR_BG set, use the specified bg color
 		backgroundcolor = bgColor;
 	}
 
 	// hud alpha
 	if ( !( flags & BAR_NOHUDALPHA ) ) {
 		startColor[3] *= cg_hudAlpha.value;
-		if ( endColor ) {
-			endColor[3] *= cg_hudAlpha.value;
-		}
-		if ( backgroundcolor ) {
-			backgroundcolor[3] *= cg_hudAlpha.value;
-		}
+		endColor[3] *= cg_hudAlpha.value;
+		backgroundcolor[3] *= cg_hudAlpha.value;
 	}
 
 	if ( flags & BAR_LERP_COLOR ) {
