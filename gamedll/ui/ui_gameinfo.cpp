@@ -56,19 +56,21 @@ UI_ParseInfos
 ===============
 */
 int UI_ParseInfos( char *buf, int max, char *infos[] ) {
-	char    *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int count;
 	char key[MAX_TOKEN_CHARS];
 	char info[MAX_INFO_STRING];
 
+	lexer.LoadMemory( buf, strlen( buf ), "UI_ParseInfos" );
+
 	count = 0;
 
 	while ( 1 ) {
-		token = COM_Parse( &buf );
-		if ( !token[0] ) {
+		if ( !lexer.ReadToken( &token ) || !token[0] ) {
 			break;
 		}
-		if ( strcmp( token, "{" ) ) {
+		if ( token.Icmp( "{" ) != 0 ) {
 			Com_Printf( "Missing { in info file\n" );
 			break;
 		}
@@ -80,21 +82,19 @@ int UI_ParseInfos( char *buf, int max, char *infos[] ) {
 
 		info[0] = '\0';
 		while ( 1 ) {
-			token = COM_ParseExt( &buf, qtrue );
-			if ( !token[0] ) {
+			if ( !lexer.ReadToken( &token ) || !token[0] ) {
 				Com_Printf( "Unexpected end of info file\n" );
 				break;
 			}
-			if ( !strcmp( token, "}" ) ) {
+			if ( token.Icmp( "}" ) == 0 ) {
 				break;
 			}
-			Q_strncpyz( key, token, sizeof( key ) );
+			idStr::Copynz( key, token.c_str(), sizeof( key ) );
 
-			token = COM_ParseExt( &buf, qfalse );
-			if ( !token[0] ) {
-				strcpy( token, "<NULL>" );
+			if ( !lexer.ReadTokenOnLine( &token ) || !token[0] ) {
+				token = "<NULL>";
 			}
-			Info_SetValueForKey( info, key, token );
+			Info_SetValueForKey( info, key, token.c_str() );
 		}
 		//NOTE: extra space for arena number
 		infos[count] = (char *) UI_Alloc( strlen( info ) + strlen( "\\num\\" ) + strlen( va( "%d", MAX_ARENAS ) ) + 1 );
@@ -309,7 +309,7 @@ char *UI_GetBotInfoByName( const char *name ) {
 
 	for ( n = 0; n < ui_numBots ; n++ ) {
 		value = Info_ValueForKey( ui_botInfos[n], "name" );
-		if ( !Q_stricmp( value, name ) ) {
+		if ( !idStr::Icmp( value, name ) ) {
 			return ui_botInfos[n];
 		}
 	}
