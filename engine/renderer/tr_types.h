@@ -123,14 +123,14 @@ typedef struct {
 	idVec3 axis[3];                 // rotation vectors
 	idVec3 torsoAxis[3];            // rotation vectors for torso section of skeletal animation
 	qboolean nonNormalizedAxes;     // axis are not normalized, i.e. they have scale
-	float origin[3];                // also used as MODEL_BEAM's "from"
+	idVec3 origin;                  // also used as MODEL_BEAM's "from"
 	int frame;                      // also used as MODEL_BEAM's diameter
 	int torsoFrame;                 // skeletal torso can have frame independant of legs frame
 
 	idVec3 scale;       //----(SA)	added
 
 	// previous data for frame interpolation
-	float oldorigin[3];             // also used as MODEL_BEAM's "to"
+	idVec3 oldorigin;               // also used as MODEL_BEAM's "to"
 	int oldframe;
 	int oldTorsoFrame;
 	float backlerp;                 // 0.0 = current, 1.0 = old
