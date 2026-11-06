@@ -67,11 +67,13 @@ AICast_ScriptAction_PlayAnim
 =================
 */
 qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
-	char *pString, *token, tokens[3][MAX_QPATH];
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
+	char tokens[3][MAX_QPATH];
 	int i, endtime, duration, numLoops;
 	gclient_t *client;
 	gentity_t *ent;
-	vec3_t org, vec;
+	idVec3 org, vec;
 	qboolean forever = qfalse, setAngles = qfalse;
 	qboolean holdframe = qfalse;
 
@@ -79,7 +81,7 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 		AI_CancelState( cs, AITransitionReason::Script );
 	}
 
-	pString = params;
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_animation" );
 
 	client = &level.clients[cs->entityNum];
 
@@ -87,60 +89,60 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 		 1 ) { // new (scripted) model
 
 		// read the name
-		token = COM_ParseExt( &pString, qfalse );
-		if ( !token || !token[0] ) {
+		lexer.ReadTokenOnLine( &token );
+		if ( !token[0] ) {
 			G_Error( "AI Scripting: syntax error\n\nplayanim <animation> <legs/torso/both>\n" );
 		}
-		Q_strncpyz( tokens[0], token, sizeof( tokens[0] ) );
-		Q_strlwr( tokens[0] );
+		idStr::Copynz( tokens[0], token.c_str(), sizeof( tokens[0] ) );
+		idStr::Copynz( tokens[0], idStr( tokens[0] ).ToLower().c_str(), sizeof( tokens[0] ) );
 
 		// read the body part
-		token = COM_ParseExt( &pString, qfalse );
-		if ( !token || !token[0] ) {
+		lexer.ReadTokenOnLine( &token );
+		if ( !token[0] ) {
 			G_Error( "AI Scripting: syntax error\n\nplayanim <animation> <legs/torso/both>\n" );
 		}
-		Q_strncpyz( tokens[1], token, sizeof( tokens[1] ) );
-		Q_strlwr( tokens[1] );
+		idStr::Copynz( tokens[1], token.c_str(), sizeof( tokens[1] ) );
+		idStr::Copynz( tokens[1], idStr( tokens[1] ).ToLower().c_str(), sizeof( tokens[1] ) );
 
 		// read the HOLDFRAME (optional)
-		token = COM_ParseExt( &pString, qfalse );
-		if ( token && token[0] && !Q_strcasecmp( token, "holdframe" ) ) {
+		lexer.ReadTokenOnLine( &token );
+		if ( token[0] && !idStr::Icmp( token.c_str(), "holdframe" ) ) {
 			holdframe = qtrue;
 			// read the numLoops (optional)
-			token = COM_ParseExt( &pString, qfalse );
+			lexer.ReadTokenOnLine( &token );
 		}
 		// token is parsed above
-		if ( token && token[0] ) {
-			if ( !Q_strcasecmp( token, "forever" ) ) {
+		if ( token[0] ) {
+			if ( !idStr::Icmp( token.c_str(), "forever" ) ) {
 				forever = qtrue;
 				numLoops = -1;
 				// read the target (optional)
-				token = COM_ParseExt( &pString, qfalse );
+				lexer.ReadTokenOnLine( &token );
 			} else {
-				numLoops = atoi( token );
+				numLoops = atoi( token.c_str() );
 				if ( !numLoops ) { // must be the target, so set loops to 1
 					numLoops = 1;
 				} else {
 					// read the target (optional)
-					token = COM_ParseExt( &pString, qfalse );
+					lexer.ReadTokenOnLine( &token );
 				}
 			}
 
-			if ( token && token[0] ) {
+			if ( token[0] ) {
 				// find this targetname
-				ent = G_Find( NULL, FOFS( targetname ), token );
+				ent = G_Find( NULL, FOFS( targetname ), ( char * ) token.c_str() );
 				if ( !ent ) {
-					ent = AICast_FindEntityForName( token );
+					ent = AICast_FindEntityForName( ( char * ) token.c_str() );
 					if ( !ent ) {
-						G_Error( "AI Scripting: playanim cannot find targetname \"%s\"\n", token );
+						G_Error( "AI Scripting: playanim cannot find targetname \"%s\"\n", token.c_str() );
 					}
 				}
 				// set the view angle manually
 				BG_EvaluateTrajectory( &ent->s.pos, level.time, org );
-				VectorSubtract( org, cs->clientState->origin, vec );
-				VectorNormalize( vec );
+				vec = org - cs->clientState->origin;
+				vec.Normalize();
 				vectoangles( vec, cs->ideal_viewangles );
-				VectorCopy( cs->ideal_viewangles, cs->script.castScriptStatus.playanim_viewangles );
+				cs->script.castScriptStatus.playanim_viewangles = cs->ideal_viewangles;
 				setAngles = qtrue;
 			}
 
@@ -172,7 +174,7 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 				// lock the viewangles
 				if ( !cs->script.castScriptStatus.playAnimViewlockTime ||
 					 cs->script.castScriptStatus.playAnimViewlockTime < level.time ) {
-					VectorCopy( cs->ideal_viewangles, cs->script.castScriptStatus.playanim_viewangles );
+					cs->script.castScriptStatus.playanim_viewangles = cs->ideal_viewangles;
 				}
 				cs->script.castScriptStatus.playAnimViewlockTime = cs->script.scriptAnimTime;
 				// adjust the duration according to numLoops
@@ -231,17 +233,17 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 	} else { // old model
 
 		for ( i = 0; i < 3; i++ ) {
-			token = COM_ParseExt( &pString, qfalse );
-			if ( !token || !token[0] ) {
+			lexer.ReadTokenOnLine( &token );
+			if ( !token[0] ) {
 				//G_Error("AI Scripting: syntax error\n\nplayanim <animation> <pausetime> [legs/torso/both]\n");
 				G_Printf( "AI Scripting: syntax error\n\nplayanim <animation> <pausetime> <legs/torso/both>\n" );
 				return qtrue;
 			} else {
-				Q_strncpyz( tokens[i], token, sizeof( tokens[i] ) );
+				idStr::Copynz( tokens[i], token.c_str(), sizeof( tokens[i] ) );
 			}
 		}
 
-		Q_strlwr( tokens[2] );
+		idStr::Copynz( tokens[2], idStr( tokens[2] ).ToLower().c_str(), sizeof( tokens[2] ) );
 
 		endtime = cs->script.castScriptStatus.castScriptStackChangeTime + atoi( tokens[1] );
 		duration = endtime - level.time + 200; // so animations don't run out before starting a next animation
@@ -258,18 +260,18 @@ qboolean AICast_ScriptAction_PlayAnim( cast_state_t *cs, char *params ) {
 
 		//if (cs->script.castScriptStatus.castScriptStackChangeTime == level.time) {
 		for ( i = 0; i < MAX_ANIMATIONS; i++ ) {
-			if ( !Q_strcasecmp( tokens[0], animStrings[i] ) ) {
-				if ( !Q_strcasecmp( tokens[2], "torso" ) ) {
+			if ( !idStr::Icmp( tokens[0], animStrings[i] ) ) {
+				if ( !idStr::Icmp( tokens[2], "torso" ) ) {
 					if ( ( client->ps.torsoAnim & ~ANIM_TOGGLEBIT ) != i ) {
 						client->ps.torsoAnim = ( ( client->ps.torsoAnim & ANIM_TOGGLEBIT ) ^ ANIM_TOGGLEBIT ) | i;
 					}
 					client->ps.torsoTimer = duration;
-				} else if ( !Q_strcasecmp( tokens[2], "legs" ) ) {
+				} else if ( !idStr::Icmp( tokens[2], "legs" ) ) {
 					if ( ( client->ps.legsAnim & ~ANIM_TOGGLEBIT ) != i ) {
 						client->ps.legsAnim = ( ( client->ps.legsAnim & ANIM_TOGGLEBIT ) ^ ANIM_TOGGLEBIT ) | i;
 					}
 					client->ps.legsTimer = duration;
-				} else if ( !Q_strcasecmp( tokens[2], "both" ) ) {
+				} else if ( !idStr::Icmp( tokens[2], "both" ) ) {
 					if ( ( client->ps.torsoAnim & ~ANIM_TOGGLEBIT ) != i ) {
 						client->ps.torsoAnim = ( ( client->ps.torsoAnim & ANIM_TOGGLEBIT ) ^ ANIM_TOGGLEBIT ) | i;
 					}
@@ -347,7 +349,7 @@ qboolean AICast_ScriptAction_FaceTargetAngles( cast_state_t *cs, char *params ) 
 		G_Error( "AI Scripting: cannot find targetname \"%s\"\n", params );
 	}
 
-	VectorCopy( targetEnt->s.angles, cs->ideal_viewangles );
+	cs->ideal_viewangles = targetEnt->s.angles;
 
 	return qtrue;
 }
@@ -390,20 +392,21 @@ AICast_ScriptAction_MusicStart
 ==================
 */
 qboolean AICast_ScriptAction_MusicStart( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cvarName[MAX_QPATH];
 	int fadeupTime = 0;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_animation" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: mu_start <musicfile> <fadeuptime>" );
 	}
-	Q_strncpyz( cvarName, token, sizeof( cvarName ) );
+	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
-		fadeupTime = atoi( token );
+		fadeupTime = atoi( token.c_str() );
 	}
 
 	trap_SendServerCommand( cs->entityNum, va( "mu_start %s %d", cvarName, fadeupTime ) );
@@ -418,16 +421,17 @@ AICast_ScriptAction_MusicPlay
 ==================
 */
 qboolean AICast_ScriptAction_MusicPlay( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cvarName[MAX_QPATH];
 	int fadeupTime = 0;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_animation" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: mu_play <musicfile> [fadeup time]" );
 	}
-	Q_strncpyz( cvarName, token, sizeof( cvarName ) );
+	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
 	trap_SendServerCommand( cs->entityNum, va( "mu_play %s %d", cvarName, fadeupTime ) );
 
@@ -440,13 +444,14 @@ AICast_ScriptAction_MusicStop
 ==================
 */
 qboolean AICast_ScriptAction_MusicStop( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	int fadeoutTime = 0;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_animation" );
+	lexer.ReadTokenOnLine( &token );
 	if ( token[0] ) {
-		fadeoutTime = atoi( token );
+		fadeoutTime = atoi( token.c_str() );
 	}
 
 	trap_SendServerCommand( cs->entityNum, va( "mu_stop %i", fadeoutTime ) );
@@ -460,22 +465,23 @@ AICast_ScriptAction_MusicFade
 ==================
 */
 qboolean AICast_ScriptAction_MusicFade( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	float targetvol;
 	int fadetime;
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_animation" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: mu_fade <targetvol> <fadetime>" );
 	}
-	targetvol = atof( token );
+	targetvol = atof( token.c_str() );
 
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: mu_fade <targetvol> <fadetime>" );
 	}
-	fadetime = atoi( token );
+	fadetime = atoi( token.c_str() );
 
 	trap_SendServerCommand( cs->entityNum, va( "mu_fade %f %i", targetvol, fadetime ) );
 
@@ -488,15 +494,16 @@ AICast_ScriptAction_MusicQueue
 ==================
 */
 qboolean AICast_ScriptAction_MusicQueue( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char cvarName[MAX_QPATH];
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_animation" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: mu_queue <musicfile>" );
 	}
-	Q_strncpyz( cvarName, token, sizeof( cvarName ) );
+	idStr::Copynz( cvarName, token.c_str(), sizeof( cvarName ) );
 
 	trap_SetConfigstring( CS_MUSIC_QUEUE, cvarName );
 
@@ -511,22 +518,23 @@ AICast_ScriptAction_AnimCondition
 ==================
 */
 qboolean AICast_ScriptAction_AnimCondition( cast_state_t *cs, char *params ) {
-	char *pString, *token;
+	idLexer lexer( LEXFL_ONLYSTRINGS | LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWDOLLARNAMES | LEXFL_NOSTRINGCONCAT | LEXFL_NOSTRINGESCAPECHARS );
+	idToken token;
 	char condition[MAX_QPATH];
 
-	pString = params;
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.LoadMemory( params ? params : "", params ? strlen( params ) : 0, "ai_script_actions_animation" );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: anim_condition <condition> <string>" );
 	}
-	Q_strncpyz( condition, token, sizeof( condition ) );
+	idStr::Copynz( condition, token.c_str(), sizeof( condition ) );
 	//
-	token = COM_ParseExt( &pString, qfalse );
+	lexer.ReadTokenOnLine( &token );
 	if ( !token[0] ) {
 		G_Error( "AI_Scripting: syntax: anim_condition <condition> <string>" );
 	}
 	//
-	BG_UpdateConditionValueStrings( cs->entityNum, condition, token );
+	BG_UpdateConditionValueStrings( cs->entityNum, condition, ( char * ) token.c_str() );
 	//
 	return qtrue;
 }
