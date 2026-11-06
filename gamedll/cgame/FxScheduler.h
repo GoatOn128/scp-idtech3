@@ -201,8 +201,8 @@ public:
 	int mCollisionMask = MASK_SHOT | CONTENTS_WATER;
 	float mSoftness = 8;
 	float mProjectionDepth = 8;
-	vec3_t mVelocityScale = { 1, 1, 1 };
-	vec3_t mSizeVelocity = { 0, 0, 0 };
+	idVec3 mVelocityScale = idVec3( 1, 1, 1 );
+	idVec3 mSizeVelocity = idVec3( 0, 0, 0 );
 	float mCountSpacing = 0;
 	std::map<std::string, FxControllerProperty> mProperties;
     int mRepeat = 0;
@@ -219,8 +219,8 @@ public:
 	int				mFlags;			// These need to get passed on to the primitive
 	int				mSpawnFlags;	// These are only used to control spawning, but never get passed to prims.
 
-	vec3_t			mMin;
-	vec3_t			mMax;
+	idVec3			mMin;
+	idVec3			mMax;
 
 	CFxRange		mOrigin1X;
 	CFxRange		mOrigin1Y;
@@ -290,7 +290,7 @@ public:
 
 
 	// Lower level parsing utilities
-	bool ParseVector( const char *val, vec3_t min, vec3_t max );
+	bool ParseVector( const char *val, idVec3 &min, idVec3 &max );
 	bool ParseFloat( const char *val, float *min, float *max );
 	bool ParseGroupFlags( const char *val, int *flags );
 
@@ -414,8 +414,8 @@ private:
 		int		mStartTime;
 		int		mEntNum;		// entity origin for delayed attachments.
 		int		mClientID;		// FIXME: redundant??
-		vec3_t	mOrigin;
-		vec3_t	mAxis[3];
+		idVec3	mOrigin;
+		idVec3	mAxis[3];
 
 		bool operator <= (const int time) const 
 		{
@@ -442,7 +442,7 @@ private:
 	void	AddPrimitiveToEffect( SEffectTemplate *fx, CPrimitiveTemplate *prim );
 	int		ParseEffect( const char *file, CGPGroup *base );
 
-	void	CreateEffect( CPrimitiveTemplate *fx, vec3_t origin, vec3_t axis[3], int lateTime );
+	void	CreateEffect( CPrimitiveTemplate *fx, const idVec3 &origin, const idVec3 *axis, int lateTime );
 	void	CreateEffect( CPrimitiveTemplate *fx, int clientID, int lateTime );
 
 public:
@@ -454,13 +454,13 @@ public:
 
 
 	// Nasty overloaded madness
-	void	PlayEffect( int id, vec3_t org );							// uses a default up axis
-	void	PlayEffect( int id, vec3_t org, vec3_t fwd );				// builds arbitrary perp. right vector, does a cross product to define up
-	void	PlayEffect( int id, vec3_t origin, vec3_t axis[3], const int entNum=-1 );
-	void	PlayEffect( const char *file, vec3_t org );					// uses a default up axis
-	void	PlayEffect( const char *file, vec3_t org, vec3_t fwd );		// builds arbitrary perp. right vector, does a cross product to define up
-	void	PlayEffect( const char *file, vec3_t origin, 
-				vec3_t axis[3], const int entNum );
+	void	PlayEffect( int id, const idVec3 &org );						// uses a default up axis
+	void	PlayEffect( int id, const idVec3 &org, const idVec3 &fwd );		// builds arbitrary perp. right vector, does a cross product to define up
+	void	PlayEffect( int id, const idVec3 &origin, const idVec3 *axis, const int entNum=-1 );
+	void	PlayEffect( const char *file, const idVec3 &org );					// uses a default up axis
+	void	PlayEffect( const char *file, const idVec3 &org, const idVec3 &fwd );		// builds arbitrary perp. right vector, does a cross product to define up
+	void	PlayEffect( const char *file, const idVec3 &origin, 
+				const idVec3 *axis, const int entNum );
 
 	void	PlayEffect( const char *file, int clientID );
 
