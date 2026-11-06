@@ -31,7 +31,7 @@ void AICast_DBG_InitAIFuncs( void );
 void AICast_DBG_AddAIFunc( cast_state_t *cs, char *funcname );
 void AICast_DBG_ListAIFuncs( cast_state_t *cs, int numprint );
 void AICast_DebugFrame( cast_state_t *cs );
-void AICast_DBG_RouteTable_f( vec3_t org, char *param );
+void AICast_DBG_RouteTable_f( const idVec3 &org, char *param );
 void AICast_DBG_Spawn_f( gclient_t *client, char *cmd );
 void AICast_DBG_Cmd_f( int clientNum );
 

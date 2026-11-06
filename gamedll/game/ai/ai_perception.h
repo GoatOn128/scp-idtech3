@@ -29,10 +29,10 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 
 qboolean AICast_EntityVisible( cast_state_t *cs, int enemynum, qboolean directview );
 float AICast_GetWeaponSoundRange( int weapon );
-void AICast_ProcessBullet( gentity_t *attacker, vec3_t start, vec3_t end );
-void AICast_AudibleEvent( int srcnum, vec3_t pos, float range );
-qboolean AICast_InFieldOfVision( vec3_t viewangles, float fov, vec3_t angles );
-qboolean AICast_VisibleFromPos( vec3_t srcpos, int srcnum, vec3_t destpos, int destnum, qboolean updateVisPos );
+void AICast_ProcessBullet( gentity_t *attacker, const idVec3 &start, const idVec3 &end );
+void AICast_AudibleEvent( int srcnum, const idVec3 &pos, float range );
+qboolean AICast_InFieldOfVision( const idVec3 &viewangles, float fov, const idVec3 &angles );
+qboolean AICast_VisibleFromPos( const idVec3 &srcpos, int srcnum, const idVec3 &destpos, int destnum, qboolean updateVisPos );
 qboolean AICast_CheckVisibility( gentity_t *srcent, gentity_t *destent );
 void AICast_UpdateVisibility( gentity_t *srcent, gentity_t *destent, qboolean shareVis, qboolean directview );
 void AICast_UpdateNonVisibility( gentity_t *srcent, gentity_t *destent, qboolean directview );

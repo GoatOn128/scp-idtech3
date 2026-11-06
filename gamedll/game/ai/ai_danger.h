@@ -27,7 +27,7 @@ along with IceWolf. If not, see <http://www.gnu.org/licenses/>.
 
 #include "ai_actor.h"
 
-int AICast_SafeMissileFire( gentity_t *ent, int duration, int enemyNum, vec3_t enemyPos, int selfNum, vec3_t endPos );
+int AICast_SafeMissileFire( gentity_t *ent, int duration, int enemyNum, const idVec3 &enemyPos, int selfNum, const idVec3 &endPos );
 void AICast_CheckDangerousEntity( gentity_t *ent, int dangerFlags, float dangerDist, float tacticalLevel,
 								  float aggressionLevel, qboolean hurtFriendly );
 
