@@ -147,15 +147,14 @@ char *AIFunc_Idle( cast_state_t *cs ) {
 	if ( cs->lastEnemy >= 0 ) {
 		// we have been in a battle, so face our enemy in anticipation of their return
 		if ( ent->aiTeam != AITEAM_ALLIES ) {
-			vec3_t dir;
+			idVec3 dir;
 			//
-			//VectorSubtract( cs->perception.vislist[cs->lastEnemy].visible_pos, cs->clientState->origin, dir );
 			// hack, use their real angles, prevent them from looking dumb when the player returns
-			VectorSubtract( g_entities[cs->lastEnemy].s.pos.trBase, cs->clientState->origin, dir );
-			if ( VectorLength( dir ) < 1 ) {
+			dir = g_entities[cs->lastEnemy].s.pos.trBase - cs->clientState->origin;
+			if ( dir.Length() < 1 ) {
 				cs->ideal_viewangles[PITCH] = 0;
 			} else {
-				VectorNormalize( dir );
+				dir.Normalize();
 				vectoangles( dir, cs->ideal_viewangles );
 				cs->ideal_viewangles[PITCH] = AngleNormalize180( cs->ideal_viewangles[PITCH] ) * 0.5;
 			}
